@@ -110,7 +110,7 @@ const app = createApp({
         const wsPulse = ref(false);
         const wsStatus = ref(null);
         const bgColorMap = reactive({});
-        const settings = ref({ theme: 'light', refresh_interval: 5000, refreshPeriod: 5000, forceDataUpdate: false, defaultPanel: '', debug: false, font: 'Roboto', hideMenu: false, hideChat: false, menuBg: '', panelBg: '', usePanelImage: true, useHeaderImage: false, cardsOpacity: 56, menuOpacity: 84, dialogOpacity: 88, primaryColor: '#1976d2', lightThemeColor: '#ffffff', darkThemeColor: '#303030', iconSize: 0, titleSize: 0, subtitleSize: 0, widgetSize: 0 });
+        const settings = ref({ theme: 'light', refresh_interval: 5000, refreshPeriod: 5000, forceDataUpdate: false, defaultPanel: '', debug: false, font: 'Roboto', hideMenu: false, hideChat: false, menuBg: '', panelBg: '', usePanelImage: true, useHeaderImage: false, cardsOpacity: 44, menuOpacity: 16, dialogOpacity: 12, primaryColor: '#1976d2', lightThemeColor: '#ffffff', darkThemeColor: '#303030', iconSize: 0, titleSize: 0, subtitleSize: 0, widgetSize: 0 });
 
         const filteredDefs = computed(() =>
             widgetSearch.value
@@ -125,7 +125,23 @@ const app = createApp({
 
         function getWidgetFields(type, tab) {
             if (typeof W === 'undefined' || !W.fields) return [];
-            return W.fields.getFields(type, tab);
+            const common = W.fields._common[tab] || [];
+            const comp = getWidgetComponent(type);
+            const specific = (comp && comp.fields && comp.fields[tab]) || [];
+            const legacy = (W.fields.types[type] && W.fields.types[type][tab]) || [];
+            // Order: common → legacy (types) → specific (component)
+            // First occurrence wins dedup so types provide base, component adds extras
+            const all = [...common, ...legacy, ...specific];
+            const seen = new Set();
+            return all.filter(f => {
+                const key = f.key || f.type;
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            });
+        }
+        function getWidgetComponent(type) {
+            try { return app.component('widget-' + type); } catch(e) { return null; }
         }
         function getWidgetRows(type, tab) {
             const fields = getWidgetFields(type, tab);
@@ -169,36 +185,36 @@ const app = createApp({
 
         // ---- Column editing for table widget ----
         const columnIdx = ref(0);
-
-        function getColumns() {
-            try { return JSON.parse(editWidgetForm.value.columns || '[]'); }
+        const columnList = computed(() => {
+            try { return JSON.parse(editWidgetForm.value?.columns || '[]'); }
             catch { return []; }
-        }
+        });
+
         function setColumns(arr) {
             editWidgetForm.value.columns = JSON.stringify(arr);
         }
 
         function addColumn() {
-            const cols = getColumns();
+            const cols = columnList.value;
             cols.push({ info: '', data_name: '', align: 'start', width: '', sortable: true, separator: false, data_type: '', color_column: '' });
             setColumns(cols);
             columnIdx.value = cols.length - 1;
         }
         function removeColumn(idx) {
-            const cols = getColumns();
+            const cols = columnList.value;
             cols.splice(idx, 1);
             setColumns(cols);
             if (columnIdx.value >= cols.length) columnIdx.value = Math.max(0, cols.length - 1);
         }
         function moveColumnUp(idx) {
             if (idx <= 0) return;
-            const cols = getColumns();
+            const cols = columnList.value;
             [cols[idx - 1], cols[idx]] = [cols[idx], cols[idx - 1]];
             setColumns(cols);
             columnIdx.value = idx - 1;
         }
         function moveColumnDown(idx) {
-            const cols = getColumns();
+            const cols = columnList.value;
             if (idx >= cols.length - 1) return;
             [cols[idx], cols[idx + 1]] = [cols[idx + 1], cols[idx]];
             setColumns(cols);
@@ -392,9 +408,9 @@ const app = createApp({
 
         function addWidget(type) {
             const def = widgetDefs.find(d => d.type === type);
-            const typeDefaults = W.fields.defaults[type] || {};
-            // Build default values from all field definitions
-            const allFields = ['main', 'params', 'methods', 'advanced'].flatMap(tab => W.fields.getFields(type, tab));
+            const comp = getWidgetComponent(type);
+            const typeDefaults = (comp && comp.defaults) || W.fields.defaults[type] || {};
+            const allFields = ['main', 'params', 'methods', 'advanced'].flatMap(tab => getWidgetFields(type, tab));
             const fieldDefaults = {};
             allFields.forEach(f => {
                 if (f.key && f.default !== undefined) fieldDefaults[f.key] = f.default;
@@ -455,8 +471,12 @@ const app = createApp({
                 const res = await dpAPI('properties?object_id=' + encodeURIComponent(w.object_info));
                 infoProperties.value = res.items || [];
             }
-            const methodObj = getMethodObj(w.method);
-            if (methodObj) loadObjectMethods(methodObj);
+            // Load methods for all method-type fields
+            const methodParents = ['method', 'object_switch', 'object_on', 'object_off', 'object_color'];
+            methodParents.forEach(key => {
+                const obj = getMethodObj(w[key]);
+                if (obj) loadObjectMethods(obj);
+            });
             nextTick(updateWidgetTabSlider);
         }
 
@@ -560,8 +580,12 @@ const app = createApp({
             const res = await dpAPI('properties?object_id=' + encodeURIComponent(obj));
             infoProperties.value = res.items || [];
         });
-        watch(() => editWidgetForm.value?.method ? getMethodObj(editWidgetForm.value.method) : '', (obj) => {
-            if (obj) loadObjectMethods(obj);
+        // Load methods when any method parent (object_switch/on/off/color) changes
+        const methodParents = ['object_switch', 'object_on', 'object_off', 'object_color'];
+        methodParents.forEach(key => {
+            watch(() => editWidgetForm.value?.[key] ? getMethodObj(editWidgetForm.value[key]) : '', (obj) => {
+                if (obj) loadObjectMethods(obj);
+            });
         });
         watch(() => editWidgetForm.value?.bg_mode, async (mode) => {
             if (!editWidgetForm.value) return;
@@ -906,10 +930,12 @@ const app = createApp({
             root.style.setProperty('--on-theme-mid', isDark ? 'rgba(255,255,255,.7)' : 'rgba(30,41,59,.7)');
             root.style.setProperty('--on-theme-high', isDark ? 'rgba(255,255,255,.87)' : 'rgba(30,41,59,.87)');
 
-            // opacity
-            root.style.setProperty('--card-opacity', (s.cardsOpacity / 100) + '');
-            root.style.setProperty('--menu-opacity', (s.menuOpacity / 100) + '');
-            root.style.setProperty('--dialog-opacity', (s.dialogOpacity / 100) + '');
+            // transparency as background alpha (0 = fully transparent, 100 = fully opaque)
+            function hexToRgb(hex) { return parseInt(hex.slice(1,3), 16)+','+parseInt(hex.slice(3,5), 16)+','+parseInt(hex.slice(5,7), 16); }
+            root.style.setProperty('--theme-bg-rgb', hexToRgb(themeBg));
+            root.style.setProperty('--card-alpha', (s.cardsOpacity / 100) + '');
+            root.style.setProperty('--menu-alpha', (s.menuOpacity / 100) + '');
+            root.style.setProperty('--dialog-alpha', (s.dialogOpacity / 100) + '');
 
             // widget sizes
             root.style.setProperty('--widget-icon-size', (23 + s.iconSize * 0.2) + 'px');
@@ -1181,7 +1207,7 @@ const app = createApp({
             widgetTypeComponent, addWidget, getWidgetFields, getWidgetRows, fieldVisible, hasObjectProp, hasPropertyField,
             getMethodObj, getMethodName, setMethodField,
             editWidgetForm, widgetTab, widgetTabPos, editWidget, saveEditWidget, removeWidget,
-            columnIdx, getColumns, setColumns, addColumn, removeColumn, moveColumnUp, moveColumnDown, autoDetectColumns, columnFields,
+            columnIdx, columnList, setColumns, addColumn, removeColumn, moveColumnUp, moveColumnDown, autoDetectColumns, columnFields,
             draggingWidget, startDrag, onDrag, stopDrag,
             resizingWidget, startResize, onResize, stopResize,
             widgetMenuTarget, copyWidget, exportWidget,
@@ -1190,7 +1216,7 @@ const app = createApp({
             showAddPanel, editPanelData, panelForm, panelTab, panelTabPos, panelError, newPanelTitle, createPanel, editPanel, openPanelForm, deletePanel, deleteCurrentPanel, movePanel, showAbout, toggleField,
             showIconPicker, iconTarget, iconSearch, iconCategory, iconCategorySearch, iconPage, iconCategories, filteredIconCategories, filteredIcons, totalPages, paginatedIcons, openIconPicker, selectIcon, iconPicked,
             objects, iconProperties, infoProperties, widgetProperties, bgProperties, methodCache, loadObjects, loadIconProperties, loadInfoProperties, loadWidgetProperties, loadBgProperties, widgetBgStyle, fetchWidgetBgColors,
-            isAdmin, toggleEditMode, toggleWs, wsConnected, wsTooltip, wsStatus, wsPulse, wsBytesSent, wsBytesReceived, user, userMenuOpen, sidebarMini, toggleSidebar, expandedGroups, childPanels, toggleGroup, forceRefresh,
+            isAdmin, toggleEditMode, toggleWs, wsConnected, wsTooltip, wsStatus, wsPulse, wsBytesSent, wsBytesReceived, user, userMenuOpen, sidebarMini, toggleSidebar, expandedGroups, childPanels, toggleGroup, forceRefresh, formatBytes,
             showNotifications, notifications, unreadCount, checkNotifications, markNotificationsRead,
             chatOpen, chatMessages, chatText, chatLoading, loadChat, sendChat, toggleChat, formatTime
         };

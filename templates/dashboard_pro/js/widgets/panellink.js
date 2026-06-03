@@ -1,5 +1,13 @@
 const PanelLinkWidget = {
     props: ['widget'],
+    fields: {
+        params: [
+            { key: 'panel', label: 'Панель', type: 'panel_select' },
+            { key: 'icon', label: 'Своя иконка', type: 'text', placeholder: 'fas fa-link' },
+            { key: 'image', label: 'Своё изображение', type: 'text', placeholder: 'URL' },
+        ],
+    },
+    defaults: { icon: 'fas fa-link', panel: '', image: '' },
     template: `
         <div class="widget-v-card" :style="cardStyle" style="cursor:pointer" @click="goToPanel">
             <div v-if="panelImage" style="height:60%;overflow:hidden">

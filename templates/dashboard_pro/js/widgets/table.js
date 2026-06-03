@@ -1,5 +1,26 @@
 const TableWidget = {
     props: ['widget'],
+    fields: {
+        main: [
+            { key: 'url', label: 'URL (JSON)', type: 'text', placeholder: 'https://api.example.com/data' },
+            { key: 'query', label: 'Запрос', type: 'textarea', rows: 5, placeholder: 'SQL-запрос или JSONPath' },
+        ],
+        columns: [
+            { key: 'info', label: 'Информация', type: 'text' },
+            { key: 'data_name', label: 'Имя колонки с данными', type: 'text' },
+            { key: 'align', label: 'Выравнивание', type: 'select', options: [
+                { value: 'start', title: 'Left' },
+                { value: 'center', title: 'Center' },
+                { value: 'end', title: 'Right' },
+            ]},
+            { key: 'width', label: 'Ширина', type: 'text' },
+            { key: 'sortable', label: 'Разрешить сортировку', type: 'checkbox' },
+            { key: 'separator', label: 'Разделитель', type: 'checkbox' },
+            { key: 'data_type', label: 'Тип данных', type: 'select', options: [] },
+            { key: 'color_column', label: 'Имя колонки с цветом', type: 'text' },
+        ],
+    },
+    defaults: { icon: 'fas fa-table', url: '', query: '', refresh: 60, columns: '[]' },
     template: `
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header">

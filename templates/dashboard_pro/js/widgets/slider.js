@@ -1,5 +1,15 @@
 const SliderWidget = {
     props: ['widget'],
+    fields: {
+        params: [
+            { key: 'min', label: 'Мин', type: 'number', row: 'range' },
+            { key: 'max', label: 'Макс', type: 'number', row: 'range' },
+            { key: 'step', label: 'Шаг', type: 'number', step: 'any', row: 'range' },
+            { key: 'prepend_icon', label: 'Иконка слева', type: 'icon_picker', placeholder: 'fas fa-minus', row: 'icons' },
+            { key: 'append_icon', label: 'Иконка справа', type: 'icon_picker', placeholder: 'fas fa-plus', row: 'icons' },
+        ],
+    },
+    defaults: { icon: 'fas fa-sliders-h', property: 'level', min: 0, max: 100, step: 1, prepend_icon: '', append_icon: '' },
     template: `
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header">

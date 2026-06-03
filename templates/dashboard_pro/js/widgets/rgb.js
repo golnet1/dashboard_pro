@@ -1,5 +1,11 @@
 const RGBWidget = {
     props: ['widget'],
+    fields: {
+        params: [
+            { key: 'object_color', label: 'Объект цвета', type: 'object' },
+        ],
+    },
+    defaults: { icon: 'fas fa-palette', property: 'status', background: false, round: false },
     template: `
         <div class="widget-v-card" :class="{ 'widget-v-card--on': isOn }" :style="cardStyle">
             <div class="widget-v-card__header">

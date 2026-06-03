@@ -1,5 +1,12 @@
 const SlideShowWidget = {
     props: ['widget'],
+    fields: {
+        params: [
+            { key: 'images', label: 'Изображения (JSON или через запятую)', type: 'textarea', rows: 2, placeholder: 'url1.jpg, url2.jpg, url3.jpg' },
+            { key: 'interval', label: 'Интервал (сек)', type: 'number', default: 5 },
+        ],
+    },
+    defaults: { icon: 'fas fa-images', images: '', interval: 5 },
     template: `
         <div class="widget-v-card" :style="'overflow:hidden;position:relative;' + cardStyleStr" style="display:flex;align-items:center;justify-content:center">
             <img v-if="currentImage" :src="currentImage" style="width:100%;height:100%;object-fit:cover;transition:opacity .5s" :style="'opacity:' + (loaded ? 1 : 0)">

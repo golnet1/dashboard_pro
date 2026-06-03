@@ -1,5 +1,16 @@
 const SliderButtonsWidget = {
     props: ['widget'],
+    fields: {
+        params: [
+            { key: 'object', label: 'Объект', type: 'object' },
+            { key: 'property', label: 'Свойство', type: 'text', placeholder: 'level' },
+            { key: 'min', label: 'Мин', type: 'number', default: 0, row: 'range' },
+            { key: 'max', label: 'Макс', type: 'number', default: 100, row: 'range' },
+            { key: 'step', label: 'Шаг', type: 'number', default: 1, row: 'range' },
+            { key: 'unit', label: 'Единица', type: 'text', placeholder: '%' },
+        ],
+    },
+    defaults: { icon: 'fas fa-plus-minus', property: 'level', min: 0, max: 100, step: 1, unit: '' },
     template: `
         <div class="widget-v-card" :style="cardStyle" style="display:flex;flex-direction:column">
             <div class="widget-v-card__header">

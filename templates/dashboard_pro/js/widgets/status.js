@@ -1,5 +1,12 @@
 const StatusWidget = {
     props: ['widget'],
+    fields: {
+        params: [
+            { key: 'object_status', label: 'Объект статуса', type: 'object' },
+            { key: 'statuses', label: 'Статусы (JSON)', type: 'textarea', rows: 3, placeholder: '[{"status":"0","title":"Выкл","icon":"fas fa-power-off","color":"#ef4444"},{"status":"1","title":"Вкл","icon":"fas fa-check","color":"#22c55e"}]' },
+        ],
+    },
+    defaults: { icon: 'fas fa-info-circle', statuses: JSON.stringify([{status:'0',title:'Выкл',icon:'fas fa-power-off',color:'#ef4444'},{status:'1',title:'Вкл',icon:'fas fa-check',color:'#22c55e'}]) },
     template: `
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header">

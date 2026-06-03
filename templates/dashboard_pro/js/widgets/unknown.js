@@ -1,5 +1,6 @@
 const UnknownWidget = {
     props: ['widget'],
+    defaults: { icon: 'fas fa-question-circle' },
     template: `
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header">

@@ -1,5 +1,11 @@
 const ValueWidget = {
     props: ['widget'],
+    fields: {
+        params: [
+            { key: 'aliasLabels', label: 'Псевдонимы (JSON)', type: 'text', placeholder: '{"1":"Вкл","0":"Выкл"}' },
+        ],
+    },
+    defaults: { icon: 'fas fa-hashtag', aliasLabels: null, background: false, round: false },
     template: `
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header">

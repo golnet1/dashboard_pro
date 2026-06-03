@@ -1,5 +1,12 @@
 const MapWidget = {
     props: ['widget'],
+    fields: {
+        params: [
+            { key: 'lat', label: 'Широта', type: 'text', placeholder: '55.75', row: 'coord' },
+            { key: 'lon', label: 'Долгота', type: 'text', placeholder: '37.62', row: 'coord' },
+        ],
+    },
+    defaults: { icon: 'fas fa-map-marker-alt', lat: '', lon: '' },
     template: `
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header">

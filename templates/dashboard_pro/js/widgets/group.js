@@ -1,5 +1,11 @@
 const GroupWidget = {
     props: ['widget'],
+    fields: {
+        params: [
+            { key: 'group_id', label: 'ID группы', type: 'text' },
+        ],
+    },
+    defaults: { icon: 'fas fa-layer-group', group_id: '' },
     template: `
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header">

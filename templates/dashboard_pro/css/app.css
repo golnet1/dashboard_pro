@@ -41,7 +41,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 @keyframes ws-pulse { 0% { background: rgba(255,255,255,.3); } 100% { background: transparent; } }
 .app-bar__status { margin-left: .5rem; font-size: .85rem; opacity: .7; }
 
-.sidebar { width: var(--sidebar-width); background: var(--theme-bg); color: var(--on-theme); display: flex; flex-direction: column; flex-shrink: 0; height: 100vh; position: fixed; left: 0; top: 0; z-index: 90; transition: width .25s ease, transform .25s ease; opacity: var(--menu-opacity); }
+.sidebar { width: var(--sidebar-width); background: rgba(var(--theme-bg-rgb), var(--menu-alpha, 1)); color: var(--on-theme); display: flex; flex-direction: column; flex-shrink: 0; height: 100vh; position: fixed; left: 0; top: 0; z-index: 90; transition: width .25s ease, transform .25s ease; }
 .sidebar-overlay { display: none; }
 
 @media (max-width: 768px) {
@@ -116,7 +116,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .home-panels__header { margin-bottom: 1.5rem; }
 .home-panels__header h2 { font-size: 1.1rem; font-weight: 600; display: flex; align-items: center; gap: .5rem; color: var(--text); }
 .home-panels__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1rem; }
-.home-panel-card { position: relative; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem 1rem; text-align: center; cursor: pointer; transition: box-shadow .2s, transform .15s; opacity: var(--card-opacity); }
+.home-panel-card { position: relative; background: rgba(var(--theme-bg-rgb), var(--card-alpha, 1)); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem 1rem; text-align: center; cursor: pointer; transition: box-shadow .2s, transform .15s; }
 .home-panel-card__actions { position: absolute; top: 6px; right: 6px; display: flex; gap: 2px; }
 .home-panel-card__actions button { border: none; background: rgba(0,0,0,.06); cursor: pointer; padding: 4px 6px; border-radius: 4px; color: var(--text-secondary); font-size: .75rem; }
 .home-panel-card__actions button:hover { background: rgba(0,0,0,.12); color: var(--text); }
@@ -313,7 +313,7 @@ select.form-control { appearance: auto; }
 /* Dialog overlay */
 .v-dialog__content { display: flex; align-items: center; justify-content: center; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 200; }
 .v-dialog__content--active { }
-.v-dialog { margin: 24px; display: flex; flex-direction: column; border-radius: 4px; box-shadow: 0 11px 15px -7px rgba(0,0,0,.2), 0 24px 38px 3px rgba(0,0,0,.14), 0 9px 46px 8px rgba(0,0,0,.12); max-height: 90vh; opacity:var(--dialog-opacity); }
+.v-dialog { margin: 24px; display: flex; flex-direction: column; border-radius: 4px; box-shadow: 0 11px 15px -7px rgba(0,0,0,.2), 0 24px 38px 3px rgba(0,0,0,.14), 0 9px 46px 8px rgba(0,0,0,.12); max-height: 90vh; }
 .v-dialog--active { }
 .v-dialog--persistent { }
 .v-dialog--scrollable > .v-card { overflow-y: auto; max-height: 70vh; }
@@ -453,7 +453,7 @@ select.form-control { appearance: auto; }
 .text-caption { font-size: .75rem; font-weight: 400; letter-spacing: .0333333333em; line-height: 1.25rem; color: rgba(255,255,255,.5); }
 
 /* Widget Card component */
-.widget-v-card { display:flex; flex-direction:column; height:100%; width:100%; background:var(--theme-bg); overflow:hidden; position:relative; transition:background .2s, box-shadow .2s; opacity:var(--card-opacity); }
+.widget-v-card { display:flex; flex-direction:column; height:100%; width:100%; background:rgba(var(--theme-bg-rgb), var(--card-alpha, 1)); overflow:hidden; position:relative; transition:background .2s, box-shadow .2s; }
 .widget-v-card--on { background:rgba(25,118,210,.15); }
 .widget-v-card__header { display:flex; align-items:center; gap:8px; padding:10px 12px 4px; min-height:40px; }
 .widget-v-card__icon { font-size:var(--widget-icon-size, 23px); color:var(--on-theme-mid); text-align:center; flex-shrink:0; }
@@ -575,6 +575,14 @@ select.form-control { appearance: auto; }
 .v-dialog--scrollable.v-dialog--active .v-card__text::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15) !important; border-radius: 3px !important; }
 .v-dialog--scrollable.v-dialog--active .v-card::-webkit-scrollbar-thumb:hover,
 .v-dialog--scrollable.v-dialog--active .v-card__text::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.25) !important; }
+
+/* Full-width form controls in settings and dialogs */
+.settings-page .v-select,
+.settings-page .v-text-field,
+.v-list-item > .v-select,
+.v-list-item > .v-text-field { width:100%; }
+.v-list-item-content .v-select,
+.v-list-item-content .v-text-field { width:100%; }
 
 /* Settings page styles */
 .settings-page { width:100%; }

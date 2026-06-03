@@ -1,5 +1,6 @@
 const TimePickerWidget = {
     props: ['widget'],
+    defaults: { icon: 'fas fa-clock' },
     template: `
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header">

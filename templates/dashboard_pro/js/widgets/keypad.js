@@ -1,5 +1,12 @@
 const KeypadWidget = {
     props: ['widget'],
+    fields: {
+        params: [
+            { key: 'object', label: 'Объект для отправки', type: 'object' },
+            { key: 'property', label: 'Свойство', type: 'text', placeholder: 'value' },
+        ],
+    },
+    defaults: { icon: 'fas fa-th', property: 'value' },
     template: `
         <div class="widget-v-card" :style="cardStyle" style="display:flex;flex-direction:column">
             <div class="widget-v-card__header">

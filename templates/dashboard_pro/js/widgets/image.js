@@ -1,5 +1,13 @@
 const ImageWidget = {
     props: ['widget'],
+    fields: {
+        params: [
+            { key: 'url', label: 'URL изображения', type: 'text', placeholder: 'https://example.com/image.jpg' },
+            { key: 'help', type: 'info', text: 'Можно использовать {value} в URL — подставится значение объекта' },
+            { key: 'timeout', label: 'Обновление (сек)', type: 'number', default: 0, placeholder: '0 — без обновления' },
+        ],
+    },
+    defaults: { icon: 'fas fa-image', url: '', timeout: 0 },
     template: `
         <div class="widget-v-card" :style="cardStyle" style="padding:0;overflow:hidden">
             <div v-if="loading" style="display:flex;align-items:center;justify-content:center;height:100%">

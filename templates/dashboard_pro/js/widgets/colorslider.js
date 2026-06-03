@@ -1,5 +1,11 @@
 const ColorSliderWidget = {
     props: ['widget'],
+    fields: {
+        params: [
+            { key: 'object', label: 'Объект цвета', type: 'object' },
+        ],
+    },
+    defaults: { icon: 'fas fa-palette' },
     template: `
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header">

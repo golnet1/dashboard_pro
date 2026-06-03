@@ -1,5 +1,6 @@
 const RelayWidget = {
     props: ['widget'],
+    defaults: { icon: 'fas fa-power-off', background: false, round: false },
     template: `
         <div class="widget-v-card" :class="{ 'widget-v-card--on': isOn }" :style="cardStyle">
             <div class="widget-v-card__header">

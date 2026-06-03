@@ -1,5 +1,12 @@
 const RoomInfoWidget = {
     props: ['widget'],
+    fields: {
+        params: [
+            { key: 'help', type: 'info', text: 'Укажите датчики в формате JSON: [{"object":"obj1","label":"Темп.","icon":"fas fa-thermometer-half","suffix":"°C"},{"object":"obj2","label":"Влажность","icon":"fas fa-tint","suffix":"%"}]' },
+            { key: 'sensors', label: 'Датчики (JSON)', type: 'textarea', rows: 4 },
+        ],
+    },
+    defaults: { icon: 'fas fa-home', sensors: JSON.stringify([{object:'',label:'',icon:'',suffix:''}]) },
     template: `
         <div class="widget-v-card" :style="cardStyle" style="display:flex;flex-direction:column">
             <div class="widget-v-card__header">

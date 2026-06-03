@@ -1,5 +1,15 @@
 const ThermostatWidget = {
     props: ['widget'],
+    fields: {
+        params: [
+            { key: 'object_current', label: 'Объект текущей температуры', type: 'object' },
+            { key: 'object_target', label: 'Объект целевой температуры', type: 'object' },
+            { key: 'object_status', label: 'Объект статуса', type: 'object' },
+            { key: 'min', label: 'Мин', type: 'number', default: 5, row: 'range' },
+            { key: 'max', label: 'Макс', type: 'number', default: 35, row: 'range' },
+        ],
+    },
+    defaults: { icon: 'fas fa-thermometer-half', min: 5, max: 35 },
     template: `
         <div class="widget-v-card" :style="cardStyle" style="display:flex;flex-direction:column">
             <div class="widget-v-card__header">

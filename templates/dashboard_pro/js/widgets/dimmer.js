@@ -1,5 +1,14 @@
 const DimmerWidget = {
     props: ['widget'],
+    fields: {
+        params: [
+            { key: 'help', type: 'info', text: 'Параметры уровня яркости' },
+            { key: 'level_min', label: 'Мин', type: 'number', row: 'range' },
+            { key: 'level_max', label: 'Макс', type: 'number', row: 'range' },
+            { key: 'level_step', label: 'Шаг', type: 'number', row: 'range' },
+        ],
+    },
+    defaults: { icon: 'fas fa-lightbulb', property: 'level', level_min: 0, level_max: 100, level_step: 1, background: false, round: false },
     template: `
         <div class="widget-v-card" :class="{ 'widget-v-card--on': isOn }" :style="cardStyle">
             <div class="widget-v-card__header">

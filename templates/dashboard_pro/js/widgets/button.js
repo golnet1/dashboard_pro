@@ -1,5 +1,15 @@
 const ButtonWidget = {
     props: ['widget'],
+    fields: {
+        params: [
+            { key: 'buttonText', label: 'Текст кнопки', type: 'text', default: 'Выполнить' },
+            { key: 'value', label: 'Значение', type: 'text', default: '1' },
+            { key: 'method', label: 'Метод', type: 'text', placeholder: 'method_name' },
+            { key: 'command', label: 'Команда', type: 'text', placeholder: 'Команда (если есть)' },
+            { key: 'hold', label: 'Удержание (сек)', type: 'number', default: 1 },
+        ],
+    },
+    defaults: { icon: 'fas fa-play', buttonText: 'Выполнить', hold: 1, value: '1', command: '', method: '' },
     template: `
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header">

@@ -1,5 +1,12 @@
 const SelectWidget = {
     props: ['widget'],
+    fields: {
+        params: [
+            { key: 'help', type: 'info', text: 'Формат: [{"label":"...", "value":"...", "icon":"..."}]' },
+            { key: 'options', label: 'Варианты (JSON)', type: 'textarea', rows: 4, placeholder: '[{"label":"Вкл","value":"1","icon":"fas fa-check"}]' },
+        ],
+    },
+    defaults: { icon: 'fas fa-list', options: JSON.stringify([{label:'Вкл',value:'1'},{label:'Выкл',value:'0'}]) },
     template: `
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header">

@@ -1,5 +1,15 @@
 const WeatherWidget = {
     props: ['widget'],
+    fields: {
+        params: [
+            { key: 'api_key', label: 'API Key (OpenWeatherMap)', type: 'text' },
+            { key: 'city_id', label: 'City ID', type: 'text', placeholder: 'ID города' },
+            { key: 'lat', label: 'Широта', type: 'text', placeholder: '55.75', row: 'coord' },
+            { key: 'lon', label: 'Долгота', type: 'text', placeholder: '37.62', row: 'coord' },
+            { key: 'help', type: 'info', text: 'Укажите API Key и City ID, или координаты' },
+        ],
+    },
+    defaults: { icon: 'fas fa-cloud-sun', api_key: '', city_id: '', lat: '', lon: '' },
     template: `
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header">

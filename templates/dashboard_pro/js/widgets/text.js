@@ -1,5 +1,12 @@
 const TextWidget = {
     props: ['widget'],
+    fields: {
+        params: [
+            { key: 'help', type: 'info', text: 'Если указан объект — отображается его значение, иначе статический текст' },
+            { key: 'text', label: 'Статический текст', type: 'textarea', rows: 3 },
+        ],
+    },
+    defaults: { icon: 'fas fa-font', text: '' },
     template: `
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header">

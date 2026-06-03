@@ -1,5 +1,15 @@
 const GaugeWidget = {
     props: ['widget'],
+    fields: {
+        params: [
+            { key: 'minValue', label: 'Мин', type: 'number', row: 'range' },
+            { key: 'maxValue', label: 'Макс', type: 'number', row: 'range' },
+            { key: 'round', label: 'Округление', type: 'number', placeholder: '0' },
+            { key: 'doughnut', label: 'Пончик (кольцо)', type: 'checkbox' },
+            { key: 'colors', label: 'Цвета градиента (JSON)', type: 'textarea', rows: 2, placeholder: '[{"color":"#a9d70b"},{"color":"#f9c802"},{"color":"#ff0000"}]' },
+        ],
+    },
+    defaults: { icon: 'fas fa-gauge-high', minValue: 0, maxValue: 100, round: 0, doughnut: false, colors: JSON.stringify([{color:'#a9d70b'},{color:'#f9c802'},{color:'#ff0000'}]) },
     template: `
         <div class="widget-v-card" :style="cardStyle" style="display:flex;flex-direction:column;align-items:center;justify-content:center">
             <svg viewBox="0 0 120 120" style="width:80%;max-width:200px;flex:1">

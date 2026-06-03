@@ -1,5 +1,15 @@
 const ProgressBarWidget = {
     props: ['widget'],
+    fields: {
+        params: [
+            { key: 'level_min', label: 'Мин', type: 'number', row: 'range' },
+            { key: 'level_max', label: 'Макс', type: 'number', row: 'range' },
+            { key: 'striped', label: 'Полосатый', type: 'checkbox' },
+            { key: 'rounded', label: 'Скруглённый', type: 'checkbox' },
+            { key: 'color_progress', label: 'Цвет прогресса', type: 'text', default: 'primary', placeholder: 'primary / #ff0000' },
+        ],
+    },
+    defaults: { icon: 'fas fa-chart-bar', level_min: 0, level_max: 100, striped: false, rounded: false, color_progress: 'primary' },
     template: `
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header" v-if="widget.title || widget.icon">

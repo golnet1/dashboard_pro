@@ -1,5 +1,11 @@
 const IFrameWidget = {
     props: ['widget'],
+    fields: {
+        params: [
+            { key: 'url', label: 'URL', type: 'text', placeholder: 'https://example.com' },
+        ],
+    },
+    defaults: { icon: 'fas fa-window-maximize', url: '' },
     template: `
         <div class="widget-v-card" :style="cardStyle" style="padding:0;overflow:hidden">
             <iframe v-if="widget.url" :src="widget.url" style="width:100%;height:100%;border:none" allowfullscreen></iframe>

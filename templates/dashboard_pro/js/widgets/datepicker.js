@@ -1,5 +1,6 @@
 const DatePickerWidget = {
     props: ['widget'],
+    defaults: { icon: 'fas fa-calendar-alt' },
     template: `
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header">

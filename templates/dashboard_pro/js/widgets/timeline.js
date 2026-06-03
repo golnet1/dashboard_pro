@@ -1,5 +1,11 @@
 const TimelineWidget = {
     props: ['widget'],
+    fields: {
+        params: [
+            { key: 'url', label: 'URL (JSON)', type: 'text', placeholder: 'https://api.example.com/events' },
+        ],
+    },
+    defaults: { icon: 'fas fa-stream', url: '' },
     template: `
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header">

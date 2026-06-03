@@ -1,5 +1,12 @@
 const SendTextWidget = {
     props: ['widget'],
+    fields: {
+        params: [
+            { key: 'url', label: 'URL (используйте {text})', type: 'text', placeholder: '/command.php?qry=<text>' },
+            { key: 'autosend', label: 'Отправлять после голоса', type: 'checkbox' },
+        ],
+    },
+    defaults: { icon: 'fas fa-paper-plane', url: '', autosend: false },
     template: `
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header">

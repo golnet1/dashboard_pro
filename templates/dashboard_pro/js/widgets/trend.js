@@ -1,5 +1,14 @@
 const TrendWidget = {
     props: ['widget'],
+    fields: {
+        params: [
+            { key: 'object', label: 'Объект', type: 'object' },
+            { key: 'property', label: 'Свойство', type: 'text', placeholder: 'value' },
+            { key: 'interval', label: 'Интервал обновления (сек)', type: 'number', default: 30 },
+            { key: 'round', label: 'Округление', type: 'number', placeholder: '1' },
+        ],
+    },
+    defaults: { icon: 'fas fa-chart-line', property: 'value', interval: 30, round: 1 },
     template: `
         <div class="widget-v-card" :style="cardStyle" style="display:flex;flex-direction:column">
             <div class="widget-v-card__header">

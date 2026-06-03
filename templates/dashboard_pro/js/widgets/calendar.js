@@ -1,5 +1,6 @@
 const CalendarWidget = {
     props: ['widget'],
+    defaults: { icon: 'fas fa-calendar-alt' },
     template: `
         <div class="widget-v-card" :style="cardStyle" style="display:flex;flex-direction:column">
             <div class="widget-v-card__header">

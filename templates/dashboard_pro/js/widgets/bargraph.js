@@ -1,5 +1,11 @@
 const BarGraphWidget = {
     props: ['widget'],
+    fields: {
+        params: [
+            { key: 'days', label: 'Дней истории', type: 'number', default: 1 },
+        ],
+    },
+    defaults: { icon: 'fas fa-chart-bar', days: 1 },
     template: `
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header">
