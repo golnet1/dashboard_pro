@@ -1,0 +1,1622 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Pro</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/app.css?v=18">
+    <script src="js/lib/vue.global.prod.js"></script>
+</head>
+<body>
+    <div id="app">
+        <div class="loading" v-if="authChecking">
+            <i class="fas fa-spinner fa-spin"></i><br><br>Загрузка...
+        </div>
+
+        <div class="login-overlay" v-else-if="!authenticated">
+            <div class="login-card">
+                <div class="login-logo">
+                    <i class="fas fa-chart-line"></i>
+                    <h1>Dashboard Pro</h1>
+                    <p>Войдите в систему</p>
+                </div>
+                    <div class="login-field">
+                        <label>Логин</label>
+                        <div class="input-wrap">
+                            <i class="fas fa-user"></i>
+                            <input v-model="login" placeholder="Ваш логин" @keyup.enter="doLogin">
+                        </div>
+                    </div>
+                    <div class="login-field">
+                        <label>Пароль</label>
+                        <div class="input-wrap">
+                            <i class="fas fa-lock"></i>
+                            <input v-model="password" type="password" placeholder="Ваш пароль" @keyup.enter="doLogin">
+                        </div>
+                    </div>
+                    <button class="login-btn" @click="doLogin" :disabled="loginLoading">
+                        <i class="fas fa-spinner fa-spin" v-if="loginLoading"></i>
+                        <span v-else>Вход</span>
+                    </button>
+                    <div class="login-error" v-if="loginError">
+                        <i class="fas fa-exclamation-circle"></i> {{ loginError }}
+                    </div>
+                    <div style="text-align:center;margin-top:1rem">
+                        <a href="#" @click.prevent="testAPI" style="color:#64748b;font-size:.8rem;text-decoration:none">Проверить соединение</a>
+                    </div>
+        </div>
+    </div>
+
+        <!-- ===== Main Dashboard (authenticated) ===== -->
+        <template v-else>
+            <div class="loading" v-if="loading">
+                <i class="fas fa-spinner fa-spin"></i><br><br>Загрузка...
+            </div>
+            <template v-else>
+                <header class="app-bar" :class="{ 'app-bar--mini': sidebarMini }">
+                    <button class="app-bar__menu" @click="toggleSidebar">
+                        <i class="fas fa-bars"></i>
+                        <span class="app-bar__menu-tooltip">{{ sidebarMini ? 'Показать панель' : 'Скрыть панель' }}</span>
+                    </button>
+                    <span class="app-bar__title">{{ showSettingsPanel ? 'Настройки' : (currentPanel?.title || 'Начальная панель') }}</span>
+                    <div class="app-bar__spacer"></div>
+                    <div class="app-bar__actions">
+                        <button @click="forceRefresh" :title="wsTooltip" :class="{ 'ws-offline': !wsConnected, 'ws-pulse': wsPulse }">
+                            <i class="fas fa-satellite-dish"></i>
+                        </button>
+                        <div style="position:relative" data-notif>
+                            <button @click="showNotifications = !showNotifications; if(showNotifications) checkNotifications()" title="Уведомления">
+                                <i class="fas fa-bell"></i>
+                                <span class="notif-badge" v-if="unreadCount">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
+                            </button>
+                            <div class="notif-dropdown" v-if="showNotifications" @click.stop>
+                                <div class="notif-dropdown__item notif-dropdown__mark" @click="markNotificationsRead" v-if="notifications.length">
+                                    Пометить как прочитанное <i class="fas fa-flag ml-2"></i>
+                                </div>
+                                <hr class="notif-dropdown__divider" v-if="notifications.length">
+                                <div class="notif-dropdown__list">
+                                    <div v-if="!notifications.length" class="notif-dropdown__empty">Нет новых уведомлений</div>
+                                    <template v-for="n in notifications" :key="n.ID">
+                                        <div class="notif-dropdown__item notif-dropdown__msg-item">
+                                            <div class="notif-dropdown__avatar">
+                                                <img src="/cms/avatars/Alice.jpg">
+                                            </div>
+                                            <div class="notif-dropdown__body">
+                                                <div class="notif-dropdown__title">{{ n.MESSAGE }}</div>
+                                                <div class="notif-dropdown__subtitle">{{ n.MODULE_NAME }}</div>
+                                            </div>
+                                            <div class="notif-dropdown__meta">
+                                                <i class="fas fa-bell" :style="{ color: n.TYPE === 'danger' ? '#f44336' : n.TYPE === 'warning' ? '#ff9800' : '#4caf50' }"></i>
+                                                <span class="notif-dropdown__time">{{ n.ADDED ? n.ADDED.slice(11, 16) : '' }}</span>
+                                            </div>
+                                        </div>
+                                        <hr class="notif-dropdown__divider">
+                                    </template>
+                                </div>
+                                <div class="notif-dropdown__item notif-dropdown__show-all" @click="markNotificationsRead" v-if="notifications.length">
+                                    Показать все
+                                </div>
+                            </div>
+                        </div>
+                        <button v-if="isAdmin" @click="toggleTheme" :title="settings.theme === 'dark' ? 'Светлая тема' : 'Темная тема'"><i :class="settings.theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon'"></i></button>
+                        <button v-if="isAdmin" @click="toggleEditMode" :title="editMode ? 'Сохранить' : 'Режим правки'" :class="{ active: editMode }"><i :class="editMode ? 'fas fa-save' : 'fas fa-pen'"></i></button>
+                        <button v-if="isAdmin && editMode" @click="addPlusButton" :title="plusTooltip"><i class="fas fa-plus"></i></button>
+                        <div style="position:relative">
+                            <button class="user-avatar-btn" @click.stop="userMenuOpen = !userMenuOpen" title="Пользователь">
+                                <img v-if="user.avatar" :src="user.avatar" class="user-avatar-img">
+                                <i v-else class="fas fa-user-circle"></i>
+                            </button>
+                            <div class="user-menu" v-if="userMenuOpen" @click.stop>
+                                <div class="user-menu__header">
+                                    <img v-if="user.avatar" :src="user.avatar" class="user-menu__avatar">
+                                    <i v-else class="fas fa-user-circle user-menu__avatar-icon"></i>
+                                    <div>
+                                        <div class="user-menu__name">{{ user.name || user.username }}</div>
+                                        <div class="user-menu__login">{{ user.username }}</div>
+                                    </div>
+                                </div>
+                                <div class="user-menu__info">
+                                    <i class="fas fa-shield-alt"></i>
+                                    {{ user.is_admin ? 'Администратор' : 'Пользователь' }}
+                                </div>
+                                <div class="user-menu__divider"></div>
+                                <div class="user-menu__item" v-if="isAdmin" @click="userMenuOpen = false; showSettingsPanel = true">
+                                    <i class="fas fa-cog"></i> Настройки
+                                </div>
+                                <div class="user-menu__item" @click="userMenuOpen = false; showAbout = true">
+                                    <i class="fas fa-info-circle"></i> О программе
+                                </div>
+                                <div class="user-menu__divider"></div>
+                                <div class="user-menu__item user-menu__item--danger" @click="doLogout">
+                                    <i class="fas fa-sign-out-alt"></i> Выход
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+                <aside class="sidebar" :class="{ 'sidebar--open': sidebarOpen, 'sidebar--mini': sidebarMini }">
+                    <div class="sidebar__prepend">
+                        <div class="sidebar-brand" :class="{ active: !currentPanel }" @click="selectHomePanel();sidebarOpen=false">
+                            <div class="sidebar-brand__icon">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <div class="sidebar-brand__text">
+                                <span class="sidebar-brand__title">Dashboard Pro</span>
+                            </div>
+                        </div>
+                        <hr class="sidebar-divider">
+                    </div>
+                    <nav class="sidebar-nav">
+                        <template v-for="p in panels" :key="p.name">
+                            <div v-if="p.panelType === 'group' && !p.hideNav" class="panel-item panel-group" :class="{ active: currentPanel?.name === p.name, 'panel-item--bg': p.background, 'panel-item--circle': p.circle }" @click="toggleGroup(p.name)">
+                                <span class="panel-item__iconwrap"><div v-if="p.image" class="panel-item__img" :style="{ backgroundImage: 'url(' + p.image + ')' }"></div><i v-else :class="p.icon || 'fas fa-folder'"></i><span class="panel-item__badge"></span></span>
+                                <span class="panel-item__title">{{ p.title }}</span>
+                                <button v-if="editMode" @click.stop="editPanel(p)" class="panel-item__edit" title="Редактировать панель"><i class="fas fa-pen"></i></button>
+                                <i v-if="!sidebarMini" class="panel-group__chevron fas fa-chevron-down" :class="{ rotated: expandedGroups[p.name] }"></i>
+                            </div>
+                            <div v-for="child in (p.panelType === 'group' && expandedGroups[p.name] ? childPanels(panels, p.name).filter(c => !c.hideNav) : [])" :key="child.name" class="panel-item panel-child" :class="{ active: currentPanel?.name === child.name, 'panel-item--bg': child.background, 'panel-item--circle': child.circle }" @click="selectPanel(child);sidebarOpen=false">
+                                <div v-if="child.image" class="panel-item__img" :style="{ backgroundImage: 'url(' + child.image + ')' }"></div>
+                                <i v-else :class="child.icon || 'fas fa-folder'"></i>
+                                <span class="panel-item__title">{{ child.title }}</span>
+                                <button v-if="editMode" @click.stop="editPanel(child)" class="panel-item__edit" title="Редактировать панель"><i class="fas fa-pen"></i></button>
+                            </div>
+                            <div v-if="p.panelType !== 'group' && (!p.parentGroup || p.parentGroup === 'root') && !p.hideNav" class="panel-item" :class="{ active: currentPanel?.name === p.name, 'panel-item--bg': p.background, 'panel-item--circle': p.circle }" @click="selectPanel(p);sidebarOpen=false">
+                                <div v-if="p.image" class="panel-item__img" :style="{ backgroundImage: 'url(' + p.image + ')' }"></div>
+                                <i v-else :class="p.icon || 'fas fa-folder'"></i>
+                                <span class="panel-item__title">{{ p.title }}</span>
+                                <button v-if="editMode" @click.stop="editPanel(p)" class="panel-item__edit" title="Редактировать панель"><i class="fas fa-pen"></i></button>
+                            </div>
+                        </template>
+                    </nav>
+                    <div class="sidebar-footer" v-if="editMode">
+                        <button @click="openPanelForm(null)"><i class="fas fa-plus"></i> <span class="panel-item__title">Добавить панель</span></button>
+                    </div>
+                </aside>
+                <div class="main" :class="{ 'edit-mode': editMode }">
+                    <div class="content">
+                        <div v-if="showSettingsPanel" class="settings-page">
+                            <div style="margin-bottom:8px">
+                                <button @click="showSettingsPanel = false" style="background:none;border:none;color:rgba(255,255,255,.7);cursor:pointer;font-size:1.2rem;padding:4px 8px;margin:4px 8px"><i class="fas fa-arrow-left"></i></button>
+                            </div>
+                            <div class="row" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:16px;padding:0 16px">
+                                <div class="v-card v-sheet theme--dark" style="background:rgba(48,48,48,.56);border-color:rgba(48,48,48,.56);align-self:start">
+                                    <div class="v-list v-sheet theme--dark transparent">
+                                        <div class="v-subheader theme--dark">Панель по умолчанию</div>
+                                        <div class="v-list-item theme--dark">
+                                            <div class="v-list-item__content">
+                                                <div class="v-input v-input--hide-details theme--dark v-text-field v-select">
+                                                    <div class="v-input__control">
+                                                        <div class="v-input__slot">
+                                                            <div class="v-select__slot">
+                                                                <label class="v-label theme--dark" style="left:0;right:auto;position:absolute">Панель по-умолчанию</label>
+                                                                 <select v-model="settings.defaultPanel" @change="savePanels()" style="background:transparent;border:none;color:#fff;outline:none;width:100%;padding:18px 0 4px;font-size:16px">
+                                                                    <option value="" style="background:#1e1e1e;color:#fff">— начальная —</option>
+                                                                    <option v-for="p in panels" :key="p.name" :value="p.name" style="background:#1e1e1e;color:#fff">{{ p.title }}</option>
+                                                                </select>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="v-card v-sheet theme--dark" style="background:rgba(48,48,48,.56);border-color:rgba(48,48,48,.56);align-self:start">
+                                    <div class="v-list v-sheet theme--dark v-list--subheader transparent">
+                                        <div class="v-subheader theme--dark">Обновление данных</div>
+                                        <div class="v-list-item theme--dark">
+                                            <div class="v-list-item__content">
+                                                <div class="v-input v-input--is-label-active v-input--is-dirty theme--dark v-text-field">
+                                                    <div class="v-input__control">
+                                                        <div class="v-input__slot">
+                                                            <div class="v-text-field__slot">
+                                                                <label class="v-label v-label--active theme--dark" style="left:0;right:auto;position:absolute">Период</label>
+                                                                 <input type="number" v-model.number="settings.refreshPeriod" @change="savePanels()" style="background:transparent;border:none;color:#fff;outline:none;width:100%;padding:18px 0 4px;font-size:16px">
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="v-list-item theme--dark">
+                                            <div class="v-list-item__action">
+                                                <div class="v-input theme--dark v-input--selection-controls v-input--switch" :class="{ 'input--is-checked': settings.forceDataUpdate }">
+                                                    <div class="v-input__control"><div class="v-input__slot v-input__slot--switch"><div class="v-input--switch__track" @click.stop="settings.forceDataUpdate = !settings.forceDataUpdate; savePanels()"><div class="v-input--switch__thumb"></div></div></div></div>
+                                                </div>
+                                            </div>
+                                            <div class="v-list-item__content py-0">
+                                                <div class="v-list-item__title">Принудительное обновление данных</div>
+                                                <div class="v-list-item__subtitle">Запрос данных независимо от состояния вебсокета</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="v-card v-sheet theme--dark" style="background:rgba(48,48,48,.56);border-color:rgba(48,48,48,.56);align-self:start">
+                                    <div class="v-list v-sheet theme--dark v-list--subheader transparent">
+                                        <div class="v-subheader theme--dark">Системные</div>
+                                        <div class="v-list-item theme--dark">
+                                            <div class="v-list-item__action">
+                                                <div class="v-input theme--dark v-input--selection-controls v-input--switch primary--text" :class="{ 'input--is-checked': settings.debug }">
+                                                    <div class="v-input__control"><div class="v-input__slot v-input__slot--switch"><div class="v-input--switch__track" @click.stop="settings.debug = !settings.debug; savePanels()"><div class="v-input--switch__thumb"></div></div></div></div>
+                                                </div>
+                                            </div>
+                                            <div class="v-list-item__content py-0">
+                                                <div class="v-list-item__title">Отладка</div>
+                                                <div class="v-list-item__subtitle">Вывод отладочной информации в консоль</div>
+                                            </div>
+                                        </div>
+                                        <div class="v-list-item theme--dark">
+                                            <div class="v-list-item__content py-0">
+                                                <div class="v-list-item__subtitle">SessionID: {{ settings.sessionID || '—' }}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="v-card v-sheet theme--dark" style="background:rgba(48,48,48,.56);border-color:rgba(48,48,48,.56);align-self:start">
+                                    <div class="v-list v-sheet theme--dark v-list--subheader transparent">
+                                        <div class="v-subheader theme--dark">Статистика</div>
+                                        <div class="v-list-item theme--dark">
+                                            <div class="v-list-item__content">
+                                                <div class="v-list-item__title">Количество панелей: {{ panels.length }} (limit 100)</div>
+                                                <div class="v-list-item__title">Количество виджетов: {{ panels.reduce((s, p) => s + (p.widgets?.length || 0), 0) }} (limit 10000)</div>
+                                                <div class="v-list-item__title">WebSocket traffic: <i class="fas fa-upload" style="color:orange;"></i> {{ wsBytesSent ? formatBytes(wsBytesSent) : '0 B' }} / <i class="fas fa-download" style="color:lime;"></i> {{ wsBytesReceived ? formatBytes(wsBytesReceived) : '0 B' }}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="v-card v-sheet theme--dark" style="background:rgba(48,48,48,.56);border-color:rgba(48,48,48,.56);align-self:start">
+                                    <div class="v-list v-sheet theme--dark v-list--subheader transparent">
+                                        <div class="v-subheader theme--dark">Внешний вид</div>
+                                        <div class="v-list-item theme--dark">
+                                            <div class="v-list-item__content py-1">
+                                                <div class="v-input v-input--is-label-active v-input--is-dirty theme--dark v-text-field v-select">
+                                                    <div class="v-input__control">
+                                                        <div class="v-input__slot">
+                                                            <div class="v-select__slot">
+                                                                <label class="v-label v-label--active theme--dark" style="left:0;right:auto;position:absolute">Шрифт интерфейса</label>
+                                                                 <select v-model="settings.font" @change="savePanels()" style="background:transparent;border:none;color:#fff;outline:none;width:100%;padding:18px 0 4px;font-size:16px">
+                                                                    <option value="Roboto" style="background:#1e1e1e;color:#fff">Roboto</option>
+                                                                    <option value="Ubuntu" style="background:#1e1e1e;color:#fff">Ubuntu</option>
+                                                                    <option value="Arial" style="background:#1e1e1e;color:#fff">Arial</option>
+                                                                    <option value="Helvetica" style="background:#1e1e1e;color:#fff">Helvetica</option>
+                                                                    <option value="Tahoma" style="background:#1e1e1e;color:#fff">Tahoma</option>
+                                                                    <option value="Verdana" style="background:#1e1e1e;color:#fff">Verdana</option>
+                                                                </select>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="v-list-item theme--dark">
+                                            <div class="v-list-item__action">
+                                                <div class="v-input theme--dark v-input--selection-controls v-input--switch" :class="{ 'input--is-checked': settings.hideMenu }">
+                                                    <div class="v-input__control"><div class="v-input__slot v-input__slot--switch"><div class="v-input--switch__track" @click.stop="settings.hideMenu = !settings.hideMenu; savePanels()"><div class="v-input--switch__thumb"></div></div></div></div>
+                                                </div>
+                                            </div>
+                                            <div class="v-list-item__content py-0">
+                                                <div class="v-list-item__title">Скрыть меню</div>
+                                                <div class="v-list-item__subtitle">Скрывать меню независимо от размера экрана</div>
+                                            </div>
+                                        </div>
+                                        <div class="v-list-item theme--dark">
+                                            <div class="v-list-item__action">
+                                                <div class="v-input theme--dark v-input--selection-controls v-input--switch" :class="{ 'input--is-checked': settings.hideChat }">
+                                                    <div class="v-input__control"><div class="v-input__slot v-input__slot--switch"><div class="v-input--switch__track" @click.stop="settings.hideChat = !settings.hideChat; savePanels()"><div class="v-input--switch__thumb"></div></div></div></div>
+                                                </div>
+                                            </div>
+                                            <div class="v-list-item__content py-0">
+                                                <div class="v-list-item__title">Скрыть кнопку чата</div>
+                                                <div class="v-list-item__subtitle">Скрывает кнопку чата</div>
+                                            </div>
+                                        </div>
+                                        <div class="v-list-item theme--dark">
+                                            <div class="v-list-item__action">
+                                                <div class="v-input theme--dark v-input--selection-controls v-input--switch" :class="{ 'input--is-checked': settings.compactHeader }">
+                                                    <div class="v-input__control"><div class="v-input__slot v-input__slot--switch"><div class="v-input--switch__track" @click.stop="settings.compactHeader = !settings.compactHeader; savePanels()"><div class="v-input--switch__thumb"></div></div></div></div>
+                                                </div>
+                                            </div>
+                                            <div class="v-list-item__content py-0">
+                                                <div class="v-list-item__title">Сжатый заголовок и меню</div>
+                                                <div class="v-list-item__subtitle">Изменяет стиль заголовка и меню</div>
+                                            </div>
+                                        </div>
+                                        <div class="v-list-item theme--dark">
+                                            <div class="v-list-item__content">
+                                                <div class="v-input theme--dark v-text-field">
+                                                    <div class="v-input__control">
+                                                        <div class="v-input__slot">
+                                                            <div class="v-text-field__slot">
+                                                                <label class="v-label theme--dark" style="left:0;right:auto;position:absolute">Фон меню</label>
+                                                                 <input v-model="settings.menuBg" @change="savePanels()" style="background:transparent;border:none;color:#fff;outline:none;width:100%;padding:18px 0 4px;font-size:16px">
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="v-text-field__details"><div class="v-messages theme--dark"><div class="v-messages__wrapper"><div class="v-messages__message">Фоновое изображение для меню</div></div></div></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="v-list-item theme--dark">
+                                            <div class="v-list-item__content">
+                                                <div class="v-input theme--dark v-text-field">
+                                                    <div class="v-input__control">
+                                                        <div class="v-input__slot">
+                                                            <div class="v-text-field__slot">
+                                                                <label class="v-label theme--dark" style="left:0;right:auto;position:absolute">Фон панели</label>
+                                                                 <input v-model="settings.panelBg" @change="savePanels()" style="background:transparent;border:none;color:#fff;outline:none;width:100%;padding:18px 0 4px;font-size:16px">
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="v-text-field__details"><div class="v-messages theme--dark"><div class="v-messages__wrapper"><div class="v-messages__message">Фоновое изображения для панелей по-умолчанию</div></div></div></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="v-list-item theme--dark">
+                                            <div class="v-list-item__action">
+                                                <div class="v-input v-input--is-label-active v-input--is-dirty theme--dark v-input--selection-controls v-input--switch primary--text" :class="{ 'input--is-checked': settings.usePanelImage }">
+                                                    <div class="v-input__control"><div class="v-input__slot v-input__slot--switch"><div class="v-input--switch__track" @click.stop="settings.usePanelImage = !settings.usePanelImage; savePanels()"><div class="v-input--switch__thumb"></div></div></div></div>
+                                                </div>
+                                            </div>
+                                            <div class="v-list-item__content py-0">
+                                                <div class="v-list-item__title">Использовать изображение панели</div>
+                                                <div class="v-list-item__subtitle">Изображения из параметров панелей в качестве фона</div>
+                                            </div>
+                                        </div>
+                                        <div class="v-list-item theme--dark">
+                                            <div class="v-list-item__action">
+                                                <div class="v-input theme--dark v-input--selection-controls v-input--switch" :class="{ 'input--is-checked': settings.useHeaderImage }">
+                                                    <div class="v-input__control"><div class="v-input__slot v-input__slot--switch"><div class="v-input--switch__track" @click.stop="settings.useHeaderImage = !settings.useHeaderImage; savePanels()"><div class="v-input--switch__thumb"></div></div></div></div>
+                                                </div>
+                                            </div>
+                                            <div class="v-list-item__content py-0">
+                                                <div class="v-list-item__title">Использовать изображение заголовка</div>
+                                                <div class="v-list-item__subtitle">Изображения из параметров панелей для заголовка</div>
+                                            </div>
+                                        </div>
+                                        <div class="v-list-item theme--dark">
+                                            <div class="v-list-item__content">
+                                                <div class="v-list-item__title mb-2">Прозрачность карточек</div>
+                                                <input type="range" v-model.number="settings.cardsOpacity" @change="savePanels()" min="0" max="100">
+                                            </div>
+                                        </div>
+                                        <div class="v-list-item theme--dark">
+                                            <div class="v-list-item__content">
+                                                <div class="v-list-item__title mb-2">Прозрачность меню</div>
+                                                <input type="range" v-model.number="settings.menuOpacity" @change="savePanels()" min="0" max="100">
+                                            </div>
+                                        </div>
+                                        <div class="v-list-item theme--dark">
+                                            <div class="v-list-item__content">
+                                                <div class="v-list-item__title mb-2">Прозрачность диалоговых окон</div>
+                                                <input type="range" v-model.number="settings.dialogOpacity" @change="savePanels()" min="0" max="100">
+                                            </div>
+                                        </div>
+                                        <div class="v-list-item theme--dark">
+                                            <div class="v-list-item__content">
+                                                <div style="display:flex;align-items:center;gap:12px">
+                                                    <span class="v-list-item__title" style="flex:1">Основной цвет</span>
+                                                     <input type="color" v-model="settings.primaryColor" @change="savePanels()" style="width:36px;height:36px;padding:2px;background:transparent;border:1px solid rgba(255,255,255,.2);border-radius:4px;cursor:pointer">
+                                                    <span style="font-size:.8rem;color:rgba(255,255,255,.5);font-family:monospace">{{ settings.primaryColor }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="v-list-item theme--dark">
+                                            <div class="v-list-item__content">
+                                                <div style="display:flex;align-items:center;gap:12px">
+                                                    <span class="v-list-item__title" style="flex:1">Цвет светлой темы</span>
+                                                     <input type="color" v-model="settings.lightThemeColor" @change="savePanels()" style="width:36px;height:36px;padding:2px;background:transparent;border:1px solid rgba(255,255,255,.2);border-radius:4px;cursor:pointer">
+                                                    <span style="font-size:.8rem;color:rgba(255,255,255,.5);font-family:monospace">{{ settings.lightThemeColor }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="v-list-item theme--dark">
+                                            <div class="v-list-item__content">
+                                                <div style="display:flex;align-items:center;gap:12px">
+                                                    <span class="v-list-item__title" style="flex:1">Цвет темной темы</span>
+                                                     <input type="color" v-model="settings.darkThemeColor" @change="savePanels()" style="width:36px;height:36px;padding:2px;background:transparent;border:1px solid rgba(255,255,255,.2);border-radius:4px;cursor:pointer">
+                                                    <span style="font-size:.8rem;color:rgba(255,255,255,.5);font-family:monospace">{{ settings.darkThemeColor }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="v-card v-sheet theme--dark" style="background:rgba(48,48,48,.56);border-color:rgba(48,48,48,.56);align-self:start">
+                                    <div class="v-list v-sheet theme--dark v-list--subheader transparent">
+                                        <div class="v-subheader theme--dark">Настройки виджетов</div>
+                                        <div class="ma-4 v-card v-sheet theme--dark primary" :style="{ height: (65 + settings.widgetSize * 0.5) + 'px' }">
+                                            <div tabindex="-1" role="listitem" class="v-list-item theme--dark" style="height:100%">
+                                                <div class="v-avatar v-list-item__avatar" style="height:39px;min-width:39px;width:39px">
+                                                    <div class="v-avatar" style="height:39px;min-width:39px;width:39px">
+                                                        <i aria-hidden="true" class="v-icon notranslate v-icon--dense fas fa-bolt theme--dark warning--text" :style="{ fontSize: (23 + settings.iconSize * 0.2) + 'px' }"></i>
+                                                    </div>
+                                                </div>
+                                                <div class="v-list-item__content">
+                                                    <div class="v-list-item__title mb-2" :style="{ fontSize: (1.49 + settings.titleSize * 0.005) + 'rem' }">Размер шрифта заголовка</div>
+                                                    <div class="mb-2">
+                                                        <div class="v-list-item__subtitle" :style="{ fontSize: (1 + settings.subtitleSize * 0.005) + 'rem' }">Размер шрифта подзаголовка</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="v-list-item theme--dark">
+                                            <div class="v-list-item__content">
+                                                <div class="v-list-item__title mb-2">Размер иконки</div>
+                                                <input type="range" v-model.number="settings.iconSize" @change="savePanels()" min="-40" max="40">
+                                            </div>
+                                        </div>
+                                        <div class="v-list-item theme--dark">
+                                            <div class="v-list-item__content">
+                                                <div class="v-list-item__title mb-2">Размер шрифта заголовка</div>
+                                                <input type="range" v-model.number="settings.titleSize" @change="savePanels()" min="-100" max="100">
+                                            </div>
+                                        </div>
+                                        <div class="v-list-item theme--dark">
+                                            <div class="v-list-item__content">
+                                                <div class="v-list-item__title mb-2">Размер шрифта подзаголовка</div>
+                                                <input type="range" v-model.number="settings.subtitleSize" @change="savePanels()" min="-100" max="100">
+                                            </div>
+                                        </div>
+                                        <div class="v-list-item theme--dark">
+                                            <div class="v-list-item__content">
+                                                <div class="v-list-item__title mb-2">Размер виджета</div>
+                                                <input type="range" v-model.number="settings.widgetSize" @change="savePanels()" min="-40" max="40">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="v-card v-sheet theme--dark" style="background:rgba(48,48,48,.56);border-color:rgba(48,48,48,.56);align-self:start">
+                                    <div class="v-list v-sheet theme--dark v-list--subheader transparent">
+                                        <div class="v-subheader theme--dark">Инструменты</div>
+                                        <div class="v-list-item theme--dark">
+                                            <div class="v-list-item__action">
+                                                <button type="button" class="v-btn v-btn--is-elevated v-btn--has-bg theme--dark v-size--default success" @click="console.log('Wizard')"><span class="v-btn__content"><i class="fas fa-magic v-icon--left"></i>Wizard</span></button>
+                                            </div>
+                                            <div class="v-list-item__content">Добавление простых устройств</div>
+                                        </div>
+                                        <div class="v-list-item theme--dark">
+                                            <div class="v-list-item__action">
+                                                <button type="button" class="v-btn v-btn--is-elevated v-btn--has-bg theme--dark v-size--default" @click="cleanupOrphanWidgets"><span class="v-btn__content">Очистка</span></button>
+                                            </div>
+                                            <div class="v-list-item__content">Удаление виджетов непривязанных к панелям</div>
+                                        </div>
+                                        <div class="v-list-item theme--dark">
+                                            <div class="v-list-item__action">
+                                                <button type="button" class="v-btn v-btn--is-elevated v-btn--has-bg theme--dark v-size--default error" @click="resetAll"><span class="v-btn__content"><i class="fas fa-trash-alt v-icon--left"></i>Сброс</span></button>
+                                            </div>
+                                            <div class="v-list-item__content">Удаление всех панелей и виджетов</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="v-card v-sheet theme--dark" style="background:rgba(48,48,48,.56);border-color:rgba(48,48,48,.56);align-self:start">
+                                    <div class="v-list v-sheet theme--dark v-list--subheader transparent">
+                                        <div class="v-subheader theme--dark">Экспорт/импорт панелей</div>
+                                        <div class="v-list-item theme--dark" style="gap:8px">
+                                            <button type="button" class="v-btn v-btn--is-elevated v-btn--has-bg theme--dark v-size--default" @click="showExportDialog = true"><span class="v-btn__content"><i class="fas fa-file-export v-icon--left"></i>Экспорт</span></button>
+                                            <button type="button" class="v-btn v-btn--is-elevated v-btn--has-bg theme--dark v-size--default" @click="doImport"><span class="v-btn__content"><i class="fas fa-file-import v-icon--left"></i>Импорт</span></button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div v-else-if="!currentPanel" class="home-panels">
+                            <div class="home-panels__grid">
+                                <div v-for="p in panels.filter(p => (p.panelType === 'group' || !p.parentGroup || p.parentGroup === 'root') && !p.hideHome)" :key="p.name" class="home-panel-card" @click="selectPanel(p); expandedGroups[p.name] = true">
+                                    <div class="home-panel-card__actions" v-if="editMode">
+                                        <button @click.stop="editPanel(p)" title="Редактировать"><i class="fas fa-pen"></i></button>
+                                        <button @click.stop="deleteCurrentPanel(p)" title="Удалить"><i class="fas fa-trash"></i></button>
+                                    </div>
+                                    <div class="home-panel-card__icon">
+                                        <img v-if="p.image" :src="p.image" class="home-panel-card__img">
+                                        <i v-else :class="p.icon || 'fas fa-folder'"></i>
+                                    </div>
+                                    <div class="home-panel-card__title">{{ p.title }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div v-else-if="currentPanel?.panelType === 'group'" class="home-panels">
+                            <div class="home-panels__grid" v-if="childPanels(panels, currentPanel.name).filter(c => !c.hideHome).length">
+                                <div v-for="p in childPanels(panels, currentPanel.name).filter(c => !c.hideHome)" :key="p.name" class="home-panel-card" @click="selectPanel(p)">
+                                    <div class="home-panel-card__actions" v-if="editMode">
+                                        <button @click.stop="editPanel(p)" title="Редактировать"><i class="fas fa-pen"></i></button>
+                                        <button @click.stop="deleteCurrentPanel(p)" title="Удалить"><i class="fas fa-trash"></i></button>
+                                    </div>
+                                    <div class="home-panel-card__icon">
+                                        <img v-if="p.image" :src="p.image" class="home-panel-card__img">
+                                        <i v-else :class="p.icon || 'fas fa-folder'"></i>
+                                    </div>
+                                    <div class="home-panel-card__title">{{ p.title }}</div>
+                                </div>
+                            </div>
+                            <div v-else class="empty-state">
+                                <i class="fas fa-folder-open"></i>
+                                <p>В группе нет панелей</p>
+                            </div>
+                        </div>
+                        <div v-else-if="!currentPanel?.widgets?.length" class="empty-state">
+                            <i class="fas fa-inbox"></i>
+                            <p>Нет виджетов</p>
+                            <button v-if="editMode" class="btn-primary" @click="showAddWidget = true" style="margin-top:1rem">Добавить виджет</button>
+                        </div>
+                        <div v-else :class="editMode ? 'widgets-canvas' : 'widgets-canvas'">
+                             <div v-for="(w, idx) in currentPanel.widgets" :key="w.id || idx" class="widget widget--abs"
+                                  :class="{ 'widget--dragging': draggingWidget?.id === w.id, 'widget--resizing': resizingWidget?.id === w.id }"
+                                  :style="{ left: (w.x||0) + 'px', top: (w.y||0) + 'px', width: (w.width||280) + 'px', height: (w.height||200) + 'px', ...widgetBgStyle(w) }"
+                                 @mousedown="editMode && startDrag($event, w)">
+                                <div class="widget-header">
+                                    <div class="widget-menu" v-if="editMode" @click.stop>
+                                        <button class="widget-menu__trigger" @click="widgetMenuTarget = (widgetMenuTarget === w.id ? null : w.id)" title="Меню"><i class="fas fa-bars"></i></button>
+                                        <div class="widget-menu__dropdown" v-if="widgetMenuTarget === w.id">
+                                            <div class="widget-menu__item" @click="editWidget(w); widgetMenuTarget = null">
+                                                <i class="fas fa-cog"></i><span>Настройки виджета</span>
+                                            </div>
+                                            <div class="widget-menu__divider"></div>
+                                            <div class="widget-menu__item" @click="copyWidget(idx); widgetMenuTarget = null">
+                                                <i class="fas fa-copy"></i><span>Копировать виджет</span>
+                                            </div>
+                                            <div class="widget-menu__item" @click="exportWidget(w); widgetMenuTarget = null">
+                                                <i class="fas fa-file-import"></i><span>Экспорт</span>
+                                            </div>
+                                            <div class="widget-menu__divider"></div>
+                                            <div class="widget-menu__item widget-menu__item--info">
+                                                <i class="fas fa-info"></i><span>ID: {{ w.id }}</span>
+                                            </div>
+                                            <div class="widget-menu__item widget-menu__item--info">
+                                                <i class="fas fa-info"></i><span>Type: {{ w.type }}</span>
+                                            </div>
+                                            <div class="widget-menu__divider"></div>
+                                            <div class="widget-menu__item widget-menu__item--danger" @click="removeWidget(idx); widgetMenuTarget = null">
+                                                <i class="fas fa-trash"></i><span>Удалить виджет</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <component :is="widgetTypeComponent(w.type)" :widget="w"></component>
+                                <div v-if="editMode" class="widget-resize-handle" @mousedown.stop="startResize($event, w)"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="sidebar-overlay" v-if="sidebarOpen" @click="sidebarOpen = false"></div>
+            </template>
+        </template>
+
+        <!-- ===== Add Widget Modal ===== -->
+        <div class="modal-overlay" v-if="showAddWidget" @click.self="showAddWidget = false">
+            <div class="modal modal-lg">
+                <div class="modal-header"><h3>Добавить виджет</h3><button class="modal-close" @click="showAddWidget = false">&times;</button></div>
+                <div class="modal-body">
+                    <div class="search-box"><i class="fas fa-search"></i><input v-model="widgetSearch" placeholder="Поиск..."></div>
+                    <div class="widget-def-list">
+                        <div v-for="def in filteredDefs" :key="def.type" class="widget-def-item" @click="addWidget(def.type)">
+                            <i :class="def.icon"></i>
+                            <div><div>{{ def.title }}</div><div style="font-size:.8rem;color:var(--text-secondary)">{{ def.desc }}</div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+
+        <div id="panel-edit" class="v-dialog__content v-dialog__content--active" v-if="showAddPanel" @click.self="showAddPanel = false; editPanelData = null" style="z-index:202">
+            <div class="v-dialog v-dialog--active v-dialog--persistent v-dialog--scrollable" style="width:550px" tabindex="0">
+                <div class="v-card v-sheet theme--dark" style="background-color:#303030;border-color:#303030;display:flex;flex-direction:column;max-height:70vh;overflow:hidden">
+                    <div class="v-card__title" style="flex-shrink:0">
+                        <span class="headline_m">{{ editPanelData ? 'Изменить панель' : 'Добавить панель' }}</span>
+                    </div>
+                    <hr role="separator" class="v-divider theme--dark" style="flex-shrink:0">
+                    <div class="v-tabs theme--dark" style="flex-shrink:0;background-color:#303030;border-bottom:1px solid rgba(255,255,255,.12)">
+                        <div class="v-tabs-bar theme--dark primary--text transparent" role="tablist">
+                            <div class="v-slide-group__prev v-slide-group__prev--disabled"></div>
+                            <div class="v-slide-group__wrapper">
+                                <div class="v-slide-group__content v-tabs-bar__content">
+                                    <div class="v-tabs-slider-wrapper" :style="panelTabPos"><div class="v-tabs-slider"></div></div>
+                                    <button class="v-tab" :class="{ 'v-tab--active': panelTab === 'main' }" @click="panelTab = 'main'" role="tab">Основное</button>
+                                    <button class="v-tab" :class="{ 'v-tab--active': panelTab === 'extra' }" @click="panelTab = 'extra'" role="tab">Дополнительно</button>
+                                </div>
+                            </div>
+                            <div class="v-slide-group__next v-slide-group__next--disabled"></div>
+                        </div>
+                    </div>
+                    <div class="v-card__text pa-4" style="overflow-y:auto;flex:1">
+                        <div class="container pa-0">
+                            <div class="v-window theme--dark">
+                                <div class="v-window__container">
+                                    <div class="v-window-item" v-if="panelTab === 'main'">
+                                        <div class="v-input v-text-field" v-if="panelError" style="margin-bottom:8px">
+                                            <div class="v-input__control">
+                                                <div class="v-input__slot" style="color:#fff;background:rgba(211,47,47,.15);border-radius:4px;padding:8px 12px;cursor:default">
+                                                    <i class="fas fa-exclamation-triangle" style="margin-right:8px;color:#ef5350"></i>
+                                                    <span style="color:#ef9a9a;font-size:.875rem">{{ panelError }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="v-input v-text-field">
+                                            <div class="v-input__control">
+                                                <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': panelForm.title }">Название</label><input v-model="panelForm.title"></div>
+                                                <div class="v-input__details"><div class="v-messages"></div></div>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex gap-2" style="align-items:flex-start">
+                                            <div class="v-input v-text-field v-select" style="flex:3">
+                                                <div class="v-input__control">
+                                                    <div class="v-input__slot"><label class="v-label v-label--active">Тип иконки</label>
+                                                        <select v-model="panelForm.iconType">
+                                                            <option value="icon" style="background:#1e1e1e;color:#fff">Icon</option>
+                                                            <option value="property" style="background:#1e1e1e;color:#fff">Property</option>
+                                                            <option value="url_image" style="background:#1e1e1e;color:#fff">URL image</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <template v-if="panelForm.iconType === 'icon'">
+                                                <div class="v-input v-text-field" style="flex:8">
+                                                    <div class="v-input__control">
+                                                        <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': panelForm.icon }">Иконка</label><input v-model="panelForm.icon"></div>
+                                                    </div>
+                                                </div>
+                                                <button class="icon-btn" title="Выбор иконки" @click="openIconPicker('panel')" style="margin-top:16px;flex-shrink:0"><i :class="panelForm.icon || 'fas fa-folder'"></i></button>
+                                            </template>
+                                            <template v-if="panelForm.iconType === 'property'">
+                                                <div class="v-input v-text-field v-select" style="flex:4">
+                                                    <div class="v-input__control">
+                                                        <div class="v-input__slot"><label class="v-label v-label--active">Объект</label>
+                                                            <select v-model="panelForm.iconObject" @change="loadIconProperties">
+                                                                <option value="" style="background:#1e1e1e;color:#fff">— выберите —</option>
+                                                                <option v-for="o in objects" :key="o.ID" :value="o.TITLE" style="background:#1e1e1e;color:#fff">{{ o.TITLE }}</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="v-input v-text-field v-select" style="flex:4">
+                                                    <div class="v-input__control">
+                                                        <div class="v-input__slot"><label class="v-label v-label--active">Свойство</label>
+                                                            <select v-model="panelForm.iconProperty">
+                                                                <option value="" style="background:#1e1e1e;color:#fff">— выберите —</option>
+                                                                <option v-for="prop in iconProperties" :key="prop.ID" :value="prop.TITLE" style="background:#1e1e1e;color:#fff">{{ prop.TITLE }}</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <button class="icon-btn" @click="panelForm.iconObject='';panelForm.iconProperty='';panelForm.icon=''" title="Очистить" style="margin-top:16px;flex-shrink:0"><i class="fas fa-backspace"></i></button>
+                                            </template>
+                                            <template v-if="panelForm.iconType === 'url_image'">
+                                                <div class="v-input v-text-field" style="flex:8">
+                                                    <div class="v-input__control">
+                                                        <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': panelForm.image }">URL</label><input v-model="panelForm.image" placeholder="/img/modules/dashboard_pro.png"></div>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                        </div>
+                                        <div class="v-input v-input--selection-controls v-input--switch" :class="{ 'input--is-checked': panelForm.hideNav }">
+                                            <div class="v-input__control">
+                                                <div class="v-input__slot v-input__slot--switch">
+                                                    <div class="v-input--switch__track" @click.stop="toggleField('hideNav')"><div class="v-input--switch__thumb"></div></div>
+                                                    <span class="v-label">Скрыть в навигаторе</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="v-input v-input--selection-controls v-input--switch" :class="{ 'input--is-checked': panelForm.hideHome }">
+                                            <div class="v-input__control">
+                                                <div class="v-input__slot v-input__slot--switch">
+                                                    <div class="v-input--switch__track" @click.stop="toggleField('hideHome')"><div class="v-input--switch__thumb"></div></div>
+                                                    <span class="v-label">Скрыть на начальной странице</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="v-input v-text-field">
+                                            <div class="v-input__control">
+                                                <div class="v-input__slot"><label class="v-label v-label--active">Тип панели</label>
+                                                    <select v-model="panelForm.panelType">
+                                                        <option value="group" style="background:#1e1e1e;color:#fff">Группа</option>
+                                                        <option value="panel" style="background:#1e1e1e;color:#fff">Панель Dashboard</option>
+                                                    </select>
+                                                </div>
+                                                <div class="v-input__details"><div class="v-messages"></div></div>
+                                            </div>
+                                        </div>
+                                        <div class="v-input v-input--selection-controls v-input--switch" v-if="panelForm.panelType === 'group'" :class="{ 'input--is-checked': panelForm.dropdownNav }">
+                                            <div class="v-input__control">
+                                                <div class="v-input__slot v-input__slot--switch">
+                                                    <div class="v-input--switch__track" @click.stop="toggleField('dropdownNav')"><div class="v-input--switch__thumb"></div></div>
+                                                    <span class="v-label">Раскрывающийся список в навигаторе</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="v-input v-input--selection-controls v-input--switch" v-if="panelForm.panelType === 'group'" :class="{ 'input--is-checked': panelForm.openOnClick }">
+                                            <div class="v-input__control">
+                                                <div class="v-input__slot v-input__slot--switch">
+                                                    <div class="v-input--switch__track" @click.stop="toggleField('openOnClick')"><div class="v-input--switch__thumb"></div></div>
+                                                    <span class="v-label">Открывать страницу панели при нажатии</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="v-input v-text-field" v-if="panelForm.panelType === 'panel'">
+                                            <div class="v-input__control">
+                                                <div class="v-input__slot"><label class="v-label v-label--active">Группа</label>
+                                                    <select v-model="panelForm.parentGroup">
+                                                        <option value="root" style="background:#1e1e1e;color:#fff">Начальная панель</option>
+                                                        <option v-for="p in panels.filter(p => p.panelType === 'group')" :key="p.name" :value="p.name" style="background:#1e1e1e;color:#fff">{{ p.title }}</option>
+                                                    </select>
+                                                </div>
+                                                <div class="v-input__details"><div class="v-messages"></div></div>
+                                            </div>
+                                        </div>
+                                        <div class="v-input v-text-field" v-if="panelForm.panelType === 'group'">
+                                            <div class="v-input__control">
+                                                <div class="v-input__slot"><label class="v-label v-label--active">Группа</label>
+                                                    <select v-model="panelForm.parentGroup">
+                                                        <option value="root" style="background:#1e1e1e;color:#fff">Начальная панель</option>
+                                                    </select>
+                                                </div>
+                                                <div class="v-input__details"><div class="v-messages"></div></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="v-window-item" v-if="panelTab === 'extra'">
+                                        <div class="d-flex gap-2" style="align-items:flex-start">
+                                            <div class="v-input v-text-field v-select" style="flex:1">
+                                                <div class="v-input__control">
+                                                    <div class="v-input__slot"><label class="v-label v-label--active">Информация объекта</label>
+                                                        <select v-model="panelForm.infoObject" @change="loadInfoProperties">
+                                                            <option value="" style="background:#1e1e1e;color:#fff">— выберите —</option>
+                                                            <option v-for="o in objects" :key="o.ID" :value="o.TITLE" style="background:#1e1e1e;color:#fff">{{ o.TITLE }}</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="v-input v-text-field v-select" style="flex:1">
+                                                <div class="v-input__control">
+                                                    <div class="v-input__slot"><label class="v-label v-label--active">Свойство</label>
+                                                        <select v-model="panelForm.infoProperty">
+                                                            <option value="" style="background:#1e1e1e;color:#fff">— выберите —</option>
+                                                            <option v-for="prop in infoProperties" :key="prop.ID" :value="prop.TITLE" style="background:#1e1e1e;color:#fff">{{ prop.TITLE }}</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <button class="icon-btn" @click="panelForm.infoObject='';panelForm.infoProperty=''" title="Очистить" style="margin-top:16px;flex-shrink:0"><i class="fas fa-backspace"></i></button>
+                                        </div>
+                                        <div class="d-flex gap-2">
+                                            <div class="v-input v-text-field" style="flex:1">
+                                                <div class="v-input__control">
+                                                    <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': panelForm.infoPrefix }">Префикс информации</label><input v-model="panelForm.infoPrefix"></div>
+                                                    <div class="v-input__details"><div class="v-messages"></div></div>
+                                                </div>
+                                            </div>
+                                            <div class="v-input v-text-field" style="flex:1">
+                                                <div class="v-input__control">
+                                                    <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': panelForm.infoPostfix }">Постфикс информации</label><input v-model="panelForm.infoPostfix"></div>
+                                                    <div class="v-input__details"><div class="v-messages"></div></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex gap-2">
+                                            <div class="v-input v-input--selection-controls v-input--switch" style="flex:1" :class="{ 'input--is-checked': panelForm.background }">
+                                                <div class="v-input__control">
+                                                    <div class="v-input__slot v-input__slot--switch">
+                                                        <div class="v-input--switch__track" @click.stop="toggleField('background')"><div class="v-input--switch__thumb"></div></div>
+                                                        <span class="v-label">Фон</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="v-input v-input--selection-controls v-input--switch" style="flex:1" :class="{ 'input--is-checked': panelForm.circle }">
+                                                <div class="v-input__control">
+                                                    <div class="v-input__slot v-input__slot--switch">
+                                                        <div class="v-input--switch__track" @click.stop="toggleField('circle')"><div class="v-input--switch__thumb"></div></div>
+                                                        <span class="v-label">Круг</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="v-input v-text-field">
+                                            <div class="v-input__control">
+                                                <div class="v-input__slot"><label class="v-label v-label--active">Цвет иконки</label>
+                                                    <select v-model="panelForm.iconColor">
+                                                        <option value="default" style="background:#1e1e1e;color:#fff">По-умолчанию</option>
+                                                        <option value="primary" style="background:#1e1e1e;color:#fff">Primary</option>
+                                                        <option value="secondary" style="background:#1e1e1e;color:#fff">Secondary</option>
+                                                        <option value="success" style="background:#1e1e1e;color:#fff">Success</option>
+                                                        <option value="warning" style="background:#1e1e1e;color:#fff">Warning</option>
+                                                        <option value="danger" style="background:#1e1e1e;color:#fff">Danger</option>
+                                                        <option value="info" style="background:#1e1e1e;color:#fff">Info</option>
+                                                    </select>
+                                                </div>
+                                                <div class="v-input__details"><div class="v-messages"></div></div>
+                                            </div>
+                                        </div>
+                                        <div class="v-input v-input--selection-controls v-input--switch" style="opacity:.4" :class="{ 'input--is-checked': panelForm.showImageNav }">
+                                            <div class="v-input__control">
+                                                <div class="v-input__slot" style="cursor:default;pointer-events:none">
+                                                    <div class="v-input--switch__track"><div class="v-input--switch__thumb"></div></div>
+                                                    <span class="v-label" style="cursor:default">Показывать картинку в навигационном меню</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="v-input v-input--selection-controls v-input--switch" :class="{ 'input--is-checked': panelForm.individualSettings }">
+                                            <div class="v-input__control">
+                                                <div class="v-input__slot v-input__slot--switch">
+                                                    <div class="v-input--switch__track" @click.stop="toggleField('individualSettings')"><div class="v-input--switch__thumb"></div></div>
+                                                    <span class="v-label">Индивидуальные настройки панели</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <hr class="v-divider theme--dark">
+                    <div class="v-card__actions">
+                        <div class="d-flex gap-2" v-if="editPanelData" style="flex:1">
+                            <button type="button" class="v-btn v-btn--text theme--dark v-size--default" style="color:rgba(255,255,255,.7)" @click="movePanel(-1)" :disabled="panels.indexOf(editPanelData) <= 0"><span class="v-btn__content">Вверх</span></button>
+                            <button type="button" class="v-btn v-btn--text theme--dark v-size--default" style="color:rgba(255,255,255,.7)" @click="movePanel(1)" :disabled="panels.indexOf(editPanelData) >= panels.length - 1"><span class="v-btn__content">Вниз</span></button>
+                        </div>
+                        <div class="spacer" v-else></div>
+                        <button type="button" class="v-btn v-btn--text theme--dark v-size--default primary--text text--darken-1" @click="showAddPanel = false; editPanelData = null"><span class="v-btn__content">Отменить</span></button>
+                        <button type="button" class="v-btn v-btn--text theme--dark v-size--default primary--text text--darken-1" v-if="editPanelData" @click="deletePanel"><span class="v-btn__content">Удалить</span></button>
+                        <button type="button" class="v-btn v-btn--text theme--dark v-size--default primary--text text--darken-1" @click="createPanel"><span class="v-btn__content">{{ editPanelData ? 'Сохранить' : 'Добавить' }}</span></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== Widget Editor ===== -->
+        <div id="widget-edit" class="v-dialog__content v-dialog__content--active" v-if="editWidgetForm" @click.self="editWidgetForm = false" style="z-index:202">
+            <div class="v-dialog v-dialog--active v-dialog--persistent v-dialog--scrollable" style="width:700px" tabindex="0">
+                <div class="v-card v-sheet theme--dark" style="background-color:#303030;border-color:#303030;display:flex;flex-direction:column;max-height:70vh;overflow:hidden">
+                    <div class="v-card__title" style="flex-shrink:0">
+                        <span class="headline_m">{{ editWidgetForm.title ? 'Редактировать: ' + editWidgetForm.title : 'Новый виджет' }}</span>
+                    </div>
+                    <hr role="separator" class="v-divider theme--dark" style="flex-shrink:0">
+                    <div class="v-tabs theme--dark" style="flex-shrink:0;background-color:#303030;border-bottom:1px solid rgba(255,255,255,.12)">
+                        <div class="v-tabs-bar theme--dark primary--text transparent" role="tablist">
+                            <div class="v-slide-group__prev v-slide-group__prev--disabled"></div>
+                            <div class="v-slide-group__wrapper">
+                                <div class="v-slide-group__content v-tabs-bar__content">
+                                    <div class="v-tabs-slider-wrapper" :style="widgetTabPos"><div class="v-tabs-slider"></div></div>
+                                    <button class="v-tab" :class="{ 'v-tab--active': widgetTab === 'main' }" @click="widgetTab = 'main'" role="tab">Основное</button>
+                                    <button class="v-tab" :class="{ 'v-tab--active': widgetTab === 'advanced' }" @click="widgetTab = 'advanced'" role="tab">Дополнительно</button>
+                                    <button class="v-tab" :class="{ 'v-tab--active': widgetTab === 'columns' }" @click="widgetTab = 'columns'; columnIdx = 0" role="tab" v-if="editWidgetForm.type === 'table'">Столбцы</button>
+                                    <button class="v-tab" :class="{ 'v-tab--active': widgetTab === 'position' }" @click="widgetTab = 'position'" role="tab">Позиция</button>
+                                </div>
+                            </div>
+                            <div class="v-slide-group__next v-slide-group__next--disabled"></div>
+                        </div>
+                    </div>
+                    <div class="v-card__text pa-4" style="overflow-y:auto;flex:1">
+                        <div class="container pa-0">
+                            <div class="v-window theme--dark">
+                                <div class="v-window__container">
+                                    <div class="v-window-item" v-if="widgetTab === 'main'">
+                                        <div class="v-input v-text-field">
+                                            <div class="v-input__control">
+                                                <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm.title }">Название</label><input v-model="editWidgetForm.title"></div>
+                                                <div class="v-input__details"><div class="v-messages"></div></div>
+                                            </div>
+                                        </div>
+
+                                        <div class="d-flex gap-2">
+                                            <div class="v-input v-text-field" style="flex:1">
+                                                <div class="v-input__control">
+                                                    <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm.subtitle }">Подзаголовок</label><input v-model="editWidgetForm.subtitle"></div>
+                                                    <div class="v-input__details"><div class="v-messages"></div></div>
+                                                </div>
+                                            </div>
+                                            <div class="v-input v-text-field" style="flex:0 0 100px">
+                                                <div class="v-input__control">
+                                                    <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm.unit }">Единица</label><input v-model="editWidgetForm.unit"></div>
+                                                    <div class="v-input__details"><div class="v-messages"></div></div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Icon type + picker -->
+                                        <div class="d-flex gap-2" style="align-items:flex-start">
+                                            <div class="v-input v-text-field v-select" style="flex:0 0 auto;min-width:90px">
+                                                <div class="v-input__control">
+                                                    <div class="v-input__slot"><label class="v-label v-label--active">Тип иконки</label>
+                                                        <select v-model="editWidgetForm.icon_type">
+                                                            <option value="icon" style="background:#1e1e1e;color:#fff">Icon</option>
+                                                            <option value="property" style="background:#1e1e1e;color:#fff">Property</option>
+                                                            <option value="url" style="background:#1e1e1e;color:#fff">URL</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <template v-if="editWidgetForm.icon_type === 'icon'">
+                                                <div class="v-input v-text-field" style="flex:1">
+                                                    <div class="v-input__control">
+                                                        <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm.icon }">Иконка</label><input v-model="editWidgetForm.icon"></div>
+                                                    </div>
+                                                </div>
+                                                <button class="icon-btn" title="Выбор иконки" @click="openIconPicker('icon')" style="margin-top:16px;flex-shrink:0"><i :class="editWidgetForm.icon || 'fas fa-folder'"></i></button>
+                                                <button class="icon-btn" @click="editWidgetForm.icon=''" title="Очистить" style="margin-top:16px;flex-shrink:0"><i class="fas fa-backspace"></i></button>
+                                            </template>
+                                            <template v-if="editWidgetForm.icon_type === 'property'">
+                                                <div class="v-input v-text-field v-select" style="flex:4">
+                                                    <div class="v-input__control">
+                                                        <div class="v-input__slot"><label class="v-label v-label--active">Объект</label>
+                                                            <select v-model="editWidgetForm.icon_object" @change="loadIconProperties(editWidgetForm.icon_object)">
+                                                                <option value="" style="background:#1e1e1e;color:#fff">— выберите —</option>
+                                                                <option v-for="o in objects" :key="o.ID" :value="o.TITLE" style="background:#1e1e1e;color:#fff">{{ o.TITLE }}</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="v-input v-text-field v-select" style="flex:4">
+                                                    <div class="v-input__control">
+                                                        <div class="v-input__slot"><label class="v-label v-label--active">Свойство</label>
+                                                            <select v-model="editWidgetForm.icon_property">
+                                                                <option value="" style="background:#1e1e1e;color:#fff">— выберите —</option>
+                                                                <option v-for="prop in iconProperties" :key="prop.ID" :value="prop.TITLE" style="background:#1e1e1e;color:#fff">{{ prop.TITLE }}</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <button class="icon-btn" @click="editWidgetForm.icon_object='';editWidgetForm.icon_property=''" title="Очистить" style="margin-top:16px;flex-shrink:0"><i class="fas fa-backspace"></i></button>
+                                            </template>
+                                            <template v-if="editWidgetForm.icon_type === 'url'">
+                                                <div class="v-input v-text-field" style="flex:1">
+                                                    <div class="v-input__control">
+                                                        <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm.icon_url }">URL</label><input v-model="editWidgetForm.icon_url"></div>
+                                                    </div>
+                                                </div>
+                                                <button class="icon-btn" @click="editWidgetForm.icon_url=''" title="Очистить" style="margin-top:16px;flex-shrink:0"><i class="fas fa-backspace"></i></button>
+                                            </template>
+                                        </div>
+
+                                        <!-- Object + Property -->
+                                        <div class="d-flex gap-2" v-if="hasObjectProp(editWidgetForm.type)" style="align-items:flex-start">
+                                            <div class="v-input v-text-field v-select" style="flex:1">
+                                                <div class="v-input__control">
+                                                    <div class="v-input__slot"><label class="v-label v-label--active">Объект</label>
+                                                        <select v-model="editWidgetForm.object" @change="loadWidgetProperties()">
+                                                            <option value="" style="background:#1e1e1e;color:#fff">— выберите —</option>
+                                                            <option v-for="o in objects" :key="o.ID" :value="o.TITLE" style="background:#1e1e1e;color:#fff">{{ o.TITLE }}</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="v-input v-text-field v-select" style="flex:1">
+                                                <div class="v-input__control">
+                                                    <div class="v-input__slot"><label class="v-label v-label--active">Свойство</label>
+                                                        <select v-model="editWidgetForm.property">
+                                                            <option value="" style="background:#1e1e1e;color:#fff">Свойство</option>
+                                                            <option v-for="prop in widgetProperties" :key="prop.ID" :value="prop.TITLE" style="background:#1e1e1e;color:#fff">{{ prop.TITLE }}</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <button class="icon-btn" @click="editWidgetForm.object='';editWidgetForm.property=''" title="Очистить" style="margin-top:16px;flex-shrink:0"><i class="fas fa-backspace"></i></button>
+                                        </div>
+
+                                        <!-- Method switch -->
+                                        <div class="d-flex gap-2" style="align-items:flex-start">
+                                            <div class="v-input v-text-field v-select" style="flex:1">
+                                                <div class="v-input__control">
+                                                    <div class="v-input__slot"><label class="v-label v-label--active">Объект (переключатель)</label>
+                                                        <select :value="getMethodObj(editWidgetForm.object_switch)" @change="setMethodField('object_switch', $event.target.value, true); loadObjectMethods($event.target.value)">
+                                                            <option value="" style="background:#1e1e1e;color:#fff">— выберите —</option>
+                                                            <option v-for="o in objects" :key="o.ID" :value="o.TITLE" style="background:#1e1e1e;color:#fff">{{ o.TITLE }}</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="v-input v-text-field v-select" style="flex:1">
+                                                <div class="v-input__control">
+                                                    <div class="v-input__slot"><label class="v-label v-label--active">Метод</label>
+                                                        <select :value="getMethodName(editWidgetForm.object_switch)" @change="setMethodField('object_switch', $event.target.value, false)">
+                                                            <option value="" style="background:#1e1e1e;color:#fff">Метод</option>
+                                                            <option v-for="m in (methodCache[getMethodObj(editWidgetForm.object_switch)] || [])" :key="m.ID" :value="m.TITLE" style="background:#1e1e1e;color:#fff">{{ m.TITLE }}</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <button class="icon-btn" @click="editWidgetForm.object_switch=''" title="Очистить" style="margin-top:16px;flex-shrink:0"><i class="fas fa-backspace"></i></button>
+                                        </div>
+
+                                        <!-- Method on -->
+                                        <div class="d-flex gap-2" style="align-items:flex-start">
+                                            <div class="v-input v-text-field v-select" style="flex:1">
+                                                <div class="v-input__control">
+                                                    <div class="v-input__slot"><label class="v-label v-label--active">Объект (включить)</label>
+                                                        <select :value="getMethodObj(editWidgetForm.object_on)" @change="setMethodField('object_on', $event.target.value, true); loadObjectMethods($event.target.value)">
+                                                            <option value="" style="background:#1e1e1e;color:#fff">— выберите —</option>
+                                                            <option v-for="o in objects" :key="o.ID" :value="o.TITLE" style="background:#1e1e1e;color:#fff">{{ o.TITLE }}</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="v-input v-text-field v-select" style="flex:1">
+                                                <div class="v-input__control">
+                                                    <div class="v-input__slot"><label class="v-label v-label--active">Метод</label>
+                                                        <select :value="getMethodName(editWidgetForm.object_on)" @change="setMethodField('object_on', $event.target.value, false)">
+                                                            <option value="" style="background:#1e1e1e;color:#fff">Метод</option>
+                                                            <option v-for="m in (methodCache[getMethodObj(editWidgetForm.object_on)] || [])" :key="m.ID" :value="m.TITLE" style="background:#1e1e1e;color:#fff">{{ m.TITLE }}</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <button class="icon-btn" @click="editWidgetForm.object_on=''" title="Очистить" style="margin-top:16px;flex-shrink:0"><i class="fas fa-backspace"></i></button>
+                                        </div>
+
+                                        <!-- Method off -->
+                                        <div class="d-flex gap-2" style="align-items:flex-start">
+                                            <div class="v-input v-text-field v-select" style="flex:1">
+                                                <div class="v-input__control">
+                                                    <div class="v-input__slot"><label class="v-label v-label--active">Объект (выключить)</label>
+                                                        <select :value="getMethodObj(editWidgetForm.object_off)" @change="setMethodField('object_off', $event.target.value, true); loadObjectMethods($event.target.value)">
+                                                            <option value="" style="background:#1e1e1e;color:#fff">— выберите —</option>
+                                                            <option v-for="o in objects" :key="o.ID" :value="o.TITLE" style="background:#1e1e1e;color:#fff">{{ o.TITLE }}</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="v-input v-text-field v-select" style="flex:1">
+                                                <div class="v-input__control">
+                                                    <div class="v-input__slot"><label class="v-label v-label--active">Метод</label>
+                                                        <select :value="getMethodName(editWidgetForm.object_off)" @change="setMethodField('object_off', $event.target.value, false)">
+                                                            <option value="" style="background:#1e1e1e;color:#fff">Метод</option>
+                                                            <option v-for="m in (methodCache[getMethodObj(editWidgetForm.object_off)] || [])" :key="m.ID" :value="m.TITLE" style="background:#1e1e1e;color:#fff">{{ m.TITLE }}</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <button class="icon-btn" @click="editWidgetForm.object_off=''" title="Очистить" style="margin-top:16px;flex-shrink:0"><i class="fas fa-backspace"></i></button>
+                                        </div>
+
+                                        <!-- Params fields from config (grouped by row) -->
+                                        <template v-for="(row, ri) in getWidgetRows(editWidgetForm.type, 'params')" :key="ri">
+                                            <div :class="row.row ? 'd-flex gap-2' : ''" :style="row.row ? 'align-items:flex-start' : ''">
+                                                <template v-for="field in row.fields" :key="field.key || field.type">
+                                                    <div v-if="fieldVisible(field)" :style="row.row ? 'flex:1;min-width:0' : ''">
+                                                        <template v-if="field.type === 'info'">
+                                                            <p style="color:rgba(255,255,255,.5);font-size:.8rem;padding:8px 0">{{ field.text }}</p>
+                                                        </template>
+                                                        <template v-else-if="field.type === 'number'">
+                                                            <div class="v-input v-text-field">
+                                                                <div class="v-input__control">
+                                                                    <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm[field.key] !== undefined && editWidgetForm[field.key] !== '' }">{{ field.label }}</label><input type="number" :step="field.step || 1" v-model.number="editWidgetForm[field.key]"></div>
+                                                                    <div class="v-input__details"><div class="v-messages"></div></div>
+                                                                </div>
+                                                            </div>
+                                                        </template>
+                                                        <template v-else-if="field.type === 'checkbox'">
+                                                            <div class="v-input v-input--selection-controls v-input--switch" :class="{ 'input--is-checked': editWidgetForm[field.key] }">
+                                                                <div class="v-input__control">
+                                                                    <div class="v-input__slot v-input__slot--switch">
+                                                                        <div class="v-input--switch__track" @click.stop="editWidgetForm[field.key] = !editWidgetForm[field.key]"><div class="v-input--switch__thumb"></div></div>
+                                                                        <span class="v-label">{{ field.label }}</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </template>
+                                                        <template v-else-if="field.type === 'textarea'">
+                                                            <div class="v-input v-text-field">
+                                                                <div class="v-input__control">
+                                                                    <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm[field.key] }">{{ field.label }}</label><textarea v-model="editWidgetForm[field.key]" :rows="field.rows || 3" style="resize:vertical;min-height:60px;background:transparent;border:none;color:#fff;outline:none;font-size:16px;line-height:20px;padding:8px 0 4px;width:100%"></textarea></div>
+                                                                    <div class="v-input__details"><div class="v-messages"></div></div>
+                                                                </div>
+                                                            </div>
+                                                        </template>
+                                                        <template v-else-if="field.type === 'object'">
+                                                            <div class="v-input v-text-field v-select">
+                                                                <div class="v-input__control">
+                                                                    <div class="v-input__slot"><label class="v-label v-label--active">{{ field.label }}</label>
+                                                                        <select v-model="editWidgetForm[field.key]">
+                                                                            <option value="" style="background:#1e1e1e;color:#fff">— выберите —</option>
+                                                                            <option v-for="o in objects" :key="o.ID" :value="o.TITLE" style="background:#1e1e1e;color:#fff">{{ o.TITLE }}</option>
+                                                                        </select>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </template>
+                                                        <template v-else-if="field.type === 'icon_picker'">
+                                                            <div class="d-flex gap-2" style="align-items:flex-start">
+                                                                <div class="v-input v-text-field" style="flex:1">
+                                                                    <div class="v-input__control">
+                                                                        <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm[field.key] }">{{ field.label }}</label><input v-model="editWidgetForm[field.key]"></div>
+                                                                        <div class="v-input__details"><div class="v-messages"></div></div>
+                                                                    </div>
+                                                                </div>
+                                                                <button class="icon-btn" title="Выбор иконки" @click="openIconPicker(field.key)" style="margin-top:16px;flex-shrink:0"><i :class="editWidgetForm[field.key] || 'fas fa-folder'"></i></button>
+                                                                <button class="icon-btn" @click="editWidgetForm[field.key]=''" title="Очистить" style="margin-top:16px;flex-shrink:0"><i class="fas fa-backspace"></i></button>
+                                                            </div>
+                                                        </template>
+                                                        <template v-else>
+                                                            <div class="v-input v-text-field">
+                                                                <div class="v-input__control">
+                                                                    <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm[field.key] }">{{ field.label }}</label><input v-model="editWidgetForm[field.key]"></div>
+                                                                    <div class="v-input__details"><div class="v-messages"></div></div>
+                                                                </div>
+                                                            </div>
+                                                        </template>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </template>
+                                    </div>
+
+                                    <div class="v-window-item" v-if="widgetTab === 'advanced'">
+                                        <!-- Object alive -->
+                                        <div class="d-flex gap-2" style="align-items:flex-start">
+                                            <div class="v-input v-text-field v-select" style="flex:1">
+                                                <div class="v-input__control">
+                                                    <div class="v-input__slot"><label class="v-label v-label--active">Признак доступности</label>
+                                                        <select v-model="editWidgetForm.object_alive">
+                                                            <option value="" style="background:#1e1e1e;color:#fff">— выберите —</option>
+                                                            <option v-for="o in objects" :key="o.ID" :value="o.TITLE" style="background:#1e1e1e;color:#fff">{{ o.TITLE }}</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="v-input v-text-field" style="flex:0 0 120px">
+                                                <div class="v-input__control">
+                                                    <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm.alive_timeout }">Таймаут (сек)</label><input type="number" step="1" v-model.number="editWidgetForm.alive_timeout"></div>
+                                                    <div class="v-input__details"><div class="v-messages"></div></div>
+                                                </div>
+                                            </div>
+                                            <button class="icon-btn" @click="editWidgetForm.object_alive='';editWidgetForm.alive_timeout=60" title="Очистить" style="margin-top:16px;flex-shrink:0"><i class="fas fa-backspace"></i></button>
+                                        </div>
+
+                                        <!-- Object info -->
+                                        <div class="d-flex gap-2" style="align-items:flex-start">
+                                            <div class="v-input v-text-field v-select" style="flex:1">
+                                                <div class="v-input__control">
+                                                    <div class="v-input__slot"><label class="v-label v-label--active">Информация объекта</label>
+                                                        <select v-model="editWidgetForm.object_info">
+                                                            <option value="" style="background:#1e1e1e;color:#fff">— выберите —</option>
+                                                            <option v-for="o in objects" :key="o.ID" :value="o.TITLE" style="background:#1e1e1e;color:#fff">{{ o.TITLE }}</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <button class="icon-btn" @click="editWidgetForm.object_info=''" title="Очистить" style="margin-top:16px;flex-shrink:0"><i class="fas fa-backspace"></i></button>
+                                        </div>
+
+                                        <div class="d-flex gap-2">
+                                            <div class="v-input v-text-field" style="flex:1">
+                                                <div class="v-input__control">
+                                                    <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm.pre_info }">Префикс информации</label><input v-model="editWidgetForm.pre_info"></div>
+                                                    <div class="v-input__details"><div class="v-messages"></div></div>
+                                                </div>
+                                            </div>
+                                            <div class="v-input v-text-field" style="flex:1">
+                                                <div class="v-input__control">
+                                                    <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm.pos_info }">Постфикс информации</label><input v-model="editWidgetForm.pos_info"></div>
+                                                    <div class="v-input__details"><div class="v-messages"></div></div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Background -->
+                                        <div class="v-input v-text-field v-select">
+                                            <div class="v-input__control">
+                                                <div class="v-input__slot"><label class="v-label v-label--active">Фон виджета</label>
+                                                    <select v-model="editWidgetForm.bg_mode">
+                                                        <option value="default" style="background:#1e1e1e;color:#fff">По умолчанию</option>
+                                                        <option value="image" style="background:#1e1e1e;color:#fff">Изображение</option>
+                                                        <option value="color" style="background:#1e1e1e;color:#fff">Заданный цвет</option>
+                                                        <option value="property" style="background:#1e1e1e;color:#fff">Цвет из свойства объекта</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <template v-if="editWidgetForm.bg_mode === 'color'">
+                                            <div class="d-flex gap-2">
+                                                <div class="v-input v-text-field" style="flex:1">
+                                                    <div class="v-input__control">
+                                                        <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm.color }">Цвет</label><input v-model="editWidgetForm.color"></div>
+                                                        <div class="v-input__details"><div class="v-messages"></div></div>
+                                                    </div>
+                                                </div>
+                                                <input type="color" v-model="editWidgetForm.color" style="width:40px;height:38px;margin-top:16px;padding:2px;background:transparent;border:1px solid rgba(255,255,255,.2);border-radius:4px;cursor:pointer">
+                                            </div>
+                                        </template>
+                                        <template v-if="editWidgetForm.bg_mode === 'image'">
+                                            <div class="v-input v-text-field">
+                                                <div class="v-input__control">
+                                                    <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm.bg_image }">URL изображения</label><input v-model="editWidgetForm.bg_image"></div>
+                                                    <div class="v-input__details"><div class="v-messages"></div></div>
+                                                </div>
+                                            </div>
+                                        </template>
+                                        <template v-if="editWidgetForm.bg_mode === 'property'">
+                                            <div class="d-flex gap-2" style="align-items:flex-start">
+                                                <div class="v-input v-text-field v-select" style="flex:1">
+                                                    <div class="v-input__control">
+                                                        <div class="v-input__slot"><label class="v-label v-label--active">Объект (цвет)</label>
+                                                            <select v-model="editWidgetForm.bg_object" @change="loadBgProperties()">
+                                                                <option value="" style="background:#1e1e1e;color:#fff">— выберите —</option>
+                                                                <option v-for="o in objects" :key="o.ID" :value="o.TITLE" style="background:#1e1e1e;color:#fff">{{ o.TITLE }}</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="v-input v-text-field v-select" style="flex:1">
+                                                    <div class="v-input__control">
+                                                        <div class="v-input__slot"><label class="v-label v-label--active">Свойство (цвет)</label>
+                                                            <select v-model="editWidgetForm.bg_property">
+                                                                <option value="" style="background:#1e1e1e;color:#fff">Свойство</option>
+                                                                <option v-for="prop in bgProperties" :key="prop.ID" :value="prop.TITLE" style="background:#1e1e1e;color:#fff">{{ prop.TITLE }}</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <button class="icon-btn" @click="editWidgetForm.bg_object='';editWidgetForm.bg_property='';loadBgProperties()" title="Очистить" style="margin-top:16px;flex-shrink:0"><i class="fas fa-backspace"></i></button>
+                                            </div>
+                                        </template>
+
+                                        <!-- Advanced fields from config -->
+                                        <div v-for="field in getWidgetFields(editWidgetForm.type, 'advanced')" :key="field.key || field.type">
+                                            <div v-if="fieldVisible(field)">
+                                                <template v-if="field.type === 'checkbox'">
+                                                    <div class="v-input v-input--selection-controls v-input--switch" :class="{ 'input--is-checked': editWidgetForm[field.key] }">
+                                                        <div class="v-input__control">
+                                                            <div class="v-input__slot v-input__slot--switch">
+                                                                <div class="v-input--switch__track" @click.stop="editWidgetForm[field.key] = !editWidgetForm[field.key]"><div class="v-input--switch__thumb"></div></div>
+                                                                <span class="v-label">{{ field.label }}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                                <template v-else-if="field.type === 'color'">
+                                                    <div class="d-flex gap-2">
+                                                        <div class="v-input v-text-field" style="flex:1">
+                                                            <div class="v-input__control">
+                                                                <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm[field.key] }">{{ field.label }}</label><input v-model="editWidgetForm[field.key]"></div>
+                                                                <div class="v-input__details"><div class="v-messages"></div></div>
+                                                            </div>
+                                                        </div>
+                                                        <input type="color" v-model="editWidgetForm[field.key]" style="width:40px;height:38px;margin-top:16px;padding:2px;background:transparent;border:1px solid rgba(255,255,255,.2);border-radius:4px;cursor:pointer">
+                                                    </div>
+                                                </template>
+                                                <template v-else-if="field.type === 'number'">
+                                                    <div class="v-input v-text-field">
+                                                        <div class="v-input__control">
+                                                            <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm[field.key] !== undefined && editWidgetForm[field.key] !== '' }">{{ field.label }}</label><input type="number" :step="field.step || 1" v-model.number="editWidgetForm[field.key]"></div>
+                                                            <div class="v-input__details"><div class="v-messages"></div></div>
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                                <template v-else>
+                                                    <div class="v-input v-text-field">
+                                                        <div class="v-input__control">
+                                                            <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm[field.key] }">{{ field.label }}</label><input v-model="editWidgetForm[field.key]"></div>
+                                                            <div class="v-input__details"><div class="v-messages"></div></div>
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="v-window-item" v-if="widgetTab === 'columns'">
+                                        <!-- Toolbar -->
+                                        <div class="d-flex gap-1 ma-1" style="align-items:center">
+                                            <button type="button" class="v-btn v-btn--is-elevated v-btn--fab v-btn--has-bg v-btn--round v-size--x-small" @click="addColumn" title="Добавить колонку"><i class="fas fa-plus"></i></button>
+                                            <button type="button" class="v-btn v-btn--is-elevated v-btn--fab v-btn--has-bg v-btn--round v-size--x-small" @click="moveColumnUp(columnIdx)" title="Переместить вверх" :disabled="!getColumns().length"><i class="fas fa-angle-up"></i></button>
+                                            <button type="button" class="v-btn v-btn--is-elevated v-btn--fab v-btn--has-bg v-btn--round v-size--x-small" @click="moveColumnDown(columnIdx)" title="Переместить вниз" :disabled="!getColumns().length"><i class="fas fa-angle-down"></i></button>
+                                            <button type="button" class="v-btn v-btn--is-elevated v-btn--fab v-btn--has-bg v-btn--round v-size--x-small" @click="removeColumn(columnIdx)" title="Удалить колонку" :disabled="!getColumns().length"><i class="fas fa-minus"></i></button>
+                                            <div class="spacer"></div>
+                                            <button type="button" class="v-btn v-btn--is-elevated v-btn--fab v-btn--has-bg v-btn--round v-size--x-small" @click="autoDetectColumns" title="Автоопределение"><i class="fas fa-magic"></i></button>
+                                        </div>
+                                        <!-- Columns editor -->
+                                        <div style="display:flex;gap:12px;min-height:200px">
+                                            <!-- Column tabs (vertical) -->
+                                            <div style="flex:0 0 auto;display:flex;flex-direction:column;border-right:1px solid rgba(255,255,255,.12);padding-right:8px">
+                                                <div v-for="(col, ci) in getColumns()" :key="ci"
+                                                     class="column-tab"
+                                                     :class="{ 'column-tab--active': columnIdx === ci }"
+                                                     @click="columnIdx = ci"
+                                                     style="padding:8px 16px;cursor:pointer;border-radius:4px 0 0 4px;white-space:nowrap;font-size:.85rem;color:rgba(255,255,255,.7);transition:background .15s"
+                                                     :style="columnIdx === ci ? 'background:rgba(255,255,255,.1);color:#fff' : ''">
+                                                    {{ col.data_name || 'Колонка ' + (ci + 1) }}
+                                                </div>
+                                            </div>
+                                            <!-- Column fields -->
+                                            <div style="flex:1;min-width:0" v-if="getColumns().length">
+                                                <div v-for="(f, fi) in columnFields" :key="f.key">
+                                                    <template v-if="f.type === 'switch'">
+                                                        <div class="v-input v-input--selection-controls v-input--switch" :class="{ 'input--is-checked': getColumns()[columnIdx][f.key] }">
+                                                            <div class="v-input__control">
+                                                                <div class="v-input__slot v-input__slot--switch">
+                                                                    <div class="v-input--switch__track" @click.stop="(cols = getColumns())[columnIdx][f.key] = !cols[columnIdx][f.key]; setColumns(cols)"><div class="v-input--switch__thumb"></div></div>
+                                                                    <span class="v-label">{{ f.label }}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </template>
+                                                    <template v-else-if="f.type === 'select'">
+                                                        <div class="v-input v-text-field v-select">
+                                                            <div class="v-input__control">
+                                                                <div class="v-input__slot">
+                                                                    <select :value="getColumns()[columnIdx][f.key]" @change="(cols = getColumns())[columnIdx][f.key] = $event.target.value; setColumns(cols)">
+                                                                        <option v-for="opt in f.options" :key="opt.value" :value="opt.value" style="background:#1e1e1e;color:#fff">{{ opt.title }}</option>
+                                                                    </select>
+                                                                    <label class="v-label v-label--active">{{ f.label }}</label>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </template>
+                                                    <template v-else>
+                                                        <div class="v-input v-text-field">
+                                                            <div class="v-input__control">
+                                                                <div class="v-input__slot">
+                                                                    <input :value="getColumns()[columnIdx][f.key]" @input="(cols = getColumns())[columnIdx][f.key] = $event.target.value; setColumns(cols)">
+                                                                    <label class="v-label" :class="{ 'v-label--active': getColumns()[columnIdx][f.key] }">{{ f.label }}</label>
+                                                                </div>
+                                                                <div class="v-input__details"><div class="v-messages"></div></div>
+                                                            </div>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                            </div>
+                                            <div v-else style="flex:1;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.35);font-size:.9rem">
+                                                Нет колонок. Нажмите + чтобы добавить.
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="v-window-item" v-if="widgetTab === 'position'">
+                                        <div class="d-flex gap-2">
+                                            <div class="v-input v-text-field" style="flex:1">
+                                                <div class="v-input__control">
+                                                    <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm.x !== undefined }">X (px)</label><input type="number" v-model.number="editWidgetForm.x"></div>
+                                                    <div class="v-input__details"><div class="v-messages"></div></div>
+                                                </div>
+                                            </div>
+                                            <div class="v-input v-text-field" style="flex:1">
+                                                <div class="v-input__control">
+                                                    <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm.y !== undefined }">Y (px)</label><input type="number" v-model.number="editWidgetForm.y"></div>
+                                                    <div class="v-input__details"><div class="v-messages"></div></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex gap-2">
+                                            <div class="v-input v-text-field" style="flex:1">
+                                                <div class="v-input__control">
+                                                    <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm.width !== undefined }">Ширина (px)</label><input type="number" v-model.number="editWidgetForm.width"></div>
+                                                    <div class="v-input__details"><div class="v-messages"></div></div>
+                                                </div>
+                                            </div>
+                                            <div class="v-input v-text-field" style="flex:1">
+                                                <div class="v-input__control">
+                                                    <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm.height !== undefined }">Высота (px)</label><input type="number" v-model.number="editWidgetForm.height"></div>
+                                                    <div class="v-input__details"><div class="v-messages"></div></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <hr class="v-divider theme--dark">
+                    <div class="v-card__actions">
+                        <div class="spacer"></div>
+                        <button type="button" class="v-btn v-btn--text theme--dark v-size--default primary--text text--darken-1" @click="editWidgetForm = false"><span class="v-btn__content">Отменить</span></button>
+                        <button type="button" class="v-btn v-btn--text theme--dark v-size--default primary--text text--darken-1" @click="saveEditWidget"><span class="v-btn__content">{{ editWidgetForm.title ? 'Сохранить' : 'Создать' }}</span></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Icon Picker -->
+        <div class="modal-overlay" v-if="showIconPicker" @click.self="showIconPicker = false" style="background:rgba(0,0,0,.6)">
+            <div class="modal" style="max-width:900px;width:70%;min-height:60vh;max-height:80vh;display:flex;flex-direction:column;background:rgba(48,48,48,.92);color:#fff;border-radius:8px;overflow:hidden">
+                <div class="modal-header" style="padding:.75rem 1rem;border-bottom:1px solid rgba(255,255,255,.12);display:flex;align-items:center;flex-shrink:0">
+                    <h3 style="font-size:1rem;font-weight:500;flex:1;margin:0">Выбор иконки</h3>
+                    <button class="modal-close" @click="showIconPicker = false" style="color:rgba(255,255,255,.6);font-size:1.5rem;border:none;background:none;cursor:pointer">&times;</button>
+                </div>
+                <div style="display:flex;flex:1;overflow:hidden">
+                    <div style="flex:0 0 260px;display:flex;flex-direction:column;border-right:1px solid rgba(255,255,255,.12);overflow:hidden">
+                        <div style="padding:.75rem .75rem .5rem;flex-shrink:0">
+                            <div style="display:flex;align-items:center;background:rgba(255,255,255,.06);border-radius:4px;padding:.25rem .5rem">
+                                <i class="fas fa-search" style="font-size:.85rem;color:rgba(255,255,255,.4);margin-right:.5rem"></i>
+                                <input v-model="iconCategorySearch" placeholder="Фильтр категорий..." style="background:none;border:none;color:#fff;outline:none;width:100%;font-size:.85rem;padding:.25rem 0">
+                            </div>
+                        </div>
+                        <div style="flex:1;overflow-y:auto" class="scrollable">
+                            <div style="display:flex;flex-direction:column">
+                                <div v-for="cat in filteredIconCategories" :key="cat.name" class="icon-picker__cat" :class="{ active: iconCategory === cat.name }" @click="iconCategory = cat.name; iconPage = 1">
+                                    <div>
+                                        <div style="font-size:.85rem;color:rgba(255,255,255,.8)">{{ cat.title }}</div>
+                                        <div style="font-size:.75rem;color:rgba(255,255,255,.35)">{{ cat.icons.length }} иконок</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+                        <div style="padding:.75rem .75rem .5rem;flex-shrink:0">
+                            <div style="display:flex;align-items:center;background:rgba(255,255,255,.06);border-radius:4px;padding:.25rem .5rem">
+                                <i class="fas fa-search" style="font-size:.85rem;color:rgba(255,255,255,.4);margin-right:.5rem"></i>
+                                <input v-model="iconSearch" placeholder="Поиск иконки..." style="background:none;border:none;color:#fff;outline:none;width:100%;font-size:.85rem;padding:.25rem 0">
+                            </div>
+                        </div>
+                        <div class="icon-picker__grid scrollable" style="flex:1;overflow-y:auto;padding:.5rem .75rem">
+                            <div v-for="ic in paginatedIcons" :key="ic" class="icon-picker__item" :class="{ active: iconPicked(ic) }" @click="selectIcon(ic)" :title="ic">
+                                <i :class="ic" style="font-size:36px;color:rgba(255,255,255,.8)"></i>
+                            </div>
+                            <div v-if="!paginatedIcons.length" class="icon-picker__empty">Иконки не найдены</div>
+                        </div>
+                    </div>
+                </div>
+                <div style="border-top:1px solid rgba(255,255,255,.12);padding:.5rem 1rem;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;font-size:.85rem;color:rgba(255,255,255,.45)">
+                    <span>{{ filteredIcons.length }} иконок</span>
+                    <div style="display:flex;align-items:center;gap:4px">
+                        <button @click="iconPage = Math.max(1, iconPage - 1)" :disabled="iconPage <= 1" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.15);background:none;color:rgba(255,255,255,.6);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.8rem" :style="iconPage <= 1 ? 'opacity:.3;cursor:default' : ''"><i class="fas fa-chevron-left" style="font-size:.7rem"></i></button>
+                        <span v-for="p in totalPages" :key="p" class="icon-picker__page" :class="{ active: p === iconPage }" @click="iconPage = p" style="width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.8rem;cursor:pointer;color:rgba(255,255,255,.6);transition:all .15s">{{ p }}</span>
+                        <button @click="iconPage = Math.min(totalPages, iconPage + 1)" :disabled="iconPage >= totalPages" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.15);background:none;color:rgba(255,255,255,.6);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.8rem" :style="iconPage >= totalPages ? 'opacity:.3;cursor:default' : ''"><i class="fas fa-chevron-right" style="font-size:.7rem"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button v-if="!settings.hideChat" class="chat-fab" @click="toggleChat" :class="{ 'chat-fab--active': chatOpen }">
+            <i class="fas fa-comment"></i>
+        </button>
+
+        <div class="chat-window" :class="{ 'chat-window--open': chatOpen }">
+            <div class="chat-header">
+                <div class="chat-header__info">
+                    <i class="fas fa-comment-dots"></i>
+                    <span>Чат</span>
+                </div>
+                <button class="chat-header__close" @click="chatOpen = false">&times;</button>
+            </div>
+            <div class="chat-messages">
+                <div v-if="chatLoading" class="chat-loading">Загрузка...</div>
+                <div v-for="m in chatMessages" :key="m.ID" class="chat-msg" :class="{ 'chat-msg--mine': m.MEMBER_ID > 0 && user.username && m.SOURCE === 'dashboard_pro' }">
+                    <img v-if="m.USER_AVATAR" :src="'/cms/avatars/' + m.USER_AVATAR" class="chat-msg__avatar">
+                    <i v-else class="fas fa-user-circle chat-msg__avatar-icon"></i>
+                    <div class="chat-msg__body">
+                        <div class="chat-msg__text">{{ m.MESSAGE }}</div>
+                        <div class="chat-msg__time">{{ formatTime(m.ADDED) }}</div>
+                    </div>
+                </div>
+            </div>
+            <form class="chat-input" @submit.prevent="sendChat">
+                <input v-model="chatText" placeholder="Написать сообщение..." @keyup.enter="sendChat">
+                <button type="submit" :disabled="!chatText.trim()"><i class="fas fa-paper-plane"></i></button>
+            </form>
+        </div>
+
+        <div class="v-dialog__content v-dialog__content--active" v-if="showExportDialog" @click.self="showExportDialog = false" style="z-index:202">
+            <div class="v-dialog v-dialog--active v-dialog--persistent v-dialog--scrollable" style="width:520px" tabindex="0">
+                <div class="v-card v-sheet theme--dark export-dialog-card">
+                    <div class="v-card__title" style="flex-shrink:0">
+                        <span class="headline_m">Экспорт/импорт панели</span>
+                    </div>
+                    <hr role="separator" class="v-divider theme--dark" style="flex-shrink:0">
+                    <div class="v-card__text pa-4" style="overflow-y:auto;flex:1">
+                        <div class="v-list v-sheet theme--dark v-list--subheader" style="background:transparent;padding:0">
+                            <div class="export-option" :class="{ active: exportMode === 'users' }" @click="exportMode = 'users'; loadExportUsers()">
+                                <div class="export-option__radio">
+                                    <i class="fas" :class="exportMode === 'users' ? 'fa-dot-circle' : 'fa-circle'"></i>
+                                </div>
+                                <div class="export-option__content">
+                                    <div class="export-option__title">Пользователи</div>
+                                    <div class="export-option__desc">Копирование всех настроек в Объект выбранного пользователя. Если Объект не пустой — предупреждение о перезаписи.</div>
+                                </div>
+                            </div>
+                            <div class="export-option" :class="{ active: exportMode === 'all' }" @click="exportMode = 'all'">
+                                <div class="export-option__radio">
+                                    <i class="fas" :class="exportMode === 'all' ? 'fa-dot-circle' : 'fa-circle'"></i>
+                                </div>
+                                <div class="export-option__content">
+                                    <div class="export-option__title">Все</div>
+                                    <div class="export-option__desc">Экспорт всех панелей и настроек</div>
+                                </div>
+                            </div>
+                            <div class="export-option" :class="{ active: exportMode === 'panels' }" @click="exportMode = 'panels'">
+                                <div class="export-option__radio">
+                                    <i class="fas" :class="exportMode === 'panels' ? 'fa-dot-circle' : 'fa-circle'"></i>
+                                </div>
+                                <div class="export-option__content">
+                                    <div class="export-option__title">Панели</div>
+                                    <div class="export-option__desc">Сохранение содержимого панели в файл. Если выбрана Группа, сохраняется всё, что внутри этой группы.</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div v-if="exportMode === 'panels'" class="export-panel-select" style="margin-top:16px">
+                            <label class="v-label v-label--active" style="margin-bottom:6px;display:block;font-size:.875rem;color:rgba(255,255,255,.7)">Выберите панель</label>
+                            <div class="v-input v-text-field v-select">
+                                <div class="v-input__control">
+                                    <div class="v-input__slot">
+                                        <select v-model="exportSelectedPanel">
+                                            <option value="" style="background:#1e1e1e;color:#fff">— выберите —</option>
+                                            <option v-for="p in panels" :key="p.name" :value="p.name" style="background:#1e1e1e;color:#fff">{{ p.title }}</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div v-if="exportMode === 'users'" class="export-panel-select" style="margin-top:16px">
+                            <label class="v-label v-label--active" style="margin-bottom:6px;display:block;font-size:.875rem;color:rgba(255,255,255,.7)">Выберите пользователя</label>
+                            <div class="v-input v-text-field v-select">
+                                <div class="v-input__control">
+                                    <div class="v-input__slot">
+                                        <select v-model="exportSelectedUser">
+                                            <option value="" style="background:#1e1e1e;color:#fff">— выберите —</option>
+                                            <option v-for="u in exportUsers" :key="u.USERNAME" :value="u.USERNAME" style="background:#1e1e1e;color:#fff">{{ u.USERNAME }}</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <hr role="separator" class="v-divider theme--dark" style="flex-shrink:0">
+                    <div class="v-card__actions pa-4" style="flex-shrink:0;gap:8px;display:flex">
+                        <button type="button" class="v-btn v-btn--is-elevated v-btn--has-bg theme--dark v-size--default success" @click="doExport"><span class="v-btn__content"><i class="fas fa-file-export v-icon--left"></i>Экспорт</span></button>
+                        <span style="flex:1"></span>
+                        <button type="button" class="v-btn v-btn--is-elevated v-btn--has-bg theme--dark v-size--default" @click="showExportDialog = false"><span class="v-btn__content">Закрыть</span></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-overlay" v-if="showAbout" @click.self="showAbout = false">
+            <div class="modal" style="max-width:400px">
+                <div class="modal-header"><h3>О программе</h3><button class="modal-close" @click="showAbout = false">&times;</button></div>
+                <div class="modal-body" style="text-align:center;padding:2rem 1.5rem">
+                    <i class="fas fa-chart-line" style="font-size:3rem;color:var(--primary);margin-bottom:1rem"></i>
+                    <h3 style="margin-bottom:.3rem">Dashboard Pro</h3>
+                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">Версия 1.0</p>
+                    <p style="color:var(--text-secondary);font-size:.8rem">Панель управления для MajorDoMo</p>
+                </div>
+                <div class="modal-footer" style="justify-content:center">
+                    <button class="btn-primary" @click="showAbout = false">Закрыть</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js?v=9"></script>
+    <script src="js/auth.js?v=9"></script>
+    <script src="js/sidebar.js?v=10"></script>
+    <script src="js/widgets/relay.js?v=8"></script>
+    <script src="js/widgets/value.js?v=8"></script>
+    <script src="js/widgets/button.js?v=8"></script>
+    <script src="js/widgets/slider.js?v=8"></script>
+    <script src="js/widgets/dimmer.js?v=8"></script>
+    <script src="js/widgets/text.js?v=8"></script>
+    <script src="js/widgets/select.js?v=8"></script>
+    <script src="js/widgets/clock.js?v=8"></script>
+    <script src="js/widgets/iframe.js?v=8"></script>
+    <script src="js/widgets/rgb.js?v=8"></script>
+    <script src="js/widgets/progressbar.js?v=8"></script>
+    <script src="js/widgets/gauge.js?v=8"></script>
+    <script src="js/widgets/image.js?v=8"></script>
+    <script src="js/widgets/panellink.js?v=8"></script>
+    <script src="js/widgets/test.js?v=8"></script>
+    <script src="js/widgets/unknown.js?v=8"></script>
+    <script src="js/widgets/sendtext.js?v=8"></script>
+    <script src="js/widgets/analogclock.js?v=8"></script>
+    <script src="js/widgets/status.js?v=8"></script>
+    <script src="js/widgets/datepicker.js?v=8"></script>
+    <script src="js/widgets/timepicker.js?v=8"></script>
+    <script src="js/widgets/roundslider.js?v=8"></script>
+    <script src="js/widgets/graph.js?v=8"></script>
+    <script src="js/widgets/bargraph.js?v=8"></script>
+    <script src="js/widgets/weather.js?v=8"></script>
+    <script src="js/widgets/table.js?v=8"></script>
+    <script src="js/widgets/timeline.js?v=8"></script>
+    <script src="js/widgets/group.js?v=8"></script>
+    <script src="js/widgets/map.js?v=8"></script>
+    <script src="js/widgets/calendar.js?v=8"></script>
+    <script src="js/widgets/colorslider.js?v=8"></script>
+    <script src="js/widgets/empty.js?v=8"></script>
+    <script src="js/widgets/keypad.js?v=8"></script>
+    <script src="js/widgets/roominfo.js?v=8"></script>
+    <script src="js/widgets/slideshow.js?v=8"></script>
+    <script src="js/widgets/sliderbuttons.js?v=8"></script>
+    <script src="js/widgets/thermostat.js?v=8"></script>
+    <script src="js/widgets/trend.js?v=8"></script>
+    <script src="js/widget-config.js?v=8"></script>
+    <script src="js/app.js?v=17"></script>
+</body>
+</html>

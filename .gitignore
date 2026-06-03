@@ -1,0 +1,17 @@
+# OS
+Thumbs.db
+.DS_Store
+*.swp
+*.swo
+
+# IDE
+.vscode/
+.idea/
+*.suo
+*.user
+
+# Temp
+tmp/
+temp/
+*.log
+node_modules/
