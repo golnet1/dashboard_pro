@@ -126,19 +126,12 @@ const app = createApp({
         function getWidgetFields(type, tab) {
             if (typeof W === 'undefined' || !W.fields) return [];
             const common = W.fields._common[tab] || [];
+            // Try fields from widget component first
             const comp = getWidgetComponent(type);
             const specific = (comp && comp.fields && comp.fields[tab]) || [];
-            const legacy = (W.fields.types[type] && W.fields.types[type][tab]) || [];
-            // Order: common → legacy (types) → specific (component)
-            // First occurrence wins dedup so types provide base, component adds extras
-            const all = [...common, ...legacy, ...specific];
-            const seen = new Set();
-            return all.filter(f => {
-                const key = f.key || f.type;
-                if (seen.has(key)) return false;
-                seen.add(key);
-                return true;
-            });
+            // Fallback to widget-config.js types
+            const legacy = specific.length ? [] : (W.fields.types[type] && W.fields.types[type][tab]) || [];
+            return [...common, ...specific, ...legacy];
         }
         function getWidgetComponent(type) {
             try { return app.component('widget-' + type); } catch(e) { return null; }
@@ -471,12 +464,8 @@ const app = createApp({
                 const res = await dpAPI('properties?object_id=' + encodeURIComponent(w.object_info));
                 infoProperties.value = res.items || [];
             }
-            // Load methods for all method-type fields
-            const methodParents = ['method', 'object_switch', 'object_on', 'object_off', 'object_color'];
-            methodParents.forEach(key => {
-                const obj = getMethodObj(w[key]);
-                if (obj) loadObjectMethods(obj);
-            });
+            const methodObj = getMethodObj(w.method);
+            if (methodObj) loadObjectMethods(methodObj);
             nextTick(updateWidgetTabSlider);
         }
 
@@ -580,12 +569,8 @@ const app = createApp({
             const res = await dpAPI('properties?object_id=' + encodeURIComponent(obj));
             infoProperties.value = res.items || [];
         });
-        // Load methods when any method parent (object_switch/on/off/color) changes
-        const methodParents = ['object_switch', 'object_on', 'object_off', 'object_color'];
-        methodParents.forEach(key => {
-            watch(() => editWidgetForm.value?.[key] ? getMethodObj(editWidgetForm.value[key]) : '', (obj) => {
-                if (obj) loadObjectMethods(obj);
-            });
+        watch(() => editWidgetForm.value?.method ? getMethodObj(editWidgetForm.value.method) : '', (obj) => {
+            if (obj) loadObjectMethods(obj);
         });
         watch(() => editWidgetForm.value?.bg_mode, async (mode) => {
             if (!editWidgetForm.value) return;
