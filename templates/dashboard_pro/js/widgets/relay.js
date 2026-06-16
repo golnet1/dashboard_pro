@@ -77,9 +77,13 @@ const RelayWidget = {
             let obj = this.widget.object_value || this.widget.object;
             let prop = this.widget.property;
             if (this.widget.object_switch) {
-                await dpAPI('method/' + this.widget.object_switch);
+                const p = this.widget.object_switch.split('/');
+                await dpAPI('method/' + p[0] + (p[1] ? '?' + p[1] : ''));
             } else if (this.widget.object_on && this.widget.object_off) {
-                await dpAPI('method/' + (next ? this.widget.object_on : this.widget.object_off));
+                const pon = this.widget.object_on.split('/');
+                const poff = this.widget.object_off.split('/');
+                const p = next ? pon : poff;
+                await dpAPI('method/' + p[0] + (p[1] ? '?' + p[1] : ''));
             } else {
                 await dpAPI('setProperty?' + new URLSearchParams({
                     object: obj, property: prop || 'status', value: next ? '1' : '0'

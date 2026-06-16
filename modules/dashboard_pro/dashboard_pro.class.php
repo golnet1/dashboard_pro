@@ -6,7 +6,7 @@ class dashboard_pro extends module
     {
         $this->name = "dashboard_pro";
         $this->title = "Dashboard Pro";
-        $this->module_category = "<#LANG_SECTION_OBJECTS#>";
+        $this->module_category = "<#LANG_SECTION_APPLICATIONS#>";
         $this->checkInstalled();
     }
 
@@ -54,42 +54,6 @@ class dashboard_pro extends module
     {
         $this->getConfig();
         $out['DASHBOARDS'] = $this->loadDashboardSettings();
-
-        // ensure DashBoard_Pro class and per-user objects exist
-        $class = SQLSelectOne("SELECT * FROM classes WHERE TITLE='DashBoard_Pro'");
-        if (!$class) {
-            $rec = array('TITLE' => 'DashBoard_Pro', 'DESCRIPTION' => 'Dashboard Pro user settings');
-            SQLInsert('classes', $rec);
-            $class = SQLSelectOne("SELECT * FROM classes WHERE TITLE='DashBoard_Pro'");
-        }
-        if ($class) {
-            $classId = (int)$class['ID'];
-            foreach (array('panels', 'settings', 'widgets') as $propName) {
-                $p = SQLSelectOne("SELECT * FROM properties WHERE TITLE='" . DBSafe($propName) . "' AND CLASS_ID=" . $classId);
-                if (!$p) {
-                    $rec = array('TITLE' => $propName, 'CLASS_ID' => $classId, 'DATA_KEY' => 0, 'DATA_TYPE' => 1);
-                    SQLInsert('properties', $rec);
-                }
-            }
-            $users = SQLSelect("SELECT * FROM users");
-            if (is_array($users)) {
-                foreach ($users as $user) {
-                    $login = $user['USERNAME'];
-                    $objName = "DashBoard_{$login}";
-                    $obj = SQLSelectOne("SELECT * FROM objects WHERE TITLE='" . DBSafe($objName) . "'");
-                    if (!$obj) {
-                        $rec = array('TITLE' => $objName, 'CLASS_ID' => $classId);
-                        SQLInsert('objects', $rec);
-                    }
-                    if (!gg("DashBoard_{$login}.panels")) {
-                        sg("DashBoard_{$login}.panels", json_encode($this->defaultPanels()));
-                    }
-                    if (!gg("DashBoard_{$login}.settings")) {
-                        sg("DashBoard_{$login}.settings", json_encode($this->defaultSettings()));
-                    }
-                }
-            }
-        }
     }
 
     function usual(&$out)
@@ -630,5 +594,16 @@ class dashboard_pro extends module
     function dbInstall($data)
     {
         parent::dbInstall($data);
+    }
+
+    function uninstall()
+    {
+        $class = SQLSelectOne("SELECT * FROM classes WHERE TITLE='DashBoard_Pro'");
+        if ($class) {
+            SQLExec("DELETE FROM properties WHERE CLASS_ID=" . (int)$class['ID']);
+            SQLExec("DELETE FROM objects WHERE CLASS_ID=" . (int)$class['ID']);
+            SQLExec("DELETE FROM classes WHERE ID=" . (int)$class['ID']);
+        }
+        parent::uninstall();
     }
 }
