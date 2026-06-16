@@ -2,11 +2,17 @@ const ProgressBarWidget = {
     props: ['widget'],
     fields: {
         params: [
+            { key: 'object', label: 'Объект', type: 'object', row: 'obj_prop' },
+            { key: 'property', label: 'Свойство', type: 'property', row: 'obj_prop' },
             { key: 'level_min', label: 'Мин', type: 'number', row: 'range' },
             { key: 'level_max', label: 'Макс', type: 'number', row: 'range' },
             { key: 'striped', label: 'Полосатый', type: 'checkbox' },
             { key: 'rounded', label: 'Скруглённый', type: 'checkbox' },
             { key: 'color_progress', label: 'Цвет прогресса', type: 'text', default: 'primary', placeholder: 'primary / #ff0000' },
+        ],
+        advanced: [
+            { key: 'pre_info', label: 'Префикс информации', type: 'text', row: 'info_affix' },
+            { key: 'pos_info', label: 'Постфикс информации', type: 'text', row: 'info_affix' },
         ],
     },
     defaults: { icon: 'fas fa-chart-bar', level_min: 0, level_max: 100, striped: false, rounded: false, color_progress: 'primary' },

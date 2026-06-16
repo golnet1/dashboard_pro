@@ -2,6 +2,7 @@ const ThermostatWidget = {
     props: ['widget'],
     fields: {
         params: [
+            { key: 'object', label: 'Объект', type: 'object' },
             { key: 'object_current', label: 'Объект текущей температуры', type: 'object' },
             { key: 'object_target', label: 'Объект целевой температуры', type: 'object' },
             { key: 'object_status', label: 'Объект статуса', type: 'object' },

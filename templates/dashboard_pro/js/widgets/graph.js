@@ -2,6 +2,7 @@ const GraphWidget = {
     props: ['widget'],
     fields: {
         params: [
+            { key: 'object', label: 'Объект', type: 'object' },
             { key: 'days', label: 'Дней истории', type: 'number', default: 1 },
         ],
     },

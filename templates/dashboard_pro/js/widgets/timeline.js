@@ -2,6 +2,7 @@ const TimelineWidget = {
     props: ['widget'],
     fields: {
         params: [
+            { key: 'object', label: 'Объект', type: 'object' },
             { key: 'url', label: 'URL (JSON)', type: 'text', placeholder: 'https://api.example.com/events' },
         ],
     },

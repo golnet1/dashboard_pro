@@ -2,6 +2,8 @@ const SelectWidget = {
     props: ['widget'],
     fields: {
         params: [
+            { key: 'object', label: 'Объект', type: 'object', row: 'obj_prop' },
+            { key: 'property', label: 'Свойство', type: 'property', row: 'obj_prop' },
             { key: 'help', type: 'info', text: 'Формат: [{"label":"...", "value":"...", "icon":"..."}]' },
             { key: 'options', label: 'Варианты (JSON)', type: 'textarea', rows: 4, placeholder: '[{"label":"Вкл","value":"1","icon":"fas fa-check"}]' },
         ],

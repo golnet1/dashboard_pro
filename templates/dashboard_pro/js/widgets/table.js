@@ -1,6 +1,9 @@
 const TableWidget = {
     props: ['widget'],
     fields: {
+        params: [
+            { key: 'object', label: 'Объект', type: 'object' },
+        ],
         main: [
             { key: 'url', label: 'URL (JSON)', type: 'text', placeholder: 'https://api.example.com/data' },
             { key: 'query', label: 'Запрос', type: 'textarea', rows: 5, placeholder: 'SQL-запрос или JSONPath' },

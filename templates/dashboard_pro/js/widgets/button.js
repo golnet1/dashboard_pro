@@ -2,6 +2,7 @@ const ButtonWidget = {
     props: ['widget'],
     fields: {
         params: [
+            { key: 'object', label: 'Объект', type: 'object' },
             { key: 'buttonText', label: 'Текст кнопки', type: 'text', default: 'Выполнить' },
             { key: 'value', label: 'Значение', type: 'text', default: '1' },
             { key: 'method', label: 'Метод', type: 'text', placeholder: 'method_name' },

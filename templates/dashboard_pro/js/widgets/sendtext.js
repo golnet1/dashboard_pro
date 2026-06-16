@@ -2,6 +2,8 @@ const SendTextWidget = {
     props: ['widget'],
     fields: {
         params: [
+            { key: 'object', label: 'Объект', type: 'object', row: 'obj_prop' },
+            { key: 'property', label: 'Свойство', type: 'property', row: 'obj_prop' },
             { key: 'url', label: 'URL (используйте {text})', type: 'text', placeholder: '/command.php?qry=<text>' },
             { key: 'autosend', label: 'Отправлять после голоса', type: 'checkbox' },
         ],

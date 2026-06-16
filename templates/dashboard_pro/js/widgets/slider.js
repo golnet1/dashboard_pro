@@ -2,6 +2,8 @@ const SliderWidget = {
     props: ['widget'],
     fields: {
         params: [
+            { key: 'object', label: 'Объект', type: 'object', row: 'obj_prop' },
+            { key: 'property', label: 'Свойство', type: 'property', row: 'obj_prop' },
             { key: 'min', label: 'Мин', type: 'number', row: 'range' },
             { key: 'max', label: 'Макс', type: 'number', row: 'range' },
             { key: 'step', label: 'Шаг', type: 'number', step: 'any', row: 'range' },

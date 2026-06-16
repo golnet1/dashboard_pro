@@ -2,6 +2,7 @@ const ImageWidget = {
     props: ['widget'],
     fields: {
         params: [
+            { key: 'object', label: 'Объект', type: 'object' },
             { key: 'url', label: 'URL изображения', type: 'text', placeholder: 'https://example.com/image.jpg' },
             { key: 'help', type: 'info', text: 'Можно использовать {value} в URL — подставится значение объекта' },
             { key: 'timeout', label: 'Обновление (сек)', type: 'number', default: 0, placeholder: '0 — без обновления' },

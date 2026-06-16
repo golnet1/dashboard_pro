@@ -2,6 +2,8 @@ const RoundSliderWidget = {
     props: ['widget'],
     fields: {
         params: [
+            { key: 'object', label: 'Объект', type: 'object', row: 'obj_prop' },
+            { key: 'property', label: 'Свойство', type: 'property', row: 'obj_prop' },
             { key: 'min', label: 'Мин', type: 'number', default: 0, row: 'range' },
             { key: 'max', label: 'Макс', type: 'number', default: 100, row: 'range' },
             { key: 'step', label: 'Шаг', type: 'number', default: 1, row: 'range' },

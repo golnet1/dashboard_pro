@@ -2,6 +2,8 @@ const TextWidget = {
     props: ['widget'],
     fields: {
         params: [
+            { key: 'object', label: 'Объект', type: 'object', row: 'obj_prop' },
+            { key: 'property', label: 'Свойство', type: 'property', row: 'obj_prop' },
             { key: 'help', type: 'info', text: 'Если указан объект — отображается его значение, иначе статический текст' },
             { key: 'text', label: 'Статический текст', type: 'textarea', rows: 3 },
         ],

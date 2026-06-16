@@ -119,19 +119,14 @@ const app = createApp({
         );
 
         const showMethodsTab = computed(() => {
-            if (!editWidgetForm.value) return false;
-            return W.fields.hasMethodsTab(editWidgetForm.value.type);
+            return false;
         });
 
         function getWidgetFields(type, tab) {
             if (typeof W === 'undefined' || !W.fields) return [];
-            const common = W.fields._common[tab] || [];
             const comp = getWidgetComponent(type);
-            const specific = (comp && comp.fields && comp.fields[tab]) || [];
-            const legacy = (W.fields.types[type] && W.fields.types[type][tab]) || [];
-            // Order: common → legacy (types) → specific (component)
-            // First occurrence wins dedup so types provide base, component adds extras
-            const all = [...common, ...legacy, ...specific];
+            const component = (comp && comp.fields && comp.fields[tab]) || [];
+            const all = tab === 'position' ? (W.fields._common.position || []) : component;
             const seen = new Set();
             return all.filter(f => {
                 const key = f.key || f.type;

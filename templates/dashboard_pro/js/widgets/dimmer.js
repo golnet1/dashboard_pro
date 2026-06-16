@@ -2,6 +2,10 @@ const DimmerWidget = {
     props: ['widget'],
     fields: {
         params: [
+            { key: 'object', label: 'Объект', type: 'object', row: 'obj_prop' },
+            { key: 'property', label: 'Свойство', type: 'property', row: 'obj_prop' },
+            { key: 'object_switch_obj', label: 'Объект (перекл)', type: 'method_object', parent: 'object_switch', row: 'm_switch' },
+            { key: 'object_switch', label: 'Метод (перекл)', type: 'method', parent: 'object_switch', row: 'm_switch' },
             { key: 'help', type: 'info', text: 'Параметры уровня яркости' },
             { key: 'level_min', label: 'Мин', type: 'number', row: 'range' },
             { key: 'level_max', label: 'Макс', type: 'number', row: 'range' },

@@ -2,6 +2,8 @@ const MapWidget = {
     props: ['widget'],
     fields: {
         params: [
+            { key: 'object', label: 'Объект', type: 'object', row: 'obj_prop' },
+            { key: 'property', label: 'Свойство', type: 'property', row: 'obj_prop' },
             { key: 'lat', label: 'Широта', type: 'text', placeholder: '55.75', row: 'coord' },
             { key: 'lon', label: 'Долгота', type: 'text', placeholder: '37.62', row: 'coord' },
         ],

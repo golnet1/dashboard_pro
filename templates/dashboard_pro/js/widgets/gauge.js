@@ -2,6 +2,8 @@ const GaugeWidget = {
     props: ['widget'],
     fields: {
         params: [
+            { key: 'object', label: 'Объект', type: 'object', row: 'obj_prop' },
+            { key: 'property', label: 'Свойство', type: 'property', row: 'obj_prop' },
             { key: 'minValue', label: 'Мин', type: 'number', row: 'range' },
             { key: 'maxValue', label: 'Макс', type: 'number', row: 'range' },
             { key: 'round', label: 'Округление', type: 'number', placeholder: '0' },

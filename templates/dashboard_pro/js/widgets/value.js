@@ -2,7 +2,14 @@ const ValueWidget = {
     props: ['widget'],
     fields: {
         params: [
+            { key: 'object', label: 'Объект', type: 'object', row: 'obj_prop' },
+            { key: 'property', label: 'Свойство', type: 'property', row: 'obj_prop' },
             { key: 'aliasLabels', label: 'Псевдонимы (JSON)', type: 'text', placeholder: '{"1":"Вкл","0":"Выкл"}' },
+        ],
+        advanced: [
+            { key: 'object_info', label: 'Информация объекта', type: 'object' },
+            { key: 'pre_info', label: 'Префикс информации', type: 'text', row: 'info_affix' },
+            { key: 'pos_info', label: 'Постфикс информации', type: 'text', row: 'info_affix' },
         ],
     },
     defaults: { icon: 'fas fa-hashtag', aliasLabels: null, background: false, round: false },
