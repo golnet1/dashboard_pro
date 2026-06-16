@@ -444,8 +444,10 @@ const app = createApp({
         async function editWidget(w) {
             widgetTab.value = 'main';
             columnIdx.value = 0;
+            const def = widgetDefs.find(d => d.type === w.type);
             editWidgetForm.value = {
                 ...w,
+                title: w.title || def?.title || w.type,
                 icon_type: w.icon_type || w.iconType || 'icon',
                 icon_object: w.icon_object || w.iconObject || '',
                 icon_property: w.icon_property || w.iconProperty || '',
