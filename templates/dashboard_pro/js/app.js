@@ -511,6 +511,7 @@ const app = createApp({
             if (!widgetConfirm.value) return;
             changeWidgetPanel(widgetConfirm.value.idx, widgetConfirm.value.panel);
             widgetConfirm.value = null;
+            widgetMenuTarget.value = null;
         }
 
         function changeWidgetPanel(idx, targetPanelName) {
