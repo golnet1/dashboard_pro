@@ -65,6 +65,7 @@ const app = createApp({
         const resizingWidget = ref(null);
         const resizeStart = ref({ x: 0, y: 0, w: 0, h: 0 });
         const widgetMenuTarget = ref(null);
+        const widgetPanelSubmenu = ref(null);
         const chatOpen = ref(false);
         const chatMessages = ref([]);
         const chatText = ref('');
@@ -497,6 +498,18 @@ const app = createApp({
             const a = document.createElement('a');
             a.href = url; a.download = 'widget_' + w.id + '.json';
             a.click(); URL.revokeObjectURL(url);
+        }
+
+        function changeWidgetPanel(idx, targetPanelName) {
+            const w = currentPanel.value.widgets[idx];
+            if (!w) return;
+            const target = panels.value.find(p => p.name === targetPanelName);
+            if (!target) return;
+            currentPanel.value.widgets.splice(idx, 1);
+            if (!target.widgets) target.widgets = [];
+            target.widgets.push(w);
+            savePanels();
+            currentPanel.value = target;
         }
 
         function saveEditWidget() {
@@ -1122,6 +1135,7 @@ const app = createApp({
             }
             if (widgetMenuTarget.value && !e.target.closest('.widget-menu')) {
                 widgetMenuTarget.value = null;
+                widgetPanelSubmenu.value = null;
             }
         }
 
@@ -1207,7 +1221,7 @@ const app = createApp({
             columnIdx, columnList, setColumns, addColumn, removeColumn, moveColumnUp, moveColumnDown, autoDetectColumns, columnFields,
             draggingWidget, startDrag, onDrag, stopDrag,
             resizingWidget, startResize, onResize, stopResize,
-            widgetMenuTarget, copyWidget, exportWidget,
+            widgetMenuTarget, widgetPanelSubmenu, copyWidget, exportWidget, changeWidgetPanel,
             showSettings, showSettingsPanel, settingsTab, settings, saveSettings, savePanels, toggleTheme, cleanupOrphanWidgets, resetAll,
             showExportDialog, exportMode, exportSelectedPanel, exportUsers, exportSelectedUser, loadExportUsers, doExport, doImport,
             showAddPanel, editPanelData, panelForm, panelTab, panelTabPos, panelError, newPanelTitle, createPanel, editPanel, openPanelForm, deletePanel, deleteCurrentPanel, movePanel, showAbout, toggleField,
