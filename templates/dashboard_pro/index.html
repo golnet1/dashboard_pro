@@ -570,14 +570,14 @@
                                                     <i class="fas fa-cog"></i><span>Настройки виджета</span>
                                                 </div>
                                                 <div class="widget-menu__divider"></div>
+                                                <div class="widget-menu__item" @click="widgetPanelSubmenu = w.id">
+                                                    <i class="fas fa-arrows-alt"></i><span>Изменить панель</span>
+                                                </div>
                                                 <div class="widget-menu__item" @click="copyWidget(idx); widgetMenuTarget = null">
                                                     <i class="fas fa-copy"></i><span>Копировать виджет</span>
                                                 </div>
                                                 <div class="widget-menu__item" @click="exportWidget(w); widgetMenuTarget = null">
                                                     <i class="fas fa-file-import"></i><span>Экспорт</span>
-                                                </div>
-                                                <div class="widget-menu__item" @click="widgetPanelSubmenu = w.id">
-                                                    <i class="fas fa-arrows-alt"></i><span>Изменить панель</span>
                                                 </div>
                                                 <div class="widget-menu__divider"></div>
                                                 <div class="widget-menu__item widget-menu__item--info">
