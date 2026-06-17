@@ -66,7 +66,6 @@ const app = createApp({
         const resizeStart = ref({ x: 0, y: 0, w: 0, h: 0 });
         const widgetMenuTarget = ref(null);
         const widgetPanelSubmenu = ref(null);
-        const moveWidgetTarget = ref(null);
         const chatOpen = ref(false);
         const chatMessages = ref([]);
         const chatText = ref('');
@@ -513,19 +512,10 @@ const app = createApp({
         }
 
         function promptMoveWidget(idx, panelName) {
-            moveWidgetTarget.value = { idx, panel: panelName };
+            if (!confirm('Вы действительно хотите переместить виджет?')) return;
             widgetMenuTarget.value = null;
             widgetPanelSubmenu.value = null;
-        }
-
-        function confirmMoveWidget() {
-            if (!moveWidgetTarget.value) return;
-            changeWidgetPanel(moveWidgetTarget.value.idx, moveWidgetTarget.value.panel);
-            moveWidgetTarget.value = null;
-        }
-
-        function cancelMoveWidget() {
-            moveWidgetTarget.value = null;
+            changeWidgetPanel(idx, panelName);
         }
 
         function saveEditWidget() {
@@ -1237,7 +1227,7 @@ const app = createApp({
             columnIdx, columnList, setColumns, addColumn, removeColumn, moveColumnUp, moveColumnDown, autoDetectColumns, columnFields,
             draggingWidget, startDrag, onDrag, stopDrag,
             resizingWidget, startResize, onResize, stopResize,
-            widgetMenuTarget, widgetPanelSubmenu, moveWidgetTarget, copyWidget, exportWidget, changeWidgetPanel, promptMoveWidget, confirmMoveWidget, cancelMoveWidget,
+            widgetMenuTarget, widgetPanelSubmenu, copyWidget, exportWidget, changeWidgetPanel, promptMoveWidget,
             showSettings, showSettingsPanel, settingsTab, settings, saveSettings, savePanels, toggleTheme, cleanupOrphanWidgets, resetAll,
             showExportDialog, exportMode, exportSelectedPanel, exportUsers, exportSelectedUser, loadExportUsers, doExport, doImport,
             showAddPanel, editPanelData, panelForm, panelTab, panelTabPos, panelError, newPanelTitle, createPanel, editPanel, openPanelForm, deletePanel, deleteCurrentPanel, movePanel, showAbout, toggleField,
