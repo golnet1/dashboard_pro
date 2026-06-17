@@ -571,7 +571,7 @@
                                             <div class="widget-menu__item" @click="copyWidget(idx); widgetMenuTarget = null">
                                                 <i class="fas fa-copy"></i><span>Копировать виджет</span>
                                             </div>
-                                            <div class="widget-menu__item" @click="openChangeObject(idx)">
+                                            <div class="widget-menu__item" @click="openChangeObject(idx); widgetMenuTarget = null">
                                                 <i class="fas fa-recycle"></i><span>Сменить объекты</span>
                                             </div>
                                             <div class="widget-menu__item" @click="exportWidget(w); widgetMenuTarget = null">

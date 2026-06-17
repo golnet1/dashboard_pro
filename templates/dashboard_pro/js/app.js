@@ -538,9 +538,10 @@ const app = createApp({
                 }
             }
             changeObjectPairs.value = pairs;
-            if (pairs.length === 0) return;
+            if (pairs.length === 0) {
+                changeObjectPairs.value = [{ field: '', label: 'Нет объектов для замены', oldObj: '', newObj: '', affected: '' }];
+            }
             showChangeObject.value = true;
-            widgetMenuTarget.value = null;
             widgetPanelSubmenu.value = null;
         }
 
