@@ -576,7 +576,7 @@
                                                     <i class="fas fa-chevron-right" style="margin-left:auto;font-size:.65rem;color:var(--on-theme-dim)"></i>
                                                 </div>
                                                 <div class="widget-menu__submenu" v-if="widgetPanelSubmenu === w.id">
-                                                    <div class="widget-menu__item" v-for="p in panels.filter(p => p.panelType !== 'group' && p.name !== currentPanel.name)" :key="p.name" @click="moveWidgetTarget = { idx: idx, panel: p.name }; widgetMenuTarget = null; widgetPanelSubmenu = null">
+                                                    <div class="widget-menu__item" v-for="p in panels.filter(p => p.panelType !== 'group' && p.name !== currentPanel.name)" :key="p.name" @click="promptMoveWidget(idx, p.name)">
                                                         <i class="fas fa-folder"></i><span>{{ p.title || p.name }}</span>
                                                     </div>
                                                 </div>

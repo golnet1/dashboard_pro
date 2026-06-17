@@ -512,6 +512,12 @@ const app = createApp({
             savePanels();
         }
 
+        function promptMoveWidget(idx, panelName) {
+            moveWidgetTarget.value = { idx, panel: panelName };
+            widgetMenuTarget.value = null;
+            widgetPanelSubmenu.value = null;
+        }
+
         function confirmMoveWidget() {
             if (!moveWidgetTarget.value) return;
             changeWidgetPanel(moveWidgetTarget.value.idx, moveWidgetTarget.value.panel);
@@ -1231,7 +1237,7 @@ const app = createApp({
             columnIdx, columnList, setColumns, addColumn, removeColumn, moveColumnUp, moveColumnDown, autoDetectColumns, columnFields,
             draggingWidget, startDrag, onDrag, stopDrag,
             resizingWidget, startResize, onResize, stopResize,
-            widgetMenuTarget, widgetPanelSubmenu, moveWidgetTarget, copyWidget, exportWidget, changeWidgetPanel, confirmMoveWidget, cancelMoveWidget,
+            widgetMenuTarget, widgetPanelSubmenu, moveWidgetTarget, copyWidget, exportWidget, changeWidgetPanel, promptMoveWidget, confirmMoveWidget, cancelMoveWidget,
             showSettings, showSettingsPanel, settingsTab, settings, saveSettings, savePanels, toggleTheme, cleanupOrphanWidgets, resetAll,
             showExportDialog, exportMode, exportSelectedPanel, exportUsers, exportSelectedUser, loadExportUsers, doExport, doImport,
             showAddPanel, editPanelData, panelForm, panelTab, panelTabPos, panelError, newPanelTitle, createPanel, editPanel, openPanelForm, deletePanel, deleteCurrentPanel, movePanel, showAbout, toggleField,
