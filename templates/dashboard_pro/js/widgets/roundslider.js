@@ -18,7 +18,7 @@ const RoundSliderWidget = {
                 <div class="widget-v-card__title">{{ widget.title || 'Круглый слайдер' }}</div>
             </div>
             <div class="widget-v-card__body" style="display:flex;align-items:center;justify-content:center;flex:1;padding:8px;position:relative">
-                <canvas ref="canvas" style="width:100%;height:100%;cursor:pointer" @mousedown="startDrag" @mousemove="onDrag" @mouseup="endDrag" @mouseleave="endDrag"></canvas>
+                <canvas ref="canvas" style="cursor:pointer" @mousedown="startDrag" @mousemove="onDrag" @mouseup="endDrag" @mouseleave="endDrag"></canvas>
                 <div style="position:absolute;font-size:1.2rem;font-weight:500;color:rgba(255,255,255,.87);pointer-events:none">{{ displayValue }}{{ widget.unit || '' }}</div>
             </div>
         </div>`,
