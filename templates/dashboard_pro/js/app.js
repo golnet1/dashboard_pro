@@ -66,6 +66,7 @@ const app = createApp({
         const resizeStart = ref({ x: 0, y: 0, w: 0, h: 0 });
         const widgetMenuTarget = ref(null);
         const widgetPanelSubmenu = ref(null);
+        const moveWidgetTarget = ref(null);
         const chatOpen = ref(false);
         const chatMessages = ref([]);
         const chatText = ref('');
@@ -509,7 +510,16 @@ const app = createApp({
             if (!target.widgets) target.widgets = [];
             target.widgets.push(w);
             savePanels();
-            currentPanel.value = target;
+        }
+
+        function confirmMoveWidget() {
+            if (!moveWidgetTarget.value) return;
+            changeWidgetPanel(moveWidgetTarget.value.idx, moveWidgetTarget.value.panel);
+            moveWidgetTarget.value = null;
+        }
+
+        function cancelMoveWidget() {
+            moveWidgetTarget.value = null;
         }
 
         function saveEditWidget() {
@@ -1221,7 +1231,7 @@ const app = createApp({
             columnIdx, columnList, setColumns, addColumn, removeColumn, moveColumnUp, moveColumnDown, autoDetectColumns, columnFields,
             draggingWidget, startDrag, onDrag, stopDrag,
             resizingWidget, startResize, onResize, stopResize,
-            widgetMenuTarget, widgetPanelSubmenu, copyWidget, exportWidget, changeWidgetPanel,
+            widgetMenuTarget, widgetPanelSubmenu, moveWidgetTarget, copyWidget, exportWidget, changeWidgetPanel, confirmMoveWidget, cancelMoveWidget,
             showSettings, showSettingsPanel, settingsTab, settings, saveSettings, savePanels, toggleTheme, cleanupOrphanWidgets, resetAll,
             showExportDialog, exportMode, exportSelectedPanel, exportUsers, exportSelectedUser, loadExportUsers, doExport, doImport,
             showAddPanel, editPanelData, panelForm, panelTab, panelTabPos, panelError, newPanelTitle, createPanel, editPanel, openPanelForm, deletePanel, deleteCurrentPanel, movePanel, showAbout, toggleField,
