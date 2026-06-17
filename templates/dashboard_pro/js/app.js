@@ -66,6 +66,7 @@ const app = createApp({
         const resizeStart = ref({ x: 0, y: 0, w: 0, h: 0 });
         const widgetMenuTarget = ref(null);
         const widgetPanelSubmenu = ref(null);
+        const widgetConfirm = ref(null);
         const chatOpen = ref(false);
         const chatMessages = ref([]);
         const chatText = ref('');
@@ -500,6 +501,18 @@ const app = createApp({
             a.click(); URL.revokeObjectURL(url);
         }
 
+        function selectMoveTarget(idx, panelName) {
+            const panel = panels.value.find(p => p.name === panelName);
+            widgetConfirm.value = { idx, panel: panelName, panelTitle: panel?.title || panelName };
+            widgetPanelSubmenu.value = null;
+        }
+
+        function confirmMoveWidget() {
+            if (!widgetConfirm.value) return;
+            changeWidgetPanel(widgetConfirm.value.idx, widgetConfirm.value.panel);
+            widgetConfirm.value = null;
+        }
+
         function changeWidgetPanel(idx, targetPanelName) {
             const w = currentPanel.value.widgets[idx];
             if (!w) return;
@@ -509,13 +522,6 @@ const app = createApp({
             if (!target.widgets) target.widgets = [];
             target.widgets.push(w);
             savePanels();
-        }
-
-        function promptMoveWidget(idx, panelName) {
-            if (!confirm('Вы действительно хотите переместить виджет?')) return;
-            widgetMenuTarget.value = null;
-            widgetPanelSubmenu.value = null;
-            changeWidgetPanel(idx, panelName);
         }
 
         function saveEditWidget() {
@@ -1227,7 +1233,7 @@ const app = createApp({
             columnIdx, columnList, setColumns, addColumn, removeColumn, moveColumnUp, moveColumnDown, autoDetectColumns, columnFields,
             draggingWidget, startDrag, onDrag, stopDrag,
             resizingWidget, startResize, onResize, stopResize,
-            widgetMenuTarget, widgetPanelSubmenu, copyWidget, exportWidget, changeWidgetPanel, promptMoveWidget,
+            widgetMenuTarget, widgetPanelSubmenu, widgetConfirm, copyWidget, exportWidget, changeWidgetPanel, selectMoveTarget, confirmMoveWidget,
             showSettings, showSettingsPanel, settingsTab, settings, saveSettings, savePanels, toggleTheme, cleanupOrphanWidgets, resetAll,
             showExportDialog, exportMode, exportSelectedPanel, exportUsers, exportSelectedUser, loadExportUsers, doExport, doImport,
             showAddPanel, editPanelData, panelForm, panelTab, panelTabPos, panelError, newPanelTitle, createPanel, editPanel, openPanelForm, deletePanel, deleteCurrentPanel, movePanel, showAbout, toggleField,

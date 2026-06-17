@@ -553,38 +553,50 @@
                                     <div class="widget-menu" v-if="editMode" @click.stop>
                                         <button class="widget-menu__trigger" @click="widgetMenuTarget = (widgetMenuTarget === w.id ? null : w.id)" title="Меню"><i class="fas fa-bars"></i></button>
                                         <div class="widget-menu__dropdown" v-if="widgetMenuTarget === w.id">
-                                            <div class="widget-menu__item" @click="editWidget(w); widgetMenuTarget = null">
-                                                <i class="fas fa-cog"></i><span>Настройки виджета</span>
-                                            </div>
-                                            <div class="widget-menu__divider"></div>
-                                            <div class="widget-menu__has-submenu" @mouseenter="widgetPanelSubmenu = w.id" @mouseleave="widgetPanelSubmenu = null">
-                                                <div class="widget-menu__item" style="padding-right:8px">
-                                                    <i class="fas fa-arrows-alt"></i><span>Изменить панель</span>
-                                                    <i class="fas fa-chevron-right" style="margin-left:auto;font-size:.65rem;color:var(--on-theme-dim)"></i>
+                                            <template v-if="widgetConfirm">
+                                                <div class="widget-menu__item widget-menu__item--info" style="cursor:default;justify-content:center;padding:12px">
+                                                    <span>Переместить виджет в «{{ widgetConfirm.panelTitle }}»?</span>
                                                 </div>
-                                                <div class="widget-menu__submenu" v-if="widgetPanelSubmenu === w.id">
-                                                    <div class="widget-menu__item" v-for="p in panels.filter(p => p.panelType !== 'group' && p.name !== currentPanel.name)" :key="p.name" @click="promptMoveWidget(idx, p.name)">
-                                                        <i class="fas fa-folder"></i><span>{{ p.title || p.name }}</span>
+                                                <div class="widget-menu__divider"></div>
+                                                <div style="display:flex;gap:8px;padding:4px 12px 8px">
+                                                    <button class="btn-primary" style="flex:1;padding:6px;font-size:.8rem" @click="confirmMoveWidget(); widgetConfirm = null; widgetMenuTarget = null">Да</button>
+                                                    <button class="btn-secondary" style="flex:1;padding:6px;font-size:.8rem" @click="widgetConfirm = null">Нет</button>
+                                                </div>
+                                            </template>
+                                            <template v-else>
+                                                <div class="widget-menu__item" @click="editWidget(w); widgetMenuTarget = null">
+                                                    <i class="fas fa-cog"></i><span>Настройки виджета</span>
+                                                </div>
+                                                <div class="widget-menu__divider"></div>
+                                                <div class="widget-menu__has-submenu" @mouseenter="widgetPanelSubmenu = w.id" @mouseleave="widgetPanelSubmenu = null">
+                                                    <div class="widget-menu__item" style="padding-right:8px">
+                                                        <i class="fas fa-arrows-alt"></i><span>Изменить панель</span>
+                                                        <i class="fas fa-chevron-right" style="margin-left:auto;font-size:.65rem;color:var(--on-theme-dim)"></i>
+                                                    </div>
+                                                    <div class="widget-menu__submenu" v-if="widgetPanelSubmenu === w.id">
+                                                        <div class="widget-menu__item" v-for="p in panels.filter(p => p.panelType !== 'group' && p.name !== currentPanel.name)" :key="p.name" @click="selectMoveTarget(idx, p.name)">
+                                                            <i class="fas fa-folder"></i><span>{{ p.title || p.name }}</span>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                            <div class="widget-menu__item" @click="copyWidget(idx); widgetMenuTarget = null">
-                                                <i class="fas fa-copy"></i><span>Копировать виджет</span>
-                                            </div>
-                                            <div class="widget-menu__item" @click="exportWidget(w); widgetMenuTarget = null">
-                                                <i class="fas fa-file-import"></i><span>Экспорт</span>
-                                            </div>
-                                            <div class="widget-menu__divider"></div>
-                                            <div class="widget-menu__item widget-menu__item--info">
-                                                <i class="fas fa-info"></i><span>ID: {{ w.id }}</span>
-                                            </div>
-                                            <div class="widget-menu__item widget-menu__item--info">
-                                                <i class="fas fa-info"></i><span>Type: {{ w.type }}</span>
-                                            </div>
-                                            <div class="widget-menu__divider"></div>
-                                            <div class="widget-menu__item widget-menu__item--danger" @click="removeWidget(idx); widgetMenuTarget = null">
-                                                <i class="fas fa-trash"></i><span>Удалить виджет</span>
-                                            </div>
+                                                <div class="widget-menu__item" @click="copyWidget(idx); widgetMenuTarget = null">
+                                                    <i class="fas fa-copy"></i><span>Копировать виджет</span>
+                                                </div>
+                                                <div class="widget-menu__item" @click="exportWidget(w); widgetMenuTarget = null">
+                                                    <i class="fas fa-file-import"></i><span>Экспорт</span>
+                                                </div>
+                                                <div class="widget-menu__divider"></div>
+                                                <div class="widget-menu__item widget-menu__item--info">
+                                                    <i class="fas fa-info"></i><span>ID: {{ w.id }}</span>
+                                                </div>
+                                                <div class="widget-menu__item widget-menu__item--info">
+                                                    <i class="fas fa-info"></i><span>Type: {{ w.type }}</span>
+                                                </div>
+                                                <div class="widget-menu__divider"></div>
+                                                <div class="widget-menu__item widget-menu__item--danger" @click="removeWidget(idx); widgetMenuTarget = null">
+                                                    <i class="fas fa-trash"></i><span>Удалить виджет</span>
+                                                </div>
+                                            </template>
                                         </div>
                                     </div>
                                 </div>
