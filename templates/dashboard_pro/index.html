@@ -571,6 +571,9 @@
                                             <div class="widget-menu__item" @click="copyWidget(idx); widgetMenuTarget = null">
                                                 <i class="fas fa-copy"></i><span>Копировать виджет</span>
                                             </div>
+                                            <div class="widget-menu__item" @click="openChangeObject(idx)">
+                                                <i class="fas fa-recycle"></i><span>Сменить объекты</span>
+                                            </div>
                                             <div class="widget-menu__item" @click="exportWidget(w); widgetMenuTarget = null">
                                                 <i class="fas fa-file-import"></i><span>Экспорт</span>
                                             </div>
@@ -1444,6 +1447,62 @@
                         <div style="flex:1"></div>
                         <button type="button" class="v-btn v-btn--text theme--dark v-size--default grey--text" @click="widgetConfirm = null; widgetMenuTarget = null"><span class="v-btn__content">Нет</span></button>
                         <button type="button" class="v-btn v-btn--text theme--dark v-size--default primary--text" @click="confirmMoveWidget()"><span class="v-btn__content">Да</span></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="v-dialog__content v-dialog__content--active" v-if="showChangeObject" @click.self="showChangeObject = false" style="z-index:202">
+            <div class="v-dialog v-dialog--active v-dialog--scrollable" style="max-width:700px" tabindex="0">
+                <div class="v-card v-sheet theme--dark">
+                    <div class="v-card__title">
+                        <span class="headline_m">Сменить объекты</span>
+                    </div>
+                    <hr role="separator" class="v-divider theme--dark">
+                    <div class="v-card__text pt-3">
+                        <div v-for="(pair, pi) in changeObjectPairs" :key="pi" class="row no-gutters" style="margin-bottom:12px">
+                            <div class="mb-0 col col-5">
+                                <div class="v-input v-input--hide-details v-input--is-label-active v-input--is-readonly theme--dark v-text-field v-text-field--is-booted v-text-field--placeholder v-select">
+                                    <div class="v-input__control">
+                                        <div class="v-input__slot">
+                                            <div class="v-select__slot">
+                                                <label class="v-label v-label--active theme--dark" style="position:absolute;left:0;right:auto">Старый ({{ pair.label }})</label>
+                                                <select disabled style="width:100%;background:transparent;border:none;color:var(--text-secondary);padding:20px 0 4px;font-size:.875rem;appearance:none" :value="pair.oldObj">
+                                                    <option :value="pair.oldObj" style="background:#1e1e1e;color:#fff">{{ pair.oldObj }}</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-0 col col-1" style="display:flex;align-items:center;justify-content:center">
+                                <i class="fas fa-arrow-right" style="color:var(--primary)"></i>
+                            </div>
+                            <div class="mb-0 col col-6">
+                                <div class="v-input v-input--hide-details theme--dark v-text-field v-text-field--is-booted v-text-field--placeholder v-select">
+                                    <div class="v-input__control">
+                                        <div class="v-input__slot">
+                                            <div class="v-select__slot">
+                                                <label class="v-label theme--dark" style="position:absolute;left:0;right:auto">Новый ({{ pair.label }})</label>
+                                                <select v-model="changeObjectPairs[pi].newObj" style="width:100%;background:transparent;border:none;color:var(--text);padding:20px 0 4px;font-size:.875rem;appearance:none">
+                                                    <option value="" style="background:#1e1e1e;color:#fff">— не менять —</option>
+                                                    <option v-for="o in objects" :key="o.ID" :value="o.TITLE" style="background:#1e1e1e;color:#fff">{{ o.TITLE }}</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col col-12" style="margin-top:4px">
+                                <span class="v-chip theme--dark v-size--x-small primary" style="margin-right:4px"><span class="v-chip__content">{{ pair.affected }}</span></span>
+                            </div>
+                        </div>
+                    </div>
+                    <hr role="separator" class="v-divider theme--dark">
+                    <div class="v-card__actions pa-4" style="gap:8px;display:flex">
+                        <button type="button" class="v-btn v-btn--is-elevated v-btn--has-bg theme--dark v-size--default success" @click="saveChangeObject"><span class="v-btn__content">Сохранить</span></button>
+                        <span style="flex:1"></span>
+                        <button type="button" class="v-btn v-btn--text theme--dark v-size--default primary--text" @click="showChangeObject = false"><span class="v-btn__content">Закрыть</span></button>
                     </div>
                 </div>
             </div>

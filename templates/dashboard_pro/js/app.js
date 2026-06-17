@@ -67,6 +67,9 @@ const app = createApp({
         const widgetMenuTarget = ref(null);
         const widgetPanelSubmenu = ref(null);
         const widgetConfirm = ref(null);
+        const showChangeObject = ref(false);
+        const changeObjectPairs = ref([]);
+        const changeObjectWidgetIdx = ref(-1);
         const chatOpen = ref(false);
         const chatMessages = ref([]);
         const chatText = ref('');
@@ -499,6 +502,69 @@ const app = createApp({
             const a = document.createElement('a');
             a.href = url; a.download = 'widget_' + w.id + '.json';
             a.click(); URL.revokeObjectURL(url);
+        }
+
+        function openChangeObject(idx) {
+            const w = currentPanel.value.widgets[idx];
+            if (!w) return;
+            changeObjectWidgetIdx.value = idx;
+            const pairs = [];
+            const directFields = [
+                { field: 'object', label: 'Основной объект' },
+                { field: 'object_info', label: 'Объект информации' },
+                { field: 'object_alive', label: 'Объект доступности' },
+                { field: 'object_value', label: 'Объект значения' },
+            ];
+            for (const f of directFields) {
+                const val = w[f.field];
+                if (val) pairs.push({ field: f.field, label: f.label, oldObj: val, newObj: val, affected: 'чтение' });
+            }
+            const camelFields = [
+                { field: 'icon_object', alt: 'iconObject', label: 'Объект иконки' },
+                { field: 'bg_object', alt: 'bgObject', label: 'Объект фона' },
+            ];
+            for (const f of camelFields) {
+                const val = w[f.field] || w[f.alt];
+                if (val) pairs.push({ field: f.field, label: f.label, oldObj: val, newObj: val, affected: 'свойство' });
+            }
+            const methodFields = ['method', 'object_switch', 'object_on', 'object_off', 'object_color'];
+            const methodLabels = { method: 'Метод', object_switch: 'Переключение', object_on: 'Включение', object_off: 'Выключение', object_color: 'Цвет' };
+            for (const f of methodFields) {
+                const val = w[f];
+                if (val && val.includes('/')) {
+                    const obj = val.split('/')[0];
+                    const method = val.split('/')[1] || '';
+                    pairs.push({ field: f, label: methodLabels[f] || f, oldObj: obj, newObj: obj, affected: 'метод: ' + method });
+                }
+            }
+            changeObjectPairs.value = pairs;
+            if (pairs.length === 0) return;
+            showChangeObject.value = true;
+            widgetMenuTarget.value = null;
+            widgetPanelSubmenu.value = null;
+        }
+
+        function saveChangeObject() {
+            const w = currentPanel.value.widgets[changeObjectWidgetIdx.value];
+            if (!w) return;
+            const methodFields = ['method', 'object_switch', 'object_on', 'object_off', 'object_color'];
+            for (const p of changeObjectPairs.value) {
+                if (!p.newObj || p.newObj === p.oldObj) continue;
+                if (methodFields.includes(p.field)) {
+                    const method = (w[p.field] || '').split('/')[1] || '';
+                    w[p.field] = p.newObj + '/' + method;
+                } else if (p.field === 'icon_object') {
+                    if (w.icon_object) w.icon_object = p.newObj;
+                    if (w.iconObject) w.iconObject = p.newObj;
+                } else if (p.field === 'bg_object') {
+                    if (w.bg_object) w.bg_object = p.newObj;
+                    if (w.bgObject) w.bgObject = p.newObj;
+                } else {
+                    w[p.field] = p.newObj;
+                }
+            }
+            showChangeObject.value = false;
+            savePanels();
         }
 
         function selectMoveTarget(idx, panelName) {
@@ -1235,6 +1301,7 @@ const app = createApp({
             draggingWidget, startDrag, onDrag, stopDrag,
             resizingWidget, startResize, onResize, stopResize,
             widgetMenuTarget, widgetPanelSubmenu, widgetConfirm, copyWidget, exportWidget, changeWidgetPanel, selectMoveTarget, confirmMoveWidget,
+            showChangeObject, changeObjectPairs, openChangeObject, saveChangeObject,
             showSettings, showSettingsPanel, settingsTab, settings, saveSettings, savePanels, toggleTheme, cleanupOrphanWidgets, resetAll,
             showExportDialog, exportMode, exportSelectedPanel, exportUsers, exportSelectedUser, loadExportUsers, doExport, doImport,
             showAddPanel, editPanelData, panelForm, panelTab, panelTabPos, panelError, newPanelTitle, createPanel, editPanel, openPanelForm, deletePanel, deleteCurrentPanel, movePanel, showAbout, toggleField,
