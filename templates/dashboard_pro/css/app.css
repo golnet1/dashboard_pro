@@ -36,7 +36,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .app-bar__actions button { background: none; border: none; color: rgba(255,255,255,.85); font-size: 1rem; padding: .5rem .6rem; cursor: pointer; border-radius: 6px; }
 .app-bar__actions button:hover { background: rgba(255,255,255,.15); color: #fff; }
 .app-bar__actions button.active { background: rgba(255,255,255,.2); color: #fff; }
-.app-bar__actions button.ws-offline { opacity: .45; }
+.app-bar__actions button.ws-offline { opacity: 1; color: #ef4444; }
+.app-bar__actions button.ws-online { color: #22c55e; }
 .app-bar__actions button.ws-pulse { animation: ws-pulse .4s ease-out; }
 @keyframes ws-pulse { 0% { background: rgba(255,255,255,.3); } 100% { background: transparent; } }
 .app-bar__status { margin-left: .5rem; font-size: .85rem; opacity: .7; }

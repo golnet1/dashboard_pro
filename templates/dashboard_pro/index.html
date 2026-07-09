@@ -62,7 +62,7 @@
                     <span class="app-bar__title">{{ showSettingsPanel ? 'Настройки' : (currentPanel?.title || 'Начальная панель') }}</span>
                     <div class="app-bar__spacer"></div>
                     <div class="app-bar__actions">
-                        <button @click="forceRefresh" :title="wsTooltip" :class="{ 'ws-offline': !wsConnected, 'ws-pulse': wsPulse }">
+                        <button @click="forceRefresh" :title="wsTooltip" :class="{ 'ws-online': wsConnected, 'ws-offline': !wsConnected, 'ws-pulse': wsPulse }">
                             <i class="fas fa-satellite-dish"></i>
                         </button>
                         <div style="position:relative" data-notif>
