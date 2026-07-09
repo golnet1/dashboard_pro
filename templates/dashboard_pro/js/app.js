@@ -105,6 +105,7 @@ const app = createApp({
         const infoProperties = ref([]);
         const widgetProperties = ref([]);
         const bgProperties = ref([]);
+        const extraProperties = ref({});
         const methodCache = reactive({});
         const user = ref({ username: '', name: '', avatar: '', is_admin: false });
         const userMenuOpen = ref(false);
@@ -156,6 +157,29 @@ const app = createApp({
             return rows;
         }
 
+        function getWidgetTabs(type) {
+            const comp = getWidgetComponent(type);
+            let tabs = [];
+            if (comp && comp.tabs) {
+                tabs = comp.tabs.map(t => ({ ...t }));
+            } else if (comp && comp.fields) {
+                const labelMap = { params: 'Основное', advanced: 'Дополнительно', main: 'Главное', columns: 'Столбцы' };
+                for (const key of Object.keys(comp.fields)) {
+                    if (key === 'position') continue;
+                    tabs.push({ key, label: labelMap[key] || key.charAt(0).toUpperCase() + key.slice(1) });
+                }
+            }
+            tabs = tabs.filter(tab => {
+                if (tab.key === 'columns') return true;
+                const fields = getWidgetFields(type, tab.fields || tab.key);
+                return fields.length > 0;
+            });
+            if (!tabs.find(t => t.key === 'position')) {
+                tabs.push({ key: 'position', label: 'Позиция' });
+            }
+            return tabs;
+        }
+
         const currentFields = computed(() => {
             if (!editWidgetForm.value || !editWidgetForm.value.type) return [];
             return getWidgetFields(editWidgetForm.value.type, widgetTab.value);
@@ -165,6 +189,20 @@ const app = createApp({
             if (!field.showIf || !editWidgetForm.value) return true;
             const [depKey, depVal] = Object.entries(field.showIf)[0];
             return editWidgetForm.value[depKey] === depVal;
+        }
+
+        function getFieldOptions(field) {
+            if (field.type === 'property') {
+                if (field.key === 'icon_property') return iconProperties.value;
+                if (field.key === 'bg_property') return bgProperties.value;
+                if (field.key === 'property_info') return infoProperties.value;
+                if (field.key?.startsWith('property_')) {
+                    const suffix = field.key.replace('property_', '');
+                    const objKey = 'object_' + suffix;
+                    return extraProperties.value[objKey] || [];
+                }
+            }
+            return widgetProperties.value;
         }
 
         function hasObjectProp(type) {
@@ -410,7 +448,8 @@ const app = createApp({
             const def = widgetDefs.find(d => d.type === type);
             const comp = getWidgetComponent(type);
             const typeDefaults = (comp && comp.defaults) || W.fields.defaults[type] || {};
-            const allFields = ['main', 'params', 'methods', 'advanced'].flatMap(tab => getWidgetFields(type, tab));
+            const widgetTabs = getWidgetTabs(type);
+            const allFields = widgetTabs.flatMap(tab => getWidgetFields(type, tab.fields || tab.key));
             const fieldDefaults = {};
             allFields.forEach(f => {
                 if (f.key && f.default !== undefined) fieldDefaults[f.key] = f.default;
@@ -447,7 +486,8 @@ const app = createApp({
         }
 
         async function editWidget(w) {
-            widgetTab.value = 'main';
+            const tabs = getWidgetTabs(w.type);
+            widgetTab.value = tabs.length ? tabs[0].key : 'main';
             columnIdx.value = 0;
             const def = widgetDefs.find(d => d.type === w.type);
             editWidgetForm.value = {
@@ -682,6 +722,21 @@ const app = createApp({
         watch(() => editWidgetForm.value?.bg_mode, async (mode) => {
             if (!editWidgetForm.value) return;
             if (mode === 'property') await loadBgProperties();
+        });
+        watch(() => editWidgetForm.value?.bg_object, (obj) => {
+            if (obj && editWidgetForm.value?.bg_mode === 'property') loadBgProperties();
+        });
+        watch(() => editWidgetForm.value?.icon_object, (obj) => {
+            if (obj) loadIconProperties();
+        });
+        // Generic watcher for any object_* fields (alive, status, current, target, etc.)
+        const extraObjectKeys = ['object_alive', 'object_status', 'object_current', 'object_target'];
+        extraObjectKeys.forEach(key => {
+            watch(() => editWidgetForm.value?.[key], async (obj) => {
+                if (!obj) { extraProperties.value[key] = []; return; }
+                const res = await dpAPI('properties?object_id=' + encodeURIComponent(obj));
+                extraProperties.value = { ...extraProperties.value, [key]: res.items || [] };
+            });
         });
 
         async function savePanels() {
@@ -1349,7 +1404,7 @@ const app = createApp({
             authenticated, authChecking, login, password, loginError, loginLoading, doLogin, doLogout, testAPI: Auth.testAPI,
             panels, currentPanel, selectPanel, selectHomePanel, loading, editMode,
             showAddWidget, widgetSearch, filteredDefs, plusTooltip, addPlusButton, showMethodsTab,
-            widgetTypeComponent, addWidget, getWidgetFields, getWidgetRows, fieldVisible, hasObjectProp, hasPropertyField,
+            widgetTypeComponent, addWidget, getWidgetFields, getWidgetRows, getWidgetTabs, getFieldOptions, fieldVisible, hasObjectProp, hasPropertyField,
             getMethodObj, getMethodName, setMethodField,
             editWidgetForm, widgetTab, widgetTabPos, editWidget, saveEditWidget, removeWidget,
             columnIdx, columnList, setColumns, addColumn, removeColumn, moveColumnUp, moveColumnDown, autoDetectColumns, columnFields,
@@ -1361,7 +1416,7 @@ const app = createApp({
             showExportDialog, exportMode, exportSelectedPanel, exportUsers, exportSelectedUser, loadExportUsers, doExport, doImport,
             showAddPanel, editPanelData, panelForm, panelTab, panelTabPos, panelError, newPanelTitle, createPanel, editPanel, openPanelForm, deletePanel, deleteCurrentPanel, movePanel, showAbout, toggleField,
             showIconPicker, iconTarget, iconSearch, iconCategory, iconCategorySearch, iconPage, iconCategories, filteredIconCategories, filteredIcons, totalPages, paginatedIcons, openIconPicker, selectIcon, iconPicked,
-            objects, iconProperties, infoProperties, widgetProperties, bgProperties, methodCache, loadObjects, loadIconProperties, loadInfoProperties, loadWidgetProperties, loadBgProperties, widgetBgStyle, fetchWidgetBgColors,
+            objects, iconProperties, infoProperties, widgetProperties, bgProperties, extraProperties, methodCache, loadObjects, loadIconProperties, loadInfoProperties, loadWidgetProperties, loadBgProperties, widgetBgStyle, fetchWidgetBgColors,
             isAdmin, toggleEditMode, toggleWs, wsConnected, wsTooltip, wsStatus, wsPulse, wsBytesSent, wsBytesReceived, user, userMenuOpen, sidebarMini, toggleSidebar, expandedGroups, childPanels, toggleGroup, forceRefresh, formatBytes,
             showNotifications, notifications, unreadCount, checkNotifications, markNotificationsRead,
             chatOpen, chatMessages, chatText, chatLoading, loadChat, sendChat, toggleChat, formatTime

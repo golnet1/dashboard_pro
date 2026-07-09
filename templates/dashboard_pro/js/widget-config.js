@@ -12,7 +12,7 @@
         'keypad', 'roominfo', 'slideshow', 'sliderbuttons', 'thermostat', 'trend'
     ];
     for (var i = 0; i < widgets.length; i++) {
-        document.write('<script src="js/widgets/' + widgets[i] + '.js?v=8"><\/script>');
+        document.write('<script src="js/widgets/' + widgets[i] + '.js?v=9"><\/script>');
     }
 })();
 
@@ -34,11 +34,5 @@ W.fields = {
   getFields(type, tab) {
     if (tab === 'position') return this._common.position;
     return [];
-  },
-
-  getTabs(type) {
-    let tabs = ['main', 'params', 'advanced', 'position'];
-    if (type === 'table') tabs.splice(2, 0, 'columns');
-    return tabs;
   },
 };

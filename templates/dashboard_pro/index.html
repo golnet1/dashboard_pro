@@ -898,10 +898,11 @@
                             <div class="v-slide-group__wrapper">
                                 <div class="v-slide-group__content v-tabs-bar__content">
                                     <div class="v-tabs-slider-wrapper" :style="widgetTabPos"><div class="v-tabs-slider"></div></div>
-                                    <button class="v-tab" :class="{ 'v-tab--active': widgetTab === 'main' }" @click="widgetTab = 'main'" role="tab">Основное</button>
-                                    <button class="v-tab" :class="{ 'v-tab--active': widgetTab === 'advanced' }" @click="widgetTab = 'advanced'" role="tab">Дополнительно</button>
-                                    <button class="v-tab" :class="{ 'v-tab--active': widgetTab === 'columns' }" @click="widgetTab = 'columns'; columnIdx = 0" role="tab" v-if="editWidgetForm.type === 'table'">Столбцы</button>
-                                    <button class="v-tab" :class="{ 'v-tab--active': widgetTab === 'position' }" @click="widgetTab = 'position'" role="tab">Позиция</button>
+                                    <button v-for="tab in getWidgetTabs(editWidgetForm.type)" :key="tab.key"
+                                        class="v-tab"
+                                        :class="{ 'v-tab--active': widgetTab === tab.key }"
+                                        @click="widgetTab = tab.key; if (tab.key === 'columns') columnIdx = 0"
+                                        role="tab">{{ tab.label }}</button>
                                 </div>
                             </div>
                             <div class="v-slide-group__next v-slide-group__next--disabled"></div>
@@ -911,336 +912,41 @@
                         <div class="container pa-0">
                             <div class="v-window theme--dark">
                                 <div class="v-window__container">
-                                    <div class="v-window-item" v-if="widgetTab === 'main'">
-                                        <div class="v-input v-text-field">
-                                            <div class="v-input__control">
-                                                <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm.title }">Название</label><input v-model="editWidgetForm.title"></div>
-                                                <div class="v-input__details"><div class="v-messages"></div></div>
-                                            </div>
-                                        </div>
+                                    <template v-for="tab in getWidgetTabs(editWidgetForm.type)" :key="tab.key">
+                                    <div class="v-window-item" v-if="widgetTab === tab.key">
 
-                                        <!-- Icon type + picker -->
-                                        <div class="d-flex gap-2" style="align-items:flex-start">
-                                            <div class="v-input v-text-field v-select" style="flex:0 0 auto;min-width:90px">
+                                        <template v-if="tab.key === 'position'">
+                                        <div class="d-flex gap-2">
+                                            <div class="v-input v-text-field" style="flex:1">
                                                 <div class="v-input__control">
-                                                    <div class="v-input__slot"><label class="v-label v-label--active">Тип иконки</label>
-                                                        <select v-model="editWidgetForm.icon_type">
-                                                            <option value="icon" style="background:#1e1e1e;color:#fff">Icon</option>
-                                                            <option value="property" style="background:#1e1e1e;color:#fff">Property</option>
-                                                            <option value="url" style="background:#1e1e1e;color:#fff">URL</option>
-                                                        </select>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <template v-if="editWidgetForm.icon_type === 'icon'">
-                                                <div class="v-input v-text-field" style="flex:1">
-                                                    <div class="v-input__control">
-                                                        <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm.icon }">Иконка</label><input v-model="editWidgetForm.icon"></div>
-                                                    </div>
-                                                </div>
-                                                <button class="icon-btn" title="Выбор иконки" @click="openIconPicker('icon')" style="margin-top:16px;flex-shrink:0"><i :class="editWidgetForm.icon || 'fas fa-folder'"></i></button>
-                                                <button class="icon-btn" @click="editWidgetForm.icon=''" title="Очистить" style="margin-top:16px;flex-shrink:0"><i class="fas fa-backspace"></i></button>
-                                            </template>
-                                            <template v-if="editWidgetForm.icon_type === 'property'">
-                                                <div class="v-input v-text-field v-select" style="flex:4">
-                                                    <div class="v-input__control">
-                                                        <div class="v-input__slot"><label class="v-label v-label--active">Объект</label>
-                                                            <select v-model="editWidgetForm.icon_object" @change="loadIconProperties(editWidgetForm.icon_object)">
-                                                                <option value="" style="background:#1e1e1e;color:#fff">— выберите —</option>
-                                                                <option v-for="o in objects" :key="o.ID" :value="o.TITLE" style="background:#1e1e1e;color:#fff">{{ o.TITLE }}</option>
-                                                            </select>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="v-input v-text-field v-select" style="flex:4">
-                                                    <div class="v-input__control">
-                                                        <div class="v-input__slot"><label class="v-label v-label--active">Свойство</label>
-                                                            <select v-model="editWidgetForm.icon_property">
-                                                                <option value="" style="background:#1e1e1e;color:#fff">— выберите —</option>
-                                                                <option v-for="prop in iconProperties" :key="prop.ID" :value="prop.TITLE" style="background:#1e1e1e;color:#fff">{{ prop.TITLE }}</option>
-                                                            </select>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <button class="icon-btn" @click="editWidgetForm.icon_object='';editWidgetForm.icon_property=''" title="Очистить" style="margin-top:16px;flex-shrink:0"><i class="fas fa-backspace"></i></button>
-                                            </template>
-                                            <template v-if="editWidgetForm.icon_type === 'url'">
-                                                <div class="v-input v-text-field" style="flex:1">
-                                                    <div class="v-input__control">
-                                                        <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm.icon_url }">URL</label><input v-model="editWidgetForm.icon_url"></div>
-                                                    </div>
-                                                </div>
-                                                <button class="icon-btn" @click="editWidgetForm.icon_url=''" title="Очистить" style="margin-top:16px;flex-shrink:0"><i class="fas fa-backspace"></i></button>
-                                            </template>
-                                        </div>
-
-                                        <!-- Params fields from config (grouped by row) -->
-                                        <template v-for="(row, ri) in getWidgetRows(editWidgetForm.type, 'params')" :key="ri">
-                                            <div :class="row.row ? 'd-flex gap-2' : ''" :style="row.row ? 'align-items:flex-start' : ''">
-                                                <template v-for="field in row.fields" :key="field.key || field.type">
-                                                    <div v-if="fieldVisible(field)" :style="row.row ? 'flex:1;min-width:0' : ''">
-                                                        <template v-if="field.type === 'info'">
-                                                            <p style="color:rgba(255,255,255,.5);font-size:.8rem;padding:8px 0">{{ field.text }}</p>
-                                                        </template>
-                                                        <template v-else-if="field.type === 'number'">
-                                                            <div class="v-input v-text-field">
-                                                                <div class="v-input__control">
-                                                                    <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm[field.key] !== undefined && editWidgetForm[field.key] !== '' }">{{ field.label }}</label><input type="number" :step="field.step || 1" v-model.number="editWidgetForm[field.key]"></div>
-                                                                    <div class="v-input__details"><div class="v-messages"></div></div>
-                                                                </div>
-                                                            </div>
-                                                        </template>
-                                                        <template v-else-if="field.type === 'checkbox'">
-                                                            <div class="v-input v-input--selection-controls v-input--switch" :class="{ 'input--is-checked': editWidgetForm[field.key] }">
-                                                                <div class="v-input__control">
-                                                                    <div class="v-input__slot v-input__slot--switch">
-                                                                        <div class="v-input--switch__track" @click.stop="editWidgetForm[field.key] = !editWidgetForm[field.key]"><div class="v-input--switch__thumb"></div></div>
-                                                                        <span class="v-label">{{ field.label }}</span>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </template>
-                                                        <template v-else-if="field.type === 'textarea'">
-                                                            <div class="v-input v-text-field">
-                                                                <div class="v-input__control">
-                                                                    <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm[field.key] }">{{ field.label }}</label><textarea v-model="editWidgetForm[field.key]" :rows="field.rows || 3" style="resize:vertical;min-height:60px;background:transparent;border:none;color:#fff;outline:none;font-size:16px;line-height:20px;padding:8px 0 4px;width:100%"></textarea></div>
-                                                                        <div class="v-input__details"><div class="v-messages"></div></div>
-                                                                </div>
-                                                            </div>
-                                                        </template>
-                                                        <template v-else-if="field.type === 'object'">
-                                                            <div class="v-input v-text-field v-select" style="flex:1">
-                                                                <div class="v-input__control">
-                                                                    <div class="v-input__slot"><label class="v-label v-label--active">{{ field.label }}</label>
-                                                                        <select v-model="editWidgetForm[field.key]">
-                                                                            <option value="" style="background:#1e1e1e;color:#fff">— выберите —</option>
-                                                                            <option v-for="o in objects" :key="o.ID" :value="o.TITLE" style="background:#1e1e1e;color:#fff">{{ o.TITLE }}</option>
-                                                                        </select>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </template>
-                                                        <template v-else-if="field.type === 'property'">
-                                                            <div class="v-input v-text-field v-select" style="flex:1">
-                                                                <div class="v-input__control">
-                                                                    <div class="v-input__slot"><label class="v-label v-label--active">{{ field.label }}</label>
-                                                                        <select v-model="editWidgetForm[field.key]">
-                                                                            <option value="" style="background:#1e1e1e;color:#fff">{{ field.placeholder || '— выберите —' }}</option>
-                                                                            <option v-for="prop in widgetProperties" :key="prop.ID" :value="prop.TITLE" style="background:#1e1e1e;color:#fff">{{ prop.TITLE }}</option>
-                                                                        </select>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </template>
-                                                        <template v-else-if="field.type === 'method'">
-                                                            <div class="v-input v-text-field v-select" style="flex:1">
-                                                                <div class="v-input__control">
-                                                                    <div class="v-input__slot"><label class="v-label v-label--active">{{ field.label }}</label>
-                                                                        <select :value="getMethodName(editWidgetForm[field.parent])" @change="setMethodField(field.parent, $event.target.value, false)">
-                                                                            <option value="" style="background:#1e1e1e;color:#fff">{{ field.placeholder || '— выберите —' }}</option>
-                                                                            <option v-for="m in (methodCache[getMethodObj(editWidgetForm[field.parent])] || [])" :key="m.ID" :value="m.TITLE" style="background:#1e1e1e;color:#fff">{{ m.TITLE }}</option>
-                                                                        </select>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </template>
-                                                        <template v-else-if="field.type === 'method_object'">
-                                                            <div class="v-input v-text-field v-select" style="flex:1">
-                                                                <div class="v-input__control">
-                                                                    <div class="v-input__slot"><label class="v-label v-label--active">{{ field.label }}</label>
-                                                                        <select :value="getMethodObj(editWidgetForm[field.parent])" @change="setMethodField(field.parent, $event.target.value, true)">
-                                                                            <option value="" style="background:#1e1e1e;color:#fff">— выберите —</option>
-                                                                            <option v-for="o in objects" :key="o.ID" :value="o.TITLE" style="background:#1e1e1e;color:#fff">{{ o.TITLE }}</option>
-                                                                        </select>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </template>
-                                                        <template v-else-if="field.type === 'icon_picker'">
-                                                            <div class="d-flex gap-2" style="align-items:flex-start">
-                                                                <div class="v-input v-text-field" style="flex:1">
-                                                                    <div class="v-input__control">
-                                                                        <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm[field.key] }">{{ field.label }}</label><input v-model="editWidgetForm[field.key]"></div>
-                                                                        <div class="v-input__details"><div class="v-messages"></div></div>
-                                                                    </div>
-                                                                </div>
-                                                                <button class="icon-btn" title="Выбор иконки" @click="openIconPicker(field.key)" style="margin-top:16px;flex-shrink:0"><i :class="editWidgetForm[field.key] || 'fas fa-folder'"></i></button>
-                                                                <button class="icon-btn" @click="editWidgetForm[field.key]=''" title="Очистить" style="margin-top:16px;flex-shrink:0"><i class="fas fa-backspace"></i></button>
-                                                            </div>
-                                                        </template>
-                                                        <template v-else>
-                                                            <div class="v-input v-text-field">
-                                                                <div class="v-input__control">
-                                                                    <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm[field.key] }">{{ field.label }}</label><input v-model="editWidgetForm[field.key]"></div>
-                                                                    <div class="v-input__details"><div class="v-messages"></div></div>
-                                                                </div>
-                                                            </div>
-                                                        </template>
-                                                    </div>
-                                                </template>
-                                                <button v-if="row.row" class="icon-btn" @click="row.fields.forEach(f => { if (f.parent) editWidgetForm[f.parent] = ''; else if (f.key) editWidgetForm[f.key] = '' })" title="Очистить" style="margin-top:16px;flex-shrink:0"><i class="fas fa-backspace"></i></button>
-                                            </div>
-                                        </template>
-                                    </div>
-
-                                    <div class="v-window-item" v-if="widgetTab === 'advanced'">
-                                        <!-- Background -->
-                                        <div class="v-input v-text-field v-select">
-                                            <div class="v-input__control">
-                                                <div class="v-input__slot"><label class="v-label v-label--active">Фон виджета</label>
-                                                    <select v-model="editWidgetForm.bg_mode">
-                                                        <option value="default" style="background:#1e1e1e;color:#fff">По умолчанию</option>
-                                                        <option value="image" style="background:#1e1e1e;color:#fff">Изображение</option>
-                                                        <option value="color" style="background:#1e1e1e;color:#fff">Заданный цвет</option>
-                                                        <option value="property" style="background:#1e1e1e;color:#fff">Цвет из свойства объекта</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <template v-if="editWidgetForm.bg_mode === 'color'">
-                                            <div class="d-flex gap-2">
-                                                <div class="v-input v-text-field" style="flex:1">
-                                                    <div class="v-input__control">
-                                                        <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm.color }">Цвет</label><input v-model="editWidgetForm.color"></div>
-                                                        <div class="v-input__details"><div class="v-messages"></div></div>
-                                                    </div>
-                                                </div>
-                                                <input type="color" v-model="editWidgetForm.color" style="width:40px;height:38px;margin-top:16px;padding:2px;background:transparent;border:1px solid rgba(255,255,255,.2);border-radius:4px;cursor:pointer">
-                                            </div>
-                                        </template>
-                                        <template v-if="editWidgetForm.bg_mode === 'image'">
-                                            <div class="v-input v-text-field">
-                                                <div class="v-input__control">
-                                                    <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm.bg_image }">URL изображения</label><input v-model="editWidgetForm.bg_image"></div>
+                                                    <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm.x !== undefined }">X (px)</label><input type="number" v-model.number="editWidgetForm.x"></div>
                                                     <div class="v-input__details"><div class="v-messages"></div></div>
                                                 </div>
                                             </div>
-                                        </template>
-                                        <template v-if="editWidgetForm.bg_mode === 'property'">
-                                            <div class="d-flex gap-2" style="align-items:flex-start">
-                                                <div class="v-input v-text-field v-select" style="flex:1">
-                                                    <div class="v-input__control">
-                                                        <div class="v-input__slot"><label class="v-label v-label--active">Объект (цвет)</label>
-                                                            <select v-model="editWidgetForm.bg_object" @change="loadBgProperties()">
-                                                                <option value="" style="background:#1e1e1e;color:#fff">— выберите —</option>
-                                                                <option v-for="o in objects" :key="o.ID" :value="o.TITLE" style="background:#1e1e1e;color:#fff">{{ o.TITLE }}</option>
-                                                            </select>
-                                                        </div>
-                                                    </div>
+                                            <div class="v-input v-text-field" style="flex:1">
+                                                <div class="v-input__control">
+                                                    <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm.y !== undefined }">Y (px)</label><input type="number" v-model.number="editWidgetForm.y"></div>
+                                                    <div class="v-input__details"><div class="v-messages"></div></div>
                                                 </div>
-                                                <div class="v-input v-text-field v-select" style="flex:1">
-                                                    <div class="v-input__control">
-                                                        <div class="v-input__slot"><label class="v-label v-label--active">Свойство (цвет)</label>
-                                                            <select v-model="editWidgetForm.bg_property">
-                                                                <option value="" style="background:#1e1e1e;color:#fff">Свойство</option>
-                                                                <option v-for="prop in bgProperties" :key="prop.ID" :value="prop.TITLE" style="background:#1e1e1e;color:#fff">{{ prop.TITLE }}</option>
-                                                            </select>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <button class="icon-btn" @click="editWidgetForm.bg_object='';editWidgetForm.bg_property='';loadBgProperties()" title="Очистить" style="margin-top:16px;flex-shrink:0"><i class="fas fa-backspace"></i></button>
                                             </div>
+                                        </div>
+                                        <div class="d-flex gap-2">
+                                            <div class="v-input v-text-field" style="flex:1">
+                                                <div class="v-input__control">
+                                                    <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm.width !== undefined }">Ширина (px)</label><input type="number" v-model.number="editWidgetForm.width"></div>
+                                                    <div class="v-input__details"><div class="v-messages"></div></div>
+                                                </div>
+                                            </div>
+                                            <div class="v-input v-text-field" style="flex:1">
+                                                <div class="v-input__control">
+                                                    <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm.height !== undefined }">Высота (px)</label><input type="number" v-model.number="editWidgetForm.height"></div>
+                                                    <div class="v-input__details"><div class="v-messages"></div></div>
+                                                </div>
+                                            </div>
+                                        </div>
                                         </template>
 
-                                        <!-- Advanced fields from config (grouped by row) -->
-                                        <template v-for="(row, ri) in getWidgetRows(editWidgetForm.type, 'advanced')" :key="ri">
-                                            <div :class="row.row ? 'd-flex gap-2' : ''" :style="row.row ? 'align-items:flex-start' : ''">
-                                                <template v-for="field in row.fields" :key="field.key || field.type">
-                                                    <div v-if="fieldVisible(field)" :style="row.row ? 'flex:1;min-width:0' : ''">
-                                                        <template v-if="field.type === 'checkbox'">
-                                                            <div class="v-input v-input--selection-controls v-input--switch" :class="{ 'input--is-checked': editWidgetForm[field.key] }">
-                                                                <div class="v-input__control">
-                                                                    <div class="v-input__slot v-input__slot--switch">
-                                                                        <div class="v-input--switch__track" @click.stop="editWidgetForm[field.key] = !editWidgetForm[field.key]"><div class="v-input--switch__thumb"></div></div>
-                                                                        <span class="v-label">{{ field.label }}</span>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </template>
-                                                        <template v-else-if="field.type === 'color'">
-                                                            <div class="d-flex gap-2">
-                                                                <div class="v-input v-text-field" style="flex:1">
-                                                                    <div class="v-input__control">
-                                                                        <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm[field.key] }">{{ field.label }}</label><input v-model="editWidgetForm[field.key]"></div>
-                                                                        <div class="v-input__details"><div class="v-messages"></div></div>
-                                                                    </div>
-                                                                </div>
-                                                                <input type="color" v-model="editWidgetForm[field.key]" style="width:40px;height:38px;margin-top:16px;padding:2px;background:transparent;border:1px solid rgba(255,255,255,.2);border-radius:4px;cursor:pointer">
-                                                            </div>
-                                                        </template>
-                                                        <template v-else-if="field.type === 'number'">
-                                                            <div class="v-input v-text-field">
-                                                                <div class="v-input__control">
-                                                                    <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm[field.key] !== undefined && editWidgetForm[field.key] !== '' }">{{ field.label }}</label><input type="number" :step="field.step || 1" v-model.number="editWidgetForm[field.key]"></div>
-                                                                    <div class="v-input__details"><div class="v-messages"></div></div>
-                                                                </div>
-                                                             </div>
-                                                         </template>
-                                                         <template v-else-if="field.type === 'object'">
-                                                            <div class="v-input v-text-field v-select" style="flex:1">
-                                                                <div class="v-input__control">
-                                                                    <div class="v-input__slot"><label class="v-label v-label--active">{{ field.label }}</label>
-                                                                        <select v-model="editWidgetForm[field.key]">
-                                                                            <option value="" style="background:#1e1e1e;color:#fff">— выберите —</option>
-                                                                            <option v-for="o in objects" :key="o.ID" :value="o.TITLE" style="background:#1e1e1e;color:#fff">{{ o.TITLE }}</option>
-                                                                        </select>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                         </template>
-                                                         <template v-else-if="field.type === 'property'">
-                                                            <div class="v-input v-text-field v-select" style="flex:1">
-                                                                <div class="v-input__control">
-                                                                    <div class="v-input__slot"><label class="v-label v-label--active">{{ field.label }}</label>
-                                                                        <select v-model="editWidgetForm[field.key]">
-                                                                            <option value="" style="background:#1e1e1e;color:#fff">{{ field.placeholder || '— выберите —' }}</option>
-                                                                            <option v-for="prop in widgetProperties" :key="prop.ID" :value="prop.TITLE" style="background:#1e1e1e;color:#fff">{{ prop.TITLE }}</option>
-                                                                        </select>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                         </template>
-                                                         <template v-else-if="field.type === 'method'">
-                                                            <div class="v-input v-text-field v-select" style="flex:1">
-                                                                <div class="v-input__control">
-                                                                    <div class="v-input__slot"><label class="v-label v-label--active">{{ field.label }}</label>
-                                                                        <select :value="getMethodName(editWidgetForm[field.parent])" @change="setMethodField(field.parent, $event.target.value, false)">
-                                                                            <option value="" style="background:#1e1e1e;color:#fff">{{ field.placeholder || '— выберите —' }}</option>
-                                                                            <option v-for="m in (methodCache[getMethodObj(editWidgetForm[field.parent])] || [])" :key="m.ID" :value="m.TITLE" style="background:#1e1e1e;color:#fff">{{ m.TITLE }}</option>
-                                                                        </select>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                         </template>
-                                                         <template v-else-if="field.type === 'method_object'">
-                                                            <div class="v-input v-text-field v-select" style="flex:1">
-                                                                <div class="v-input__control">
-                                                                    <div class="v-input__slot"><label class="v-label v-label--active">{{ field.label }}</label>
-                                                                        <select :value="getMethodObj(editWidgetForm[field.parent])" @change="setMethodField(field.parent, $event.target.value, true)">
-                                                                            <option value="" style="background:#1e1e1e;color:#fff">— выберите —</option>
-                                                                            <option v-for="o in objects" :key="o.ID" :value="o.TITLE" style="background:#1e1e1e;color:#fff">{{ o.TITLE }}</option>
-                                                                        </select>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                         </template>
-                                                         <template v-else>
-                                                            <div class="v-input v-text-field">
-                                                                <div class="v-input__control">
-                                                                    <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm[field.key] }">{{ field.label }}</label><input v-model="editWidgetForm[field.key]"></div>
-                                                                    <div class="v-input__details"><div class="v-messages"></div></div>
-                                                                </div>
-                                                            </div>
-                                                        </template>
-                                                    </div>
-                                                </template>
-                                                <button v-if="row.row" class="icon-btn" @click="row.fields.forEach(f => { if (f.parent) editWidgetForm[f.parent] = ''; else if (f.key) editWidgetForm[f.key] = '' })" title="Очистить" style="margin-top:16px;flex-shrink:0"><i class="fas fa-backspace"></i></button>
-                                            </div>
-                                        </template>
-                                    </div>
-
-                                    <div class="v-window-item" v-if="widgetTab === 'columns'">
-                                        <!-- Toolbar -->
+                                        <template v-else-if="tab.key === 'columns'">
                                         <div class="d-flex gap-1 ma-1" style="align-items:center">
                                             <button type="button" class="v-btn v-btn--is-elevated v-btn--fab v-btn--has-bg v-btn--round v-size--x-small" @click="addColumn" title="Добавить колонку"><i class="fas fa-plus"></i></button>
                                             <button type="button" class="v-btn v-btn--is-elevated v-btn--fab v-btn--has-bg v-btn--round v-size--x-small" @click="moveColumnUp(columnIdx)" title="Переместить вверх" :disabled="!columnList.length"><i class="fas fa-angle-up"></i></button>
@@ -1249,9 +955,7 @@
                                             <div class="spacer"></div>
                                             <button type="button" class="v-btn v-btn--is-elevated v-btn--fab v-btn--has-bg v-btn--round v-size--x-small" @click="autoDetectColumns" title="Автоопределение"><i class="fas fa-magic"></i></button>
                                         </div>
-                                        <!-- Columns editor -->
                                         <div style="display:flex;gap:12px;min-height:200px">
-                                            <!-- Column tabs (vertical) -->
                                             <div style="flex:0 0 auto;display:flex;flex-direction:column;border-right:1px solid rgba(255,255,255,.12);padding-right:8px">
                                                 <div v-for="(col, ci) in columnList" :key="ci"
                                                      class="column-tab"
@@ -1262,7 +966,6 @@
                                                     {{ col.data_name || 'Колонка ' + (ci + 1) }}
                                                 </div>
                                             </div>
-                                            <!-- Column fields -->
                                             <div style="flex:1;min-width:0" v-if="columnList.length">
                                                 <div v-for="(f, fi) in columnFields" :key="f.key">
                                                     <template v-if="f.type === 'switch'">
@@ -1304,38 +1007,142 @@
                                                 Нет колонок. Нажмите + чтобы добавить.
                                             </div>
                                         </div>
-                                    </div>
+                                        </template>
 
-                                    <div class="v-window-item" v-if="widgetTab === 'position'">
-                                        <div class="d-flex gap-2">
-                                            <div class="v-input v-text-field" style="flex:1">
-                                                <div class="v-input__control">
-                                                    <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm.x !== undefined }">X (px)</label><input type="number" v-model.number="editWidgetForm.x"></div>
-                                                    <div class="v-input__details"><div class="v-messages"></div></div>
-                                                </div>
+                                        <template v-else>
+                                        <template v-for="(row, ri) in getWidgetRows(editWidgetForm.type, tab.fields || tab.key)" :key="ri">
+                                            <div :class="row.row ? 'd-flex gap-2' : ''" :style="row.row ? 'align-items:flex-start' : ''">
+                                                <template v-for="field in row.fields" :key="field.key || field.type">
+                                                    <div v-if="fieldVisible(field)" :style="row.row ? 'flex:1;min-width:0' : ''">
+                                                        <template v-if="field.type === 'info'">
+                                                            <p style="color:rgba(255,255,255,.5);font-size:.8rem;padding:8px 0">{{ field.text }}</p>
+                                                        </template>
+                                                        <template v-else-if="field.type === 'number'">
+                                                            <div class="v-input v-text-field">
+                                                                <div class="v-input__control">
+                                                                    <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm[field.key] !== undefined && editWidgetForm[field.key] !== '' }">{{ field.label }}</label><input type="number" :step="field.step || 1" v-model.number="editWidgetForm[field.key]"></div>
+                                                                    <div class="v-input__details"><div class="v-messages"></div></div>
+                                                                </div>
+                                                            </div>
+                                                        </template>
+                                                        <template v-else-if="field.type === 'checkbox'">
+                                                            <div class="v-input v-input--selection-controls v-input--switch" :class="{ 'input--is-checked': editWidgetForm[field.key] }">
+                                                                <div class="v-input__control">
+                                                                    <div class="v-input__slot v-input__slot--switch">
+                                                                        <div class="v-input--switch__track" @click.stop="editWidgetForm[field.key] = !editWidgetForm[field.key]"><div class="v-input--switch__thumb"></div></div>
+                                                                        <span class="v-label">{{ field.label }}</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </template>
+                                                        <template v-else-if="field.type === 'textarea'">
+                                                            <div class="v-input v-text-field">
+                                                                <div class="v-input__control">
+                                                                    <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm[field.key] }">{{ field.label }}</label><textarea v-model="editWidgetForm[field.key]" :rows="field.rows || 3" style="resize:vertical;min-height:60px;background:transparent;border:none;color:#fff;outline:none;font-size:16px;line-height:20px;padding:8px 0 4px;width:100%"></textarea></div>
+                                                                        <div class="v-input__details"><div class="v-messages"></div></div>
+                                                                </div>
+                                                            </div>
+                                                        </template>
+                                                        <template v-else-if="field.type === 'select'">
+                                                            <div class="v-input v-text-field v-select" style="flex:1">
+                                                                <div class="v-input__control">
+                                                                    <div class="v-input__slot"><label class="v-label v-label--active">{{ field.label }}</label>
+                                                                         <select v-model="editWidgetForm[field.key]">
+                                                                             <option v-if="field.key !== 'icon_type'" value="" style="background:#1e1e1e;color:#fff">{{ field.placeholder || '— выберите —' }}</option>
+                                                                             <option v-for="opt in field.options" :key="opt.value" :value="opt.value" style="background:#1e1e1e;color:#fff">{{ opt.label }}</option>
+                                                                        </select>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </template>
+                                                        <template v-else-if="field.type === 'object'">
+                                                            <div class="v-input v-text-field v-select" style="flex:1">
+                                                                <div class="v-input__control">
+                                                                    <div class="v-input__slot"><label class="v-label v-label--active">{{ field.label }}</label>
+                                                                        <select v-model="editWidgetForm[field.key]">
+                                                                            <option value="" style="background:#1e1e1e;color:#fff">— выберите —</option>
+                                                                            <option v-for="o in objects" :key="o.ID" :value="o.TITLE" style="background:#1e1e1e;color:#fff">{{ o.TITLE }}</option>
+                                                                        </select>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </template>
+                                                        <template v-else-if="field.type === 'property'">
+                                                            <div class="v-input v-text-field v-select" style="flex:1">
+                                                                <div class="v-input__control">
+                                                                    <div class="v-input__slot"><label class="v-label v-label--active">{{ field.label }}</label>
+                                                                         <select v-model="editWidgetForm[field.key]">
+                                                                             <option value="" style="background:#1e1e1e;color:#fff">{{ field.placeholder || '— выберите —' }}</option>
+                                                                             <option v-for="prop in getFieldOptions(field)" :key="prop.ID" :value="prop.TITLE" style="background:#1e1e1e;color:#fff">{{ prop.TITLE }}</option>
+                                                                        </select>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </template>
+                                                        <template v-else-if="field.type === 'method'">
+                                                            <div class="v-input v-text-field v-select" style="flex:1">
+                                                                <div class="v-input__control">
+                                                                    <div class="v-input__slot"><label class="v-label v-label--active">{{ field.label }}</label>
+                                                                        <select :value="getMethodName(editWidgetForm[field.parent])" @change="setMethodField(field.parent, $event.target.value, false)">
+                                                                            <option value="" style="background:#1e1e1e;color:#fff">{{ field.placeholder || '— выберите —' }}</option>
+                                                                            <option v-for="m in (methodCache[getMethodObj(editWidgetForm[field.parent])] || [])" :key="m.ID" :value="m.TITLE" style="background:#1e1e1e;color:#fff">{{ m.TITLE }}</option>
+                                                                        </select>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </template>
+                                                        <template v-else-if="field.type === 'method_object'">
+                                                            <div class="v-input v-text-field v-select" style="flex:1">
+                                                                <div class="v-input__control">
+                                                                    <div class="v-input__slot"><label class="v-label v-label--active">{{ field.label }}</label>
+                                                                        <select :value="getMethodObj(editWidgetForm[field.parent])" @change="setMethodField(field.parent, $event.target.value, true)">
+                                                                            <option value="" style="background:#1e1e1e;color:#fff">— выберите —</option>
+                                                                            <option v-for="o in objects" :key="o.ID" :value="o.TITLE" style="background:#1e1e1e;color:#fff">{{ o.TITLE }}</option>
+                                                                        </select>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </template>
+                                                        <template v-else-if="field.type === 'icon_picker'">
+                                                            <div class="d-flex gap-2" style="align-items:flex-start">
+                                                                <div class="v-input v-text-field" style="flex:1">
+                                                                    <div class="v-input__control">
+                                                                        <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm[field.key] }">{{ field.label }}</label><input v-model="editWidgetForm[field.key]"></div>
+                                                                        <div class="v-input__details"><div class="v-messages"></div></div>
+                                                                    </div>
+                                                                </div>
+                                                                <button class="icon-btn" title="Выбор иконки" @click="openIconPicker(field.key)" style="margin-top:16px;flex-shrink:0"><i :class="editWidgetForm[field.key] || 'fas fa-folder'"></i></button>
+                                                                <button class="icon-btn" @click="editWidgetForm[field.key]=''" title="Очистить" style="margin-top:16px;flex-shrink:0"><i class="fas fa-backspace"></i></button>
+                                                            </div>
+                                                        </template>
+                                                        <template v-else-if="field.type === 'color'">
+                                                            <div class="d-flex gap-2">
+                                                                <div class="v-input v-text-field" style="flex:1">
+                                                                    <div class="v-input__control">
+                                                                        <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm[field.key] }">{{ field.label }}</label><input v-model="editWidgetForm[field.key]"></div>
+                                                                        <div class="v-input__details"><div class="v-messages"></div></div>
+                                                                    </div>
+                                                                </div>
+                                                                <input type="color" v-model="editWidgetForm[field.key]" style="width:40px;height:38px;margin-top:16px;padding:2px;background:transparent;border:1px solid rgba(255,255,255,.2);border-radius:4px;cursor:pointer">
+                                                            </div>
+                                                        </template>
+                                                        <template v-else>
+                                                            <div class="v-input v-text-field">
+                                                                <div class="v-input__control">
+                                                                    <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm[field.key] }">{{ field.label }}</label><input v-model="editWidgetForm[field.key]"></div>
+                                                                    <div class="v-input__details"><div class="v-messages"></div></div>
+                                                                </div>
+                                                            </div>
+                                                        </template>
+                                                    </div>
+                                                </template>
+                                                <button v-if="row.row && (!row.fields.some(f => f.type === 'icon_picker') || editWidgetForm.icon_type !== 'icon')" class="icon-btn" @click="row.fields.forEach(f => { if (f.key === 'icon_type' || f.key === 'bg_mode') return; if (f.parent) editWidgetForm[f.parent] = ''; else if (f.key) editWidgetForm[f.key] = '' })" title="Очистить" style="margin-top:16px;flex-shrink:0"><i class="fas fa-backspace"></i></button>
                                             </div>
-                                            <div class="v-input v-text-field" style="flex:1">
-                                                <div class="v-input__control">
-                                                    <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm.y !== undefined }">Y (px)</label><input type="number" v-model.number="editWidgetForm.y"></div>
-                                                    <div class="v-input__details"><div class="v-messages"></div></div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="d-flex gap-2">
-                                            <div class="v-input v-text-field" style="flex:1">
-                                                <div class="v-input__control">
-                                                    <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm.width !== undefined }">Ширина (px)</label><input type="number" v-model.number="editWidgetForm.width"></div>
-                                                    <div class="v-input__details"><div class="v-messages"></div></div>
-                                                </div>
-                                            </div>
-                                            <div class="v-input v-text-field" style="flex:1">
-                                                <div class="v-input__control">
-                                                    <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm.height !== undefined }">Высота (px)</label><input type="number" v-model.number="editWidgetForm.height"></div>
-                                                    <div class="v-input__details"><div class="v-messages"></div></div>
-                                                </div>
-                                            </div>
-                                        </div>
+                                        </template>
+                                        </template>
+
                                     </div>
+                                    </template>
                                 </div>
                             </div>
                         </div>
@@ -1607,7 +1414,7 @@
     <script src="js/api.js?v=9"></script>
     <script src="js/auth.js?v=9"></script>
     <script src="js/sidebar.js?v=10"></script>
-    <script src="js/widget-config.js?v=9"></script>
-    <script src="js/app.js?v=19"></script>
+<script src="js/widget-config.js?v=10"></script>
+<script src="js/app.js?v=22"></script>
 </body>
 </html>

@@ -428,6 +428,7 @@ select.form-control { appearance: auto; }
 .v-input--switch.v-input--is-focused .v-input--switch__thumb { }
 .v-input--switch.input--is-checked .v-input--switch__track { background: rgba(25,118,210,.5); }
 .v-input--switch.input--is-checked .v-input--switch__thumb { background: #1976d2; transform: translateX(16px); }
+.v-input--switch.input--is-disabled { opacity:.4; pointer-events:none; }
 .v-input--switch .v-label { font-size: .875rem; color: rgba(255,255,255,.87); margin-left: 8px; cursor: pointer; user-select: none; }
 
 /* Button */
