@@ -234,6 +234,10 @@ class dashboard_pro extends module
             $last_shout = ($session && !empty($session->data['DASHBOARD_PRO_LAST_SHOUT'])) ? (int)$session->data['DASHBOARD_PRO_LAST_SHOUT'] : 0;
             $shouts = SQLSelect("SELECT ID, MESSAGE, ADDED FROM shouts WHERE MEMBER_ID=0 AND ID > $last_shout ORDER BY ADDED DESC LIMIT 20");
             $computer_name = gg('site_title');
+            if (!$computer_name) {
+                $lang = defined('SETTINGS') && isset($GLOBALS['SETTINGS']['SITE_LANGUAGE']) ? $GLOBALS['SETTINGS']['SITE_LANGUAGE'] : 'russian';
+                $computer_name = stripos($lang, 'russian') !== false ? 'Алиса' : 'Alice';
+            }
             foreach ($shouts as $s) {
                 $items[] = array(
                     'ID' => 'shout_' . $s['ID'],
