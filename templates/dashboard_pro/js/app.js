@@ -47,6 +47,17 @@ const widgetDefs = [
     { type: 'trend', icon: 'fas fa-chart-line', title: 'Тренд', desc: 'Тренд значения' },
 ];
 
+const translations = ref({});
+window.__t = function(text) { return translations.value[text] || text; };
+const t = window.__t;
+
+async function loadTranslations() {
+    try {
+        const d = await dpAPI('lang');
+        if (d && typeof d === 'object') translations.value = d;
+    } catch(e) {}
+}
+
 const app = createApp({
     setup() {
         const { authenticated, authChecking, login, password, loginError, loginLoading } = Auth;
@@ -411,6 +422,7 @@ const app = createApp({
         async function loadData() {
             loading.value = true;
             try {
+                await loadTranslations();
                 const data = await dpAPI('panels');
                 if (data.error) return;
                 panels.value = Array.isArray(data) ? data : (data.panels || []);
@@ -1419,11 +1431,13 @@ const app = createApp({
             objects, iconProperties, infoProperties, widgetProperties, bgProperties, extraProperties, methodCache, loadObjects, loadIconProperties, loadInfoProperties, loadWidgetProperties, loadBgProperties, widgetBgStyle, fetchWidgetBgColors,
             isAdmin, toggleEditMode, toggleWs, wsConnected, wsTooltip, wsStatus, wsPulse, wsBytesSent, wsBytesReceived, user, userMenuOpen, sidebarMini, toggleSidebar, expandedGroups, childPanels, toggleGroup, forceRefresh, formatBytes,
             showNotifications, notifications, unreadCount, checkNotifications, markNotificationsRead,
-            chatOpen, chatMessages, chatText, chatLoading, loadChat, sendChat, toggleChat, formatTime
+            chatOpen, chatMessages, chatText, chatLoading, loadChat, sendChat, toggleChat, formatTime,
+            t
         };
     }
 });
 
+app.config.globalProperties.$t = window.__t;
 app.component('widget-relay', RelayWidget);
 app.component('widget-value', ValueWidget);
 app.component('widget-button', ButtonWidget);
