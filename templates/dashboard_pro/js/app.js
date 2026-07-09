@@ -1190,6 +1190,7 @@ const app = createApp({
             try {
                 await dpAPI('chat', { method: 'POST', body: JSON.stringify({ message: text }) });
                 await loadChat();
+                checkNotifications();
             } catch (e) { /* silent */ }
             chatLoading.value = false;
         }
