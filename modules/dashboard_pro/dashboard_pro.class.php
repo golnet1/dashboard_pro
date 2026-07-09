@@ -14,7 +14,7 @@ class dashboard_pro extends module
     function loadLanguage()
     {
         $lang = defined('SETTINGS_SITE_LANGUAGE') ? SETTINGS_SITE_LANGUAGE : '';
-        $lang_dir = DIR_MODULES . $this->name . '/languages/';
+        $lang_dir = dirname(DIR_MODULES) . '/languages/';
         if ($lang && file_exists($lang_dir . $this->name . '_' . $lang . '.php'))
             include_once($lang_dir . $this->name . '_' . $lang . '.php');
         if (file_exists($lang_dir . $this->name . '_default.php'))
@@ -327,7 +327,7 @@ class dashboard_pro extends module
         if ($params['request'][0] == 'lang') {
             $lang = defined('SETTINGS_SITE_LANGUAGE') ? SETTINGS_SITE_LANGUAGE : '';
             $frontend = array();
-            $base = DIR_MODULES . $this->name . '/languages/';
+            $base = dirname(DIR_MODULES) . '/languages/';
             if ($lang && file_exists($base . $this->name . '_' . $lang . '.php'))
                 include($base . $this->name . '_' . $lang . '.php');
             else if (file_exists($base . $this->name . '_default.php'))
