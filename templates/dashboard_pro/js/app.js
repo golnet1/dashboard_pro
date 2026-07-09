@@ -1320,6 +1320,7 @@ const app = createApp({
             initAuth();
             checkNotifications();
             setInterval(checkNotifications, 10000);
+            setInterval(() => { if (authenticated.value) loadData(); }, settings.value.refreshPeriod || 5000);
             initWebSocket();
         });
 
