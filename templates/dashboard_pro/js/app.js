@@ -1242,7 +1242,7 @@ const app = createApp({
                 if (wsReconnectTimer) { clearTimeout(wsReconnectTimer); wsReconnectTimer = null; }
             };
             wsSocket.onmessage = function(msg) {
-                wsBytesReceived.value += msg.data ? new Blob([msg.data]).size : 0;
+                wsBytesReceived.value += typeof msg.data === 'string' ? msg.data.length : (msg.data ? (msg.data.size || msg.data.byteLength || 0) : 0);
                 wsPulse.value = true;
                 setTimeout(() => { wsPulse.value = false; }, 400);
                 try {
@@ -1287,7 +1287,7 @@ const app = createApp({
         function forceRefresh() {
             if (wsSocket && wsConnected.value) {
                 const payload = JSON.stringify({ action: 'status' });
-                wsBytesSent.value += new Blob([payload]).size;
+                wsBytesSent.value += payload.length;
                 wsSocket.send(payload);
             }
         }
