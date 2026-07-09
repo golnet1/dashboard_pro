@@ -610,7 +610,7 @@
                     <div class="widget-def-list">
                         <div v-for="def in filteredDefs" :key="def.type" class="widget-def-item" @click="addWidget(def.type)">
                             <i :class="def.icon"></i>
-                            <div><div>{{ def.title }}</div><div style="font-size:.8rem;color:var(--text-secondary)">{{ def.desc }}</div></div>
+                            <div><div>{{ t('widget_' + def.type) }}</div><div style="font-size:.8rem;color:var(--text-secondary)">{{ t('widget_' + def.type + '_desc') }}</div></div>
                         </div>
                     </div>
                 </div>
@@ -1049,7 +1049,7 @@
                                                                     <div class="v-input__slot"><label class="v-label v-label--active">{{ t(field.label) }}</label>
                                                                          <select v-model="editWidgetForm[field.key]">
                                                                              <option v-if="field.key !== 'icon_type'" value="" style="background:#1e1e1e;color:#fff">{{ field.placeholder || '— выберите —' }}</option>
-                                                                             <option v-for="opt in field.options" :key="opt.value" :value="opt.value" style="background:#1e1e1e;color:#fff">{{ opt.label }}</option>
+                                                                             <option v-for="opt in field.options" :key="opt.value" :value="opt.value" style="background:#1e1e1e;color:#fff">{{ t(opt.label) }}</option>
                                                                         </select>
                                                                     </div>
                                                                 </div>
@@ -1176,7 +1176,7 @@
                             <div style="display:flex;flex-direction:column">
                                 <div v-for="cat in filteredIconCategories" :key="cat.name" class="icon-picker__cat" :class="{ active: iconCategory === cat.name }" @click="iconCategory = cat.name; iconPage = 1">
                                     <div>
-                                        <div style="font-size:.85rem;color:rgba(255,255,255,.8)">{{ cat.title }}</div>
+                                        <div style="font-size:.85rem;color:rgba(255,255,255,.8)">{{ t('icon_cat_' + cat.name) }}</div>
                                         <div style="font-size:.75rem;color:rgba(255,255,255,.35)">{{ cat.icons.length }} {{ t('icons') }}</div>
                                     </div>
                                 </div>
@@ -1307,7 +1307,7 @@
                                 </div>
                             </div>
                             <div class="mt-1 mb-3 col col-12">
-                                <span v-for="(lbl, li) in g.fields" :key="li" class="v-chip theme--dark v-size--x-small primary" style="margin-right:4px"><span class="v-chip__content">{{ lbl }}</span></span>
+                                <span v-for="(lbl, li) in g.fields" :key="li" class="v-chip theme--dark v-size--x-small primary" style="margin-right:4px"><span class="v-chip__content">{{ t(lbl) }}</span></span>
                             </div>
                         </div>
                     </div>

@@ -174,7 +174,7 @@ const app = createApp({
             if (comp && comp.tabs) {
                 tabs = comp.tabs.map(t => ({ ...t }));
             } else if (comp && comp.fields) {
-                const labelMap = { params: 'Основное', advanced: 'Дополнительно', main: 'Главное', columns: 'Столбцы' };
+                const labelMap = { params: 'tab_params', advanced: 'tab_advanced', main: 'tab_main', columns: 'tab_columns' };
                 for (const key of Object.keys(comp.fields)) {
                     if (key === 'position') continue;
                     tabs.push({ key, label: labelMap[key] || key.charAt(0).toUpperCase() + key.slice(1) });
@@ -186,7 +186,7 @@ const app = createApp({
                 return fields.length > 0;
             });
             if (!tabs.find(t => t.key === 'position')) {
-                tabs.push({ key: 'position', label: 'Позиция' });
+                tabs.push({ key: 'position', label: 'tab_position' });
             }
             return tabs;
         }
@@ -274,23 +274,23 @@ const app = createApp({
         }
 
         const columnFields = [
-            { key: 'info', label: 'Информация' },
-            { key: 'data_name', label: 'Имя колонки с данными' },
-            { key: 'align', label: 'Выравнивание', type: 'select', options: [
+            { key: 'info', label: 'field_info' },
+            { key: 'data_name', label: 'field_column_name' },
+            { key: 'align', label: 'field_align', type: 'select', options: [
                 { value: 'start', title: 'Left' },
                 { value: 'center', title: 'Center' },
                 { value: 'end', title: 'Right' },
             ]},
-            { key: 'width', label: 'Ширина' },
-            { key: 'sortable', label: 'Разрешить сортировку', type: 'switch' },
-            { key: 'separator', label: 'Разделитель', type: 'switch' },
-            { key: 'data_type', label: 'Тип данных', type: 'select', options: [
+            { key: 'width', label: 'field_width' },
+            { key: 'sortable', label: 'field_sortable', type: 'switch' },
+            { key: 'separator', label: 'field_separator', type: 'switch' },
+            { key: 'data_type', label: 'field_data_type', type: 'select', options: [
                 { value: '', title: '—' },
                 { value: 'string', title: 'String' },
                 { value: 'number', title: 'Number' },
                 { value: 'date', title: 'Date' },
             ]},
-            { key: 'color_column', label: 'Имя колонки с цветом' },
+            { key: 'color_column', label: 'field_color_column' },
         ];
 
         function widgetBgStyle(w) {
@@ -344,9 +344,9 @@ const app = createApp({
 
         const plusTooltip = computed(() => {
             if (!currentPanel.value || currentPanel.value.panelType === 'group') {
-                return 'Добавить панель';
+                return t('add_panel');
             }
-            return 'Добавить виджет';
+            return t('add_widget');
         });
 
         function addPlusButton() {
@@ -358,14 +358,14 @@ const app = createApp({
         }
 
         const wsTooltip = computed(() => {
-            const status = wsConnected.value ? 'WebSocket: подключён' : 'WebSocket: отключён';
+            const status = wsConnected.value ? t('ws_connected') : t('ws_disconnected');
             const sent = wsBytesSent.value > 0 ? formatBytes(wsBytesSent.value) : '0 B';
             const recv = wsBytesReceived.value > 0 ? formatBytes(wsBytesReceived.value) : '0 B';
             let extra = '';
             if (wsStatus.value) {
-                extra = `\nКлиентов: ${wsStatus.value.COUNT_CLIENTS}\nЗапущен: ${wsStatus.value.STARTED}`;
+                extra = `\n${t('clients')}: ${wsStatus.value.COUNT_CLIENTS}\n${t('started')}: ${wsStatus.value.STARTED}`;
             }
-            return `${status}\nОтправлено: ${sent}\nПолучено: ${recv}\nНажмите для статуса${extra}`;
+            return `${status}\n${t('sent')}: ${sent}\n${t('received')}: ${recv}\n${t('click_for_status')}${extra}`;
         });
 
         function widgetTypeComponent(type) {
@@ -542,7 +542,7 @@ const app = createApp({
         function copyWidget(idx) {
             const src = currentPanel.value.widgets[idx];
             if (!src) return;
-            const w = { ...src, id: 'w_' + Date.now(), title: src.title + ' (копия)', x: (src.x || 0) + 20, y: (src.y || 0) + 20 };
+            const w = { ...src, id: 'w_' + Date.now(), title: src.title + ' (' + t('copy_suffix') + ')', x: (src.x || 0) + 20, y: (src.y || 0) + 20 };
             currentPanel.value.widgets.splice(idx + 1, 0, w);
             savePanels();
         }
@@ -562,17 +562,17 @@ const app = createApp({
             changeObjectWidgetIdx.value = idx;
             const groups = {};
             const fieldDefs = [
-                { field: 'object', alias: null, label: 'Статус', isMethod: false },
-                { field: 'object_info', alias: null, label: 'Инфо', isMethod: false },
-                { field: 'object_alive', alias: null, label: 'Доступность', isMethod: false },
-                { field: 'object_value', alias: null, label: 'Значение', isMethod: false },
-                { field: 'icon_object', alias: 'iconObject', label: 'Иконка', isMethod: false },
-                { field: 'bg_object', alias: 'bgObject', label: 'Фон', isMethod: false },
-                { field: 'method', alias: null, label: 'Метод', isMethod: true },
-                { field: 'object_switch', alias: null, label: 'Переключение', isMethod: true },
-                { field: 'object_on', alias: null, label: 'Включение', isMethod: true },
-                { field: 'object_off', alias: null, label: 'Выключение', isMethod: true },
-                { field: 'object_color', alias: null, label: 'Цвет', isMethod: true },
+                { field: 'object', alias: null, label: 'field_object', isMethod: false },
+                { field: 'object_info', alias: null, label: 'field_info', isMethod: false },
+                { field: 'object_alive', alias: null, label: 'field_alive', isMethod: false },
+                { field: 'object_value', alias: null, label: 'field_value', isMethod: false },
+                { field: 'icon_object', alias: 'iconObject', label: 'field_icon', isMethod: false },
+                { field: 'bg_object', alias: 'bgObject', label: 'field_bg', isMethod: false },
+                { field: 'method', alias: null, label: 'field_method', isMethod: true },
+                { field: 'object_switch', alias: null, label: 'field_switch', isMethod: true },
+                { field: 'object_on', alias: null, label: 'field_on', isMethod: true },
+                { field: 'object_off', alias: null, label: 'field_off', isMethod: true },
+                { field: 'object_color', alias: null, label: 'field_color', isMethod: true },
             ];
             for (const fd of fieldDefs) {
                 let val = w[fd.field];
@@ -595,13 +595,13 @@ const app = createApp({
             const w = currentPanel.value.widgets[changeObjectWidgetIdx.value];
             if (!w) return;
             const fieldMap = {
-                'Статус': 'object', 'Инфо': 'object_info', 'Доступность': 'object_alive',
-                'Значение': 'object_value', 'Иконка': 'icon_object', 'Фон': 'bg_object',
-                'Метод': 'method', 'Переключение': 'object_switch', 'Включение': 'object_on',
-                'Выключение': 'object_off', 'Цвет': 'object_color'
+                'field_object': 'object', 'field_info': 'object_info', 'field_alive': 'object_alive',
+                'field_value': 'object_value', 'field_icon': 'icon_object', 'field_bg': 'bg_object',
+                'field_method': 'method', 'field_switch': 'object_switch', 'field_on': 'object_on',
+                'field_off': 'object_off', 'field_color': 'object_color'
             };
-            const methodLabels = ['Метод', 'Переключение', 'Включение', 'Выключение', 'Цвет'];
-            const aliases = { 'Иконка': 'iconObject', 'Фон': 'bgObject' };
+            const methodLabels = ['field_method', 'field_switch', 'field_on', 'field_off', 'field_color'];
+            const aliases = { 'field_icon': 'iconObject', 'field_bg': 'bgObject' };
             for (const g of changeObjectGroups.value) {
                 if (!g.newObj || g.newObj === g.oldObj) continue;
                 for (const lbl of g.fields) {
@@ -880,7 +880,7 @@ const app = createApp({
             panelError.value = '';
             if (!f.title) return;
             if (editPanelData.value && editPanelData.value.widgets?.length && f.panelType === 'group' && editPanelData.value.panelType !== 'group') {
-                panelError.value = 'Нельзя изменить панель с виджетами в группу. Удалите или переместите все виджеты.';
+                panelError.value = t('panel_error_group_change');
                 return;
             }
             if (f.panelType === 'panel' && f.parentGroup !== 'root' && !panels.value.find(p => p.name === f.parentGroup && p.panelType === 'group')) {
@@ -937,7 +937,7 @@ const app = createApp({
         function deleteCurrentPanel(p) {
             p = p || currentPanel.value;
             if (!p) return;
-            if (!confirm('Удалить панель «' + p.title + '»?')) return;
+            if (!confirm(t('delete_panel_confirm') + ' «' + p.title + '»?')) return;
             const idx = panels.value.indexOf(p);
             if (idx >= 0) {
                 panels.value.splice(idx, 1);
