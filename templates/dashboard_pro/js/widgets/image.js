@@ -11,8 +11,8 @@ const ImageWidget = {
             { key: 'object', label: 'field_object', type: 'object', row: 'obj_prop' },
             { key: 'property', label: 'field_property', type: 'property', row: 'obj_prop' },
             { key: 'url', label: 'field_image_url', type: 'text', placeholder: 'https://example.com/image.jpg' },
-            { key: 'help', type: 'info', text: 'Можно использовать {value} в URL — подставится значение объекта' },
-            { key: 'timeout', label: 'Обновление (сек)', type: 'number', default: 0, placeholder: '0 — без обновления' },
+            { key: 'help', type: 'info', text: 'help_url_value' },
+            { key: 'timeout', label: 'field_timeout', type: 'number', default: 0, placeholder: 'ph_no_update' },
         ],
         advanced: [
             { key: 'bg_mode', label: 'field_bg_mode', type: 'select', row: 'bg_row', options: [{value:'default',label:'opt_default'},{value:'image',label:'opt_image'},{value:'color',label:'opt_custom_color'},{value:'property',label:'opt_color_property'}] },
@@ -32,7 +32,7 @@ const ImageWidget = {
                 style="width:100%;height:100%;object-fit:contain" :style="{display: error ? 'none' : 'block'}"/>
             <div v-if="error && !loading" style="display:flex;align-items:center;justify-content:center;height:100%;color:rgba(255,255,255,.3);flex-direction:column;gap:8px">
                 <i class="fas fa-image" style="font-size:2rem"></i>
-                <span style="font-size:.85rem">{{ widget.title || 'Изображение' }}</span>
+                <span style="font-size:.85rem">{{ widget.title || t('widget_image') }}</span>
             </div>
         </div>`,
     data() {

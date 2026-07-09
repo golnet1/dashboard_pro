@@ -10,14 +10,14 @@ const ThermostatWidget = {
             { key: 'icon_url', label: 'field_icon_url', type: 'text', row: 'icon_row', showIf: { icon_type: 'url' } },
             { key: 'object', label: 'field_object', type: 'object', row: 'obj_prop' },
             { key: 'property', label: 'field_property', type: 'property', row: 'obj_prop' },
-            { key: 'object_current', label: 'Объект текущей температуры', type: 'object', row: 'temp_current' },
-            { key: 'property_current', label: 'Свойство (текущ)', type: 'property', row: 'temp_current' },
-            { key: 'object_target', label: 'Объект целевой температуры', type: 'object', row: 'temp_target' },
-            { key: 'property_target', label: 'Свойство (цель)', type: 'property', row: 'temp_target' },
-            { key: 'object_status', label: 'Объект статуса', type: 'object', row: 'temp_status' },
-            { key: 'property_status', label: 'Свойство (статус)', type: 'property', row: 'temp_status' },
-            { key: 'min', label: 'Мин', type: 'number', default: 5, row: 'range' },
-            { key: 'max', label: 'Макс', type: 'number', default: 35, row: 'range' },
+            { key: 'object_current', label: 'field_object_current', type: 'object', row: 'temp_current' },
+            { key: 'property_current', label: 'field_property_current', type: 'property', row: 'temp_current' },
+            { key: 'object_target', label: 'field_object_target', type: 'object', row: 'temp_target' },
+            { key: 'property_target', label: 'field_property_target', type: 'property', row: 'temp_target' },
+            { key: 'object_status', label: 'field_status_object', type: 'object', row: 'temp_status' },
+            { key: 'property_status', label: 'field_status_property', type: 'property', row: 'temp_status' },
+            { key: 'min', label: 'field_min', type: 'number', default: 5, row: 'range' },
+            { key: 'max', label: 'field_max', type: 'number', default: 35, row: 'range' },
         ],
         advanced: [
             { key: 'bg_mode', label: 'field_bg_mode', type: 'select', row: 'bg_row', options: [{value:'default',label:'opt_default'},{value:'image',label:'opt_image'},{value:'color',label:'opt_custom_color'},{value:'property',label:'opt_color_property'}] },
@@ -32,7 +32,7 @@ const ThermostatWidget = {
         <div class="widget-v-card" :style="cardStyle" style="display:flex;flex-direction:column">
             <div class="widget-v-card__header">
                 <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon"></i>
-                <div class="widget-v-card__title">{{ widget.title || 'Термостат' }}</div>
+                <div class="widget-v-card__title">{{ widget.title || t('widget_thermostat') }}</div>
                 <div class="widget-v-card__spacer"></div>
                 <span :style="'font-size:.72rem;padding:2px 8px;border-radius:10px;' + (isOn ? 'background:rgba(239,68,68,.2);color:#ef4444' : 'background:rgba(100,116,139,.2);color:#64748b')">{{ isOn ? 'ON' : 'OFF' }}</span>
             </div>
@@ -45,7 +45,7 @@ const ThermostatWidget = {
                     </div>
                     <button @click="adjustTarget(1)" :disabled="loading" style="width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.05);color:rgba(255,255,255,.8);font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center">+</button>
                 </div>
-                <div v-if="currentTemp !== null" style="font-size:.8rem;color:rgba(255,255,255,.5)">Сейчас: {{ currentTemp }}°C</div>
+                <div v-if="currentTemp !== null" style="font-size:.8rem;color:rgba(255,255,255,.5)">{{ t('current_label') }} {{ currentTemp }}°C</div>
             </div>
         </div>`,
     data() {

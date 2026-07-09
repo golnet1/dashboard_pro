@@ -3,9 +3,9 @@ const PanelLinkWidget = {
     fields: {
         params: [
             { key: 'title', label: 'field_title', type: 'text' },
-            { key: 'panel', label: 'Панель', type: 'panel_select' },
-            { key: 'icon', label: 'Своя иконка', type: 'text', placeholder: 'fas fa-link' },
-            { key: 'image', label: 'Своё изображение', type: 'text', placeholder: 'URL' },
+            { key: 'panel', label: 'field_panel', type: 'panel_select' },
+            { key: 'icon', label: 'field_custom_icon', type: 'text', placeholder: 'ph_fa_icon' },
+            { key: 'image', label: 'field_custom_image', type: 'text', placeholder: 'ph_url' },
         ],
         advanced: [
             { key: 'bg_mode', label: 'field_bg_mode', type: 'select', row: 'bg_row', options: [{value:'default',label:'opt_default'},{value:'image',label:'opt_image'},{value:'color',label:'opt_custom_color'},{value:'property',label:'opt_color_property'}] },
@@ -38,7 +38,7 @@ const PanelLinkWidget = {
             return this.widget.icon || (this.targetPanel && this.targetPanel.icon) || 'fas fa-link';
         },
         displayTitle() {
-            return this.widget.title || (this.targetPanel && this.targetPanel.title) || 'Панель';
+            return this.widget.title || (this.targetPanel && this.targetPanel.title) || t('no_panel');
         },
         panelImage() {
             return this.widget.image || (this.targetPanel && this.targetPanel.image) || '';

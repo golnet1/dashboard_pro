@@ -32,10 +32,10 @@ const Auth = (function() {
                 authenticated.value = true;
                 if (onAuth) await onAuth(res);
             } else {
-                loginError.value = res.error || 'Ошибка входа';
+                loginError.value = res.error || t('login_error');
             }
         } catch (e) {
-            loginError.value = 'Ошибка соединения: ' + (e.message || e);
+            loginError.value = t('connection_error') + (e.message || e);
         }
         loginLoading.value = false;
     }
@@ -44,9 +44,9 @@ const Auth = (function() {
         loginError.value = '';
         try {
             const res = await dpAPI('test');
-            loginError.value = 'Статус: ' + (res.status || JSON.stringify(res));
+            loginError.value = t('status_label') + (res.status || JSON.stringify(res));
         } catch (e) {
-            loginError.value = 'Ошибка: ' + (e.message || e);
+            loginError.value = t('error_label') + (e.message || e);
         }
     }
 

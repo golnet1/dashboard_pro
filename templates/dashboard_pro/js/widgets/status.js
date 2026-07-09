@@ -8,9 +8,9 @@ const StatusWidget = {
             { key: 'icon_object', label: 'field_icon_object', type: 'object', row: 'icon_row', showIf: { icon_type: 'property' } },
             { key: 'icon_property', label: 'field_icon_property', type: 'property', row: 'icon_row', showIf: { icon_type: 'property' } },
             { key: 'icon_url', label: 'field_icon_url', type: 'text', row: 'icon_row', showIf: { icon_type: 'url' } },
-            { key: 'object_status', label: 'Объект статуса', type: 'object', row: 'status_row' },
-            { key: 'property_status', label: 'Свойство (статус)', type: 'property', row: 'status_row' },
-            { key: 'statuses', label: 'Статусы (JSON)', type: 'textarea', rows: 3, placeholder: '[{"status":"0","title":"Выкл","icon":"fas fa-power-off","color":"#ef4444"},{"status":"1","title":"Вкл","icon":"fas fa-check","color":"#22c55e"}]' },
+            { key: 'object_status', label: 'field_status_object', type: 'object', row: 'status_row' },
+            { key: 'property_status', label: 'field_status_property', type: 'property', row: 'status_row' },
+            { key: 'statuses', label: 'field_statuses_json', type: 'textarea', rows: 3, placeholder: '[{"status":"0","title":"Выкл","icon":"fas fa-power-off","color":"#ef4444"},{"status":"1","title":"Вкл","icon":"fas fa-check","color":"#22c55e"}]' },
         ],
         advanced: [
             { key: 'bg_mode', label: 'field_bg_mode', type: 'select', row: 'bg_row', options: [{value:'default',label:'opt_default'},{value:'image',label:'opt_image'},{value:'color',label:'opt_custom_color'},{value:'property',label:'opt_color_property'}] },
@@ -25,12 +25,12 @@ const StatusWidget = {
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header">
                 <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon"></i>
-                <div class="widget-v-card__title">{{ widget.title || 'Статус' }}</div>
+                <div class="widget-v-card__title">{{ widget.title || t('widget_status') }}</div>
             </div>
             <div class="widget-v-card__body" style="display:flex;align-items:center;gap:12px;padding:8px 12px;flex:1">
                 <i v-if="statusIcon" :class="statusIcon" :style="'font-size:2rem;color:' + (statusColor || 'rgba(255,255,255,.6)')"></i>
                 <div v-if="statusText" style="font-size:1.1rem;font-weight:500;color:rgba(255,255,255,.87)">{{ statusText }}</div>
-                <div v-else style="font-size:.85rem;color:rgba(255,255,255,.5)">Нет данных</div>
+                <div v-else style="font-size:.85rem;color:rgba(255,255,255,.5)"{{ t('no_status') }}</div>
             </div>
         </div>`,
     data() { return { value: null, timer: null }; },

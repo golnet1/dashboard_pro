@@ -7,44 +7,44 @@ function formatBytes(bytes) {
 }
 
 const widgetDefs = [
-    { type: 'relay', icon: 'fas fa-power-off', title: 'Реле', desc: 'Управление включением/выключением' },
-    { type: 'dimmer', icon: 'fas fa-lightbulb', title: 'Диммер', desc: 'Управление яркостью' },
-    { type: 'value', icon: 'fas fa-hashtag', title: 'Значение', desc: 'Отображение числового значения' },
-    { type: 'text', icon: 'fas fa-font', title: 'Текст', desc: 'Отображение текста' },
-    { type: 'slider', icon: 'fas fa-sliders-h', title: 'Слайдер', desc: 'Ползунок для управления' },
-    { type: 'select', icon: 'fas fa-list', title: 'Выбор', desc: 'Выбор из вариантов' },
-    { type: 'button', icon: 'fas fa-play', title: 'Кнопка', desc: 'Выполнение метода' },
-    { type: 'clock', icon: 'fas fa-clock', title: 'Часы', desc: 'Цифровые часы' },
-    { type: 'iframe', icon: 'fas fa-window-maximize', title: 'iFrame', desc: 'Встроенная страница' },
-    { type: 'image', icon: 'fas fa-image', title: 'Изображение', desc: 'Отображение изображения' },
-    { type: 'panellink', icon: 'fas fa-link', title: 'Ссылка на панель', desc: 'Переход на другую панель' },
-    { type: 'rgb', icon: 'fas fa-palette', title: 'RGB', desc: 'Управление цветом' },
-    { type: 'progressbar', icon: 'fas fa-chart-bar', title: 'Прогресс-бар', desc: 'Шкала прогресса' },
-    { type: 'gauge', icon: 'fas fa-gauge-high', title: 'Индикатор', desc: 'Круговой индикатор' },
-    { type: 'test', icon: 'fas fa-flask', title: 'Тест', desc: 'Тестовый виджет' },
-    { type: 'unknown', icon: 'fas fa-question-circle', title: 'Неизвестный', desc: 'Виджет неизвестного типа' },
-    { type: 'sendtext', icon: 'fas fa-paper-plane', title: 'Отправка текста', desc: 'Отправка текста на URL' },
-    { type: 'analogclock', icon: 'fas fa-clock', title: 'Аналоговые часы', desc: 'Аналоговые часы' },
-    { type: 'status', icon: 'fas fa-info-circle', title: 'Статус', desc: 'Отображение статуса объекта' },
-    { type: 'datepicker', icon: 'fas fa-calendar-alt', title: 'Выбор даты', desc: 'Выбор даты' },
-    { type: 'timepicker', icon: 'fas fa-clock', title: 'Выбор времени', desc: 'Выбор времени' },
-    { type: 'roundslider', icon: 'fas fa-circle', title: 'Круглый слайдер', desc: 'Круглый ползунок' },
-    { type: 'graph', icon: 'fas fa-chart-line', title: 'График', desc: 'График значения' },
-    { type: 'bargraph', icon: 'fas fa-chart-bar', title: 'Бар-график', desc: 'Столбчатая диаграмма' },
-    { type: 'weather', icon: 'fas fa-cloud-sun', title: 'Погода', desc: 'Прогноз погоды' },
-    { type: 'table', icon: 'fas fa-table', title: 'Таблица', desc: 'Таблица данных' },
-    { type: 'timeline', icon: 'fas fa-stream', title: 'Таймлайн', desc: 'Лента событий' },
-    { type: 'group', icon: 'fas fa-layer-group', title: 'Группа', desc: 'Группа виджетов' },
-    { type: 'map', icon: 'fas fa-map-marker-alt', title: 'Карта', desc: 'Карта с меткой' },
-    { type: 'calendar', icon: 'fas fa-calendar-alt', title: 'Календарь', desc: 'Календарь' },
-    { type: 'colorslider', icon: 'fas fa-palette', title: 'Цвет (слайдеры)', desc: 'Цвет с RGB слайдерами' },
-    { type: 'empty', icon: 'fas fa-square', title: 'Пустой', desc: 'Пустой разделитель' },
-    { type: 'keypad', icon: 'fas fa-th', title: 'Клавиатура', desc: 'Цифровая клавиатура' },
-    { type: 'roominfo', icon: 'fas fa-home', title: 'Помещение', desc: 'Показатели помещения' },
-    { type: 'slideshow', icon: 'fas fa-images', title: 'Слайд-шоу', desc: 'Слайд-шоу изображений' },
-    { type: 'sliderbuttons', icon: 'fas fa-plus-minus', title: 'Слайдер с кнопками', desc: 'Слайдер с +/- кнопками' },
-    { type: 'thermostat', icon: 'fas fa-thermometer-half', title: 'Термостат', desc: 'Управление температурой' },
-    { type: 'trend', icon: 'fas fa-chart-line', title: 'Тренд', desc: 'Тренд значения' },
+    { type: 'relay', icon: 'fas fa-power-off', title: 'Relay', desc: 'On/off control' },
+    { type: 'dimmer', icon: 'fas fa-lightbulb', title: 'Dimmer', desc: 'Brightness control' },
+    { type: 'value', icon: 'fas fa-hashtag', title: 'Value', desc: 'Display numeric value' },
+    { type: 'text', icon: 'fas fa-font', title: 'Text', desc: 'Display text' },
+    { type: 'slider', icon: 'fas fa-sliders-h', title: 'Slider', desc: 'Slider for control' },
+    { type: 'select', icon: 'fas fa-list', title: 'Select', desc: 'Select from options' },
+    { type: 'button', icon: 'fas fa-play', title: 'Button', desc: 'Execute method' },
+    { type: 'clock', icon: 'fas fa-clock', title: 'Clock', desc: 'Digital clock' },
+    { type: 'iframe', icon: 'fas fa-window-maximize', title: 'iFrame', desc: 'Embedded page' },
+    { type: 'image', icon: 'fas fa-image', title: 'Image', desc: 'Display image' },
+    { type: 'panellink', icon: 'fas fa-link', title: 'Panel link', desc: 'Go to another panel' },
+    { type: 'rgb', icon: 'fas fa-palette', title: 'RGB', desc: 'Color control' },
+    { type: 'progressbar', icon: 'fas fa-chart-bar', title: 'Progress bar', desc: 'Progress bar' },
+    { type: 'gauge', icon: 'fas fa-gauge-high', title: 'Gauge', desc: 'Circular gauge' },
+    { type: 'test', icon: 'fas fa-flask', title: 'Test', desc: 'Test widget' },
+    { type: 'unknown', icon: 'fas fa-question-circle', title: 'Unknown', desc: 'Unknown widget type' },
+    { type: 'sendtext', icon: 'fas fa-paper-plane', title: 'Send text', desc: 'Send text to URL' },
+    { type: 'analogclock', icon: 'fas fa-clock', title: 'Analog clock', desc: 'Analog clock' },
+    { type: 'status', icon: 'fas fa-info-circle', title: 'Status', desc: 'Object status display' },
+    { type: 'datepicker', icon: 'fas fa-calendar-alt', title: 'Date picker', desc: 'Date picker' },
+    { type: 'timepicker', icon: 'fas fa-clock', title: 'Time picker', desc: 'Time picker' },
+    { type: 'roundslider', icon: 'fas fa-circle', title: 'Round slider', desc: 'Round slider' },
+    { type: 'graph', icon: 'fas fa-chart-line', title: 'Graph', desc: 'Value graph' },
+    { type: 'bargraph', icon: 'fas fa-chart-bar', title: 'Bar graph', desc: 'Bar chart' },
+    { type: 'weather', icon: 'fas fa-cloud-sun', title: 'Weather', desc: 'Weather forecast' },
+    { type: 'table', icon: 'fas fa-table', title: 'Table', desc: 'Data table' },
+    { type: 'timeline', icon: 'fas fa-stream', title: 'Timeline', desc: 'Event timeline' },
+    { type: 'group', icon: 'fas fa-layer-group', title: 'Group', desc: 'Widget group' },
+    { type: 'map', icon: 'fas fa-map-marker-alt', title: 'Map', desc: 'Map with marker' },
+    { type: 'calendar', icon: 'fas fa-calendar-alt', title: 'Calendar', desc: 'Calendar' },
+    { type: 'colorslider', icon: 'fas fa-palette', title: 'Color (sliders)', desc: 'Color with RGB sliders' },
+    { type: 'empty', icon: 'fas fa-square', title: 'Empty', desc: 'Empty separator' },
+    { type: 'keypad', icon: 'fas fa-th', title: 'Keypad', desc: 'Numeric keypad' },
+    { type: 'roominfo', icon: 'fas fa-home', title: 'Room info', desc: 'Room indicators' },
+    { type: 'slideshow', icon: 'fas fa-images', title: 'Slideshow', desc: 'Image slideshow' },
+    { type: 'sliderbuttons', icon: 'fas fa-plus-minus', title: 'Slider with buttons', desc: 'Slider with +/- buttons' },
+    { type: 'thermostat', icon: 'fas fa-thermometer-half', title: 'Thermostat', desc: 'Temperature control' },
+    { type: 'trend', icon: 'fas fa-chart-line', title: 'Trend', desc: 'Value trend' },
 ];
 
 const translations = ref({});
@@ -960,25 +960,25 @@ const app = createApp({
         }
 
         const iconCategories = [
-            { name: 'all', title: 'Все' },
-            { name: 'home', title: 'Дом', icons: ['fas fa-house','fas fa-building','fas fa-door-open','fas fa-bed','fas fa-couch','fas fa-chair','fas fa-toilet','fas fa-shower','fas fa-bath','fas fa-sink','fas fa-faucet','fas fa-trash','fas fa-trash-can','fas fa-recycle','fas fa-lightbulb','fas fa-fan','fas fa-plug','fas fa-bolt','fas fa-snowflake','fas fa-temperature-high','fas fa-temperature-low','fas fa-droplet','fas fa-fire','fas fa-lock','fas fa-unlock','fas fa-key','fas fa-bell','fas fa-clock'] },
-            { name: 'devices', title: 'Устройства', icons: ['fas fa-tv','fas fa-laptop','fas fa-desktop','fas fa-tablet','fas fa-mobile','fas fa-mobile-button','fas fa-print','fas fa-camera','fas fa-video','fas fa-microphone','fas fa-headphones','fas fa-gamepad','fas fa-robot','fas fa-microchip','fas fa-server','fas fa-database','fas fa-hard-drive','fas fa-sd-card','fas fa-sim-card','fas fa-wifi','fas fa-satellite','fas fa-satellite-dish','fas fa-signal','fas fa-rss','fas fa-radio','fas fa-stopwatch'] },
-            { name: 'climate', title: 'Климат', icons: ['fas fa-sun','fas fa-moon','fas fa-cloud','fas fa-cloud-sun','fas fa-cloud-moon','fas fa-cloud-rain','fas fa-cloud-showers-heavy','fas fa-cloud-sun-rain','fas fa-cloud-bolt','fas fa-smog','fas fa-wind','fas fa-fan','fas fa-snowflake','fas fa-fire','fas fa-water','fas fa-droplet','fas fa-leaf','fas fa-tree','fas fa-seedling'] },
-            { name: 'lighting', title: 'Освещение', icons: ['fas fa-lightbulb','fas fa-sun','fas fa-moon','fas fa-star','fas fa-fire'] },
-            { name: 'energy', title: 'Энергия', icons: ['fas fa-bolt','fas fa-plug','fas fa-battery-full','fas fa-battery-three-quarters','fas fa-battery-half','fas fa-battery-quarter','fas fa-battery-empty','fas fa-charging-station','fas fa-gas-pump','fas fa-car-battery','fas fa-solar-panel','fas fa-power-off','fas fa-gauge','fas fa-gauge-high','fas fa-oil-well'] },
-            { name: 'media', title: 'Медиа', icons: ['fas fa-music','fas fa-headphones','fas fa-headset','fas fa-microphone','fas fa-microphone-lines','fas fa-radio','fas fa-tv','fas fa-video','fas fa-film','fas fa-camera','fas fa-camera-retro','fas fa-image','fas fa-images','fas fa-play','fas fa-pause','fas fa-stop','fas fa-forward','fas fa-backward','fas fa-volume-high','fas fa-volume-low','fas fa-volume-off','fas fa-volume-xmark','fas fa-eject','fas fa-shuffle','fas fa-repeat','fas fa-rotate','fas fa-circle-play','fas fa-circle-pause','fas fa-circle-stop'] },
-            { name: 'automation', title: 'Автоматизация', icons: ['fas fa-gear','fas fa-sliders','fas fa-code-branch','fas fa-arrow-trend-up','fas fa-arrow-trend-down','fas fa-chart-line','fas fa-chart-bar','fas fa-chart-pie','fas fa-chart-simple','fas fa-chart-gantt','fas fa-route','fas fa-map','fas fa-map-pin','fas fa-location-dot','fas fa-compass','fas fa-crosshairs','fas fa-bullseye','fas fa-clock','fas fa-calendar','fas fa-calendar-days','fas fa-hourglass','fas fa-stopwatch'] },
-            { name: 'security', title: 'Безопасность', icons: ['fas fa-shield','fas fa-shield-halved','fas fa-lock','fas fa-lock-open','fas fa-unlock','fas fa-unlock-keyhole','fas fa-key','fas fa-fingerprint','fas fa-id-card','fas fa-id-badge','fas fa-user-lock','fas fa-user-shield','fas fa-eye','fas fa-eye-slash','fas fa-video','fas fa-camera','fas fa-door-closed','fas fa-bell'] },
-            { name: 'arrows', title: 'Стрелки', icons: ['fas fa-arrow-up','fas fa-arrow-down','fas fa-arrow-left','fas fa-arrow-right','fas fa-chevron-up','fas fa-chevron-down','fas fa-chevron-left','fas fa-chevron-right','fas fa-angle-up','fas fa-angle-down','fas fa-angle-left','fas fa-angle-right','fas fa-caret-up','fas fa-caret-down','fas fa-caret-left','fas fa-caret-right','fas fa-arrows-rotate','fas fa-arrow-rotate-left','fas fa-arrow-rotate-right','fas fa-up-down','fas fa-left-right'] },
-            { name: 'transport', title: 'Транспорт', icons: ['fas fa-car','fas fa-car-side','fas fa-car-rear','fas fa-truck','fas fa-truck-moving','fas fa-bus','fas fa-bus-simple','fas fa-train','fas fa-train-subway','fas fa-train-tram','fas fa-plane','fas fa-plane-up','fas fa-helicopter','fas fa-ship','fas fa-bicycle','fas fa-motorcycle','fas fa-tractor','fas fa-taxi','fas fa-van-shuttle','fas fa-warehouse'] },
-            { name: 'food', title: 'Еда', icons: ['fas fa-mug-hot','fas fa-mug-saucer','fas fa-bottle-water','fas fa-glass-water','fas fa-wine-glass','fas fa-wine-bottle','fas fa-whiskey-glass','fas fa-utensils','fas fa-kitchen-set','fas fa-bowl-food','fas fa-bowl-rice','fas fa-apple-whole','fas fa-carrot','fas fa-bread-slice','fas fa-cheese','fas fa-cookie','fas fa-fish','fas fa-egg','fas fa-ice-cream'] },
-            { name: 'weather', title: 'Погода', icons: ['fas fa-sun','fas fa-moon','fas fa-cloud','fas fa-cloud-sun','fas fa-cloud-moon','fas fa-cloud-rain','fas fa-cloud-showers-heavy','fas fa-cloud-sun-rain','fas fa-cloud-bolt','fas fa-smog','fas fa-wind','fas fa-snowflake','fas fa-temperature-high','fas fa-temperature-low','fas fa-droplet','fas fa-water','fas fa-volcano','fas fa-mountain','fas fa-mountain-sun','fas fa-umbrella'] },
-            { name: 'users', title: 'Пользователи', icons: ['fas fa-user','fas fa-users','fas fa-user-plus','fas fa-user-minus','fas fa-user-pen','fas fa-user-gear','fas fa-user-lock','fas fa-user-shield','fas fa-user-check','fas fa-user-xmark','fas fa-user-group','fas fa-user-large','fas fa-user-astronaut','fas fa-user-ninja','fas fa-user-tie','fas fa-user-doctor','fas fa-user-graduate','fas fa-user-secret','fas fa-child','fas fa-people-group','fas fa-people-arrows'] },
-            { name: 'status', title: 'Статус', icons: ['fas fa-check','fas fa-check-double','fas fa-xmark','fas fa-ban','fas fa-circle-exclamation','fas fa-exclamation','fas fa-question','fas fa-info','fas fa-circle','fas fa-circle-dot','fas fa-circle-half-stroke','fas fa-circle-check','fas fa-circle-xmark','fas fa-circle-plus','fas fa-circle-minus','fas fa-circle-info','fas fa-circle-question','fas fa-bell','fas fa-bell-slash','fas fa-flag','fas fa-flag-checkered','fas fa-heart','fas fa-heart-circle-check','fas fa-heart-circle-exclamation','fas fa-star','fas fa-star-half','fas fa-thumbs-up','fas fa-thumbs-down'] },
-            { name: 'communication', title: 'Связь', icons: ['fas fa-phone','fas fa-phone-volume','fas fa-envelope','fas fa-envelope-open','fas fa-comment','fas fa-comments','fas fa-comment-dots','fas fa-message','fas fa-share','fas fa-share-nodes','fas fa-paper-plane','fas fa-reply','fas fa-inbox','fas fa-at','fas fa-hashtag','fas fa-bullhorn','fas fa-wifi','fas fa-signal','fas fa-fax','fas fa-print'] },
-            { name: 'files', title: 'Файлы', icons: ['fas fa-file','fas fa-file-lines','fas fa-file-pdf','fas fa-file-word','fas fa-file-excel','fas fa-file-powerpoint','fas fa-file-image','fas fa-file-video','fas fa-file-audio','fas fa-file-zipper','fas fa-file-code','fas fa-folder','fas fa-folder-open','fas fa-folder-plus','fas fa-folder-minus','fas fa-copy','fas fa-paste','fas fa-clipboard','fas fa-clipboard-list','fas fa-clipboard-check','fas fa-note-sticky','fas fa-newspaper','fas fa-book','fas fa-book-open','fas fa-bookmark'] },
-            { name: 'shapes', title: 'Фигуры', icons: ['fas fa-square','fas fa-circle','fas fa-diamond','fas fa-heart','fas fa-star','fas fa-star-of-life','fas fa-cross','fas fa-plus','fas fa-minus','fas fa-asterisk','fas fa-infinity'] },
-            { name: 'brands', title: 'Бренды', icons: ['fab fa-amazon','fab fa-android','fab fa-angular','fab fa-apple','fab fa-aws','fab fa-bitcoin','fab fa-cc-amex','fab fa-cc-mastercard','fab fa-cc-visa','fab fa-centos','fab fa-chrome','fab fa-cloudflare','fab fa-css3','fab fa-digital-ocean','fab fa-discord','fab fa-docker','fab fa-dropbox','fab fa-ebay','fab fa-edge','fab fa-ethereum','fab fa-facebook','fab fa-facebook-messenger','fab fa-fedora','fab fa-firefox','fab fa-github','fab fa-gitlab','fab fa-google','fab fa-html5','fab fa-hubspot','fab fa-instagram','fab fa-jira','fab fa-js','fab fa-linkedin','fab fa-linux','fab fa-microsoft','fab fa-node','fab fa-npm','fab fa-opera','fab fa-paypal','fab fa-pinterest','fab fa-playstation','fab fa-python','fab fa-react','fab fa-reddit','fab fa-redhat','fab fa-rocketchat','fab fa-safari','fab fa-salesforce','fab fa-slack','fab fa-snapchat','fab fa-soundcloud','fab fa-spotify','fab fa-stack-overflow','fab fa-steam','fab fa-stripe','fab fa-telegram','fab fa-tiktok','fab fa-trello','fab fa-twitch','fab fa-twitter','fab fa-ubuntu','fab fa-vimeo','fab fa-vk','fab fa-vuejs','fab fa-whatsapp','fab fa-windows','fab fa-xbox','fab fa-youtube'] },
+            { name: 'all', title: 'All' },
+            { name: 'home', title: 'Home', icons: ['fas fa-house','fas fa-building','fas fa-door-open','fas fa-bed','fas fa-couch','fas fa-chair','fas fa-toilet','fas fa-shower','fas fa-bath','fas fa-sink','fas fa-faucet','fas fa-trash','fas fa-trash-can','fas fa-recycle','fas fa-lightbulb','fas fa-fan','fas fa-plug','fas fa-bolt','fas fa-snowflake','fas fa-temperature-high','fas fa-temperature-low','fas fa-droplet','fas fa-fire','fas fa-lock','fas fa-unlock','fas fa-key','fas fa-bell','fas fa-clock'] },
+            { name: 'devices', title: 'Devices', icons: ['fas fa-tv','fas fa-laptop','fas fa-desktop','fas fa-tablet','fas fa-mobile','fas fa-mobile-button','fas fa-print','fas fa-camera','fas fa-video','fas fa-microphone','fas fa-headphones','fas fa-gamepad','fas fa-robot','fas fa-microchip','fas fa-server','fas fa-database','fas fa-hard-drive','fas fa-sd-card','fas fa-sim-card','fas fa-wifi','fas fa-satellite','fas fa-satellite-dish','fas fa-signal','fas fa-rss','fas fa-radio','fas fa-stopwatch'] },
+            { name: 'climate', title: 'Climate', icons: ['fas fa-sun','fas fa-moon','fas fa-cloud','fas fa-cloud-sun','fas fa-cloud-moon','fas fa-cloud-rain','fas fa-cloud-showers-heavy','fas fa-cloud-sun-rain','fas fa-cloud-bolt','fas fa-smog','fas fa-wind','fas fa-fan','fas fa-snowflake','fas fa-fire','fas fa-water','fas fa-droplet','fas fa-leaf','fas fa-tree','fas fa-seedling'] },
+            { name: 'lighting', title: 'Lighting', icons: ['fas fa-lightbulb','fas fa-sun','fas fa-moon','fas fa-star','fas fa-fire'] },
+            { name: 'energy', title: 'Energy', icons: ['fas fa-bolt','fas fa-plug','fas fa-battery-full','fas fa-battery-three-quarters','fas fa-battery-half','fas fa-battery-quarter','fas fa-battery-empty','fas fa-charging-station','fas fa-gas-pump','fas fa-car-battery','fas fa-solar-panel','fas fa-power-off','fas fa-gauge','fas fa-gauge-high','fas fa-oil-well'] },
+            { name: 'media', title: 'Media', icons: ['fas fa-music','fas fa-headphones','fas fa-headset','fas fa-microphone','fas fa-microphone-lines','fas fa-radio','fas fa-tv','fas fa-video','fas fa-film','fas fa-camera','fas fa-camera-retro','fas fa-image','fas fa-images','fas fa-play','fas fa-pause','fas fa-stop','fas fa-forward','fas fa-backward','fas fa-volume-high','fas fa-volume-low','fas fa-volume-off','fas fa-volume-xmark','fas fa-eject','fas fa-shuffle','fas fa-repeat','fas fa-rotate','fas fa-circle-play','fas fa-circle-pause','fas fa-circle-stop'] },
+            { name: 'automation', title: 'Automation', icons: ['fas fa-gear','fas fa-sliders','fas fa-code-branch','fas fa-arrow-trend-up','fas fa-arrow-trend-down','fas fa-chart-line','fas fa-chart-bar','fas fa-chart-pie','fas fa-chart-simple','fas fa-chart-gantt','fas fa-route','fas fa-map','fas fa-map-pin','fas fa-location-dot','fas fa-compass','fas fa-crosshairs','fas fa-bullseye','fas fa-clock','fas fa-calendar','fas fa-calendar-days','fas fa-hourglass','fas fa-stopwatch'] },
+            { name: 'security', title: 'Security', icons: ['fas fa-shield','fas fa-shield-halved','fas fa-lock','fas fa-lock-open','fas fa-unlock','fas fa-unlock-keyhole','fas fa-key','fas fa-fingerprint','fas fa-id-card','fas fa-id-badge','fas fa-user-lock','fas fa-user-shield','fas fa-eye','fas fa-eye-slash','fas fa-video','fas fa-camera','fas fa-door-closed','fas fa-bell'] },
+            { name: 'arrows', title: 'Arrows', icons: ['fas fa-arrow-up','fas fa-arrow-down','fas fa-arrow-left','fas fa-arrow-right','fas fa-chevron-up','fas fa-chevron-down','fas fa-chevron-left','fas fa-chevron-right','fas fa-angle-up','fas fa-angle-down','fas fa-angle-left','fas fa-angle-right','fas fa-caret-up','fas fa-caret-down','fas fa-caret-left','fas fa-caret-right','fas fa-arrows-rotate','fas fa-arrow-rotate-left','fas fa-arrow-rotate-right','fas fa-up-down','fas fa-left-right'] },
+            { name: 'transport', title: 'Transport', icons: ['fas fa-car','fas fa-car-side','fas fa-car-rear','fas fa-truck','fas fa-truck-moving','fas fa-bus','fas fa-bus-simple','fas fa-train','fas fa-train-subway','fas fa-train-tram','fas fa-plane','fas fa-plane-up','fas fa-helicopter','fas fa-ship','fas fa-bicycle','fas fa-motorcycle','fas fa-tractor','fas fa-taxi','fas fa-van-shuttle','fas fa-warehouse'] },
+            { name: 'food', title: 'Food', icons: ['fas fa-mug-hot','fas fa-mug-saucer','fas fa-bottle-water','fas fa-glass-water','fas fa-wine-glass','fas fa-wine-bottle','fas fa-whiskey-glass','fas fa-utensils','fas fa-kitchen-set','fas fa-bowl-food','fas fa-bowl-rice','fas fa-apple-whole','fas fa-carrot','fas fa-bread-slice','fas fa-cheese','fas fa-cookie','fas fa-fish','fas fa-egg','fas fa-ice-cream'] },
+            { name: 'weather', title: 'Weather', icons: ['fas fa-sun','fas fa-moon','fas fa-cloud','fas fa-cloud-sun','fas fa-cloud-moon','fas fa-cloud-rain','fas fa-cloud-showers-heavy','fas fa-cloud-sun-rain','fas fa-cloud-bolt','fas fa-smog','fas fa-wind','fas fa-snowflake','fas fa-temperature-high','fas fa-temperature-low','fas fa-droplet','fas fa-water','fas fa-volcano','fas fa-mountain','fas fa-mountain-sun','fas fa-umbrella'] },
+            { name: 'users', title: 'Users', icons: ['fas fa-user','fas fa-users','fas fa-user-plus','fas fa-user-minus','fas fa-user-pen','fas fa-user-gear','fas fa-user-lock','fas fa-user-shield','fas fa-user-check','fas fa-user-xmark','fas fa-user-group','fas fa-user-large','fas fa-user-astronaut','fas fa-user-ninja','fas fa-user-tie','fas fa-user-doctor','fas fa-user-graduate','fas fa-user-secret','fas fa-child','fas fa-people-group','fas fa-people-arrows'] },
+            { name: 'status', title: 'Status', icons: ['fas fa-check','fas fa-check-double','fas fa-xmark','fas fa-ban','fas fa-circle-exclamation','fas fa-exclamation','fas fa-question','fas fa-info','fas fa-circle','fas fa-circle-dot','fas fa-circle-half-stroke','fas fa-circle-check','fas fa-circle-xmark','fas fa-circle-plus','fas fa-circle-minus','fas fa-circle-info','fas fa-circle-question','fas fa-bell','fas fa-bell-slash','fas fa-flag','fas fa-flag-checkered','fas fa-heart','fas fa-heart-circle-check','fas fa-heart-circle-exclamation','fas fa-star','fas fa-star-half','fas fa-thumbs-up','fas fa-thumbs-down'] },
+            { name: 'communication', title: 'Communication', icons: ['fas fa-phone','fas fa-phone-volume','fas fa-envelope','fas fa-envelope-open','fas fa-comment','fas fa-comments','fas fa-comment-dots','fas fa-message','fas fa-share','fas fa-share-nodes','fas fa-paper-plane','fas fa-reply','fas fa-inbox','fas fa-at','fas fa-hashtag','fas fa-bullhorn','fas fa-wifi','fas fa-signal','fas fa-fax','fas fa-print'] },
+            { name: 'files', title: 'Files', icons: ['fas fa-file','fas fa-file-lines','fas fa-file-pdf','fas fa-file-word','fas fa-file-excel','fas fa-file-powerpoint','fas fa-file-image','fas fa-file-video','fas fa-file-audio','fas fa-file-zipper','fas fa-file-code','fas fa-folder','fas fa-folder-open','fas fa-folder-plus','fas fa-folder-minus','fas fa-copy','fas fa-paste','fas fa-clipboard','fas fa-clipboard-list','fas fa-clipboard-check','fas fa-note-sticky','fas fa-newspaper','fas fa-book','fas fa-book-open','fas fa-bookmark'] },
+            { name: 'shapes', title: 'Shapes', icons: ['fas fa-square','fas fa-circle','fas fa-diamond','fas fa-heart','fas fa-star','fas fa-star-of-life','fas fa-cross','fas fa-plus','fas fa-minus','fas fa-asterisk','fas fa-infinity'] },
+            { name: 'brands', title: 'Brands', icons: ['fab fa-amazon','fab fa-android','fab fa-angular','fab fa-apple','fab fa-aws','fab fa-bitcoin','fab fa-cc-amex','fab fa-cc-mastercard','fab fa-cc-visa','fab fa-centos','fab fa-chrome','fab fa-cloudflare','fab fa-css3','fab fa-digital-ocean','fab fa-discord','fab fa-docker','fab fa-dropbox','fab fa-ebay','fab fa-edge','fab fa-ethereum','fab fa-facebook','fab fa-facebook-messenger','fab fa-fedora','fab fa-firefox','fab fa-github','fab fa-gitlab','fab fa-google','fab fa-html5','fab fa-hubspot','fab fa-instagram','fab fa-jira','fab fa-js','fab fa-linkedin','fab fa-linux','fab fa-microsoft','fab fa-node','fab fa-npm','fab fa-opera','fab fa-paypal','fab fa-pinterest','fab fa-playstation','fab fa-python','fab fa-react','fab fa-reddit','fab fa-redhat','fab fa-rocketchat','fab fa-safari','fab fa-salesforce','fab fa-slack','fab fa-snapchat','fab fa-soundcloud','fab fa-spotify','fab fa-stack-overflow','fab fa-steam','fab fa-stripe','fab fa-telegram','fab fa-tiktok','fab fa-trello','fab fa-twitch','fab fa-twitter','fab fa-ubuntu','fab fa-vimeo','fab fa-vk','fab fa-vuejs','fab fa-whatsapp','fab fa-windows','fab fa-xbox','fab fa-youtube'] },
         ];
         iconCategories[0].icons = iconCategories.slice(1).flatMap(c => c.icons).filter((v,i,a) => a.indexOf(v) === i);
 
@@ -1114,15 +1114,15 @@ const app = createApp({
         function saveSettings() { savePanels(); showSettingsPanel.value = false; }
 
         function cleanupOrphanWidgets() {
-            if (!confirm('Удалить все виджеты, не привязанные к панелям?')) return;
+            if (!confirm(t('confirm_delete_orphans'))) return;
             const allWidgetIds = new Set();
             panels.value.forEach(p => (p.widgets || []).forEach(w => allWidgetIds.add(w.id)));
             savePanels();
-            alert('Очистка завершена');
+            alert(t('alert_cleanup_done'));
         }
 
         function resetAll() {
-            if (!confirm('Удалить все панели и виджеты? Это действие нельзя отменить.')) return;
+            if (!confirm(t('confirm_delete_all'))) return;
             panels.value = [];
             currentPanel.value = null;
             savePanels();
@@ -1142,7 +1142,7 @@ const app = createApp({
                 downloadJSON(data, 'dashboard_pro_export.json');
                 showExportDialog.value = false;
             } else if (exportMode.value === 'panels') {
-                if (!exportSelectedPanel.value) { alert('Выберите панель'); return; }
+                if (!exportSelectedPanel.value) { alert('Select panel'); return; }
                 const panel = panels.value.find(p => p.name === exportSelectedPanel.value);
                 if (!panel) return;
                 let exportPanels;
@@ -1157,7 +1157,7 @@ const app = createApp({
                 downloadJSON(data, 'dashboard_pro_export_' + panel.name + '.json');
                 showExportDialog.value = false;
             } else if (exportMode.value === 'users') {
-                if (!exportSelectedUser.value) { alert('Выберите пользователя'); return; }
+                if (!exportSelectedUser.value) { alert('Select user'); return; }
                 showExportDialog.value = false;
                 try {
                     const res = await dpAPI('exportToUser', {
@@ -1165,24 +1165,24 @@ const app = createApp({
                         body: JSON.stringify({ targetUser: exportSelectedUser.value })
                     });
                     if (res.warn) {
-                        if (confirm(res.message || 'У пользователя уже есть данные. Перезаписать?')) {
+                        if (confirm(res.message || t('confirm_overwrite_user'))) {
                             const res2 = await dpAPI('exportToUser', {
                                 method: 'POST',
                                 body: JSON.stringify({ targetUser: exportSelectedUser.value, confirmed: true })
                             });
                             if (res2.success) {
-                                alert('Настройки скопированы пользователю «' + exportSelectedUser.value + '»');
+                                alert(t('settings_copied_to_pre') + exportSelectedUser.value + t('settings_copied_to_post'));
                             } else {
-                                alert('Ошибка: ' + (res2.error || 'неизвестная'));
+                                alert('Error: ' + (res2.error || t('unknown_error')));
                             }
                         }
                     } else if (res.success) {
-                        alert('Настройки скопированы пользователю «' + exportSelectedUser.value + '»');
+                        alert(t('settings_copied_to_pre') + exportSelectedUser.value + t('settings_copied_to_post'));
                     } else {
-                        alert('Ошибка: ' + (res.error || 'неизвестная'));
+                        alert('Error: ' + (res.error || t('unknown_error')));
                     }
                 } catch (e) {
-                    alert('Ошибка при копировании: ' + e.message);
+                    alert(t('copy_error_prefix') + e.message);
                 }
             }
         }
@@ -1214,12 +1214,12 @@ const app = createApp({
                         if (data.settings) Object.assign(settings.value, data.settings);
                         currentPanel.value = panels.value.find(p => p.panelType !== 'group') || panels.value[0] || null;
                         savePanels();
-                        alert('Импорт завершён');
+                        alert(t('import_complete'));
                     } else {
-                        alert('Неверный формат файла');
+                        alert(t('invalid_file_format'));
                     }
                 } catch (err) {
-                    alert('Ошибка импорта: ' + err.message);
+                    alert('Import error: ' + err.message);
                 }
             };
             input.click();
@@ -1362,7 +1362,7 @@ const app = createApp({
                                 notifications.value.unshift({
                                     ID: 'notif_' + Date.now(),
                                     MESSAGE: n.text,
-                                    MODULE_NAME: n.source || 'Умный дом',
+                                    MODULE_NAME: n.source || t('module_name_default'),
                                     TYPE: n.icon || 'info',
                                     ADDED: new Date().toISOString().replace('T', ' ').slice(0, 19)
                                 });
@@ -1441,41 +1441,41 @@ app.config.globalProperties.$t = window.__t;
 app.component('widget-relay', RelayWidget);
 app.component('widget-value', ValueWidget);
 app.component('widget-button', ButtonWidget);
-app.component('widget-slider', typeof SliderWidget !== 'undefined' ? SliderWidget : { template: '<div>Слайдер</div>' });
-app.component('widget-dimmer', typeof DimmerWidget !== 'undefined' ? DimmerWidget : { template: '<div>Диммер</div>' });
-app.component('widget-text', typeof TextWidget !== 'undefined' ? TextWidget : { template: '<div>Текст</div>' });
-app.component('widget-select', typeof SelectWidget !== 'undefined' ? SelectWidget : { template: '<div>Выбор</div>' });
-app.component('widget-clock', typeof ClockWidget !== 'undefined' ? ClockWidget : { template: '<div>Часы</div>' });
+app.component('widget-slider', typeof SliderWidget !== 'undefined' ? SliderWidget : { template: '<div>'+t('widget_slider')+'</div>' });
+app.component('widget-dimmer', typeof DimmerWidget !== 'undefined' ? DimmerWidget : { template: '<div>'+t('widget_dimmer')+'</div>' });
+app.component('widget-text', typeof TextWidget !== 'undefined' ? TextWidget : { template: '<div>'+t('widget_text')+'</div>' });
+app.component('widget-select', typeof SelectWidget !== 'undefined' ? SelectWidget : { template: '<div>'+t('widget_select')+'</div>' });
+app.component('widget-clock', typeof ClockWidget !== 'undefined' ? ClockWidget : { template: '<div>'+t('widget_clock')+'</div>' });
 app.component('widget-iframe', typeof IFrameWidget !== 'undefined' ? IFrameWidget : { template: '<div>iFrame</div>' });
-app.component('widget-image', typeof ImageWidget !== 'undefined' ? ImageWidget : { template: '<div>Изображение</div>' });
-app.component('widget-panellink', typeof PanelLinkWidget !== 'undefined' ? PanelLinkWidget : { template: '<div>Ссылка</div>' });
+app.component('widget-image', typeof ImageWidget !== 'undefined' ? ImageWidget : { template: '<div>'+t('widget_image')+'</div>' });
+app.component('widget-panellink', typeof PanelLinkWidget !== 'undefined' ? PanelLinkWidget : { template: '<div>'+t('widget_panellink')+'</div>' });
 app.component('widget-rgb', typeof RGBWidget !== 'undefined' ? RGBWidget : { template: '<div>RGB</div>' });
-app.component('widget-progressbar', typeof ProgressBarWidget !== 'undefined' ? ProgressBarWidget : { template: '<div>Прогресс</div>' });
-app.component('widget-gauge', typeof GaugeWidget !== 'undefined' ? GaugeWidget : { template: '<div>Индикатор</div>' });
+app.component('widget-progressbar', typeof ProgressBarWidget !== 'undefined' ? ProgressBarWidget : { template: '<div>'+t('widget_progressbar')+'</div>' });
+app.component('widget-gauge', typeof GaugeWidget !== 'undefined' ? GaugeWidget : { template: '<div>'+t('widget_gauge')+'</div>' });
 app.component('widget-test', typeof TestWidget !== 'undefined' ? TestWidget : { template: '<div>Test</div>' });
 app.component('widget-unknown', typeof UnknownWidget !== 'undefined' ? UnknownWidget : { template: '<div>Unknown</div>' });
-app.component('widget-sendtext', typeof SendTextWidget !== 'undefined' ? SendTextWidget : { template: '<div>Отправка</div>' });
-app.component('widget-analogclock', typeof AnalogClockWidget !== 'undefined' ? AnalogClockWidget : { template: '<div>Часы</div>' });
-app.component('widget-status', typeof StatusWidget !== 'undefined' ? StatusWidget : { template: '<div>Статус</div>' });
-app.component('widget-datepicker', typeof DatePickerWidget !== 'undefined' ? DatePickerWidget : { template: '<div>Дата</div>' });
-app.component('widget-timepicker', typeof TimePickerWidget !== 'undefined' ? TimePickerWidget : { template: '<div>Время</div>' });
-app.component('widget-roundslider', typeof RoundSliderWidget !== 'undefined' ? RoundSliderWidget : { template: '<div>Круглый слайдер</div>' });
-app.component('widget-graph', typeof GraphWidget !== 'undefined' ? GraphWidget : { template: '<div>График</div>' });
-app.component('widget-bargraph', typeof BarGraphWidget !== 'undefined' ? BarGraphWidget : { template: '<div>Бар-график</div>' });
-app.component('widget-weather', typeof WeatherWidget !== 'undefined' ? WeatherWidget : { template: '<div>Погода</div>' });
-app.component('widget-table', typeof TableWidget !== 'undefined' ? TableWidget : { template: '<div>Таблица</div>' });
-app.component('widget-timeline', typeof TimelineWidget !== 'undefined' ? TimelineWidget : { template: '<div>Таймлайн</div>' });
-app.component('widget-group', typeof GroupWidget !== 'undefined' ? GroupWidget : { template: '<div>Группа</div>' });
-app.component('widget-map', typeof MapWidget !== 'undefined' ? MapWidget : { template: '<div>Карта</div>' });
-app.component('widget-calendar', typeof CalendarWidget !== 'undefined' ? CalendarWidget : { template: '<div>Календарь</div>' });
-app.component('widget-colorslider', typeof ColorSliderWidget !== 'undefined' ? ColorSliderWidget : { template: '<div>Цвет</div>' });
-app.component('widget-empty', typeof EmptyWidget !== 'undefined' ? EmptyWidget : { template: '<div>Пусто</div>' });
-app.component('widget-keypad', typeof KeypadWidget !== 'undefined' ? KeypadWidget : { template: '<div>Клавиатура</div>' });
-app.component('widget-roominfo', typeof RoomInfoWidget !== 'undefined' ? RoomInfoWidget : { template: '<div>Помещение</div>' });
-app.component('widget-slideshow', typeof SlideShowWidget !== 'undefined' ? SlideShowWidget : { template: '<div>Слайд-шоу</div>' });
-app.component('widget-sliderbuttons', typeof SliderButtonsWidget !== 'undefined' ? SliderButtonsWidget : { template: '<div>Слайдер</div>' });
-app.component('widget-thermostat', typeof ThermostatWidget !== 'undefined' ? ThermostatWidget : { template: '<div>Термостат</div>' });
-app.component('widget-trend', typeof TrendWidget !== 'undefined' ? TrendWidget : { template: '<div>Тренд</div>' });
+app.component('widget-sendtext', typeof SendTextWidget !== 'undefined' ? SendTextWidget : { template: '<div>'+t('widget_sendtext')+'</div>' });
+app.component('widget-analogclock', typeof AnalogClockWidget !== 'undefined' ? AnalogClockWidget : { template: '<div>'+t('widget_clock')+'</div>' });
+app.component('widget-status', typeof StatusWidget !== 'undefined' ? StatusWidget : { template: '<div>'+t('widget_status')+'</div>' });
+app.component('widget-datepicker', typeof DatePickerWidget !== 'undefined' ? DatePickerWidget : { template: '<div>'+t('widget_datepicker')+'</div>' });
+app.component('widget-timepicker', typeof TimePickerWidget !== 'undefined' ? TimePickerWidget : { template: '<div>'+t('widget_timepicker')+'</div>' });
+app.component('widget-roundslider', typeof RoundSliderWidget !== 'undefined' ? RoundSliderWidget : { template: '<div>'+t('widget_roundslider')+'</div>' });
+app.component('widget-graph', typeof GraphWidget !== 'undefined' ? GraphWidget : { template: '<div>'+t('widget_graph')+'</div>' });
+app.component('widget-bargraph', typeof BarGraphWidget !== 'undefined' ? BarGraphWidget : { template: '<div>'+t('widget_bargraph')+'</div>' });
+app.component('widget-weather', typeof WeatherWidget !== 'undefined' ? WeatherWidget : { template: '<div>'+t('widget_weather')+'</div>' });
+app.component('widget-table', typeof TableWidget !== 'undefined' ? TableWidget : { template: '<div>'+t('widget_table')+'</div>' });
+app.component('widget-timeline', typeof TimelineWidget !== 'undefined' ? TimelineWidget : { template: '<div>'+t('widget_timeline')+'</div>' });
+app.component('widget-group', typeof GroupWidget !== 'undefined' ? GroupWidget : { template: '<div>'+t('widget_group')+'</div>' });
+app.component('widget-map', typeof MapWidget !== 'undefined' ? MapWidget : { template: '<div>'+t('widget_map')+'</div>' });
+app.component('widget-calendar', typeof CalendarWidget !== 'undefined' ? CalendarWidget : { template: '<div>'+t('widget_calendar')+'</div>' });
+app.component('widget-colorslider', typeof ColorSliderWidget !== 'undefined' ? ColorSliderWidget : { template: '<div>'+t('widget_colorslider')+'</div>' });
+app.component('widget-empty', typeof EmptyWidget !== 'undefined' ? EmptyWidget : { template: '<div>'+t('widget_empty')+'</div>' });
+app.component('widget-keypad', typeof KeypadWidget !== 'undefined' ? KeypadWidget : { template: '<div>'+t('widget_keypad')+'</div>' });
+app.component('widget-roominfo', typeof RoomInfoWidget !== 'undefined' ? RoomInfoWidget : { template: '<div>'+t('widget_roominfo')+'</div>' });
+app.component('widget-slideshow', typeof SlideShowWidget !== 'undefined' ? SlideShowWidget : { template: '<div>'+t('widget_slideshow')+'</div>' });
+app.component('widget-sliderbuttons', typeof SliderButtonsWidget !== 'undefined' ? SliderButtonsWidget : { template: '<div>'+t('widget_slider')+'</div>' });
+app.component('widget-thermostat', typeof ThermostatWidget !== 'undefined' ? ThermostatWidget : { template: '<div>'+t('widget_thermostat')+'</div>' });
+app.component('widget-trend', typeof TrendWidget !== 'undefined' ? TrendWidget : { template: '<div>'+t('widget_trend')+'</div>' });
 
 const vm = app.mount('#app');
 window.__dp_vm = vm;

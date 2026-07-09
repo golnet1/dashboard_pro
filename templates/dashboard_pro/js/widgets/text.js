@@ -10,8 +10,8 @@ const TextWidget = {
             { key: 'icon_url', label: 'field_icon_url', type: 'text', row: 'icon_row', showIf: { icon_type: 'url' } },
             { key: 'object', label: 'field_object', type: 'object', row: 'obj_prop' },
             { key: 'property', label: 'field_property', type: 'property', row: 'obj_prop' },
-            { key: 'help', type: 'info', text: 'Если указан объект — отображается его значение, иначе статический текст' },
-            { key: 'text', label: 'Статический текст', type: 'textarea', rows: 3 },
+            { key: 'help', type: 'info', text: 'help_text_object_or_static' },
+            { key: 'text', label: 'field_static_text', type: 'textarea', rows: 3 },
         ],
         advanced: [
             { key: 'bg_mode', label: 'field_bg_mode', type: 'select', row: 'bg_row', options: [{value:'default',label:'opt_default'},{value:'image',label:'opt_image'},{value:'color',label:'opt_custom_color'},{value:'property',label:'opt_color_property'}] },
@@ -26,7 +26,7 @@ const TextWidget = {
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header">
                 <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon"></i>
-                <div class="widget-v-card__title">{{ widget.title || 'Текст' }}</div>
+                <div class="widget-v-card__title">{{ widget.title || t('widget_text') }}</div>
             </div>
             <div class="widget-v-card__body" style="padding:8px 12px;flex:1;display:flex;align-items:center">
                 <div style="font-size:.95rem;line-height:1.5;color:rgba(255,255,255,.87)">{{ displayText }}</div>

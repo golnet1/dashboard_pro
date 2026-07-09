@@ -8,8 +8,8 @@ const SlideShowWidget = {
             { key: 'icon_object', label: 'field_icon_object', type: 'object', row: 'icon_row', showIf: { icon_type: 'property' } },
             { key: 'icon_property', label: 'field_icon_property', type: 'property', row: 'icon_row', showIf: { icon_type: 'property' } },
             { key: 'icon_url', label: 'field_icon_url', type: 'text', row: 'icon_row', showIf: { icon_type: 'url' } },
-            { key: 'images', label: 'Изображения (JSON или через запятую)', type: 'textarea', rows: 2, placeholder: 'url1.jpg, url2.jpg, url3.jpg' },
-            { key: 'interval', label: 'Интервал (сек)', type: 'number', default: 5 },
+            { key: 'images', label: 'field_images', type: 'textarea', rows: 2, placeholder: 'ph_image_urls' },
+            { key: 'interval', label: 'field_interval', type: 'number', default: 5 },
         ],
         advanced: [
             { key: 'bg_mode', label: 'field_bg_mode', type: 'select', row: 'bg_row', options: [{value:'default',label:'opt_default'},{value:'image',label:'opt_image'},{value:'color',label:'opt_custom_color'},{value:'property',label:'opt_color_property'}] },
@@ -23,7 +23,7 @@ const SlideShowWidget = {
     template: `
         <div class="widget-v-card" :style="'overflow:hidden;position:relative;' + cardStyleStr" style="display:flex;align-items:center;justify-content:center">
             <img v-if="currentImage" :src="currentImage" style="width:100%;height:100%;object-fit:cover;transition:opacity .5s" :style="'opacity:' + (loaded ? 1 : 0)">
-            <div v-else style="color:rgba(255,255,255,.3);font-size:.8rem">Нет изображений</div>
+            <div v-else style="color:rgba(255,255,255,.3);font-size:.8rem">{{ t('no_images') }}</div>
         </div>`,
     data() {
         return { currentIndex: 0, loaded: false, timer: null };

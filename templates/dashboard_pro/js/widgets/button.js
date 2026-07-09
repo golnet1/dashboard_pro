@@ -10,11 +10,11 @@ const ButtonWidget = {
             { key: 'icon_url', label: 'field_icon_url', type: 'text', row: 'icon_row', showIf: { icon_type: 'url' } },
             { key: 'object', label: 'field_object', type: 'object', row: 'obj_prop' },
             { key: 'property', label: 'field_property', type: 'property', row: 'obj_prop' },
-            { key: 'buttonText', label: 'field_button_text', type: 'text', default: 'Выполнить' },
+            { key: 'buttonText', label: 'field_button_text', type: 'text', default: 'default_execute' },
             { key: 'value', label: 'field_value', type: 'text', default: '1' },
             { key: 'method', label: 'field_method', type: 'text', placeholder: 'method_name' },
-            { key: 'command', label: 'field_command', type: 'text', placeholder: 'Команда (если есть)' },
-            { key: 'hold', label: 'Удержание (сек)', type: 'number', default: 1 },
+            { key: 'command', label: 'field_command', type: 'text', placeholder: 'ph_command_optional' },
+            { key: 'hold', label: 'field_hold', type: 'number', default: 1 },
         ],
         advanced: [
             { key: 'bg_mode', label: 'field_bg_mode', type: 'select', row: 'bg_row', options: [{value:'default',label:'opt_default'},{value:'image',label:'opt_image'},{value:'color',label:'opt_custom_color'},{value:'property',label:'opt_color_property'}] },
@@ -24,18 +24,18 @@ const ButtonWidget = {
             { key: 'bg_property', label: 'field_bg_property', type: 'property', row: 'bg_row', showIf: { bg_mode: 'property' } },
         ],
     },
-    defaults: { icon: 'fas fa-play', icon_type: 'icon', buttonText: 'Выполнить', hold: 1, value: '1', command: '', method: '' },
+    defaults: { icon: 'fas fa-play', icon_type: 'icon', buttonText: 'default_execute', hold: 1, value: '1', command: '', method: '' },
     template: `
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header">
                 <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon"></i>
-                <div class="widget-v-card__title">{{ widget.title || 'Кнопка' }}</div>
+                <div class="widget-v-card__title">{{ widget.title || t('widget_button') }}</div>
             </div>
             <div class="widget-v-card__body" style="display:flex;align-items:center;justify-content:center;flex:1;padding:8px">
                 <button class="v-btn v-btn--is-elevated v-btn--has-bg theme--dark" style="min-width:120px" :class="{ 'v-btn--loading': loading }" @click="execute" :disabled="loading">
                     <span class="v-btn__content">
                         <i v-if="widget.icon" :class="widget.icon" style="margin-right:6px"></i>
-                        {{ loading ? '...' : (widget.buttonText || 'Выполнить') }}
+                        {{ loading ? '...' : (widget.buttonText || t('default_execute')) }}
                     </span>
                 </button>
             </div>

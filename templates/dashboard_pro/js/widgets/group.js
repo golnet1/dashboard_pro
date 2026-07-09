@@ -23,14 +23,14 @@ const GroupWidget = {
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header">
                 <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon"></i>
-                <div class="widget-v-card__title">{{ widget.title || 'Группа' }}</div>
-                <span v-if="count" style="margin-left:auto;font-size:.75rem;color:rgba(255,255,255,.4);padding-right:8px">{{ count }} видж.</span>
+                <div class="widget-v-card__title">{{ widget.title || t('widget_group') }}</div>
+                <span v-if="count" style="margin-left:auto;font-size:.75rem;color:rgba(255,255,255,.4);padding-right:8px">{{ count }} {{ t('units_widgets') }}</span>
             </div>
             <div class="widget-v-card__body" style="display:flex;align-items:center;justify-content:center;flex:1;padding:12px;text-align:center">
                 <div style="font-size:.85rem;color:rgba(255,255,255,.5)">
                     <i class="fas fa-layer-group" style="font-size:1.5rem;display:block;margin-bottom:6px;color:rgba(255,255,255,.2)"></i>
-                    Группа виджетов<br>
-                    <small>{{ widget.group_id || 'Внутренняя группа' }}</small>
+                    {{ t('widget_group_desc') }}<br>
+                    <small>{{ widget.group_id || t('group_internal') }}</small>
                 </div>
             </div>
         </div>`,

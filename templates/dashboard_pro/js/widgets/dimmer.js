@@ -12,9 +12,9 @@ const DimmerWidget = {
             { key: 'property', label: 'field_property', type: 'property', row: 'obj_prop' },
             { key: 'object_switch_obj', label: 'field_switch_object', type: 'method_object', parent: 'object_switch', row: 'm_switch' },
             { key: 'object_switch', label: 'field_switch_method', type: 'method', parent: 'object_switch', row: 'm_switch' },
-            { key: 'help', type: 'info', text: 'Параметры уровня яркости' },
-            { key: 'level_min', label: 'Мин', type: 'number', row: 'range' },
-            { key: 'level_max', label: 'Макс', type: 'number', row: 'range' },
+            { key: 'help', type: 'info', text: 'help_brightness_params' },
+            { key: 'level_min', label: 'field_min', type: 'number', row: 'range' },
+            { key: 'level_max', label: 'field_max', type: 'number', row: 'range' },
             { key: 'level_step', label: 'field_step', type: 'number', row: 'range' },
         ],
         advanced: [
@@ -30,7 +30,7 @@ const DimmerWidget = {
         <div class="widget-v-card" :class="{ 'widget-v-card--on': isOn }" :style="cardStyle">
             <div class="widget-v-card__header">
                 <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon" :style="isOn ? 'color:var(--primary)' : ''"></i>
-                <div class="widget-v-card__title">{{ widget.title || 'Диммер' }}</div>
+                <div class="widget-v-card__title">{{ widget.title || t('widget_dimmer') }}</div>
                 <div class="widget-v-card__spacer"></div>
                 <div class="v-input--switch" :class="{ 'input--is-checked': isOn }" @click.stop="toggle">
                     <div class="v-input--switch__track"><div class="v-input--switch__thumb"></div></div>

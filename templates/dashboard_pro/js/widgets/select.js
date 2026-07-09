@@ -10,8 +10,8 @@ const SelectWidget = {
             { key: 'icon_url', label: 'field_icon_url', type: 'text', row: 'icon_row', showIf: { icon_type: 'url' } },
             { key: 'object', label: 'field_object', type: 'object', row: 'obj_prop' },
             { key: 'property', label: 'field_property', type: 'property', row: 'obj_prop' },
-            { key: 'help', type: 'info', text: 'Формат: [{"label":"...", "value":"...", "icon":"..."}]' },
-            { key: 'options', label: 'Варианты (JSON)', type: 'textarea', rows: 4, placeholder: '[{"label":"Вкл","value":"1","icon":"fas fa-check"}]' },
+            { key: 'help', type: 'info', text: 'help_options_format' },
+            { key: 'options', label: 'field_options_json', type: 'textarea', rows: 4, placeholder: '[{"label":"Вкл","value":"1","icon":"fas fa-check"}]' },
         ],
         advanced: [
             { key: 'bg_mode', label: 'field_bg_mode', type: 'select', row: 'bg_row', options: [{value:'default',label:'opt_default'},{value:'image',label:'opt_image'},{value:'color',label:'opt_custom_color'},{value:'property',label:'opt_color_property'}] },
@@ -26,7 +26,7 @@ const SelectWidget = {
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header">
                 <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon"></i>
-                <div class="widget-v-card__title">{{ widget.title || 'Выбор' }}</div>
+                <div class="widget-v-card__title">{{ widget.title || t('widget_select') }}</div>
             </div>
             <div class="widget-v-card__body" style="padding:8px 12px;flex:1;display:flex;flex-direction:column;gap:6px">
                 <div v-for="opt in options" :key="opt.value" class="v-btn v-btn--outlined theme--dark" :class="{ 'primary': currentValue == opt.value }" :style="{background: currentValue == opt.value ? 'var(--primary)' : 'transparent', borderColor: currentValue == opt.value ? 'var(--primary)' : 'rgba(255,255,255,.23)'}" @click="select(opt.value)">

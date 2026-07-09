@@ -9,10 +9,10 @@ const WeatherWidget = {
             { key: 'icon_property', label: 'field_icon_property', type: 'property', row: 'icon_row', showIf: { icon_type: 'property' } },
             { key: 'icon_url', label: 'field_icon_url', type: 'text', row: 'icon_row', showIf: { icon_type: 'url' } },
             { key: 'api_key', label: 'field_api_key', type: 'text' },
-            { key: 'city_id', label: 'field_city_id', type: 'text', placeholder: 'ID города' },
+            { key: 'city_id', label: 'field_city_id', type: 'text', placeholder: 'ph_city_id' },
             { key: 'lat', label: 'field_latitude', type: 'text', placeholder: '55.75', row: 'coord' },
             { key: 'lon', label: 'field_longitude', type: 'text', placeholder: '37.62', row: 'coord' },
-            { key: 'help', type: 'info', text: 'Укажите API Key и City ID, или координаты' },
+            { key: 'help', type: 'info', text: 'help_city_id_or_coords' },
         ],
         advanced: [
             { key: 'bg_mode', label: 'field_bg_mode', type: 'select', row: 'bg_row', options: [{value:'default',label:'opt_default'},{value:'image',label:'opt_image'},{value:'color',label:'opt_custom_color'},{value:'property',label:'opt_color_property'}] },
@@ -27,10 +27,10 @@ const WeatherWidget = {
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header">
                 <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon"></i>
-                <div class="widget-v-card__title">{{ widget.title || 'Погода' }}</div>
+                <div class="widget-v-card__title">{{ widget.title || t('widget_weather') }}</div>
             </div>
             <div class="widget-v-card__body" style="display:flex;flex-direction:column;flex:1;padding:8px 12px">
-                <div v-if="loading" style="text-align:center;color:rgba(255,255,255,.5);padding:12px">Загрузка...</div>
+                <div v-if="loading" style="text-align:center;color:rgba(255,255,255,.5);padding:12px">{{ t('loading_data') }}</div>
                 <template v-else-if="data">
                     <div style="display:flex;align-items:center;gap:12px">
                         <div v-if="data.icon" style="font-size:3rem;line-height:1"><img :src="'https://openweathermap.org/img/wn/' + data.icon + '@2x.png'" style="width:64px;height:64px"></div>
@@ -41,10 +41,10 @@ const WeatherWidget = {
                     </div>
                     <div style="display:flex;gap:16px;margin-top:8px;font-size:.8rem;color:rgba(255,255,255,.5)">
                         <span><i class="fas fa-tint"></i> {{ data.humidity }}%</span>
-                        <span><i class="fas fa-wind"></i> {{ data.wind }} м/с</span>
+                        <span><i class="fas fa-wind"></i> {{ data.wind }} {{ t('unit_wind_speed') }}</span>
                     </div>
                 </template>
-                <div v-else style="text-align:center;color:rgba(255,255,255,.35);padding:12px;font-size:.8rem">Укажите City ID или координаты</div>
+                <div v-else style="text-align:center;color:rgba(255,255,255,.35);padding:12px;font-size:.8rem">{{ t('enter_city_id_or_coords') }}</div>
             </div>
         </div>`,
     data() { return { data: null, loading: false, timer: null }; },

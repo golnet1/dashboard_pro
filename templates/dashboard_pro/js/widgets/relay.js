@@ -41,7 +41,7 @@ const RelayWidget = {
         <div class="widget-v-card" :class="{ 'widget-v-card--on': isOn }" :style="cardStyle">
             <div class="widget-v-card__header">
                 <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon" :style="isOn ? 'color:var(--primary)' : ''"></i>
-                <div class="widget-v-card__title">{{ widget.title || 'Реле' }}</div>
+                <div class="widget-v-card__title">{{ widget.title || t('widget_relay') }}</div>
                 <div class="widget-v-card__spacer"></div>
                 <div class="v-input--switch" :class="{ 'input--is-checked': isOn }" :style="aliveDisabled ? 'opacity:.4;pointer-events:none' : ''" @click.stop="toggle">
                     <div class="v-input--switch__track"><div class="v-input--switch__thumb"></div></div>

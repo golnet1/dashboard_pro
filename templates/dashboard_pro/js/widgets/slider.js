@@ -10,11 +10,11 @@ const SliderWidget = {
             { key: 'icon_url', label: 'field_icon_url', type: 'text', row: 'icon_row', showIf: { icon_type: 'url' } },
             { key: 'object', label: 'field_object', type: 'object', row: 'obj_prop' },
             { key: 'property', label: 'field_property', type: 'property', row: 'obj_prop' },
-            { key: 'min', label: 'Мин', type: 'number', row: 'range' },
-            { key: 'max', label: 'Макс', type: 'number', row: 'range' },
+            { key: 'min', label: 'field_min', type: 'number', row: 'range' },
+            { key: 'max', label: 'field_max', type: 'number', row: 'range' },
             { key: 'step', label: 'field_step', type: 'number', step: 'any', row: 'range' },
-            { key: 'prepend_icon', label: 'Иконка слева', type: 'icon_picker', placeholder: 'fas fa-minus', row: 'icons' },
-            { key: 'append_icon', label: 'Иконка справа', type: 'icon_picker', placeholder: 'fas fa-plus', row: 'icons' },
+            { key: 'prepend_icon', label: 'field_prepend_icon', type: 'icon_picker', placeholder: 'ph_fa_icon', row: 'icons' },
+            { key: 'append_icon', label: 'field_append_icon', type: 'icon_picker', placeholder: 'ph_fa_icon', row: 'icons' },
         ],
         advanced: [
             { key: 'bg_mode', label: 'field_bg_mode', type: 'select', row: 'bg_row', options: [{value:'default',label:'opt_default'},{value:'image',label:'opt_image'},{value:'color',label:'opt_custom_color'},{value:'property',label:'opt_color_property'}] },
@@ -29,7 +29,7 @@ const SliderWidget = {
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header">
                 <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon"></i>
-                <div class="widget-v-card__title">{{ widget.title || 'Слайдер' }}</div>
+                <div class="widget-v-card__title">{{ widget.title || t('widget_slider') }}</div>
                 <div class="widget-v-card__spacer"></div>
                 <div class="widget-v-card__value-text" style="font-size:1rem;font-weight:600">{{ currentValue }}<span v-if="widget.unit" style="font-size:.75rem;opacity:.6;margin-left:2px">{{ widget.unit }}</span></div>
             </div>

@@ -10,10 +10,10 @@ const RoundSliderWidget = {
             { key: 'icon_url', label: 'field_icon_url', type: 'text', row: 'icon_row', showIf: { icon_type: 'url' } },
             { key: 'object', label: 'field_object', type: 'object', row: 'obj_prop' },
             { key: 'property', label: 'field_property', type: 'property', row: 'obj_prop' },
-            { key: 'min', label: 'Мин', type: 'number', default: 0, row: 'range' },
-            { key: 'max', label: 'Макс', type: 'number', default: 100, row: 'range' },
+            { key: 'min', label: 'field_min', type: 'number', default: 0, row: 'range' },
+            { key: 'max', label: 'field_max', type: 'number', default: 100, row: 'range' },
             { key: 'step', label: 'field_step', type: 'number', default: 1, row: 'range' },
-            { key: 'unit', label: 'Единица', type: 'text', placeholder: '%' },
+            { key: 'unit', label: 'field_unit', type: 'text', placeholder: 'ph_percent' },
         ],
         advanced: [
             { key: 'bg_mode', label: 'field_bg_mode', type: 'select', row: 'bg_row', options: [{value:'default',label:'opt_default'},{value:'image',label:'opt_image'},{value:'color',label:'opt_custom_color'},{value:'property',label:'opt_color_property'}] },
@@ -28,7 +28,7 @@ const RoundSliderWidget = {
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header">
                 <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon"></i>
-                <div class="widget-v-card__title">{{ widget.title || 'Круглый слайдер' }}</div>
+                <div class="widget-v-card__title">{{ widget.title || t('widget_roundslider') }}</div>
             </div>
             <div class="widget-v-card__body" style="display:flex;align-items:center;justify-content:center;flex:1;padding:8px;overflow:hidden;position:relative">
                 <canvas ref="canvas" style="width:100%;height:100%;cursor:pointer" @mousedown="startDrag" @mousemove="onDrag" @mouseup="endDrag" @mouseleave="endDrag"></canvas>

@@ -8,7 +8,7 @@ const ColorSliderWidget = {
             { key: 'icon_object', label: 'field_icon_object', type: 'object', row: 'icon_row', showIf: { icon_type: 'property' } },
             { key: 'icon_property', label: 'field_icon_property', type: 'property', row: 'icon_row', showIf: { icon_type: 'property' } },
             { key: 'icon_url', label: 'field_icon_url', type: 'text', row: 'icon_row', showIf: { icon_type: 'url' } },
-            { key: 'object', label: 'Объект цвета', type: 'object', row: 'obj_prop' },
+            { key: 'object', label: 'field_object_color', type: 'object', row: 'obj_prop' },
             { key: 'property', label: 'field_property', type: 'property', row: 'obj_prop' },
         ],
         advanced: [
@@ -24,7 +24,7 @@ const ColorSliderWidget = {
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header">
                 <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon"></i>
-                <div class="widget-v-card__title">{{ widget.title || 'Цвет' }}</div>
+                <div class="widget-v-card__title">{{ widget.title || t('widget_colorslider') }}</div>
                 <div class="widget-v-card__spacer"></div>
                 <span style="font-size:.75rem;font-family:monospace;color:rgba(255,255,255,.6)">{{ hexColor }}</span>
             </div>

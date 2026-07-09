@@ -8,7 +8,7 @@ const KeypadWidget = {
             { key: 'icon_object', label: 'field_icon_object', type: 'object', row: 'icon_row', showIf: { icon_type: 'property' } },
             { key: 'icon_property', label: 'field_icon_property', type: 'property', row: 'icon_row', showIf: { icon_type: 'property' } },
             { key: 'icon_url', label: 'field_icon_url', type: 'text', row: 'icon_row', showIf: { icon_type: 'url' } },
-            { key: 'object', label: 'Объект для отправки', type: 'object', row: 'obj_prop' },
+            { key: 'object', label: 'field_send_object', type: 'object', row: 'obj_prop' },
             { key: 'property', label: 'field_property', type: 'property', row: 'obj_prop' },
         ],
         advanced: [
@@ -24,7 +24,7 @@ const KeypadWidget = {
         <div class="widget-v-card" :style="cardStyle" style="display:flex;flex-direction:column">
             <div class="widget-v-card__header">
                 <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon"></i>
-                <div class="widget-v-card__title">{{ widget.title || 'Клавиатура' }}</div>
+                <div class="widget-v-card__title">{{ widget.title || t('widget_keypad') }}</div>
             </div>
             <div class="widget-v-card__body" style="padding:8px 12px 12px;display:flex;flex-direction:column;gap:6px">
                 <div style="text-align:center;font-size:1.8rem;font-weight:300;color:rgba(255,255,255,.87);padding:4px 0;min-height:2.5rem;font-family:monospace">{{ display }}</div>

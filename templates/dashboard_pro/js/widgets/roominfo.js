@@ -8,8 +8,8 @@ const RoomInfoWidget = {
             { key: 'icon_object', label: 'field_icon_object', type: 'object', row: 'icon_row', showIf: { icon_type: 'property' } },
             { key: 'icon_property', label: 'field_icon_property', type: 'property', row: 'icon_row', showIf: { icon_type: 'property' } },
             { key: 'icon_url', label: 'field_icon_url', type: 'text', row: 'icon_row', showIf: { icon_type: 'url' } },
-            { key: 'help', type: 'info', text: 'Укажите датчики в формате JSON: [{"object":"obj1","label":"Темп.","icon":"fas fa-thermometer-half","suffix":"°C"},{"object":"obj2","label":"Влажность","icon":"fas fa-tint","suffix":"%"}]' },
-            { key: 'sensors', label: 'Датчики (JSON)', type: 'textarea', rows: 4 },
+            { key: 'help', type: 'info', text: 'help_sensors_format' },
+            { key: 'sensors', label: 'field_sensors_json', type: 'textarea', rows: 4 },
         ],
         advanced: [
             { key: 'bg_mode', label: 'field_bg_mode', type: 'select', row: 'bg_row', options: [{value:'default',label:'opt_default'},{value:'image',label:'opt_image'},{value:'color',label:'opt_custom_color'},{value:'property',label:'opt_color_property'}] },
@@ -24,7 +24,7 @@ const RoomInfoWidget = {
         <div class="widget-v-card" :style="cardStyle" style="display:flex;flex-direction:column">
             <div class="widget-v-card__header">
                 <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon"></i>
-                <div class="widget-v-card__title">{{ widget.title || 'Помещение' }}</div>
+                <div class="widget-v-card__title">{{ widget.title || t('widget_roominfo') }}</div>
             </div>
             <div class="widget-v-card__body" style="padding:8px 12px 12px;display:flex;flex-wrap:wrap;gap:8px">
                 <div v-for="(item,i) in items" :key="i" style="display:flex;align-items:center;gap:6px;padding:6px 10px;background:rgba(255,255,255,.08);border-radius:6px">
@@ -32,7 +32,7 @@ const RoomInfoWidget = {
                     <span style="font-size:.75rem;color:rgba(255,255,255,.5)">{{ item.label }}</span>
                     <span style="font-size:.85rem;font-weight:500;color:rgba(255,255,255,.87)">{{ item.value || '--' }}</span>
                 </div>
-                <div v-if="items.length === 0" style="color:rgba(255,255,255,.3);font-size:.8rem;width:100%;text-align:center">Настройте объекты</div>
+                <div v-if="items.length === 0" style="color:rgba(255,255,255,.3);font-size:.8rem;width:100%;text-align:center"{{ t('no_data') }}</div>
             </div>
         </div>`,
     data() {

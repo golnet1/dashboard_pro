@@ -26,7 +26,7 @@ const TableWidget = {
         ],
         main: [
             { key: 'url', label: 'field_url_json', type: 'text', placeholder: 'https://api.example.com/data' },
-            { key: 'query', label: 'Запрос', type: 'textarea', rows: 5, placeholder: 'SQL-запрос или JSONPath' },
+            { key: 'query', label: 'field_query', type: 'textarea', rows: 5, placeholder: 'ph_sql_jsonpath' },
         ],
         columns: [
             { key: 'info', label: 'field_info_data', type: 'text' },
@@ -48,7 +48,7 @@ const TableWidget = {
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header">
                 <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon"></i>
-                <div class="widget-v-card__title">{{ widget.title || 'Таблица' }}</div>
+                <div class="widget-v-card__title">{{ widget.title || t('widget_table') }}</div>
             </div>
             <div class="widget-v-card__body" style="flex:1;padding:0;overflow:auto">
                 <table v-if="rows.length" style="width:100%;border-collapse:collapse;font-size:.8rem">
@@ -63,7 +63,7 @@ const TableWidget = {
                         </tr>
                     </tbody>
                 </table>
-                <div v-else style="text-align:center;padding:16px;color:rgba(255,255,255,.35);font-size:.8rem">Нет данных</div>
+                <div v-else style="text-align:center;padding:16px;color:rgba(255,255,255,.35);font-size:.8rem">{{ t('no_data') }}</div>
             </div>
         </div>`,
     data() { return { items: [], timer: null }; },

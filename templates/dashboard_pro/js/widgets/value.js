@@ -10,7 +10,7 @@ const ValueWidget = {
             { key: 'icon_url', label: 'field_icon_url', type: 'text', row: 'icon_row', showIf: { icon_type: 'url' } },
             { key: 'object', label: 'field_object', type: 'object', row: 'obj_prop' },
             { key: 'property', label: 'field_property', type: 'property', row: 'obj_prop' },
-            { key: 'aliasLabels', label: 'Псевдонимы (JSON)', type: 'text', placeholder: '{"1":"Вкл","0":"Выкл"}' },
+            { key: 'aliasLabels', label: 'field_alias_labels', type: 'text', placeholder: '{"1":"'+t('default_on')+'","0":"'+t('default_off')+'"}' },
         ],
         advanced: [
             { key: 'bg_mode', label: 'field_bg_mode', type: 'select', row: 'bg_row', options: [{value:'default',label:'opt_default'},{value:'image',label:'opt_image'},{value:'color',label:'opt_custom_color'},{value:'property',label:'opt_color_property'}] },
@@ -29,7 +29,7 @@ const ValueWidget = {
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header">
                 <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon"></i>
-                <div class="widget-v-card__title">{{ widget.title || 'Значение' }}</div>
+                <div class="widget-v-card__title">{{ widget.title || t('widget_value') }}</div>
                 <div class="widget-v-card__spacer"></div>
                 <div v-if="widget.object_info && infoValue" class="widget-v-card__info" style="padding:0;font-size:.75rem">
                     <span v-if="widget.pre_info">{{ widget.pre_info }}</span>{{ infoValue }}<span v-if="widget.pos_info">{{ widget.pos_info }}</span>

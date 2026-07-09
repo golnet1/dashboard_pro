@@ -10,7 +10,7 @@ const TrendWidget = {
             { key: 'icon_url', label: 'field_icon_url', type: 'text', row: 'icon_row', showIf: { icon_type: 'url' } },
             { key: 'object', label: 'field_object', type: 'object', row: 'obj_prop' },
             { key: 'property', label: 'field_property', type: 'property', row: 'obj_prop' },
-            { key: 'interval', label: 'Интервал обновления (сек)', type: 'number', default: 30 },
+            { key: 'interval', label: 'field_refresh_interval', type: 'number', default: 30 },
             { key: 'round', label: 'field_rounding', type: 'number', placeholder: '1' },
         ],
         advanced: [
@@ -26,7 +26,7 @@ const TrendWidget = {
         <div class="widget-v-card" :style="cardStyle" style="display:flex;flex-direction:column">
             <div class="widget-v-card__header">
                 <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon"></i>
-                <div class="widget-v-card__title">{{ widget.title || 'Тренд' }}</div>
+                <div class="widget-v-card__title">{{ widget.title || t('widget_trend') }}</div>
             </div>
             <div class="widget-v-card__body" style="padding:8px 12px;display:flex;align-items:center;gap:12px;flex:1">
                 <div style="text-align:center;flex:1">

@@ -31,7 +31,10 @@ $frontend = array(
     'connection_error' => 'Connection error: ',
     'status' => 'Status: ',
     'error' => 'Error: ',
-
+    'error_label' => 'Error: ',
+    'status_label' => 'Status: ',
+    'login_error' => 'Login error',
+ 
     // App bar
     'show_sidebar' => 'Show sidebar',
     'hide_sidebar' => 'Hide sidebar',
@@ -292,7 +295,9 @@ $frontend = array(
 
     // Move widget
     'move_widget' => 'Move widget',
-
+    'move_widget_to_panel_post' => '"?',
+    'move_widget_to_panel_pre' => 'Move widget to panel "',
+ 
     // Export dialog
     'users' => 'Users',
     'export_users_desc' => 'Copy all settings to selected user\'s Object. If the Object is not empty, a warning about overwriting will be shown.',
@@ -676,6 +681,19 @@ $frontend = array(
     'widget_value_desc' => 'Display numeric value',
     'widget_weather' => 'Weather',
     'widget_weather_desc' => 'Weather forecast',
+    'alert_cleanup_done' => 'Cleanup complete',
+    'help_city_id_or_coords' => 'Specify API Key and City ID, or coordinates',
+    'category_status' => 'Status',
+    'confirm_delete_all' => 'Delete all panels and widgets? This action cannot be undone.',
+    'confirm_delete_orphans' => 'Delete all widgets not attached to panels?',
+    'confirm_overwrite_user' => 'User already has data. Overwrite?',
+    'copy_error_prefix' => 'Error copying: ',
+    'import_complete' => 'Import complete',
+    'invalid_file_format' => 'Invalid file format',
+    'module_name_default' => 'Smart Home',
+    'settings_copied_to_post' => '"',
+    'settings_copied_to_pre' => 'Settings copied to user "',
+    'unknown_error' => 'unknown',
     'ws_connected' => 'WebSocket: connected',
     'ws_disconnected' => 'WebSocket: disconnected',
 );

@@ -10,11 +10,11 @@ const ProgressBarWidget = {
             { key: 'icon_url', label: 'field_icon_url', type: 'text', row: 'icon_row', showIf: { icon_type: 'url' } },
             { key: 'object', label: 'field_object', type: 'object', row: 'obj_prop' },
             { key: 'property', label: 'field_property', type: 'property', row: 'obj_prop' },
-            { key: 'level_min', label: 'Мин', type: 'number', row: 'range' },
-            { key: 'level_max', label: 'Макс', type: 'number', row: 'range' },
-            { key: 'striped', label: 'Полосатый', type: 'checkbox' },
-            { key: 'rounded', label: 'Скруглённый', type: 'checkbox' },
-            { key: 'color_progress', label: 'Цвет прогресса', type: 'text', default: 'primary', placeholder: 'primary / #ff0000' },
+            { key: 'level_min', label: 'field_min', type: 'number', row: 'range' },
+            { key: 'level_max', label: 'field_max', type: 'number', row: 'range' },
+            { key: 'striped', label: 'field_striped', type: 'checkbox' },
+            { key: 'rounded', label: 'field_rounded', type: 'checkbox' },
+            { key: 'color_progress', label: 'field_progress_color', type: 'text', default: 'primary', placeholder: 'ph_color_value' },
         ],
         advanced: [
             { key: 'bg_mode', label: 'field_bg_mode', type: 'select', row: 'bg_row', options: [{value:'default',label:'opt_default'},{value:'image',label:'opt_image'},{value:'color',label:'opt_custom_color'},{value:'property',label:'opt_color_property'}] },
@@ -31,7 +31,7 @@ const ProgressBarWidget = {
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header" v-if="widget.title || widget.icon">
                 <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon"></i>
-                <div class="widget-v-card__title">{{ widget.title || 'Прогресс' }}</div>
+                <div class="widget-v-card__title">{{ widget.title || t('widget_progressbar') }}</div>
             </div>
             <div class="widget-v-card__body" style="display:flex;align-items:center;padding:8px 12px;flex:1">
                 <div style="width:100%">

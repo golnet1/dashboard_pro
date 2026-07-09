@@ -25,7 +25,7 @@ const TimelineWidget = {
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header">
                 <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon"></i>
-                <div class="widget-v-card__title">{{ widget.title || 'Таймлайн' }}</div>
+                <div class="widget-v-card__title">{{ widget.title || t('widget_timeline') }}</div>
             </div>
             <div class="widget-v-card__body" style="flex:1;overflow:auto;padding:8px 12px 8px 20px">
                 <div v-for="(ev, i) in events" :key="i" style="position:relative;padding-left:20px;padding-bottom:12px;border-left:2px solid rgba(255,255,255,.12)">
@@ -33,7 +33,7 @@ const TimelineWidget = {
                     <div style="font-size:.75rem;color:rgba(255,255,255,.4)">{{ ev.time }}</div>
                     <div style="font-size:.85rem;color:rgba(255,255,255,.8)">{{ ev.text }}</div>
                 </div>
-                <div v-if="!events.length" style="text-align:center;padding:16px;color:rgba(255,255,255,.35);font-size:.8rem">Нет событий</div>
+                <div v-if="!events.length" style="text-align:center;padding:16px;color:rgba(255,255,255,.35);font-size:.8rem">{{ t('no_events') }}</div>
             </div>
         </div>`,
     data() { return { events: [], timer: null }; },

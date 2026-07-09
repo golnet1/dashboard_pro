@@ -31,7 +31,10 @@ $frontend = array(
     'connection_error' => 'Ошибка соединения: ',
     'status' => 'Статус: ',
     'error' => 'Ошибка: ',
-
+    'error_label' => 'Ошибка: ',
+    'status_label' => 'Статус: ',
+    'login_error' => 'Ошибка входа',
+ 
     // App bar
     'show_sidebar' => 'Показать панель',
     'hide_sidebar' => 'Скрыть панель',
@@ -292,7 +295,9 @@ $frontend = array(
 
     // Move widget
     'move_widget' => 'Перемещение виджета',
-
+    'move_widget_to_panel_post' => '»?',
+    'move_widget_to_panel_pre' => 'Переместить виджет в панель «',
+ 
     // Export dialog
     'users' => 'Пользователи',
     'export_users_desc' => 'Копирование всех настроек в Объект выбранного пользователя. Если Объект не пустой — предупреждение о перезаписи.',
@@ -676,6 +681,19 @@ $frontend = array(
     'widget_value_desc' => 'Отображение числового значения',
     'widget_weather' => 'Погода',
     'widget_weather_desc' => 'Прогноз погоды',
+    'alert_cleanup_done' => 'Очистка завершена',
+    'help_city_id_or_coords' => 'Укажите API Key и City ID, или координаты',
+    'category_status' => 'Статус',
+    'confirm_delete_all' => 'Удалить все панели и виджеты? Это действие нельзя отменить.',
+    'confirm_delete_orphans' => 'Удалить все виджеты, не привязанные к панелям?',
+    'confirm_overwrite_user' => 'У пользователя уже есть данные. Перезаписать?',
+    'copy_error_prefix' => 'Ошибка при копировании: ',
+    'import_complete' => 'Импорт завершён',
+    'invalid_file_format' => 'Неверный формат файла',
+    'module_name_default' => 'Умный дом',
+    'settings_copied_to_post' => '»',
+    'settings_copied_to_pre' => 'Настройки скопированы пользователю «',
+    'unknown_error' => 'неизвестная',
     'ws_connected' => 'WebSocket: подключён',
     'ws_disconnected' => 'WebSocket: отключён',
 );

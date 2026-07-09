@@ -1,7 +1,7 @@
-// Единый конфиг полей виджетов
-// Добавление нового поля: одна строка в нужном типе + табе
+// Unified widget fields config
+// Add new field: one line in the right type + tab
 
-// Загружаем скрипты виджетов
+// Load widget scripts
 (function() {
     var widgets = [
         'relay', 'value', 'button', 'slider', 'dimmer', 'text', 'select',
@@ -19,13 +19,13 @@
 window.W = window.W || {};
 
 W.fields = {
-  // ---- Позиция (общие поля для всех типов) ----
+  // ---- Position (common fields for all types) ----
   _common: {
     position: [
-      { key: 'x', label: 'X (px)', type: 'number' },
-      { key: 'y', label: 'Y (px)', type: 'number' },
-      { key: 'width', label: 'Ширина (px)', type: 'number' },
-      { key: 'height', label: 'Высота (px)', type: 'number' },
+      { key: 'x', label: 'x_px', type: 'number' },
+      { key: 'y', label: 'y_px', type: 'number' },
+      { key: 'width', label: 'width_px', type: 'number' },
+      { key: 'height', label: 'height_px', type: 'number' },
     ],
   },
 

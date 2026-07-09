@@ -26,7 +26,7 @@ const MapWidget = {
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header">
                 <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon"></i>
-                <div class="widget-v-card__title">{{ widget.title || 'Карта' }}</div>
+                <div class="widget-v-card__title">{{ widget.title || t('widget_map') }}</div>
             </div>
             <div class="widget-v-card__body" style="display:flex;align-items:center;justify-content:center;flex:1;padding:8px;overflow:hidden">
                 <canvas ref="canvas" style="width:100%;height:100%"></canvas>

@@ -22,7 +22,7 @@ const CalendarWidget = {
         <div class="widget-v-card" :style="cardStyle" style="display:flex;flex-direction:column">
             <div class="widget-v-card__header">
                 <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon"></i>
-                <div class="widget-v-card__title">{{ widget.title || 'Календарь' }}</div>
+                <div class="widget-v-card__title">{{ widget.title || t('widget_calendar') }}</div>
                 <div class="widget-v-card__spacer"></div>
                 <button class="btn-icon" @click="prevMonth" style="font-size:.9rem">&lsaquo;</button>
                 <span style="font-size:.8rem;margin:0 8px;color:rgba(255,255,255,.7)">{{ monthName }} {{ year }}</span>
@@ -40,7 +40,7 @@ const CalendarWidget = {
             </div>
         </div>`,
     data() {
-        return { year: 0, month: 0, today: 0, days: [], dayNames: ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'] };
+        return { year: 0, month: 0, today: 0, days: [], dayNames: [this.t('day_short_mon'),this.t('day_short_tue'),this.t('day_short_wed'),this.t('day_short_thu'),this.t('day_short_fri'),this.t('day_short_sat'),this.t('day_short_sun')] };
     },
     computed: {
         cardStyle() {
@@ -49,7 +49,7 @@ const CalendarWidget = {
             return s;
         },
         monthName() {
-            const m = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Окторябрь','Ноябрь','Декабрь'];
+            const m = [this.t('month_jan'),this.t('month_feb'),this.t('month_mar'),this.t('month_apr'),this.t('month_may'),this.t('month_jun'),this.t('month_jul'),this.t('month_aug'),this.t('month_sep'),this.t('month_oct'),this.t('month_nov'),this.t('month_dec')];
             return m[this.month];
         }
     },

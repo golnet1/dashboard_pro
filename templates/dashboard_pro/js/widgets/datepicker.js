@@ -22,7 +22,7 @@ const DatePickerWidget = {
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header">
                 <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon"></i>
-                <div class="widget-v-card__title">{{ widget.title || 'Дата' }}</div>
+                <div class="widget-v-card__title">{{ widget.title || t('widget_datepicker') }}</div>
             </div>
             <div class="widget-v-card__body" style="display:flex;align-items:center;justify-content:center;flex:1;padding:8px 12px">
                 <div style="text-align:center">
@@ -41,11 +41,11 @@ const DatePickerWidget = {
         },
         day() { return String(this.now.getDate()).padStart(2, '0'); },
         monthYear() {
-            const months = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+            const months = [this.t('month_jan'),this.t('month_feb'),this.t('month_mar'),this.t('month_apr'),this.t('month_may'),this.t('month_jun'),this.t('month_jul'),this.t('month_aug'),this.t('month_sep'),this.t('month_oct'),this.t('month_nov'),this.t('month_dec')];
             return months[this.now.getMonth()] + ' ' + this.now.getFullYear();
         },
         weekday() {
-            const days = ['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
+            const days = [this.t('day_sunday'),this.t('day_monday'),this.t('day_tuesday'),this.t('day_wednesday'),this.t('day_thursday'),this.t('day_friday'),this.t('day_saturday')];
             return days[this.now.getDay()];
         }
     },
