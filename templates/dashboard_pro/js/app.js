@@ -1280,7 +1280,7 @@ const app = createApp({
                             notifications.value.unshift({
                                 ID: 'notif_' + Date.now(),
                                 MESSAGE: n.text,
-                                MODULE_NAME: 'Умный дом',
+                                MODULE_NAME: n.source || 'Алиса',
                                 TYPE: n.icon || 'info',
                                 ADDED: new Date().toISOString().replace('T', ' ').slice(0, 19)
                             });
