@@ -5,9 +5,20 @@ class dashboard_pro extends module
     function __construct()
     {
         $this->name = "dashboard_pro";
-        $this->title = "Dashboard Pro";
+        $this->loadLanguage();
+        $this->title = LANG_DASHBOARD_PRO_TITLE;
         $this->module_category = "<#LANG_SECTION_APPLICATIONS#>";
         $this->checkInstalled();
+    }
+
+    function loadLanguage()
+    {
+        $lang = defined('SETTINGS_SITE_LANGUAGE') ? SETTINGS_SITE_LANGUAGE : '';
+        $module_lang_dir = DIR_MODULES . $this->name . '/languages/';
+        if ($lang && file_exists($module_lang_dir . $this->name . '_' . $lang . '.php'))
+            include_once($module_lang_dir . $this->name . '_' . $lang . '.php');
+        if (file_exists($module_lang_dir . $this->name . '_default.php'))
+            include_once($module_lang_dir . $this->name . '_default.php');
     }
 
     function saveParams($data = 1)
@@ -59,7 +70,7 @@ class dashboard_pro extends module
     function usual(&$out)
     {
         $this->getConfig();
-        $out['APP_TITLE'] = 'Dashboard Pro';
+        $out['APP_TITLE'] = LANG_DASHBOARD_PRO_TITLE;
         $out['USER_NAME'] = gg('UserName');
         $out['SITE_TITLE'] = gg('site_title');
         $out['API_BASE'] = ROOTHTML . 'api.php/module/dashboard_pro/';
@@ -114,7 +125,7 @@ class dashboard_pro extends module
             $username = $params['login'] ?? $input['login'] ?? '';
             $password = $params['password'] ?? $input['password'] ?? '';
             if (!$username || !$password) {
-                return ['error' => 'Логин и пароль обязательны'];
+                return ['error' => LANG_DASHBOARD_PRO_LOGIN_REQUIRED];
             }
             $user = SQLSelectOne("SELECT * FROM users WHERE USERNAME LIKE '" . DBSafe($username) . "'");
             if ($user && ($user['PASSWORD'] == '' || hash('sha512', $password) == $user['PASSWORD'])) {
@@ -133,7 +144,7 @@ class dashboard_pro extends module
                     'is_admin' => (bool)$user['IS_ADMIN']
                 ];
             }
-            return ['error' => 'Неверный логин или пароль'];
+            return ['error' => LANG_DASHBOARD_PRO_LOGIN_INVALID];
         }
 
         if ($params['request'][0] == 'logout') {
@@ -189,7 +200,7 @@ class dashboard_pro extends module
                 $response = SQLSelectOne("SELECT * FROM shouts WHERE MEMBER_ID=0 AND MESSAGE!='" . DBSafe($text) . "' AND ID > $before_id ORDER BY ID ASC LIMIT 1");
                 if ($response['ID']) {
                     $notif = array(
-                        'MODULE_NAME' => 'Чат',
+                        'MODULE_NAME' => LANG_DASHBOARD_PRO_CHAT,
                         'MESSAGE' => $response['MESSAGE'],
                         'TYPE' => 'info',
                         'IS_READ' => 0,
@@ -235,8 +246,7 @@ class dashboard_pro extends module
             $shouts = SQLSelect("SELECT ID, MESSAGE, ADDED FROM shouts WHERE MEMBER_ID=0 AND ID > $last_shout ORDER BY ADDED DESC LIMIT 20");
             $computer_name = gg('site_title');
             if (!$computer_name) {
-                $lang = defined('SETTINGS') && isset($GLOBALS['SETTINGS']['SITE_LANGUAGE']) ? $GLOBALS['SETTINGS']['SITE_LANGUAGE'] : 'russian';
-                $computer_name = stripos($lang, 'russian') !== false ? 'Алиса' : 'Alice';
+                $computer_name = LANG_DASHBOARD_PRO_ALICE;
             }
             foreach ($shouts as $s) {
                 $items[] = array(
@@ -278,7 +288,7 @@ class dashboard_pro extends module
             if (!$targetUser) return ['error' => 'targetUser required'];
 
             $login = $this->getUserLogin();
-            if ($login === $targetUser) return ['error' => 'Нельзя копировать себе'];
+            if ($login === $targetUser) return ['error' => LANG_DASHBOARD_PRO_COPY_SELF];
 
             // Get current user's data
             $currentPanels = $this->loadShardedProperty($login, 'panels');
@@ -304,7 +314,7 @@ class dashboard_pro extends module
             if (($hasNonEmptyPanels || $hasNonEmptySettings) && !$confirmed) {
                 $targetUserData = SQLSelectOne("SELECT * FROM users WHERE USERNAME LIKE '" . DBSafe($targetUser) . "'");
                 $targetName = $targetUserData['NAME'] ?? $targetUser;
-                return ['warn' => true, 'message' => 'У пользователя «' . $targetName . '» уже есть данные. Перезаписать?'];
+                return ['warn' => true, 'message' => sprintf(LANG_DASHBOARD_PRO_OVERWRITE_CONFIRM, $targetName)];
             }
 
             // Copy data
@@ -463,7 +473,7 @@ class dashboard_pro extends module
 
         $class = SQLSelectOne("SELECT * FROM classes WHERE TITLE='DashBoard_Pro'");
         if (!$class) {
-            $rec = array('TITLE' => 'DashBoard_Pro', 'DESCRIPTION' => 'Dashboard Pro user settings');
+            $rec = array('TITLE' => 'DashBoard_Pro', 'DESCRIPTION' => LANG_DASHBOARD_PRO_USER_SETTINGS);
             SQLInsert('classes', $rec);
             $class = SQLSelectOne("SELECT * FROM classes WHERE TITLE='DashBoard_Pro'");
         }
@@ -592,8 +602,7 @@ class dashboard_pro extends module
     {
         $source = gg('site_title');
         if (!$source) {
-            $lang = defined('SETTINGS') && isset($GLOBALS['SETTINGS']['SITE_LANGUAGE']) ? $GLOBALS['SETTINGS']['SITE_LANGUAGE'] : 'russian';
-            $source = stripos($lang, 'russian') !== false ? 'Алиса' : 'Alice';
+            $source = LANG_DASHBOARD_PRO_ALICE;
         }
         return postToWebSocket("DASHBOARD_PRO", array(
             'COMMAND' => 'ViewNotify',
