@@ -1240,6 +1240,10 @@ const app = createApp({
             wsSocket.onopen = function() {
                 wsConnected.value = true;
                 if (wsReconnectTimer) { clearTimeout(wsReconnectTimer); wsReconnectTimer = null; }
+                try {
+                    wsSocket.send(JSON.stringify({ action: 'Subscribe', data: { TYPE: 'events', EVENTS: 'DASHBOARD_PRO' } }));
+                    wsSocket.send(JSON.stringify({ action: 'Subscribe', data: { TYPE: 'properties', PROPERTIES: '' } }));
+                } catch (e) { /* silent */ }
             };
             wsSocket.onmessage = function(msg) {
                 wsBytesReceived.value += typeof msg.data === 'string' ? msg.data.length : (msg.data ? (msg.data.size || msg.data.byteLength || 0) : 0);
@@ -1252,7 +1256,12 @@ const app = createApp({
                         console.log('Status WS server', data.data);
                         return;
                     }
-                    if (data.action === 'PostProperty' && data.data) {
+                    if (data.action === 'subscribed') {
+                        return;
+                    }
+                    const isPropUpdate = data.action === 'PostProperty' || data.action === 'properties';
+                    const propData = data.action === 'properties' ? (data.data?.PROPERTIES || []) : (data.data ? [data.data] : []);
+                    if (isPropUpdate && propData.length) {
                         if (authenticated.value) {
                             const curName = currentPanel.value?.name;
                             loadData().then(() => {
@@ -1263,8 +1272,10 @@ const app = createApp({
                             if (chatOpen.value) loadChat();
                         }
                     }
-                    if (data.action === 'PostEvent' && data.data && data.data.COMMAND === 'ViewNotify') {
-                        const n = data.data.NOTIFY || {};
+                    const isEvent = data.action === 'PostEvent' || data.action === 'events';
+                    const eventData = data.action === 'events' ? data.data?.EVENT_DATA : data.data;
+                    if (isEvent && eventData && eventData.COMMAND === 'ViewNotify') {
+                        const n = eventData.NOTIFY || {};
                         if (n.text && authenticated.value) {
                             notifications.value.unshift({
                                 ID: 'notif_' + Date.now(),
