@@ -328,6 +328,7 @@ class dashboard_pro extends module
             $value = $params['value'] ?? '';
             if (!$object || !$property) return ['error' => 'object and property required'];
             sg($object . '.' . $property, $value);
+            postToWebSocket("DASHBOARD_PRO", array('COMMAND' => 'UpdateData'), "PostEvent");
             return ['success' => true];
         }
 

@@ -1274,17 +1274,25 @@ const app = createApp({
                     }
                     const isEvent = data.action === 'PostEvent' || data.action === 'events';
                     const eventData = data.action === 'events' ? data.data?.EVENT_DATA : data.data;
-                    if (isEvent && eventData && eventData.COMMAND === 'ViewNotify') {
-                        const n = eventData.NOTIFY || {};
-                        if (n.text && authenticated.value) {
-                            notifications.value.unshift({
-                                ID: 'notif_' + Date.now(),
-                                MESSAGE: n.text,
-                                MODULE_NAME: n.source || 'Алиса',
-                                TYPE: n.icon || 'info',
-                                ADDED: new Date().toISOString().replace('T', ' ').slice(0, 19)
+                    if (isEvent && eventData) {
+                        if (eventData.COMMAND === 'ViewNotify') {
+                            const n = eventData.NOTIFY || {};
+                            if (n.text && authenticated.value) {
+                                notifications.value.unshift({
+                                    ID: 'notif_' + Date.now(),
+                                    MESSAGE: n.text,
+                                    MODULE_NAME: n.source || 'Алиса',
+                                    TYPE: n.icon || 'info',
+                                    ADDED: new Date().toISOString().replace('T', ' ').slice(0, 19)
+                                });
+                                unreadCount.value = notifications.value.length;
+                            }
+                        } else if (eventData.COMMAND === 'UpdateData' && authenticated.value) {
+                            const curName = currentPanel.value?.name;
+                            loadData().then(() => {
+                                const updated = panels.value.find(p => p.name === curName);
+                                if (updated) currentPanel.value = updated;
                             });
-                            unreadCount.value = notifications.value.length;
                         }
                     }
                 } catch (e) { /* silent */ }
@@ -1320,7 +1328,6 @@ const app = createApp({
             initAuth();
             checkNotifications();
             setInterval(checkNotifications, 10000);
-            setInterval(() => { if (authenticated.value) loadData(); }, settings.value.refreshPeriod || 5000);
             initWebSocket();
         });
 
