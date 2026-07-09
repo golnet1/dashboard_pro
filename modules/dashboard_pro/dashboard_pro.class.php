@@ -328,7 +328,6 @@ class dashboard_pro extends module
             $value = $params['value'] ?? '';
             if (!$object || !$property) return ['error' => 'object and property required'];
             sg($object . '.' . $property, $value);
-            postToWebSocket("DASHBOARD_PRO", array('COMMAND' => 'UpdateData'), "PostEvent");
             return ['success' => true];
         }
 
@@ -590,14 +589,9 @@ class dashboard_pro extends module
 
     function sendNotification($text, $icon = 'info', $color = '#2196F3')
     {
-        $source = gg('site_title');
-        if (!$source) {
-            $lang = defined('SETTINGS') && isset($GLOBALS['SETTINGS']['SITE_LANGUAGE']) ? $GLOBALS['SETTINGS']['SITE_LANGUAGE'] : 'russian';
-            $source = stripos($lang, 'russian') !== false ? 'Алиса' : 'Alice';
-        }
         return postToWebSocket("DASHBOARD_PRO", array(
             'COMMAND' => 'ViewNotify',
-            'NOTIFY' => array('text' => $text, 'icon' => $icon, 'color' => $color, 'source' => $source)
+            'NOTIFY' => array('text' => $text, 'icon' => $icon, 'color' => $color)
         ), "PostEvent");
     }
 

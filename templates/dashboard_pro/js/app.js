@@ -1240,12 +1240,6 @@ const app = createApp({
             wsSocket.onopen = function() {
                 wsConnected.value = true;
                 if (wsReconnectTimer) { clearTimeout(wsReconnectTimer); wsReconnectTimer = null; }
-                try {
-                    const s1 = JSON.stringify({ action: 'Subscribe', data: { TYPE: 'events', EVENTS: 'DASHBOARD_PRO' } });
-                    const s2 = JSON.stringify({ action: 'Subscribe', data: { TYPE: 'properties', PROPERTIES: '' } });
-                    wsSocket.send(s1); wsBytesSent.value += s1.length;
-                    wsSocket.send(s2); wsBytesSent.value += s2.length;
-                } catch (e) { /* silent */ }
             };
             wsSocket.onmessage = function(msg) {
                 wsBytesReceived.value += typeof msg.data === 'string' ? msg.data.length : (msg.data ? (msg.data.size || msg.data.byteLength || 0) : 0);
@@ -1258,12 +1252,7 @@ const app = createApp({
                         console.log('Status WS server', data.data);
                         return;
                     }
-                    if (data.action === 'subscribed') {
-                        return;
-                    }
-                    const isPropUpdate = data.action === 'PostProperty' || data.action === 'properties';
-                    const propData = data.action === 'properties' ? (data.data?.PROPERTIES || []) : (data.data ? [data.data] : []);
-                    if (isPropUpdate && propData.length) {
+                    if (data.action === 'PostProperty' && data.data) {
                         if (authenticated.value) {
                             const curName = currentPanel.value?.name;
                             loadData().then(() => {
@@ -1274,28 +1263,17 @@ const app = createApp({
                             if (chatOpen.value) loadChat();
                         }
                     }
-                    const isEvent = data.action === 'PostEvent' || data.action === 'events';
-                    const eventData = data.action === 'events' ? data.data?.EVENT_DATA : data.data;
-                    if (isEvent && eventData && eventData.VALUE) {
-                        const val = eventData.VALUE;
-                        if (val.COMMAND === 'ViewNotify') {
-                            const n = val.NOTIFY || {};
-                            if (n.text && authenticated.value) {
-                                notifications.value.unshift({
-                                    ID: 'notif_' + Date.now(),
-                                    MESSAGE: n.text,
-                                    MODULE_NAME: n.source || 'Алиса',
-                                    TYPE: n.icon || 'info',
-                                    ADDED: new Date().toISOString().replace('T', ' ').slice(0, 19)
-                                });
-                                unreadCount.value = notifications.value.length;
-                            }
-                        } else if (val.COMMAND === 'UpdateData' && authenticated.value) {
-                            const curName = currentPanel.value?.name;
-                            loadData().then(() => {
-                                const updated = panels.value.find(p => p.name === curName);
-                                if (updated) currentPanel.value = updated;
+                    if (data.action === 'PostEvent' && data.data && data.data.COMMAND === 'ViewNotify') {
+                        const n = data.data.NOTIFY || {};
+                        if (n.text && authenticated.value) {
+                            notifications.value.unshift({
+                                ID: 'notif_' + Date.now(),
+                                MESSAGE: n.text,
+                                MODULE_NAME: 'Умный дом',
+                                TYPE: n.icon || 'info',
+                                ADDED: new Date().toISOString().replace('T', ' ').slice(0, 19)
                             });
+                            unreadCount.value = notifications.value.length;
                         }
                     }
                 } catch (e) { /* silent */ }
