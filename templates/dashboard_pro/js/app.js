@@ -1276,9 +1276,10 @@ const app = createApp({
                     }
                     const isEvent = data.action === 'PostEvent' || data.action === 'events';
                     const eventData = data.action === 'events' ? data.data?.EVENT_DATA : data.data;
-                    if (isEvent && eventData) {
-                        if (eventData.COMMAND === 'ViewNotify') {
-                            const n = eventData.NOTIFY || {};
+                    if (isEvent && eventData && eventData.VALUE) {
+                        const val = eventData.VALUE;
+                        if (val.COMMAND === 'ViewNotify') {
+                            const n = val.NOTIFY || {};
                             if (n.text && authenticated.value) {
                                 notifications.value.unshift({
                                     ID: 'notif_' + Date.now(),
@@ -1289,7 +1290,7 @@ const app = createApp({
                                 });
                                 unreadCount.value = notifications.value.length;
                             }
-                        } else if (eventData.COMMAND === 'UpdateData' && authenticated.value) {
+                        } else if (val.COMMAND === 'UpdateData' && authenticated.value) {
                             const curName = currentPanel.value?.name;
                             loadData().then(() => {
                                 const updated = panels.value.find(p => p.name === curName);
