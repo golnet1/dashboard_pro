@@ -209,12 +209,43 @@ class dashboard_pro extends module
                 $input = json_decode(file_get_contents('php://input'), true);
                 $ids = $input['ids'] ?? array();
                 if (!empty($ids)) {
-                    $ids_str = implode(',', array_map('intval', $ids));
-                    SQLExec("UPDATE module_notifications SET IS_READ=1 WHERE ID IN ($ids_str)");
+                    $int_ids = array();
+                    $max_shout = 0;
+                    foreach ($ids as $id) {
+                        if (is_numeric($id) && strpos((string)$id, 'shout_') === false) {
+                            $int_ids[] = (int)$id;
+                        } elseif (strpos((string)$id, 'shout_') === 0) {
+                            $sid = (int)substr($id, 6);
+                            if ($sid > $max_shout) $max_shout = $sid;
+                        }
+                    }
+                    if (!empty($int_ids)) {
+                        $ids_str = implode(',', $int_ids);
+                        SQLExec("UPDATE module_notifications SET IS_READ=1 WHERE ID IN ($ids_str)");
+                    }
+                    if ($max_shout > 0 && $session) {
+                        $session->data['DASHBOARD_PRO_LAST_SHOUT'] = $max_shout;
+                        $session->save();
+                    }
                 }
                 return ['success' => true];
             }
             $items = SQLSelect("SELECT * FROM module_notifications WHERE IS_READ=0 ORDER BY ADDED DESC LIMIT 50");
+            $last_shout = ($session && !empty($session->data['DASHBOARD_PRO_LAST_SHOUT'])) ? (int)$session->data['DASHBOARD_PRO_LAST_SHOUT'] : 0;
+            $shouts = SQLSelect("SELECT ID, MESSAGE, ADDED FROM shouts WHERE MEMBER_ID=0 AND ID > $last_shout ORDER BY ADDED DESC LIMIT 20");
+            foreach ($shouts as $s) {
+                $items[] = array(
+                    'ID' => 'shout_' . $s['ID'],
+                    'MODULE_NAME' => 'Умный дом',
+                    'MESSAGE' => $s['MESSAGE'],
+                    'TYPE' => 'info',
+                    'IS_READ' => 0,
+                    'ADDED' => $s['ADDED']
+                );
+            }
+            usort($items, function($a, $b) {
+                return strcmp($b['ADDED'] ?? '', $a['ADDED'] ?? '');
+            });
             $count = count($items);
             return ['count' => $count, 'items' => $items];
         }
