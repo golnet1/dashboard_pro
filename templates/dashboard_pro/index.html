@@ -94,7 +94,7 @@
                                         <hr class="notif-dropdown__divider">
                                     </template>
                                 </div>
-                                <div class="notif-dropdown__item notif-dropdown__show-all" @click="markNotificationsRead" v-if="notifications.length">
+                                <div class="notif-dropdown__item notif-dropdown__show-all" @click="showNotifications = false; toggleChat()" v-if="notifications.length">
                                     Показать все
                                 </div>
                             </div>
