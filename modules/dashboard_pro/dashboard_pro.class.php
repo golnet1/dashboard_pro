@@ -233,10 +233,11 @@ class dashboard_pro extends module
             $items = SQLSelect("SELECT * FROM module_notifications WHERE IS_READ=0 ORDER BY ADDED DESC LIMIT 50");
             $last_shout = ($session && !empty($session->data['DASHBOARD_PRO_LAST_SHOUT'])) ? (int)$session->data['DASHBOARD_PRO_LAST_SHOUT'] : 0;
             $shouts = SQLSelect("SELECT ID, MESSAGE, ADDED FROM shouts WHERE MEMBER_ID=0 AND ID > $last_shout ORDER BY ADDED DESC LIMIT 20");
+            $computer_name = gg('site_title');
             foreach ($shouts as $s) {
                 $items[] = array(
                     'ID' => 'shout_' . $s['ID'],
-                    'MODULE_NAME' => 'Умный дом',
+                    'MODULE_NAME' => $computer_name,
                     'MESSAGE' => $s['MESSAGE'],
                     'TYPE' => 'info',
                     'IS_READ' => 0,
