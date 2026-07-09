@@ -1230,16 +1230,38 @@ const app = createApp({
         let wsSocket = null;
         let wsReconnectTimer = null;
 
+        let wsSubscribedProps = '';
+
+        function wsSubscribeProps(propStr) {
+            if (!wsSocket || !wsConnected.value || !propStr) return;
+            const newProps = propStr.split(',').map(s => s.trim()).filter(s => s);
+            const existing = wsSubscribedProps ? wsSubscribedProps.split(',') : [];
+            const add = newProps.filter(p => !existing.includes(p));
+            if (!add.length) return;
+            wsSubscribedProps = [...existing, ...add].join(',');
+            const msg = JSON.stringify({ action: 'Subscribe', data: { TYPE: 'properties', PROPERTIES: add.join(',') } });
+            wsBytesSent.value += msg.length;
+            wsSocket.send(msg);
+        }
+
         function initWebSocket() {
             const loc = window.location;
             const protocol = loc.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = protocol + '//' + loc.host + '/majordomo-ws';
+            const wsUrl = protocol + '//' + loc.hostname + ':8001/majordomo';
+            console.log('WS connecting to', wsUrl);
             try {
                 wsSocket = new WebSocket(wsUrl);
-            } catch (e) { return; }
+            } catch (e) { console.error('WS creation failed', e); return; }
             wsSocket.onopen = function() {
+                console.log('WS connected');
                 wsConnected.value = true;
                 if (wsReconnectTimer) { clearTimeout(wsReconnectTimer); wsReconnectTimer = null; }
+                const subEvents = JSON.stringify({ action: 'Subscribe', data: { TYPE: 'events', EVENTS: 'DASHBOARD_PRO' } });
+                wsBytesSent.value += subEvents.length;
+                wsSocket.send(subEvents);
+            };
+            wsSocket.onerror = function(e) {
+                console.error('WS error', e);
             };
             wsSocket.onmessage = function(msg) {
                 wsBytesReceived.value += typeof msg.data === 'string' ? msg.data.length : (msg.data ? (msg.data.size || msg.data.byteLength || 0) : 0);
@@ -1250,6 +1272,9 @@ const app = createApp({
                     if (data.action === 'status') {
                         wsStatus.value = data.data;
                         console.log('Status WS server', data.data);
+                        return;
+                    }
+                    if (data.action === 'subscribed') {
                         return;
                     }
                     if (data.action === 'PostProperty' && data.data) {
@@ -1263,17 +1288,25 @@ const app = createApp({
                             if (chatOpen.value) loadChat();
                         }
                     }
-                    if (data.action === 'PostEvent' && data.data && data.data.COMMAND === 'ViewNotify') {
-                        const n = data.data.NOTIFY || {};
-                        if (n.text && authenticated.value) {
-                            notifications.value.unshift({
-                                ID: 'notif_' + Date.now(),
-                                MESSAGE: n.text,
-                                MODULE_NAME: 'Умный дом',
-                                TYPE: n.icon || 'info',
-                                ADDED: new Date().toISOString().replace('T', ' ').slice(0, 19)
+                    if (data.action === 'PostEvent' && data.data) {
+                        if (data.data.COMMAND === 'ViewNotify') {
+                            const n = data.data.NOTIFY || {};
+                            if (n.text && authenticated.value) {
+                                notifications.value.unshift({
+                                    ID: 'notif_' + Date.now(),
+                                    MESSAGE: n.text,
+                                    MODULE_NAME: n.source || 'Умный дом',
+                                    TYPE: n.icon || 'info',
+                                    ADDED: new Date().toISOString().replace('T', ' ').slice(0, 19)
+                                });
+                                unreadCount.value = notifications.value.length;
+                            }
+                        } else if (data.data.COMMAND === 'UpdateData' && authenticated.value) {
+                            const curName = currentPanel.value?.name;
+                            loadData().then(() => {
+                                const updated = panels.value.find(p => p.name === curName);
+                                if (updated) currentPanel.value = updated;
                             });
-                            unreadCount.value = notifications.value.length;
                         }
                     }
                 } catch (e) { /* silent */ }
