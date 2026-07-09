@@ -1241,8 +1241,10 @@ const app = createApp({
                 wsConnected.value = true;
                 if (wsReconnectTimer) { clearTimeout(wsReconnectTimer); wsReconnectTimer = null; }
                 try {
-                    wsSocket.send(JSON.stringify({ action: 'Subscribe', data: { TYPE: 'events', EVENTS: 'DASHBOARD_PRO' } }));
-                    wsSocket.send(JSON.stringify({ action: 'Subscribe', data: { TYPE: 'properties', PROPERTIES: '' } }));
+                    const s1 = JSON.stringify({ action: 'Subscribe', data: { TYPE: 'events', EVENTS: 'DASHBOARD_PRO' } });
+                    const s2 = JSON.stringify({ action: 'Subscribe', data: { TYPE: 'properties', PROPERTIES: '' } });
+                    wsSocket.send(s1); wsBytesSent.value += s1.length;
+                    wsSocket.send(s2); wsBytesSent.value += s2.length;
                 } catch (e) { /* silent */ }
             };
             wsSocket.onmessage = function(msg) {
