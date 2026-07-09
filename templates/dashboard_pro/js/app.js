@@ -1161,11 +1161,16 @@ const app = createApp({
         async function checkNotifications() {
             try {
                 const res = await dpAPI('notifications');
-                if (res && typeof res.count === 'number') {
-                    unreadCount.value = res.count;
-                    notifications.value = res.items || [];
+                if (res) {
+                    if (Array.isArray(res)) {
+                        notifications.value = res;
+                        unreadCount.value = res.length;
+                    } else {
+                        unreadCount.value = res.count ?? (res.items?.length ?? 0);
+                        notifications.value = res.items || [];
+                    }
                 }
-            } catch (e) { /* silent */ }
+            } catch (e) { console.warn('checkNotifications error', e); }
         }
 
         async function loadChat() {
