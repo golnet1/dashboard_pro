@@ -1048,7 +1048,7 @@
                                                                 <div class="v-input__control">
                                                                     <div class="v-input__slot"><label class="v-label v-label--active">{{ t(field.label) }}</label>
                                                                          <select v-model="editWidgetForm[field.key]">
-                                                                             <option v-if="field.key !== 'icon_type'" value="" style="background:#1e1e1e;color:#fff">{{ field.placeholder || '— выберите —' }}</option>
+                                                                             <option v-if="field.key !== 'icon_type'" value="" style="background:#1e1e1e;color:#fff">{{ field.placeholder || t('select_default') }}</option>
                                                                              <option v-for="opt in field.options" :key="opt.value" :value="opt.value" style="background:#1e1e1e;color:#fff">{{ t(opt.label) }}</option>
                                                                         </select>
                                                                     </div>
@@ -1060,7 +1060,7 @@
                                                                 <div class="v-input__control">
                                                                     <div class="v-input__slot"><label class="v-label v-label--active">{{ t(field.label) }}</label>
                                                                         <select v-model="editWidgetForm[field.key]">
-                                                                            <option value="" style="background:#1e1e1e;color:#fff">— выберите —</option>
+                                                                            <option value="" style="background:#1e1e1e;color:#fff">{{ t('select_default') }}</option>
                                                                             <option v-for="o in objects" :key="o.ID" :value="o.TITLE" style="background:#1e1e1e;color:#fff">{{ o.TITLE }}</option>
                                                                         </select>
                                                                     </div>
@@ -1072,7 +1072,7 @@
                                                                 <div class="v-input__control">
                                                                     <div class="v-input__slot"><label class="v-label v-label--active">{{ t(field.label) }}</label>
                                                                          <select v-model="editWidgetForm[field.key]">
-                                                                             <option value="" style="background:#1e1e1e;color:#fff">{{ field.placeholder || '— выберите —' }}</option>
+                                                                             <option value="" style="background:#1e1e1e;color:#fff">{{ field.placeholder || t('select_default') }}</option>
                                                                              <option v-for="prop in getFieldOptions(field)" :key="prop.ID" :value="prop.TITLE" style="background:#1e1e1e;color:#fff">{{ prop.TITLE }}</option>
                                                                         </select>
                                                                     </div>
@@ -1084,7 +1084,7 @@
                                                                 <div class="v-input__control">
                                                                     <div class="v-input__slot"><label class="v-label v-label--active">{{ t(field.label) }}</label>
                                                                         <select :value="getMethodName(editWidgetForm[field.parent])" @change="setMethodField(field.parent, $event.target.value, false)">
-                                                                            <option value="" style="background:#1e1e1e;color:#fff">{{ field.placeholder || '— выберите —' }}</option>
+                                                                            <option value="" style="background:#1e1e1e;color:#fff">{{ field.placeholder || t('select_default') }}</option>
                                                                             <option v-for="m in (methodCache[getMethodObj(editWidgetForm[field.parent])] || [])" :key="m.ID" :value="m.TITLE" style="background:#1e1e1e;color:#fff">{{ m.TITLE }}</option>
                                                                         </select>
                                                                     </div>
@@ -1096,7 +1096,7 @@
                                                                 <div class="v-input__control">
                                                                     <div class="v-input__slot"><label class="v-label v-label--active">{{ t(field.label) }}</label>
                                                                         <select :value="getMethodObj(editWidgetForm[field.parent])" @change="setMethodField(field.parent, $event.target.value, true)">
-                                                                            <option value="" style="background:#1e1e1e;color:#fff">— выберите —</option>
+                                                                            <option value="" style="background:#1e1e1e;color:#fff">{{ t('select_default') }}</option>
                                                                             <option v-for="o in objects" :key="o.ID" :value="o.TITLE" style="background:#1e1e1e;color:#fff">{{ o.TITLE }}</option>
                                                                         </select>
                                                                     </div>
@@ -1364,7 +1364,7 @@
                                 <div class="v-input__control">
                                     <div class="v-input__slot">
                                         <select v-model="exportSelectedPanel">
-                                            <option value="" style="background:#1e1e1e;color:#fff">— выберите —</option>
+                                            <option value="" style="background:#1e1e1e;color:#fff">{{ t('select_default') }}</option>
                                             <option v-for="p in panels" :key="p.name" :value="p.name" style="background:#1e1e1e;color:#fff">{{ p.title }}</option>
                                         </select>
                                     </div>
@@ -1377,7 +1377,7 @@
                                 <div class="v-input__control">
                                     <div class="v-input__slot">
                                         <select v-model="exportSelectedUser">
-                                            <option value="" style="background:#1e1e1e;color:#fff">— выберите —</option>
+                                            <option value="" style="background:#1e1e1e;color:#fff">{{ t('select_default') }}</option>
                                             <option v-for="u in exportUsers" :key="u.USERNAME" :value="u.USERNAME" style="background:#1e1e1e;color:#fff">{{ u.USERNAME }}</option>
                                         </select>
                                     </div>
