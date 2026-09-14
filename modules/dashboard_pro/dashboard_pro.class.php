@@ -81,7 +81,6 @@ class dashboard_pro extends module
         $out['WS_HOST'] = $ws_host;
         $out['DASHBOARD_SETTINGS'] = json_encode($this->loadDashboardSettings());
         $out['PANELS'] = json_encode($this->loadPanels());
-        $out['WIDGETS'] = json_encode($this->loadWidgets());
     }
 
     function api($params)
@@ -540,30 +539,6 @@ class dashboard_pro extends module
         }
     }
 
-    function loadWidgets()
-    {
-        $login = $this->getUserLogin();
-        if ($login) {
-            $this->ensureClassAndObject($login);
-            $data = $this->loadShardedProperty($login, 'widgets');
-            if ($data !== null) {
-                $decoded = json_decode($data, true);
-                if (is_array($decoded) && !empty($decoded)) return $decoded;
-            }
-            return new stdClass();
-        }
-        return new stdClass();
-    }
-
-    function saveWidgets($widgets)
-    {
-        $login = $this->getUserLogin();
-        if ($login) {
-            $this->ensureClassAndObject($login);
-            $this->saveShardedProperty($login, 'widgets', json_encode($widgets));
-        }
-    }
-
     function loadDashboardSettings()
     {
         $login = $this->getUserLogin();
@@ -595,11 +570,6 @@ class dashboard_pro extends module
         }
     }
 
-    function defaultPanels()
-    {
-        return array();
-    }
-
     function defaultSettings()
     {
         return array(
@@ -628,24 +598,6 @@ class dashboard_pro extends module
             'WIDGET_ID' => $widget_id,
             'DATA' => $data
         ), "PostEvent");
-    }
-
-    function getSystemUptime()
-    {
-        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-            $output = array();
-            exec('systeminfo | find "System Boot Time"', $output);
-            return $output[0] ?? 'N/A';
-        }
-        $uptime = @file_get_contents('/proc/uptime');
-        if ($uptime) {
-            $seconds = (int)explode(' ', $uptime)[0];
-            $days = floor($seconds / 86400);
-            $hours = floor(($seconds % 86400) / 3600);
-            $minutes = floor(($seconds % 3600) / 60);
-            return "{$days}d {$hours}h {$minutes}m";
-        }
-        return 'N/A';
     }
 
     function install($data = '')
