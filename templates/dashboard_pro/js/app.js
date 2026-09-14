@@ -1406,6 +1406,7 @@ const app = createApp({
 
         onMounted(() => {
             document.addEventListener('click', handleClickOutside);
+            loadTranslations();
             initAuth();
             checkNotifications();
             setInterval(checkNotifications, 10000);
@@ -1438,6 +1439,7 @@ const app = createApp({
 });
 
 app.config.globalProperties.$t = window.__t;
+app.config.globalProperties.t = window.__t;
 app.component('widget-relay', RelayWidget);
 app.component('widget-value', ValueWidget);
 app.component('widget-button', ButtonWidget);

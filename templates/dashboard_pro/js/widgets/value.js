@@ -10,7 +10,7 @@ const ValueWidget = {
             { key: 'icon_url', label: 'field_icon_url', type: 'text', row: 'icon_row', showIf: { icon_type: 'url' } },
             { key: 'object', label: 'field_object', type: 'object', row: 'obj_prop' },
             { key: 'property', label: 'field_property', type: 'property', row: 'obj_prop' },
-            { key: 'aliasLabels', label: 'field_alias_labels', type: 'text', placeholder: '{"1":"'+t('default_on')+'","0":"'+t('default_off')+'"}' },
+            { key: 'aliasLabels', label: 'field_alias_labels', type: 'text', placeholder: '{"1":"on","0":"off"}' },
         ],
         advanced: [
             { key: 'bg_mode', label: 'field_bg_mode', type: 'select', row: 'bg_row', options: [{value:'default',label:'opt_default'},{value:'image',label:'opt_image'},{value:'color',label:'opt_custom_color'},{value:'property',label:'opt_color_property'}] },
