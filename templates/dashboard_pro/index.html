@@ -1015,7 +1015,7 @@
                                                 <template v-for="field in row.fields" :key="field.key || field.type">
                                                     <div v-if="fieldVisible(field)" :style="row.row ? 'flex:1;min-width:0' : ''">
                                                         <template v-if="field.type === 'info'">
-                                                            <p style="color:rgba(255,255,255,.5);font-size:.8rem;padding:8px 0">{{ field.text }}</p>
+                                                            <p style="color:rgba(255,255,255,.5);font-size:.8rem;padding:8px 0">{{ t(field.text) }}</p>
                                                         </template>
                                                         <template v-else-if="field.type === 'number'">
                                                             <div class="v-input v-text-field">
