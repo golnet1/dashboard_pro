@@ -89,9 +89,7 @@ const app = createApp({
         const showNotifications = ref(false);
         const notifications = ref([]);
         const unreadCount = ref(0);
-        const showSettings = ref(false);
         const showSettingsPanel = ref(false);
-        const settingsTab = ref('main');
         const showAddPanel = ref(false);
         const showAbout = ref(false);
         const showExportDialog = ref(false);
@@ -100,7 +98,6 @@ const app = createApp({
         const exportUsers = ref([]);
         const exportSelectedUser = ref('');
         const editPanelData = ref(null);
-        const newPanelTitle = ref('');
         const panelTab = ref('main');
         const panelError = ref('');
         const showIconPicker = ref(false);
@@ -135,10 +132,7 @@ const app = createApp({
                 : widgetDefs
         );
 
-        const showMethodsTab = computed(() => {
-            return false;
-        });
-
+        
         function getWidgetFields(type, tab) {
             if (typeof W === 'undefined' || !W.fields) return [];
             const comp = getWidgetComponent(type);
@@ -191,11 +185,7 @@ const app = createApp({
             return tabs;
         }
 
-        const currentFields = computed(() => {
-            if (!editWidgetForm.value || !editWidgetForm.value.type) return [];
-            return getWidgetFields(editWidgetForm.value.type, widgetTab.value);
-        });
-
+        
         function fieldVisible(field) {
             if (!field.showIf || !editWidgetForm.value) return true;
             const [depKey, depVal] = Object.entries(field.showIf)[0];
@@ -216,13 +206,7 @@ const app = createApp({
             return widgetProperties.value;
         }
 
-        function hasObjectProp(type) {
-            return !['clock','iframe','panellink'].includes(type);
-        }
-        function hasPropertyField(type) {
-            return !['clock','iframe','panellink','button','image'].includes(type);
-        }
-
+        
         function getMethodObj(val) { return val ? val.split('/')[0] : ''; }
         function getMethodName(val) { return val ? val.split('/')[1] || '' : ''; }
         function setMethodField(key, partVal, isObj) {
@@ -804,7 +788,6 @@ const app = createApp({
             if (panelForm.value.infoObject) {
                 await loadInfoProperties();
             }
-            newPanelTitle.value = '';
             editPanelData.value = p || null;
             panelTab.value = 'main';
             panelError.value = '';
@@ -850,17 +833,6 @@ const app = createApp({
             bgProperties.value = res.items || [];
         }
 
-        function fetchWidgetBgColors() {
-            if (!currentPanel.value?.widgets) return;
-            for (const w of currentPanel.value.widgets) {
-                if (w.bg_mode === 'property' && w.bg_object && w.bg_property) {
-                    dpAPI('getProperty?object=' + encodeURIComponent(w.bg_object) + '&property=' + encodeURIComponent(w.bg_property))
-                        .then(d => { if (!d.error && d.value !== undefined && d.value !== null) bgColorMap[w.id] = d.value; })
-                        .catch(() => {});
-                }
-            }
-        }
-
         async function loadObjectMethods(obj) {
             if (!obj) { methodCache[obj] = []; return []; }
             if (methodCache[obj]) return methodCache[obj];
@@ -871,7 +843,6 @@ const app = createApp({
         }
 
         function toggleField(field) {
-            console.log('toggleField', field, panelForm.value[field], '->', !panelForm.value[field]);
             panelForm.value[field] = !panelForm.value[field];
         }
 
@@ -1111,8 +1082,6 @@ const app = createApp({
             savePanels();
         }
 
-        function saveSettings() { savePanels(); showSettingsPanel.value = false; }
-
         function cleanupOrphanWidgets() {
             if (!confirm(t('confirm_delete_orphans'))) return;
             const allWidgetIds = new Set();
@@ -1297,20 +1266,6 @@ const app = createApp({
         let wsSocket = null;
         let wsReconnectTimer = null;
 
-        let wsSubscribedProps = '';
-
-        function wsSubscribeProps(propStr) {
-            if (!wsSocket || !wsConnected.value || !propStr) return;
-            const newProps = propStr.split(',').map(s => s.trim()).filter(s => s);
-            const existing = wsSubscribedProps ? wsSubscribedProps.split(',') : [];
-            const add = newProps.filter(p => !existing.includes(p));
-            if (!add.length) return;
-            wsSubscribedProps = [...existing, ...add].join(',');
-            const msg = JSON.stringify({ action: 'Subscribe', data: { TYPE: 'properties', PROPERTIES: add.join(',') } });
-            wsBytesSent.value += msg.length;
-            wsSocket.send(msg);
-        }
-
         function initWebSocket() {
             const loc = window.location;
             const protocol = loc.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -1392,14 +1347,6 @@ const app = createApp({
             }
         }
 
-        function toggleWs() {
-            if (wsConnected.value && wsSocket) {
-                wsSocket.close();
-                wsConnected.value = false;
-                if (wsReconnectTimer) { clearTimeout(wsReconnectTimer); wsReconnectTimer = null; }
-            }
-        }
-
         window.__closeSettings = () => { showSettingsPanel.value = false; };
 
         watch(settings, (s) => { applySettings(); }, { deep: true });
@@ -1416,8 +1363,8 @@ const app = createApp({
         return {
             authenticated, authChecking, login, password, loginError, loginLoading, doLogin, doLogout, testAPI: Auth.testAPI,
             panels, currentPanel, selectPanel, selectHomePanel, loading, editMode,
-            showAddWidget, widgetSearch, filteredDefs, plusTooltip, addPlusButton, showMethodsTab,
-            widgetTypeComponent, addWidget, getWidgetFields, getWidgetRows, getWidgetTabs, getFieldOptions, fieldVisible, hasObjectProp, hasPropertyField,
+            showAddWidget, widgetSearch, filteredDefs, plusTooltip, addPlusButton,
+            widgetTypeComponent, addWidget, getWidgetFields, getWidgetRows, getWidgetTabs, getFieldOptions, fieldVisible,
             getMethodObj, getMethodName, setMethodField,
             editWidgetForm, widgetTab, widgetTabPos, editWidget, saveEditWidget, removeWidget,
             columnIdx, columnList, setColumns, addColumn, removeColumn, moveColumnUp, moveColumnDown, autoDetectColumns, columnFields,
@@ -1425,12 +1372,12 @@ const app = createApp({
             resizingWidget, startResize, onResize, stopResize,
             widgetMenuTarget, widgetPanelSubmenu, widgetConfirm, copyWidget, exportWidget, changeWidgetPanel, selectMoveTarget, confirmMoveWidget,
             showChangeObject, changeObjectGroups, openChangeObject, saveChangeObject,
-            showSettings, showSettingsPanel, settingsTab, settings, saveSettings, savePanels, toggleTheme, cleanupOrphanWidgets, resetAll,
+            showSettingsPanel, settings, savePanels, toggleTheme, cleanupOrphanWidgets, resetAll,
             showExportDialog, exportMode, exportSelectedPanel, exportUsers, exportSelectedUser, loadExportUsers, doExport, doImport,
-            showAddPanel, editPanelData, panelForm, panelTab, panelTabPos, panelError, newPanelTitle, createPanel, editPanel, openPanelForm, deletePanel, deleteCurrentPanel, movePanel, showAbout, toggleField,
+            showAddPanel, editPanelData, panelForm, panelTab, panelTabPos, panelError, createPanel, editPanel, openPanelForm, deletePanel, deleteCurrentPanel, movePanel, showAbout, toggleField,
             showIconPicker, iconTarget, iconSearch, iconCategory, iconCategorySearch, iconPage, iconCategories, filteredIconCategories, filteredIcons, totalPages, paginatedIcons, openIconPicker, selectIcon, iconPicked,
-            objects, iconProperties, infoProperties, widgetProperties, bgProperties, extraProperties, methodCache, loadObjects, loadIconProperties, loadInfoProperties, loadWidgetProperties, loadBgProperties, widgetBgStyle, fetchWidgetBgColors,
-            isAdmin, toggleEditMode, toggleWs, wsConnected, wsTooltip, wsStatus, wsPulse, wsBytesSent, wsBytesReceived, user, userMenuOpen, sidebarMini, toggleSidebar, expandedGroups, childPanels, toggleGroup, forceRefresh, formatBytes,
+            objects, iconProperties, infoProperties, widgetProperties, bgProperties, extraProperties, methodCache, loadObjects, loadIconProperties, loadInfoProperties, loadWidgetProperties, loadBgProperties, widgetBgStyle,
+            isAdmin, toggleEditMode, wsConnected, wsTooltip, wsStatus, wsPulse, wsBytesSent, wsBytesReceived, user, userMenuOpen, sidebarMini, toggleSidebar, expandedGroups, childPanels, toggleGroup, forceRefresh, formatBytes,
             showNotifications, notifications, unreadCount, checkNotifications, markNotificationsRead,
             chatOpen, chatMessages, chatText, chatLoading, loadChat, sendChat, toggleChat, formatTime,
             t
@@ -1438,7 +1385,6 @@ const app = createApp({
     }
 });
 
-app.config.globalProperties.$t = window.__t;
 app.config.globalProperties.t = window.__t;
 app.component('widget-relay', RelayWidget);
 app.component('widget-value', ValueWidget);

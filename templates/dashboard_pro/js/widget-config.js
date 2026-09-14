@@ -30,9 +30,4 @@ W.fields = {
   },
 
   defaults: {},
-
-  getFields(type, tab) {
-    if (tab === 'position') return this._common.position;
-    return [];
-  },
 };
