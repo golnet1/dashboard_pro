@@ -113,10 +113,6 @@ $frontend = array(
     // Panel editor
     'default_panel' => 'Default panel',
     'home' => '— home —',
-    'data_update' => 'Data update',
-    'period' => 'Period',
-    'force_data_update' => 'Force data update',
-    'force_data_update_desc' => 'Request data regardless of WebSocket state',
     'system' => 'System',
     'debug' => 'Debug',
     'debug_desc' => 'Print debug info to console',

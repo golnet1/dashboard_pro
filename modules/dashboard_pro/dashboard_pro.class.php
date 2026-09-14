@@ -574,8 +574,7 @@ class dashboard_pro extends module
     {
         return array(
             'theme' => 'light',
-            'language' => 'ru',
-            'refresh_interval' => 5000
+            'language' => 'ru'
         );
     }
 

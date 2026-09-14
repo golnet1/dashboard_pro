@@ -205,36 +205,6 @@
                                 </div>
                                 <div class="v-card v-sheet theme--dark" style="background:rgba(48,48,48,var(--card-alpha,1));border-color:rgba(48,48,48,.56)">
                                     <div class="v-list v-sheet theme--dark v-list--subheader transparent">
-                                        <div class="v-subheader theme--dark">{{ t('data_update') }}</div>
-                                        <div class="v-list-item theme--dark">
-                                            <div class="v-list-item__content">
-                                                <div class="v-input v-input--is-label-active v-input--is-dirty theme--dark v-text-field">
-                                                    <div class="v-input__control">
-                                                        <div class="v-input__slot">
-                                                            <div class="v-text-field__slot">
-                                                                <label class="v-label v-label--active theme--dark" style="left:0;right:auto;position:absolute">{{ t('period') }}</label>
-                                                                 <input type="number" v-model.number="settings.refreshPeriod" @change="savePanels()" style="background:transparent;border:none;color:#fff;outline:none;width:100%;padding:18px 0 4px;font-size:16px">
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="v-list-item theme--dark">
-                                            <div class="v-list-item__action">
-                                                <div class="v-input theme--dark v-input--selection-controls v-input--switch" :class="{ 'input--is-checked': settings.forceDataUpdate }">
-                                                    <div class="v-input__control"><div class="v-input__slot v-input__slot--switch"><div class="v-input--switch__track" @click.stop="settings.forceDataUpdate = !settings.forceDataUpdate; savePanels()"><div class="v-input--switch__thumb"></div></div></div></div>
-                                                </div>
-                                            </div>
-                                            <div class="v-list-item__content py-0">
-                                                <div class="v-list-item__title">{{ t('force_data_update') }}</div>
-                                                <div class="v-list-item__subtitle">{{ t('force_data_update_desc') }}</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="v-card v-sheet theme--dark" style="background:rgba(48,48,48,var(--card-alpha,1));border-color:rgba(48,48,48,.56)">
-                                    <div class="v-list v-sheet theme--dark v-list--subheader transparent">
                                         <div class="v-subheader theme--dark">{{ t('system') }}</div>
                                         <div class="v-list-item theme--dark">
                                             <div class="v-list-item__action">
@@ -591,7 +561,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <component :is="widgetTypeComponent(w.type)" :widget="w"></component>
+                                <component :is="widgetTypeComponent(w.type)" :widget="w" :key="w.id + '-' + (wsRev[w.id] || 0)"></component>
                                 <div v-if="editMode" class="widget-resize-handle" @mousedown.stop="startResize($event, w)"></div>
                             </div>
                         </div>
@@ -1411,10 +1381,10 @@
         </div>
     </div>
 
-    <script src="js/api.js?v=9"></script>
+    <script src="js/api.js?v=10"></script>
     <script src="js/auth.js?v=9"></script>
     <script src="js/sidebar.js?v=10"></script>
 <script src="js/widget-config.js?v=10"></script>
-<script src="js/app.js?v=22"></script>
+<script src="js/app.js?v=23"></script>
 </body>
 </html>

@@ -6,6 +6,40 @@ function formatBytes(bytes) {
     return (bytes / 1048576).toFixed(1) + ' MB';
 }
 
+window.__dpWsCache = {};
+window.__dpWsLive = false;
+
+const WS_OBJECT_FIELDS = [
+    ['object_value', 'property'],
+    ['object', 'property'],
+    ['object_info', 'property_info'],
+    ['object_alive', 'property_alive'],
+    ['object_status', 'property_status'],
+    ['bg_object', 'bg_property'],
+    ['icon_object', 'icon_property']
+];
+
+function wsWidgetPropKeys(w) {
+    const keys = new Set();
+    if (!w) return keys;
+    for (const [o, p] of WS_OBJECT_FIELDS) {
+        const obj = w[o];
+        const prop = w[p];
+        if (!obj) continue;
+        keys.add(String(obj).toLowerCase());
+        if (prop) keys.add((obj + '.' + prop).toLowerCase());
+    }
+    if (Array.isArray(w.sensors)) {
+        w.sensors.forEach(s => {
+            if (s && s.object) {
+                keys.add(String(s.object).toLowerCase());
+                if (s.property) keys.add((s.object + '.' + s.property).toLowerCase());
+            }
+        });
+    }
+    return keys;
+}
+
 const widgetDefs = [
     { type: 'relay', icon: 'fas fa-power-off', title: 'Relay', desc: 'On/off control' },
     { type: 'dimmer', icon: 'fas fa-lightbulb', title: 'Dimmer', desc: 'Brightness control' },
@@ -123,8 +157,9 @@ const app = createApp({
         const wsBytesSent = ref(0);
         const wsPulse = ref(false);
         const wsStatus = ref(null);
+        const wsRev = reactive({});
         const bgColorMap = reactive({});
-        const settings = ref({ theme: 'light', refresh_interval: 5000, refreshPeriod: 5000, forceDataUpdate: false, defaultPanel: '', debug: false, font: 'Roboto', hideMenu: false, hideChat: false, menuBg: '', panelBg: '', usePanelImage: true, useHeaderImage: false, cardsOpacity: 44, menuOpacity: 16, dialogOpacity: 12, primaryColor: '#1976d2', lightThemeColor: '#ffffff', darkThemeColor: '#303030', iconSize: 0, titleSize: 0, subtitleSize: 0, widgetSize: 0 });
+        const settings = ref({ theme: 'light', defaultPanel: '', debug: false, font: 'Roboto', hideMenu: false, hideChat: false, menuBg: '', panelBg: '', usePanelImage: true, useHeaderImage: false, cardsOpacity: 44, menuOpacity: 16, dialogOpacity: 12, primaryColor: '#1976d2', lightThemeColor: '#ffffff', darkThemeColor: '#303030', iconSize: 0, titleSize: 0, subtitleSize: 0, widgetSize: 0 });
 
         const filteredDefs = computed(() =>
             widgetSearch.value
@@ -1265,6 +1300,43 @@ const app = createApp({
 
         let wsSocket = null;
         let wsReconnectTimer = null;
+        let wsSubscribedProps = [];
+
+        function wsSetLive(live) {
+            window.__dpWsLive = !!live;
+        }
+
+        function wsCollectProps() {
+            const props = new Set();
+            (currentPanel.value?.widgets || []).forEach(w => {
+                wsWidgetPropKeys(w).forEach(k => props.add(k));
+            });
+            return Array.from(props);
+        }
+
+        function wsSubscribeProperties() {
+            if (!wsSocket || !wsConnected.value) return;
+            const list = wsCollectProps();
+            if (!list.length) return;
+            const same = list.length === wsSubscribedProps.length && list.every(p => wsSubscribedProps.includes(p));
+            if (same) return;
+            wsSubscribedProps = list;
+            const payload = JSON.stringify({ action: 'Subscribe', data: { TYPE: 'properties', PROPERTIES: list.join(',') } });
+            wsBytesSent.value += payload.length;
+            wsSocket.send(payload);
+            console.log('WS subscribe properties', list);
+        }
+
+        function wsRefreshWidgets(propKey) {
+            const key = String(propKey).toLowerCase();
+            const base = key.split('.')[0];
+            (currentPanel.value?.widgets || []).forEach(w => {
+                const keys = wsWidgetPropKeys(w);
+                if (keys.has(key) || keys.has(base)) {
+                    wsRev[w.id] = (wsRev[w.id] || 0) + 1;
+                }
+            });
+        }
 
         function initWebSocket() {
             const loc = window.location;
@@ -1277,10 +1349,12 @@ const app = createApp({
             wsSocket.onopen = function() {
                 console.log('WS connected');
                 wsConnected.value = true;
+                wsSetLive(true);
                 if (wsReconnectTimer) { clearTimeout(wsReconnectTimer); wsReconnectTimer = null; }
                 const subEvents = JSON.stringify({ action: 'Subscribe', data: { TYPE: 'events', EVENTS: 'DASHBOARD_PRO' } });
                 wsBytesSent.value += subEvents.length;
                 wsSocket.send(subEvents);
+                wsSubscribeProperties();
             };
             wsSocket.onerror = function(e) {
                 console.error('WS error', e);
@@ -1292,11 +1366,50 @@ const app = createApp({
                 try {
                     const data = JSON.parse(msg.data);
                     if (data.action === 'status') {
-                        wsStatus.value = data.data;
+                        try { wsStatus.value = JSON.parse(data.data); } catch (e) { wsStatus.value = data.data; }
                         console.log('Status WS server', data.data);
                         return;
                     }
-                    if (data.action === 'subscribed') {
+                    if (data.action === 'subscribed' || data.action === 'ping') {
+                        return;
+                    }
+                    if (data.action === 'properties' && data.data) {
+                        let updates;
+                        try { updates = JSON.parse(data.data); } catch (e) { updates = null; }
+                        if (Array.isArray(updates)) {
+                            updates.forEach(u => {
+                                if (!u || !u.PROPERTY) return;
+                                const key = String(u.PROPERTY).toLowerCase();
+                                window.__dpWsCache[key] = { seeded: true, value: u.VALUE };
+                                if (window.__dpWsLive) wsRefreshWidgets(key);
+                            });
+                        }
+                        return;
+                    }
+                    if (data.action === 'events' && data.data) {
+                        let eventData = data.data;
+                        try { eventData = JSON.parse(data.data); } catch (e) {}
+                        const eInfo = eventData && eventData.EVENT_DATA ? eventData.EVENT_DATA : eventData;
+                        if (eInfo.NAME && String(eInfo.NAME).toLowerCase() !== 'dashboard_pro') return;
+                        if (eInfo.COMMAND === 'ViewNotify') {
+                            const n = eInfo.NOTIFY || {};
+                            if (n.text && authenticated.value) {
+                                notifications.value.unshift({
+                                    ID: 'notif_' + Date.now(),
+                                    MESSAGE: n.text,
+                                    MODULE_NAME: n.source || t('module_name_default'),
+                                    TYPE: n.icon || 'info',
+                                    ADDED: new Date().toISOString().replace('T', ' ').slice(0, 19)
+                                });
+                                unreadCount.value = notifications.value.length;
+                            }
+                        } else if (eInfo.COMMAND === 'UpdateData' && authenticated.value) {
+                            const curName = currentPanel.value?.name;
+                            loadData().then(() => {
+                                const updated = panels.value.find(p => p.name === curName);
+                                if (updated) currentPanel.value = updated;
+                            });
+                        }
                         return;
                     }
                     if (data.action === 'PostProperty' && data.data) {
@@ -1335,6 +1448,8 @@ const app = createApp({
             };
             wsSocket.onclose = function() {
                 wsConnected.value = false;
+                wsSetLive(false);
+                wsSubscribedProps = [];
                 wsReconnectTimer = setTimeout(initWebSocket, 5000);
             };
         }
@@ -1349,7 +1464,12 @@ const app = createApp({
 
         window.__closeSettings = () => { showSettingsPanel.value = false; };
 
-        watch(settings, (s) => { applySettings(); }, { deep: true });
+        watch(currentPanel, () => wsSubscribeProperties(), { deep: true });
+
+        watch(settings, (s) => {
+            applySettings();
+            wsSetLive(wsConnected.value);
+        }, { deep: true });
 
         onMounted(() => {
             document.addEventListener('click', handleClickOutside);
@@ -1377,7 +1497,7 @@ const app = createApp({
             showAddPanel, editPanelData, panelForm, panelTab, panelTabPos, panelError, createPanel, editPanel, openPanelForm, deletePanel, deleteCurrentPanel, movePanel, showAbout, toggleField,
             showIconPicker, iconTarget, iconSearch, iconCategory, iconCategorySearch, iconPage, iconCategories, filteredIconCategories, filteredIcons, totalPages, paginatedIcons, openIconPicker, selectIcon, iconPicked,
             objects, iconProperties, infoProperties, widgetProperties, bgProperties, extraProperties, methodCache, loadObjects, loadIconProperties, loadInfoProperties, loadWidgetProperties, loadBgProperties, widgetBgStyle,
-            isAdmin, toggleEditMode, wsConnected, wsTooltip, wsStatus, wsPulse, wsBytesSent, wsBytesReceived, user, userMenuOpen, sidebarMini, toggleSidebar, expandedGroups, childPanels, toggleGroup, forceRefresh, formatBytes,
+            isAdmin, toggleEditMode, wsConnected, wsTooltip, wsStatus, wsPulse, wsBytesSent, wsBytesReceived, wsRev, user, userMenuOpen, sidebarMini, toggleSidebar, expandedGroups, childPanels, toggleGroup, forceRefresh, formatBytes,
             showNotifications, notifications, unreadCount, checkNotifications, markNotificationsRead,
             chatOpen, chatMessages, chatText, chatLoading, loadChat, sendChat, toggleChat, formatTime,
             t
