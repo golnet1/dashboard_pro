@@ -1301,38 +1301,9 @@ const app = createApp({
         let wsSocket = null;
         let wsReconnectTimer = null;
         let wsSubscribedProps = [];
-        let wsLastMsg = 0;
-        let wsWatchdogTimer = null;
 
         function wsSetLive(live) {
             window.__dpWsLive = !!live;
-        }
-
-        function wsMarkDisconnected() {
-            if (!wsConnected.value) return;
-            wsConnected.value = false;
-            wsSetLive(false);
-            wsSubscribedProps = [];
-            window.__dpWsCache = {};
-            window.__dpKvCache = {};
-            try { if (wsSocket) wsSocket.close(); } catch (e) {}
-            console.log('WS watchdog: no heartbeat, marking disconnected');
-        }
-
-        function wsStartWatchdog() {
-            wsLastMsg = Date.now();
-            if (wsWatchdogTimer) clearInterval(wsWatchdogTimer);
-            wsWatchdogTimer = setInterval(() => {
-                if (!wsConnected.value) return;
-                const payload = JSON.stringify({ action: 'status' });
-                wsBytesSent.value += payload.length;
-                try { wsSocket.send(payload); } catch (e) { wsMarkDisconnected(); return; }
-                if (Date.now() - wsLastMsg > 30000) wsMarkDisconnected();
-            }, 10000);
-        }
-
-        function wsStopWatchdog() {
-            if (wsWatchdogTimer) { clearInterval(wsWatchdogTimer); wsWatchdogTimer = null; }
         }
 
         function wsCollectProps() {
@@ -1379,7 +1350,6 @@ const app = createApp({
                 console.log('WS connected');
                 wsConnected.value = true;
                 wsSetLive(true);
-                wsStartWatchdog();
                 if (wsReconnectTimer) { clearTimeout(wsReconnectTimer); wsReconnectTimer = null; }
                 const subEvents = JSON.stringify({ action: 'Subscribe', data: { TYPE: 'events', EVENTS: 'DASHBOARD_PRO' } });
                 wsBytesSent.value += subEvents.length;
@@ -1390,7 +1360,6 @@ const app = createApp({
                 console.error('WS error', e);
             };
             wsSocket.onmessage = function(msg) {
-                wsLastMsg = Date.now();
                 wsBytesReceived.value += typeof msg.data === 'string' ? msg.data.length : (msg.data ? (msg.data.size || msg.data.byteLength || 0) : 0);
                 wsPulse.value = true;
                 setTimeout(() => { wsPulse.value = false; }, 400);
@@ -1478,12 +1447,9 @@ const app = createApp({
                 } catch (e) { /* silent */ }
             };
             wsSocket.onclose = function() {
-                wsStopWatchdog();
                 wsConnected.value = false;
                 wsSetLive(false);
                 wsSubscribedProps = [];
-                window.__dpWsCache = {};
-                window.__dpKvCache = {};
                 wsReconnectTimer = setTimeout(initWebSocket, 5000);
             };
         }
