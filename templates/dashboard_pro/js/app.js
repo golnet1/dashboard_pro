@@ -1324,7 +1324,6 @@ const app = createApp({
             const payload = JSON.stringify({ action: 'Subscribe', data: { TYPE: 'properties', PROPERTIES: list.join(',') } });
             wsBytesSent.value += payload.length;
             wsSocket.send(payload);
-            console.log('WS subscribe properties', list);
         }
 
         function wsRefreshWidgets(propKey) {
@@ -1342,16 +1341,14 @@ const app = createApp({
             const loc = window.location;
             const protocol = loc.protocol === 'https:' ? 'wss:' : 'ws:';
             const wsUrl = protocol + '//' + loc.hostname + ':8001/majordomo';
-            console.log('WS connecting to', wsUrl);
             try {
                 wsSocket = new WebSocket(wsUrl);
             } catch (e) { console.error('WS creation failed', e); return; }
             wsSocket.onopen = function() {
-                console.log('WS connected');
                 wsConnected.value = true;
                 wsSetLive(true);
                 if (wsReconnectTimer) { clearTimeout(wsReconnectTimer); wsReconnectTimer = null; }
-                const subEvents = JSON.stringify({ action: 'Subscribe', data: { TYPE: 'events', EVENTS: 'DASHBOARD_PRO' } });
+                const subEvents = JSON.stringify({ action: 'Subscribe', data: { TYPE: 'events', EVENTS: 'SAY,DASHBOARD_PRO' } });
                 wsBytesSent.value += subEvents.length;
                 wsSocket.send(subEvents);
                 wsSubscribeProperties();
@@ -1367,7 +1364,6 @@ const app = createApp({
                     const data = JSON.parse(msg.data);
                     if (data.action === 'status') {
                         try { wsStatus.value = JSON.parse(data.data); } catch (e) { wsStatus.value = data.data; }
-                        console.log('Status WS server', data.data);
                         return;
                     }
                     if (data.action === 'subscribed' || data.action === 'ping') {
@@ -1390,9 +1386,25 @@ const app = createApp({
                         let eventData = data.data;
                         try { eventData = JSON.parse(data.data); } catch (e) {}
                         const eInfo = eventData && eventData.EVENT_DATA ? eventData.EVENT_DATA : eventData;
-                        if (eInfo.NAME && String(eInfo.NAME).toLowerCase() !== 'dashboard_pro') return;
-                        if (eInfo.COMMAND === 'ViewNotify') {
-                            const n = eInfo.NOTIFY || {};
+                        const evName = eInfo.NAME ? String(eInfo.NAME).toLowerCase() : '';
+                        if (evName !== 'dashboard_pro' && evName !== 'say') return;
+                        const cmd = (eInfo && eInfo.VALUE) || eInfo || {};
+                        if (evName === 'say') {
+                            const sayText = cmd.message;
+                            if (sayText && authenticated.value) {
+                                notifications.value.unshift({
+                                    ID: 'notif_' + Date.now(),
+                                    MESSAGE: sayText,
+                                    MODULE_NAME: cmd.source || t('module_name_default'),
+                                    TYPE: (cmd.level && cmd.level >= 5) ? 'info' : 'info',
+                                    ADDED: new Date().toISOString().replace('T', ' ').slice(0, 19)
+                                });
+                                unreadCount.value = notifications.value.length;
+                            }
+                            return;
+                        }
+                        if (cmd.COMMAND === 'ViewNotify') {
+                            const n = cmd.NOTIFY || {};
                             if (n.text && authenticated.value) {
                                 notifications.value.unshift({
                                     ID: 'notif_' + Date.now(),
@@ -1403,7 +1415,7 @@ const app = createApp({
                                 });
                                 unreadCount.value = notifications.value.length;
                             }
-                        } else if (eInfo.COMMAND === 'UpdateData' && authenticated.value) {
+                        } else if (cmd.COMMAND === 'UpdateData' && authenticated.value) {
                             const curName = currentPanel.value?.name;
                             loadData().then(() => {
                                 const updated = panels.value.find(p => p.name === curName);
@@ -1471,12 +1483,12 @@ const app = createApp({
             wsSetLive(wsConnected.value);
         }, { deep: true });
 
-        onMounted(() => {
+onMounted(() => {
             document.addEventListener('click', handleClickOutside);
             loadTranslations();
             initAuth();
             checkNotifications();
-            setInterval(checkNotifications, 10000);
+            setInterval(() => { if (!wsConnected.value) checkNotifications(); }, 10000);
             initWebSocket();
         });
 
