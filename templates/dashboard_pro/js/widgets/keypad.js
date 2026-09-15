@@ -57,3 +57,6 @@ const KeypadWidget = {
         }
     }
 };
+
+window.DpWidgets = window.DpWidgets || {};
+window.DpWidgets.keypad = KeypadWidget;

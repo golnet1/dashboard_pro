@@ -112,3 +112,6 @@ const AnalogClockWidget = {
         }
     }
 };
+
+window.DpWidgets = window.DpWidgets || {};
+window.DpWidgets.analogclock = AnalogClockWidget;

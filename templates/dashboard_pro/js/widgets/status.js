@@ -78,3 +78,6 @@ const StatusWidget = {
         }
     }
 };
+
+window.DpWidgets = window.DpWidgets || {};
+window.DpWidgets.status = StatusWidget;

@@ -11,3 +11,6 @@ const EmptyWidget = {
         }
     }
 };
+
+window.DpWidgets = window.DpWidgets || {};
+window.DpWidgets.empty = EmptyWidget;

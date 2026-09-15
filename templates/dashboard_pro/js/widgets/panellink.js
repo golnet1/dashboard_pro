@@ -65,3 +65,6 @@ const PanelLinkWidget = {
         }
     }
 };
+
+window.DpWidgets = window.DpWidgets || {};
+window.DpWidgets.panellink = PanelLinkWidget;

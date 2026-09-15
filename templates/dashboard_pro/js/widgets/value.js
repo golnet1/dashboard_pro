@@ -111,3 +111,6 @@ const ValueWidget = {
         }
     }
 };
+
+window.DpWidgets = window.DpWidgets || {};
+window.DpWidgets.value = ValueWidget;

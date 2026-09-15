@@ -183,3 +183,6 @@ const DimmerWidget = {
         }
     }
 };
+
+window.DpWidgets = window.DpWidgets || {};
+window.DpWidgets.dimmer = DimmerWidget;

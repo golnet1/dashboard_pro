@@ -93,3 +93,6 @@ const BarGraphWidget = {
         }
     }
 };
+
+window.DpWidgets = window.DpWidgets || {};
+window.DpWidgets.bargraph = BarGraphWidget;

@@ -86,3 +86,6 @@ const SelectWidget = {
         }
     }
 };
+
+window.DpWidgets = window.DpWidgets || {};
+window.DpWidgets.select = SelectWidget;

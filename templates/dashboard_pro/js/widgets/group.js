@@ -44,3 +44,6 @@ const GroupWidget = {
         count() { return this.widget.children ? this.widget.children.length : 0; }
     }
 };
+
+window.DpWidgets = window.DpWidgets || {};
+window.DpWidgets.group = GroupWidget;

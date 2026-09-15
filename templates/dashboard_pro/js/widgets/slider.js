@@ -106,3 +106,6 @@ const SliderWidget = {
         }
     }
 };
+
+window.DpWidgets = window.DpWidgets || {};
+window.DpWidgets.slider = SliderWidget;

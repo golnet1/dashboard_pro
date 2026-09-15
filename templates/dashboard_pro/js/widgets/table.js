@@ -108,3 +108,6 @@ const TableWidget = {
         }
     }
 };
+
+window.DpWidgets = window.DpWidgets || {};
+window.DpWidgets.table = TableWidget;

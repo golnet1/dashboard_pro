@@ -357,6 +357,12 @@ class dashboard_pro extends module
             return ['items' => $objects];
         }
 
+        if ($params['request'][0] == 'widgets') {
+            $this->ensureWidgetsTable();
+            $widgets = SQLSelect("SELECT TYPE, ICON, TITLE, DESCRIPTION, PRIORITY, FILE FROM dashboard_widgets ORDER BY PRIORITY, ID");
+            return ['items' => $widgets];
+        }
+
         if ($params['request'][0] == 'properties') {
             $object_id = $params['object_id'] ?? 0;
             if (!$object_id) return ['error' => 'object_id required'];
@@ -599,6 +605,94 @@ class dashboard_pro extends module
         ), "PostEvent");
     }
 
+    function widgetDefaults()
+    {
+        return array(
+            array('relay', 'fas fa-power-off', 'Relay', 'On/off control'),
+            array('dimmer', 'fas fa-lightbulb', 'Dimmer', 'Brightness control'),
+            array('value', 'fas fa-hashtag', 'Value', 'Display numeric value'),
+            array('text', 'fas fa-font', 'Text', 'Display text'),
+            array('slider', 'fas fa-sliders-h', 'Slider', 'Slider for control'),
+            array('select', 'fas fa-list', 'Select', 'Select from options'),
+            array('button', 'fas fa-play', 'Button', 'Execute method'),
+            array('clock', 'fas fa-clock', 'Clock', 'Digital clock'),
+            array('iframe', 'fas fa-window-maximize', 'iFrame', 'Embedded page'),
+            array('image', 'fas fa-image', 'Image', 'Display image'),
+            array('panellink', 'fas fa-link', 'Panel link', 'Go to another panel'),
+            array('rgb', 'fas fa-palette', 'RGB', 'Color control'),
+            array('progressbar', 'fas fa-chart-bar', 'Progress bar', 'Progress bar'),
+            array('gauge', 'fas fa-gauge-high', 'Gauge', 'Circular gauge'),
+            array('test', 'fas fa-flask', 'Test', 'Test widget'),
+            array('unknown', 'fas fa-question-circle', 'Unknown', 'Unknown widget type'),
+            array('sendtext', 'fas fa-paper-plane', 'Send text', 'Send text to URL'),
+            array('analogclock', 'fas fa-clock', 'Analog clock', 'Analog clock'),
+            array('status', 'fas fa-info-circle', 'Status', 'Object status display'),
+            array('datepicker', 'fas fa-calendar-alt', 'Date picker', 'Date picker'),
+            array('timepicker', 'fas fa-clock', 'Time picker', 'Time picker'),
+            array('roundslider', 'fas fa-circle', 'Round slider', 'Round slider'),
+            array('graph', 'fas fa-chart-line', 'Graph', 'Value graph'),
+            array('bargraph', 'fas fa-chart-bar', 'Bar graph', 'Bar chart'),
+            array('weather', 'fas fa-cloud-sun', 'Weather', 'Weather forecast'),
+            array('table', 'fas fa-table', 'Table', 'Data table'),
+            array('timeline', 'fas fa-stream', 'Timeline', 'Event timeline'),
+            array('group', 'fas fa-layer-group', 'Group', 'Widget group'),
+            array('map', 'fas fa-map-marker-alt', 'Map', 'Map with marker'),
+            array('calendar', 'fas fa-calendar-alt', 'Calendar', 'Calendar'),
+            array('colorslider', 'fas fa-palette', 'Color (sliders)', 'Color with RGB sliders'),
+            array('empty', 'fas fa-square', 'Empty', 'Empty separator'),
+            array('keypad', 'fas fa-th', 'Keypad', 'Numeric keypad'),
+            array('roominfo', 'fas fa-home', 'Room info', 'Room indicators'),
+            array('slideshow', 'fas fa-images', 'Slideshow', 'Image slideshow'),
+            array('sliderbuttons', 'fas fa-plus-minus', 'Slider with buttons', 'Slider with +/- buttons'),
+            array('thermostat', 'fas fa-thermometer-half', 'Thermostat', 'Temperature control'),
+            array('trend', 'fas fa-chart-line', 'Trend', 'Value trend'),
+        );
+    }
+
+    function ensureWidgetsTable()
+    {
+        $tables = SQLSelect("SHOW TABLES LIKE 'dashboard_widgets'");
+        if (count($tables) == 0) {
+            SQLExec("CREATE TABLE dashboard_widgets (
+                ID int(10) unsigned NOT NULL auto_increment,
+                TYPE varchar(100) NOT NULL DEFAULT '',
+                ICON varchar(100) NOT NULL DEFAULT '',
+                TITLE varchar(255) NOT NULL DEFAULT '',
+                DESCRIPTION varchar(255) NOT NULL DEFAULT '',
+                PRIORITY int(10) NOT NULL DEFAULT '0',
+                FILE varchar(255) NOT NULL DEFAULT '',
+                PRIMARY KEY (ID)
+            )");
+        }
+        $fields = SQLGetFields('dashboard_widgets');
+        $hasFile = false;
+        if (is_array($fields)) {
+            foreach ($fields as $f) {
+                if ($f['Field'] == 'FILE') $hasFile = true;
+            }
+        }
+        if (!$hasFile) {
+            SQLExec("ALTER TABLE dashboard_widgets ADD FILE varchar(255) NOT NULL DEFAULT ''");
+        }
+        $cnt = SQLSelectOne("SELECT COUNT(*) as CNT FROM dashboard_widgets");
+        if (!$cnt || $cnt['CNT'] == 0) {
+            $priority = 0;
+            foreach ($this->widgetDefaults() as $w) {
+                $rec = array(
+                    'TYPE' => $w[0],
+                    'ICON' => $w[1],
+                    'TITLE' => $w[2],
+                    'DESCRIPTION' => $w[3],
+                    'PRIORITY' => $priority++,
+                    'FILE' => 'js/widgets/' . $w[0] . '.js'
+                );
+                SQLInsert('dashboard_widgets', $rec);
+            }
+        } else {
+            SQLExec("UPDATE dashboard_widgets SET FILE = CONCAT('js/widgets/', TYPE, '.js') WHERE FILE = '' OR FILE IS NULL");
+        }
+    }
+
     function install($data = '')
     {
         parent::install();
@@ -606,7 +700,18 @@ class dashboard_pro extends module
 
     function dbInstall($data)
     {
+        $data = <<<EOD
+dashboard_widgets: ID int(10) unsigned NOT NULL auto_increment
+dashboard_widgets: TYPE varchar(100) NOT NULL DEFAULT ''
+dashboard_widgets: ICON varchar(100) NOT NULL DEFAULT ''
+dashboard_widgets: TITLE varchar(255) NOT NULL DEFAULT ''
+dashboard_widgets: DESCRIPTION varchar(255) NOT NULL DEFAULT ''
+dashboard_widgets: PRIORITY int(10) NOT NULL DEFAULT '0'
+dashboard_widgets: FILE varchar(255) NOT NULL DEFAULT ''
+
+EOD;
         parent::dbInstall($data);
+        $this->ensureWidgetsTable();
     }
 
     function uninstall()
@@ -616,6 +721,10 @@ class dashboard_pro extends module
             SQLExec("DELETE FROM properties WHERE CLASS_ID=" . (int)$class['ID']);
             SQLExec("DELETE FROM objects WHERE CLASS_ID=" . (int)$class['ID']);
             SQLExec("DELETE FROM classes WHERE ID=" . (int)$class['ID']);
+        }
+        $tables = SQLSelect("SHOW TABLES LIKE 'dashboard_widgets'");
+        if (count($tables) > 0) {
+            SQLExec("DROP TABLE dashboard_widgets");
         }
         parent::uninstall();
     }

@@ -69,3 +69,6 @@ const TextWidget = {
         }
     }
 };
+
+window.DpWidgets = window.DpWidgets || {};
+window.DpWidgets.text = TextWidget;

@@ -126,3 +126,6 @@ const RGBWidget = {
         }
     }
 };
+
+window.DpWidgets = window.DpWidgets || {};
+window.DpWidgets.rgb = RGBWidget;

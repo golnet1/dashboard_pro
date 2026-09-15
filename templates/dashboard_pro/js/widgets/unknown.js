@@ -20,3 +20,6 @@ const UnknownWidget = {
         }
     }
 };
+
+window.DpWidgets = window.DpWidgets || {};
+window.DpWidgets.unknown = UnknownWidget;

@@ -104,3 +104,6 @@ const ThermostatWidget = {
         }
     }
 };
+
+window.DpWidgets = window.DpWidgets || {};
+window.DpWidgets.thermostat = ThermostatWidget;

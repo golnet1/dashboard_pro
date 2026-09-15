@@ -65,3 +65,6 @@ const SendTextWidget = {
         }
     }
 };
+
+window.DpWidgets = window.DpWidgets || {};
+window.DpWidgets.sendtext = SendTextWidget;

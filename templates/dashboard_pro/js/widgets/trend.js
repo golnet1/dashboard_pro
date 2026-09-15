@@ -116,3 +116,6 @@ const TrendWidget = {
         }
     }
 };
+
+window.DpWidgets = window.DpWidgets || {};
+window.DpWidgets.trend = TrendWidget;

@@ -98,3 +98,6 @@ const GaugeWidget = {
         }
     }
 };
+
+window.DpWidgets = window.DpWidgets || {};
+window.DpWidgets.gauge = GaugeWidget;

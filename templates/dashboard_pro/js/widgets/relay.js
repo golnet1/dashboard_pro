@@ -145,3 +145,6 @@ const RelayWidget = {
         }
     }
 };
+
+window.DpWidgets = window.DpWidgets || {};
+window.DpWidgets.relay = RelayWidget;

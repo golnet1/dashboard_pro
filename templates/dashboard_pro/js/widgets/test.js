@@ -20,3 +20,6 @@ const TestWidget = {
         }
     }
 };
+
+window.DpWidgets = window.DpWidgets || {};
+window.DpWidgets.test = TestWidget;

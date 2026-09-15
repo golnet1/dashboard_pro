@@ -74,3 +74,6 @@ const RoomInfoWidget = {
         }
     }
 };
+
+window.DpWidgets = window.DpWidgets || {};
+window.DpWidgets.roominfo = RoomInfoWidget;

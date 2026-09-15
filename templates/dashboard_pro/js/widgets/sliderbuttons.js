@@ -91,3 +91,6 @@ const SliderButtonsWidget = {
         }
     }
 };
+
+window.DpWidgets = window.DpWidgets || {};
+window.DpWidgets.sliderbuttons = SliderButtonsWidget;

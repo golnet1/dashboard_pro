@@ -54,3 +54,6 @@ const TimePickerWidget = {
     mounted() { this.timer = setInterval(() => this.now = new Date(), 1000); },
     beforeUnmount() { if (this.timer) clearInterval(this.timer); }
 };
+
+window.DpWidgets = window.DpWidgets || {};
+window.DpWidgets.timepicker = TimePickerWidget;

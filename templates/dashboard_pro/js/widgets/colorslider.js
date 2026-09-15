@@ -88,3 +88,6 @@ const ColorSliderWidget = {
         }
     }
 };
+
+window.DpWidgets = window.DpWidgets || {};
+window.DpWidgets.colorslider = ColorSliderWidget;

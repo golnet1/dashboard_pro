@@ -53,3 +53,6 @@ const ClockWidget = {
         }
     }
 };
+
+window.DpWidgets = window.DpWidgets || {};
+window.DpWidgets.clock = ClockWidget;

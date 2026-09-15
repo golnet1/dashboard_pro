@@ -93,3 +93,6 @@ const GraphWidget = {
         }
     }
 };
+
+window.DpWidgets = window.DpWidgets || {};
+window.DpWidgets.graph = GraphWidget;

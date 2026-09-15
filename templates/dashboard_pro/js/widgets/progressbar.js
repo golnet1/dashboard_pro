@@ -91,3 +91,6 @@ const ProgressBarWidget = {
         }
     }
 };
+
+window.DpWidgets = window.DpWidgets || {};
+window.DpWidgets.progressbar = ProgressBarWidget;

@@ -1,20 +1,7 @@
 // Unified widget fields config
-// Add new field: one line in the right type + tab
+// Widget scripts are loaded dynamically by type from the dashboard_widgets DB table.
 
-// Load widget scripts
-(function() {
-    var widgets = [
-        'relay', 'value', 'button', 'slider', 'dimmer', 'text', 'select',
-        'clock', 'iframe', 'rgb', 'progressbar', 'gauge', 'image', 'panellink',
-        'test', 'unknown', 'sendtext', 'analogclock', 'status', 'datepicker',
-        'timepicker', 'roundslider', 'graph', 'bargraph', 'weather', 'table',
-        'timeline', 'group', 'map', 'calendar', 'colorslider', 'empty',
-        'keypad', 'roominfo', 'slideshow', 'sliderbuttons', 'thermostat', 'trend'
-    ];
-    for (var i = 0; i < widgets.length; i++) {
-        document.write('<script src="js/widgets/' + widgets[i] + '.js?v=13"><\/script>');
-    }
-})();
+window.DpWidgets = window.DpWidgets || {};
 
 window.W = window.W || {};
 

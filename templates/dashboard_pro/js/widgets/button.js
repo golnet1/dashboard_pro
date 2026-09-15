@@ -74,3 +74,6 @@ const ButtonWidget = {
         }
     }
 };
+
+window.DpWidgets = window.DpWidgets || {};
+window.DpWidgets.button = ButtonWidget;

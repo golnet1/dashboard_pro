@@ -115,3 +115,6 @@ const MapWidget = {
         }
     }
 };
+
+window.DpWidgets = window.DpWidgets || {};
+window.DpWidgets.map = MapWidget;

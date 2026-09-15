@@ -59,3 +59,6 @@ const SlideShowWidget = {
         if (this.timer) clearInterval(this.timer);
     }
 };
+
+window.DpWidgets = window.DpWidgets || {};
+window.DpWidgets.slideshow = SlideShowWidget;

@@ -52,3 +52,6 @@ const DatePickerWidget = {
     mounted() { this.timer = setInterval(() => this.now = new Date(), 60000); },
     beforeUnmount() { if (this.timer) clearInterval(this.timer); }
 };
+
+window.DpWidgets = window.DpWidgets || {};
+window.DpWidgets.datepicker = DatePickerWidget;

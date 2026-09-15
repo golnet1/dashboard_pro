@@ -136,3 +136,6 @@ const RoundSliderWidget = {
         }
     }
 };
+
+window.DpWidgets = window.DpWidgets || {};
+window.DpWidgets.roundslider = RoundSliderWidget;

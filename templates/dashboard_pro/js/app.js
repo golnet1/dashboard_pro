@@ -61,46 +61,7 @@ function wsWidgetPropKeys(w) {
     return keys;
 }
 
-const widgetDefs = [
-    { type: 'relay', icon: 'fas fa-power-off', title: 'Relay', desc: 'On/off control' },
-    { type: 'dimmer', icon: 'fas fa-lightbulb', title: 'Dimmer', desc: 'Brightness control' },
-    { type: 'value', icon: 'fas fa-hashtag', title: 'Value', desc: 'Display numeric value' },
-    { type: 'text', icon: 'fas fa-font', title: 'Text', desc: 'Display text' },
-    { type: 'slider', icon: 'fas fa-sliders-h', title: 'Slider', desc: 'Slider for control' },
-    { type: 'select', icon: 'fas fa-list', title: 'Select', desc: 'Select from options' },
-    { type: 'button', icon: 'fas fa-play', title: 'Button', desc: 'Execute method' },
-    { type: 'clock', icon: 'fas fa-clock', title: 'Clock', desc: 'Digital clock' },
-    { type: 'iframe', icon: 'fas fa-window-maximize', title: 'iFrame', desc: 'Embedded page' },
-    { type: 'image', icon: 'fas fa-image', title: 'Image', desc: 'Display image' },
-    { type: 'panellink', icon: 'fas fa-link', title: 'Panel link', desc: 'Go to another panel' },
-    { type: 'rgb', icon: 'fas fa-palette', title: 'RGB', desc: 'Color control' },
-    { type: 'progressbar', icon: 'fas fa-chart-bar', title: 'Progress bar', desc: 'Progress bar' },
-    { type: 'gauge', icon: 'fas fa-gauge-high', title: 'Gauge', desc: 'Circular gauge' },
-    { type: 'test', icon: 'fas fa-flask', title: 'Test', desc: 'Test widget' },
-    { type: 'unknown', icon: 'fas fa-question-circle', title: 'Unknown', desc: 'Unknown widget type' },
-    { type: 'sendtext', icon: 'fas fa-paper-plane', title: 'Send text', desc: 'Send text to URL' },
-    { type: 'analogclock', icon: 'fas fa-clock', title: 'Analog clock', desc: 'Analog clock' },
-    { type: 'status', icon: 'fas fa-info-circle', title: 'Status', desc: 'Object status display' },
-    { type: 'datepicker', icon: 'fas fa-calendar-alt', title: 'Date picker', desc: 'Date picker' },
-    { type: 'timepicker', icon: 'fas fa-clock', title: 'Time picker', desc: 'Time picker' },
-    { type: 'roundslider', icon: 'fas fa-circle', title: 'Round slider', desc: 'Round slider' },
-    { type: 'graph', icon: 'fas fa-chart-line', title: 'Graph', desc: 'Value graph' },
-    { type: 'bargraph', icon: 'fas fa-chart-bar', title: 'Bar graph', desc: 'Bar chart' },
-    { type: 'weather', icon: 'fas fa-cloud-sun', title: 'Weather', desc: 'Weather forecast' },
-    { type: 'table', icon: 'fas fa-table', title: 'Table', desc: 'Data table' },
-    { type: 'timeline', icon: 'fas fa-stream', title: 'Timeline', desc: 'Event timeline' },
-    { type: 'group', icon: 'fas fa-layer-group', title: 'Group', desc: 'Widget group' },
-    { type: 'map', icon: 'fas fa-map-marker-alt', title: 'Map', desc: 'Map with marker' },
-    { type: 'calendar', icon: 'fas fa-calendar-alt', title: 'Calendar', desc: 'Calendar' },
-    { type: 'colorslider', icon: 'fas fa-palette', title: 'Color (sliders)', desc: 'Color with RGB sliders' },
-    { type: 'empty', icon: 'fas fa-square', title: 'Empty', desc: 'Empty separator' },
-    { type: 'keypad', icon: 'fas fa-th', title: 'Keypad', desc: 'Numeric keypad' },
-    { type: 'roominfo', icon: 'fas fa-home', title: 'Room info', desc: 'Room indicators' },
-    { type: 'slideshow', icon: 'fas fa-images', title: 'Slideshow', desc: 'Image slideshow' },
-    { type: 'sliderbuttons', icon: 'fas fa-plus-minus', title: 'Slider with buttons', desc: 'Slider with +/- buttons' },
-    { type: 'thermostat', icon: 'fas fa-thermometer-half', title: 'Thermostat', desc: 'Temperature control' },
-    { type: 'trend', icon: 'fas fa-chart-line', title: 'Trend', desc: 'Value trend' },
-];
+const widgetDefs = ref([]);
 
 const translations = ref({});
 window.__t = function(text) { return translations.value[text] || text; };
@@ -184,8 +145,8 @@ const app = createApp({
 
         const filteredDefs = computed(() =>
             widgetSearch.value
-                ? widgetDefs.filter(d => d.title.toLowerCase().includes(widgetSearch.value.toLowerCase()))
-                : widgetDefs
+                ? widgetDefs.value.filter(d => (d.title || '').toLowerCase().includes(widgetSearch.value.toLowerCase()))
+                : widgetDefs.value
         );
 
         
@@ -203,7 +164,11 @@ const app = createApp({
             });
         }
         function getWidgetComponent(type) {
-            try { return app.component('widget-' + type); } catch(e) { return null; }
+            try {
+                const existing = app.component('widget-' + type);
+                if (existing) return existing;
+                return registerWidgetComponent(type);
+            } catch(e) { return null; }
         }
         function getWidgetRows(type, tab) {
             const fields = getWidgetFields(type, tab);
@@ -415,24 +380,8 @@ const app = createApp({
         });
 
         function widgetTypeComponent(type) {
-            const map = {
-                relay: 'widget-relay', value: 'widget-value', button: 'widget-button',
-                slider: 'widget-slider', dimmer: 'widget-dimmer', text: 'widget-text',
-                select: 'widget-select', clock: 'widget-clock', iframe: 'widget-iframe',
-                image: 'widget-image', panellink: 'widget-panellink',
-                rgb: 'widget-rgb', progressbar: 'widget-progressbar', gauge: 'widget-gauge',
-                test: 'widget-test', unknown: 'widget-unknown', sendtext: 'widget-sendtext',
-                analogclock: 'widget-analogclock', status: 'widget-status', datepicker: 'widget-datepicker',
-                timepicker: 'widget-timepicker', roundslider: 'widget-roundslider',
-                graph: 'widget-graph', bargraph: 'widget-bargraph', weather: 'widget-weather',
-                table: 'widget-table', timeline: 'widget-timeline', group: 'widget-group',
-                map: 'widget-map',
-                calendar: 'widget-calendar', colorslider: 'widget-colorslider',
-                empty: 'widget-empty', keypad: 'widget-keypad', roominfo: 'widget-roominfo',
-                slideshow: 'widget-slideshow', sliderbuttons: 'widget-sliderbuttons',
-                thermostat: 'widget-thermostat', trend: 'widget-trend'
-            };
-            return map[type] || 'div';
+            registerWidgetComponent(type);
+            return 'widget-' + type;
         }
 
         async function initAuth() {
@@ -465,10 +414,31 @@ const app = createApp({
             userMenuOpen.value = false;
         }
 
+function loadScript(src, version) {
+            return new Promise((resolve, reject) => {
+                const s = document.createElement('script');
+                s.src = src + (version && version > 0 ? '?v=' + version : '');
+                s.onload = () => resolve();
+                s.onerror = () => resolve();
+                document.head.appendChild(s);
+            });
+        }
+
         async function loadData() {
             loading.value = true;
             try {
                 await loadTranslations();
+                const widgets = await dpAPI('widgets');
+                if (widgets && widgets.items) {
+                    widgetDefs.value = widgets.items.map(w => ({
+                        type: w.TYPE, icon: w.ICON, title: w.TITLE, desc: w.DESCRIPTION, file: w.FILE, priority: w.PRIORITY
+                    }));
+                    for (const w of widgets.items) {
+                        if (!w.FILE) continue;
+                        await loadScript(w.FILE, 14);
+                    }
+                    widgetDefs.value.forEach(d => registerWidgetComponent(d.type));
+                }
                 const data = await dpAPI('panels');
                 if (data.error) return;
                 panels.value = Array.isArray(data) ? data : (data.panels || []);
@@ -503,7 +473,7 @@ const app = createApp({
         }
 
         function addWidget(type) {
-            const def = widgetDefs.find(d => d.type === type);
+            const def = widgetDefs.value.find(d => d.type === type);
             const comp = getWidgetComponent(type);
             const typeDefaults = (comp && comp.defaults) || W.fields.defaults[type] || {};
             const widgetTabs = getWidgetTabs(type);
@@ -547,7 +517,7 @@ const app = createApp({
             const tabs = getWidgetTabs(w.type);
             widgetTab.value = tabs.length ? tabs[0].key : 'main';
             columnIdx.value = 0;
-            const def = widgetDefs.find(d => d.type === w.type);
+            const def = widgetDefs.value.find(d => d.type === w.type);
             editWidgetForm.value = {
                 ...w,
                 title: w.title || def?.title || w.type,
@@ -1538,44 +1508,14 @@ onMounted(() => {
 });
 
 app.config.globalProperties.t = window.__t;
-app.component('widget-relay', RelayWidget);
-app.component('widget-value', ValueWidget);
-app.component('widget-button', ButtonWidget);
-app.component('widget-slider', typeof SliderWidget !== 'undefined' ? SliderWidget : { template: '<div>'+t('widget_slider')+'</div>' });
-app.component('widget-dimmer', typeof DimmerWidget !== 'undefined' ? DimmerWidget : { template: '<div>'+t('widget_dimmer')+'</div>' });
-app.component('widget-text', typeof TextWidget !== 'undefined' ? TextWidget : { template: '<div>'+t('widget_text')+'</div>' });
-app.component('widget-select', typeof SelectWidget !== 'undefined' ? SelectWidget : { template: '<div>'+t('widget_select')+'</div>' });
-app.component('widget-clock', typeof ClockWidget !== 'undefined' ? ClockWidget : { template: '<div>'+t('widget_clock')+'</div>' });
-app.component('widget-iframe', typeof IFrameWidget !== 'undefined' ? IFrameWidget : { template: '<div>iFrame</div>' });
-app.component('widget-image', typeof ImageWidget !== 'undefined' ? ImageWidget : { template: '<div>'+t('widget_image')+'</div>' });
-app.component('widget-panellink', typeof PanelLinkWidget !== 'undefined' ? PanelLinkWidget : { template: '<div>'+t('widget_panellink')+'</div>' });
-app.component('widget-rgb', typeof RGBWidget !== 'undefined' ? RGBWidget : { template: '<div>RGB</div>' });
-app.component('widget-progressbar', typeof ProgressBarWidget !== 'undefined' ? ProgressBarWidget : { template: '<div>'+t('widget_progressbar')+'</div>' });
-app.component('widget-gauge', typeof GaugeWidget !== 'undefined' ? GaugeWidget : { template: '<div>'+t('widget_gauge')+'</div>' });
-app.component('widget-test', typeof TestWidget !== 'undefined' ? TestWidget : { template: '<div>Test</div>' });
-app.component('widget-unknown', typeof UnknownWidget !== 'undefined' ? UnknownWidget : { template: '<div>Unknown</div>' });
-app.component('widget-sendtext', typeof SendTextWidget !== 'undefined' ? SendTextWidget : { template: '<div>'+t('widget_sendtext')+'</div>' });
-app.component('widget-analogclock', typeof AnalogClockWidget !== 'undefined' ? AnalogClockWidget : { template: '<div>'+t('widget_clock')+'</div>' });
-app.component('widget-status', typeof StatusWidget !== 'undefined' ? StatusWidget : { template: '<div>'+t('widget_status')+'</div>' });
-app.component('widget-datepicker', typeof DatePickerWidget !== 'undefined' ? DatePickerWidget : { template: '<div>'+t('widget_datepicker')+'</div>' });
-app.component('widget-timepicker', typeof TimePickerWidget !== 'undefined' ? TimePickerWidget : { template: '<div>'+t('widget_timepicker')+'</div>' });
-app.component('widget-roundslider', typeof RoundSliderWidget !== 'undefined' ? RoundSliderWidget : { template: '<div>'+t('widget_roundslider')+'</div>' });
-app.component('widget-graph', typeof GraphWidget !== 'undefined' ? GraphWidget : { template: '<div>'+t('widget_graph')+'</div>' });
-app.component('widget-bargraph', typeof BarGraphWidget !== 'undefined' ? BarGraphWidget : { template: '<div>'+t('widget_bargraph')+'</div>' });
-app.component('widget-weather', typeof WeatherWidget !== 'undefined' ? WeatherWidget : { template: '<div>'+t('widget_weather')+'</div>' });
-app.component('widget-table', typeof TableWidget !== 'undefined' ? TableWidget : { template: '<div>'+t('widget_table')+'</div>' });
-app.component('widget-timeline', typeof TimelineWidget !== 'undefined' ? TimelineWidget : { template: '<div>'+t('widget_timeline')+'</div>' });
-app.component('widget-group', typeof GroupWidget !== 'undefined' ? GroupWidget : { template: '<div>'+t('widget_group')+'</div>' });
-app.component('widget-map', typeof MapWidget !== 'undefined' ? MapWidget : { template: '<div>'+t('widget_map')+'</div>' });
-app.component('widget-calendar', typeof CalendarWidget !== 'undefined' ? CalendarWidget : { template: '<div>'+t('widget_calendar')+'</div>' });
-app.component('widget-colorslider', typeof ColorSliderWidget !== 'undefined' ? ColorSliderWidget : { template: '<div>'+t('widget_colorslider')+'</div>' });
-app.component('widget-empty', typeof EmptyWidget !== 'undefined' ? EmptyWidget : { template: '<div>'+t('widget_empty')+'</div>' });
-app.component('widget-keypad', typeof KeypadWidget !== 'undefined' ? KeypadWidget : { template: '<div>'+t('widget_keypad')+'</div>' });
-app.component('widget-roominfo', typeof RoomInfoWidget !== 'undefined' ? RoomInfoWidget : { template: '<div>'+t('widget_roominfo')+'</div>' });
-app.component('widget-slideshow', typeof SlideShowWidget !== 'undefined' ? SlideShowWidget : { template: '<div>'+t('widget_slideshow')+'</div>' });
-app.component('widget-sliderbuttons', typeof SliderButtonsWidget !== 'undefined' ? SliderButtonsWidget : { template: '<div>'+t('widget_slider')+'</div>' });
-app.component('widget-thermostat', typeof ThermostatWidget !== 'undefined' ? ThermostatWidget : { template: '<div>'+t('widget_thermostat')+'</div>' });
-app.component('widget-trend', typeof TrendWidget !== 'undefined' ? TrendWidget : { template: '<div>'+t('widget_trend')+'</div>' });
+
+function registerWidgetComponent(type) {
+    if (app.component('widget-' + type)) return app.component('widget-' + type);
+    const comp = (window.DpWidgets && window.DpWidgets[type]) || null;
+    app.component('widget-' + type,
+        comp || { template: '<div>' + (t('widget_' + type) || type) + '</div>' });
+    return app.component('widget-' + type);
+}
 
 const vm = app.mount('#app');
 window.__dp_vm = vm;

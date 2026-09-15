@@ -69,3 +69,6 @@ const CalendarWidget = {
         nextMonth() { this.renderMonth(new Date(this.year, this.month + 1, 1)); }
     }
 };
+
+window.DpWidgets = window.DpWidgets || {};
+window.DpWidgets.calendar = CalendarWidget;

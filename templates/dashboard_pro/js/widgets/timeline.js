@@ -76,3 +76,6 @@ const TimelineWidget = {
         }
     }
 };
+
+window.DpWidgets = window.DpWidgets || {};
+window.DpWidgets.timeline = TimelineWidget;

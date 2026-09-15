@@ -37,3 +37,6 @@ const IFrameWidget = {
         }
     }
 };
+
+window.DpWidgets = window.DpWidgets || {};
+window.DpWidgets.iframe = IFrameWidget;

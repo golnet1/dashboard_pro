@@ -92,3 +92,6 @@ const ImageWidget = {
         }
     }
 };
+
+window.DpWidgets = window.DpWidgets || {};
+window.DpWidgets.image = ImageWidget;

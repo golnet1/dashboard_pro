@@ -86,3 +86,6 @@ const WeatherWidget = {
         }
     }
 };
+
+window.DpWidgets = window.DpWidgets || {};
+window.DpWidgets.weather = WeatherWidget;
