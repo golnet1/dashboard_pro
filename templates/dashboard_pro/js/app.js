@@ -242,6 +242,12 @@ const app = createApp({
         }
 
         
+        function itemLabel(item) {
+            if (!item) return '';
+            const desc = item.DESCRIPTION ? item.DESCRIPTION.replace(/\n/g, ' ').trim() : '';
+            return desc ? item.TITLE + ' - ' + desc : item.TITLE;
+        }
+
         function getMethodObj(val) { return val ? val.split('/')[0] : ''; }
         function getMethodName(val) { return val ? val.split('/')[1] || '' : ''; }
         function setMethodField(key, partVal, isObj) {
@@ -1490,7 +1496,7 @@ onMounted(() => {
             panels, currentPanel, selectPanel, selectHomePanel, loading, editMode,
             showAddWidget, widgetSearch, filteredDefs, plusTooltip, addPlusButton,
             widgetTypeComponent, addWidget, getWidgetFields, getWidgetRows, getWidgetTabs, getFieldOptions, fieldVisible,
-            getMethodObj, getMethodName, setMethodField,
+            getMethodObj, getMethodName, setMethodField, itemLabel,
             editWidgetForm, widgetTab, widgetTabPos, editWidget, saveEditWidget, removeWidget,
             columnIdx, columnList, setColumns, addColumn, removeColumn, moveColumnUp, moveColumnDown, autoDetectColumns, columnFields,
             draggingWidget, startDrag, onDrag, stopDrag,

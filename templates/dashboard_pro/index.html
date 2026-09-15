@@ -656,7 +656,7 @@
                                                         <div class="v-input__slot"><label class="v-label v-label--active">{{ t('object') }}</label>
                                                             <select v-model="panelForm.iconObject" @change="loadIconProperties">
                                                                 <option value="" style="background:#1e1e1e;color:#fff">{{ t('select_default') }}</option>
-                                                                <option v-for="o in objects" :key="o.ID" :value="o.TITLE" style="background:#1e1e1e;color:#fff">{{ o.TITLE }}</option>
+                                                                <option v-for="o in objects" :key="o.ID" :value="o.TITLE" style="background:#1e1e1e;color:#fff">{{ itemLabel(o) }}</option>
                                                             </select>
                                                         </div>
                                                     </div>
@@ -666,7 +666,7 @@
                                                         <div class="v-input__slot"><label class="v-label v-label--active">{{ t('property') }}</label>
                                                             <select v-model="panelForm.iconProperty">
                                                                 <option value="" style="background:#1e1e1e;color:#fff">{{ t('select_default') }}</option>
-                                                                <option v-for="prop in iconProperties" :key="prop.ID" :value="prop.TITLE" style="background:#1e1e1e;color:#fff">{{ prop.TITLE }}</option>
+                                                                <option v-for="prop in iconProperties" :key="prop.ID" :value="prop.TITLE" style="background:#1e1e1e;color:#fff">{{ itemLabel(prop) }}</option>
                                                             </select>
                                                         </div>
                                                     </div>
@@ -753,7 +753,7 @@
                                                     <div class="v-input__slot"><label class="v-label v-label--active">{{ t('object_info') }}</label>
                                                         <select v-model="panelForm.infoObject" @change="loadInfoProperties">
                                                             <option value="" style="background:#1e1e1e;color:#fff">{{ t('select_default') }}</option>
-                                                            <option v-for="o in objects" :key="o.ID" :value="o.TITLE" style="background:#1e1e1e;color:#fff">{{ o.TITLE }}</option>
+                                                            <option v-for="o in objects" :key="o.ID" :value="o.TITLE" style="background:#1e1e1e;color:#fff">{{ itemLabel(o) }}</option>
                                                         </select>
                                                     </div>
                                                 </div>
@@ -763,7 +763,7 @@
                                                     <div class="v-input__slot"><label class="v-label v-label--active">{{ t('property') }}</label>
                                                         <select v-model="panelForm.infoProperty">
                                                             <option value="" style="background:#1e1e1e;color:#fff">{{ t('select_default') }}</option>
-                                                            <option v-for="prop in infoProperties" :key="prop.ID" :value="prop.TITLE" style="background:#1e1e1e;color:#fff">{{ prop.TITLE }}</option>
+                                                            <option v-for="prop in infoProperties" :key="prop.ID" :value="prop.TITLE" style="background:#1e1e1e;color:#fff">{{ itemLabel(prop) }}</option>
                                                         </select>
                                                     </div>
                                                 </div>
@@ -1031,7 +1031,7 @@
                                                                     <div class="v-input__slot"><label class="v-label v-label--active">{{ t(field.label) }}</label>
                                                                         <select v-model="editWidgetForm[field.key]">
                                                                             <option value="" style="background:#1e1e1e;color:#fff">{{ t('select_default') }}</option>
-                                                                            <option v-for="o in objects" :key="o.ID" :value="o.TITLE" style="background:#1e1e1e;color:#fff">{{ o.TITLE }}</option>
+                                                                            <option v-for="o in objects" :key="o.ID" :value="o.TITLE" style="background:#1e1e1e;color:#fff">{{ itemLabel(o) }}</option>
                                                                         </select>
                                                                     </div>
                                                                 </div>
@@ -1043,7 +1043,7 @@
                                                                     <div class="v-input__slot"><label class="v-label v-label--active">{{ t(field.label) }}</label>
                                                                          <select v-model="editWidgetForm[field.key]">
                                                                              <option value="" style="background:#1e1e1e;color:#fff">{{ field.placeholder || t('select_default') }}</option>
-                                                                             <option v-for="prop in getFieldOptions(field)" :key="prop.ID" :value="prop.TITLE" style="background:#1e1e1e;color:#fff">{{ prop.TITLE }}</option>
+                                                                             <option v-for="prop in getFieldOptions(field)" :key="prop.ID" :value="prop.TITLE" style="background:#1e1e1e;color:#fff">{{ itemLabel(prop) }}</option>
                                                                         </select>
                                                                     </div>
                                                                 </div>
@@ -1055,7 +1055,7 @@
                                                                     <div class="v-input__slot"><label class="v-label v-label--active">{{ t(field.label) }}</label>
                                                                         <select :value="getMethodName(editWidgetForm[field.parent])" @change="setMethodField(field.parent, $event.target.value, false)">
                                                                             <option value="" style="background:#1e1e1e;color:#fff">{{ field.placeholder || t('select_default') }}</option>
-                                                                            <option v-for="m in (methodCache[getMethodObj(editWidgetForm[field.parent])] || [])" :key="m.ID" :value="m.TITLE" style="background:#1e1e1e;color:#fff">{{ m.TITLE }}</option>
+                                                                            <option v-for="m in (methodCache[getMethodObj(editWidgetForm[field.parent])] || [])" :key="m.ID" :value="m.TITLE" style="background:#1e1e1e;color:#fff">{{ itemLabel(m) }}</option>
                                                                         </select>
                                                                     </div>
                                                                 </div>
@@ -1067,7 +1067,7 @@
                                                                     <div class="v-input__slot"><label class="v-label v-label--active">{{ t(field.label) }}</label>
                                                                         <select :value="getMethodObj(editWidgetForm[field.parent])" @change="setMethodField(field.parent, $event.target.value, true)">
                                                                             <option value="" style="background:#1e1e1e;color:#fff">{{ t('select_default') }}</option>
-                                                                            <option v-for="o in objects" :key="o.ID" :value="o.TITLE" style="background:#1e1e1e;color:#fff">{{ o.TITLE }}</option>
+                                                                            <option v-for="o in objects" :key="o.ID" :value="o.TITLE" style="background:#1e1e1e;color:#fff">{{ itemLabel(o) }}</option>
                                                                         </select>
                                                                     </div>
                                                                 </div>
@@ -1264,7 +1264,7 @@
                                                 <label class="v-label theme--dark" style="left:0;right:auto;position:absolute">{{ t('new_object') }}</label>
                                                 <select v-model="changeObjectGroups[gi].newObj" style="background:transparent;border:none;color:#fff;outline:none;width:100%;padding:20px 0 4px;font-size:16px;appearance:none">
                                                     <option value="" style="background:#1e1e1e;color:#fff">{{ t('do_not_change') }}</option>
-                                                    <option v-for="o in objects" :key="o.ID" :value="o.TITLE" style="background:#1e1e1e;color:#fff">{{ o.TITLE }}</option>
+                                                    <option v-for="o in objects" :key="o.ID" :value="o.TITLE" style="background:#1e1e1e;color:#fff">{{ itemLabel(o) }}</option>
                                                 </select>
                                                 <div class="v-input__append-inner">
                                                     <div class="v-input__icon v-input__icon--append">
@@ -1385,6 +1385,6 @@
     <script src="js/auth.js?v=9"></script>
     <script src="js/sidebar.js?v=10"></script>
 <script src="js/widget-config.js?v=10"></script>
-<script src="js/app.js?v=33"></script>
+<script src="js/app.js?v=34"></script>
 </body>
 </html>

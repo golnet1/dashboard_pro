@@ -353,7 +353,7 @@ class dashboard_pro extends module
         }
 
         if ($params['request'][0] == 'objects') {
-            $objects = SQLSelect("SELECT ID, TITLE FROM objects ORDER BY TITLE");
+            $objects = SQLSelect("SELECT ID, TITLE, DESCRIPTION FROM objects ORDER BY TITLE");
             return ['items' => $objects];
         }
 
@@ -380,7 +380,7 @@ class dashboard_pro extends module
                 } else {
                     $class_where = '0';
                 }
-                $properties = SQLSelect("SELECT DISTINCT p.ID, p.TITLE FROM properties p WHERE p.OBJECT_ID = $obj_id OR ($class_where AND p.CLASS_ID > 0) ORDER BY p.TITLE");
+                $properties = SQLSelect("SELECT DISTINCT p.ID, p.TITLE, p.DESCRIPTION FROM properties p WHERE p.OBJECT_ID = $obj_id OR ($class_where AND p.CLASS_ID > 0) ORDER BY p.TITLE");
             } else {
                 $properties = array();
             }
