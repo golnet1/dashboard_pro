@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Pro</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/app.css?v=26">
+    <link rel="stylesheet" href="css/app.css?v=31">
     <script src="js/lib/vue.global.prod.js"></script>
 </head>
 <body>
@@ -579,6 +579,17 @@
                                                     </div>
                                                 </div>
                                             </div>
+                                            <div class="widget-menu__has-submenu" v-if="w.type !== 'group' && currentPanel.widgets.some(x => x.type === 'group')" @mouseenter="widgetGroupSubmenu = w.id" @mouseleave="widgetGroupSubmenu = null">
+                                                <div class="widget-menu__item" style="padding-right:8px">
+                                                    <i class="fas fa-object-group"></i><span>{{ t('move_to_group') }}</span>
+                                                    <i class="fas fa-chevron-right" style="margin-left:auto;font-size:.65rem;color:var(--on-theme-dim)"></i>
+                                                </div>
+                                                <div class="widget-menu__submenu" v-if="widgetGroupSubmenu === w.id">
+                                                    <div class="widget-menu__item" v-for="g in currentPanel.widgets.filter(x => x.type === 'group')" :key="g.id" @click="moveWidgetToGroup(idx, g.id)">
+                                                        <i class="fas fa-layer-group"></i><span>{{ (g.title || t('widget_group')) + (g.children && g.children.length ? ' (' + g.children.length + ')' : '') }}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
                                             <div class="widget-menu__item" @click="copyWidget(idx); widgetMenuTarget = null">
                                                 <i class="fas fa-copy"></i><span>{{ t('copy_widget') }}</span>
                                             </div>
@@ -613,9 +624,9 @@
         </template>
 
         <!-- ===== Add Widget Modal ===== -->
-        <div class="modal-overlay" v-if="showAddWidget" @click.self="showAddWidget = false">
+        <div class="modal-overlay" v-if="showAddWidget" @click.self="showAddWidget = false; groupAddTarget = null">
             <div class="modal modal-lg">
-                <div class="modal-header"><h3>{{ t('add_widget') }}</h3><button class="modal-close" @click="showAddWidget = false">&times;</button></div>
+                <div class="modal-header"><h3>{{ t('add_widget') }}</h3><button class="modal-close" @click="showAddWidget = false; groupAddTarget = null">&times;</button></div>
                 <div class="modal-body">
                     <div class="search-box"><i class="fas fa-search"></i><input v-model="widgetSearch" :placeholder="t('search')"></div>
                     <div class="widget-def-list">
@@ -896,7 +907,7 @@
         </div>
 
         <!-- ===== Widget Editor ===== -->
-        <div id="widget-edit" class="v-dialog__content v-dialog__content--active" v-if="editWidgetForm" @click.self="editWidgetForm = false" style="z-index:202">
+        <div id="widget-edit" class="v-dialog__content v-dialog__content--active" v-if="editWidgetForm" @click.self="closeEditor()" style="z-index:202">
             <div class="v-dialog v-dialog--active v-dialog--persistent v-dialog--scrollable" style="width:700px" tabindex="0">
                 <div class="v-card v-sheet theme--dark" style="background-color:rgba(48,48,48,var(--dialog-alpha,1));border-color:#303030;display:flex;flex-direction:column;max-height:70vh;overflow:hidden">
                     <div class="v-card__title" style="flex-shrink:0">
@@ -926,7 +937,34 @@
                                     <template v-for="tab in getWidgetTabs(editWidgetForm.type)" :key="tab.key">
                                     <div class="v-window-item" v-if="widgetTab === tab.key">
 
-                                        <template v-if="tab.key === 'position'">
+                                        <template v-if="tab.key === 'widgets'">
+                                        <div class="d-flex gap-1 ma-1" style="align-items:center">
+                                            <button type="button" class="v-btn v-btn--is-elevated v-btn--fab v-btn--has-bg v-btn--round v-size--x-small" @click="startGroupChildAdd()" :title="t('add_widget')"><i class="fas fa-plus"></i></button>
+                                            <span v-if="groupChildrenList.length" style="color:rgba(255,255,255,.55);font-size:.8rem;margin-left:4px">{{ groupChildrenList.length }} {{ t('units_widgets') }}</span>
+                                        </div>
+                                        <div v-if="groupChildrenList.length" class="widget-group-list">
+                                            <div v-for="(child, ci) in groupChildrenList" :key="child.id" class="widget-group-list__item">
+                                                <span class="widget-group-list__icon"><i :class="child.icon || 'fas fa-square'"></i></span>
+                                                <span class="widget-group-list__title">{{ child.title || t('widget_' + child.type) }}</span>
+                                                <span class="widget-group-list__colslider" :title="t('field_group_columns')">
+                                                    <input type="range" class="v-slider__form" min="1" :max="Math.max(1, Number(editWidgetForm.columns) || 1)" step="1" v-model.number="child.span">
+                                                    <span class="v-slider__form-value">{{ child.span || 1 }}</span>
+                                                </span>
+                                                <span class="widget-group-list__type">{{ t('widget_' + child.type) }}</span>
+                                                <span class="spacer"></span>
+                                                <button type="button" class="v-btn v-btn--is-elevated v-btn--fab v-btn--has-bg v-btn--round v-size--x-small" @click="moveGroupChild(child, ci > 0 ? -1 : 0)" :disabled="ci === 0" :title="t('move_up')"><i class="fas fa-angle-up"></i></button>
+                                                <button type="button" class="v-btn v-btn--is-elevated v-btn--fab v-btn--has-bg v-btn--round v-size--x-small" :disabled="ci >= groupChildrenList.length - 1" :title="t('move_down')" @click="moveGroupChild(child, 1)"><i class="fas fa-angle-down"></i></button>
+                                                <button type="button" class="v-btn v-btn--is-elevated v-btn--fab v-btn--has-bg v-btn--round v-size--x-small" :title="t('edit')" @click="editWidget(child, editWidgetForm)"><i class="fas fa-pencil"></i></button>
+                                                <button type="button" class="v-btn v-btn--is-elevated v-btn--fab v-btn--has-bg v-btn--round v-size--x-small" :title="t('widget_out_group')" @click="moveGroupChildOut(child)"><i class="fas fa-sign-out-alt"></i></button>
+                                                <button type="button" class="v-btn v-btn--is-elevated v-btn--fab v-btn--has-bg v-btn--round v-size--x-small" :title="t('delete')" @click="removeGroupChild(child)"><i class="fas fa-trash"></i></button>
+                                            </div>
+                                        </div>
+                                        <div v-else style="padding:24px;text-align:center;color:rgba(255,255,255,.45);font-size:.9rem">
+                                            {{ t('widget_group_empty') }}
+                                        </div>
+                                        </template>
+
+                                        <template v-else-if="tab.key === 'position'">
                                         <div class="d-flex gap-2">
                                             <div class="v-input v-text-field" style="flex:1">
                                                 <div class="v-input__control">
@@ -1046,6 +1084,17 @@
                                                                 </div>
                                                             </div>
                                                         </template>
+                                                        <template v-else-if="field.type === 'slider'">
+                                                            <div class="v-input v-text-field">
+                                                                <div class="v-input__control">
+                                                                    <div class="v-input__slot v-input__slot--slider">
+                                                                        <span class="v-label v-label--active">{{ t(field.label) }}</span>
+                                                                        <input type="range" class="v-slider__form" :min="field.min || 0" :max="field.max || 100" :step="field.step || 1" v-model.number="editWidgetForm[field.key]">
+                                                                        <span class="v-slider__form-value">{{ editWidgetForm[field.key] }}</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </template>
                                                         <template v-else-if="field.type === 'textarea'">
                                                             <div class="v-input v-text-field">
                                                                 <div class="v-input__control">
@@ -1161,7 +1210,7 @@
                     <hr class="v-divider theme--dark">
                     <div class="v-card__actions">
                         <div class="spacer"></div>
-                        <button type="button" class="v-btn v-btn--text theme--dark v-size--default primary--text text--darken-1" @click="editWidgetForm = false"><span class="v-btn__content">{{ t('cancel') }}</span></button>
+                        <button type="button" class="v-btn v-btn--text theme--dark v-size--default primary--text text--darken-1" @click="closeEditor"><span class="v-btn__content">{{ t('cancel') }}</span></button>
                         <button type="button" class="v-btn v-btn--text theme--dark v-size--default primary--text text--darken-1" @click="saveEditWidget"><span class="v-btn__content">{{ editWidgetForm.title ? t('save') : 'Create' }}</span></button>
                     </div>
                 </div>
@@ -1259,12 +1308,14 @@
                         </div>
                     </header>
                     <div class="v-card__text body-1" style="padding:16px 24px">
-                        {{ t('move_widget_to_panel_pre') }}{{ widgetConfirm.panelTitle }}{{ t('move_widget_to_panel_post') }}
+                        <template v-if="widgetConfirm.outOfGroup">{{ t('widget_out_group_pre') }}{{ widgetConfirm.panelTitle }}{{ t('widget_out_group_post') }}</template>
+                        <template v-else-if="widgetConfirm.toGroup">{{ t('widget_to_group_pre') }}{{ widgetConfirm.panelTitle }}{{ t('widget_to_group_post') }}</template>
+                        <template v-else>{{ t('move_widget_to_panel_pre') }}{{ widgetConfirm.panelTitle }}{{ t('move_widget_to_panel_post') }}</template>
                     </div>
                     <div class="v-card__actions" style="padding:8px 16px;display:flex;gap:8px">
                         <div style="flex:1"></div>
                         <button type="button" class="v-btn v-btn--text theme--dark v-size--default grey--text" @click="widgetConfirm = null; widgetMenuTarget = null"><span class="v-btn__content">{{ t('no') }}</span></button>
-                        <button type="button" class="v-btn v-btn--text theme--dark v-size--default primary--text" @click="confirmMoveWidget()"><span class="v-btn__content">{{ t('yes') }}</span></button>
+                        <button type="button" class="v-btn v-btn--text theme--dark v-size--default primary--text" @click="widgetConfirm.outOfGroup ? confirmOutOfGroup() : (widgetConfirm.toGroup ? confirmMoveToGroup() : confirmMoveWidget())"><span class="v-btn__content">{{ t('yes') }}</span></button>
                     </div>
                 </div>
             </div>
@@ -1431,6 +1482,6 @@
     <script src="js/auth.js?v=9"></script>
     <script src="js/sidebar.js?v=10"></script>
 <script src="js/widget-config.js?v=11"></script>
-<script src="js/app.js?v=41"></script>
+<script src="js/app.js?v=56"></script>
 </body>
 </html>

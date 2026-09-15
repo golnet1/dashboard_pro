@@ -87,6 +87,9 @@ const app = createApp({
         const showAddWidget = ref(false);
         const widgetSearch = ref('');
         const editWidgetForm = ref(null);
+        const editWidgetParent = ref(null);
+        const editParentTab = ref('widgets');
+        const groupAddTarget = ref(null);
         const widgetTab = ref('main');
         const draggingWidget = ref(null);
         const dragOffset = ref({ x: 0, y: 0 });
@@ -94,6 +97,7 @@ const app = createApp({
         const resizeStart = ref({ x: 0, y: 0, w: 0, h: 0 });
         const widgetMenuTarget = ref(null);
         const widgetPanelSubmenu = ref(null);
+        const widgetGroupSubmenu = ref(null);
         const widgetConfirm = ref(null);
         const showChangeObject = ref(false);
         const changeObjectGroups = ref([]);
@@ -197,7 +201,7 @@ const app = createApp({
                 }
             }
             tabs = tabs.filter(tab => {
-                if (tab.key === 'columns') return true;
+                if (tab.key === 'columns' || tab.key === 'widgets') return true;
                 const fields = getWidgetFields(type, tab.fields || tab.key);
                 return fields.length > 0;
             });
@@ -434,7 +438,7 @@ function loadScript(src, version) {
             widgetList.value = [...widgetDefs.value].sort((a, b) => (a.priority || 0) - (b.priority || 0));
             for (const w of widgets.items) {
                 if (!w.FILE) continue;
-                await loadScript(w.FILE, 14);
+                await loadScript(w.FILE, 21);
             }
             widgetDefs.value.forEach(d => registerWidgetComponent(d.type));
         }
@@ -488,7 +492,7 @@ function loadScript(src, version) {
                 if (f.key && f.default !== undefined) fieldDefaults[f.key] = f.default;
             });
             const w = {
-                id: 'w_' + Date.now(), type,
+                id: 'w_' + Date.now() + '_' + Math.floor(Math.random() * 1000), type,
                 title: def?.title || type,
                 icon: def?.icon || '', icon_type: 'icon', icon_object: '', icon_property: '', icon_url: '',
                 object: '', property: '', unit: '',
@@ -512,19 +516,31 @@ function loadScript(src, version) {
                 ...typeDefaults
             };
             w.icon = typeDefaults.icon || def?.icon || '';
+            if (groupAddTarget.value) {
+                const parentCopy = groupAddTarget.value;
+                if (!Array.isArray(parentCopy.children)) parentCopy.children = [];
+                w.span = 1;
+                parentCopy.children.push(w);
+                groupAddTarget.value = null;
+                showAddWidget.value = false;
+                return;
+            }
             if (!currentPanel.value.widgets) currentPanel.value.widgets = [];
             currentPanel.value.widgets.push(w);
             showAddWidget.value = false;
             editWidgetForm.value = w;
         }
 
-        async function editWidget(w) {
+        async function editWidget(w, parent) {
+            if (parent) editParentTab.value = widgetTab.value;
             const tabs = getWidgetTabs(w.type);
             widgetTab.value = tabs.length ? tabs[0].key : 'main';
             columnIdx.value = 0;
+            editWidgetParent.value = parent || null;
             const def = widgetDefs.value.find(d => d.type === w.type);
             editWidgetForm.value = {
                 ...w,
+                children: Array.isArray(w.children) ? w.children.map(c => ({ ...c })) : [],
                 title: w.title || def?.title || w.type,
                 icon_type: w.icon_type || w.iconType || 'icon',
                 icon_object: w.icon_object || w.iconObject || '',
@@ -558,6 +574,69 @@ function loadScript(src, version) {
         function removeWidget(idx) {
             currentPanel.value.widgets.splice(idx, 1);
             savePanels();
+        }
+
+        const groupChildrenList = computed(() => {
+            const f = editWidgetForm.value;
+            return (f && Array.isArray(f.children)) ? f.children : [];
+        });
+
+        function startGroupChildAdd() {
+            const f = editWidgetForm.value;
+            if (!f) return;
+            groupAddTarget.value = f;
+            showAddWidget.value = true;
+        }
+
+        function removeGroupChild(child) {
+            const parent = editWidgetParent.value || editWidgetForm.value;
+            if (!parent || !Array.isArray(parent.children)) return;
+            const idx = parent.children.findIndex(c => c.id === child.id);
+            if (idx >= 0) parent.children.splice(idx, 1);
+        }
+
+        function moveGroupChildOut(child) {
+            const parent = editWidgetParent.value || editWidgetForm.value;
+            if (!parent || !Array.isArray(parent.children)) return;
+            const idx = parent.children.findIndex(c => c.id === child.id);
+            if (idx < 0) return;
+            widgetConfirm.value = { outOfGroup: true, childId: child.id, panelTitle: parent.title || t('widget_group') };
+        }
+
+        function confirmOutOfGroup() {
+            const c = widgetConfirm.value;
+            if (!c || !c.outOfGroup) return;
+            const parent = editWidgetParent.value || editWidgetForm.value;
+            if (parent && Array.isArray(parent.children)) {
+                const idx = parent.children.findIndex(x => x.id === c.childId);
+                if (idx >= 0) {
+                    const [moved] = parent.children.splice(idx, 1);
+                    if (!currentPanel.value.widgets) currentPanel.value.widgets = [];
+                    currentPanel.value.widgets.push(moved);
+                    const orig = (currentPanel.value.widgets || []).find(w => w.id === parent.id);
+                    if (orig && Array.isArray(orig.children)) {
+                        const oi = orig.children.findIndex(x => x.id === c.childId);
+                        if (oi >= 0) orig.children.splice(oi, 1);
+                    }
+                    savePanels();
+                }
+            }
+            widgetConfirm.value = null;
+        }
+
+        function moveGroupChild(child, dir) {
+            const parent = editWidgetParent.value || editWidgetForm.value;
+            if (!parent || !Array.isArray(parent.children)) return;
+            const idx = parent.children.findIndex(c => c.id === child.id);
+            const ni = idx + dir;
+            if (idx < 0 || ni < 0 || ni >= parent.children.length) return;
+            const [it] = parent.children.splice(idx, 1);
+            parent.children.splice(ni, 0, it);
+        }
+
+        function addGroupChild(type) {
+            groupAddTarget.value = editWidgetForm.value;
+            addWidget(type);
         }
 
         function copyWidget(idx) {
@@ -649,6 +728,31 @@ function loadScript(src, version) {
             widgetPanelSubmenu.value = null;
         }
 
+        function moveWidgetToGroup(idx, groupId) {
+            const w = currentPanel.value.widgets[idx];
+            if (!w) return;
+            const g = currentPanel.value.widgets.find(x => x.id === groupId && x.type === 'group');
+            if (!g) return;
+            widgetConfirm.value = { toGroup: true, idx, groupId, panelTitle: g.title || t('widget_group') };
+            widgetGroupSubmenu.value = null;
+        }
+
+        function confirmMoveToGroup() {
+            const c = widgetConfirm.value;
+            if (!c || !c.toGroup) return;
+            const w = currentPanel.value.widgets[c.idx];
+            const g = currentPanel.value.widgets.find(x => x.id === c.groupId && x.type === 'group');
+            if (w && g) {
+                currentPanel.value.widgets.splice(c.idx, 1);
+                if (!Array.isArray(g.children)) g.children = [];
+                w.span = 1;
+                g.children.push(w);
+            }
+            widgetConfirm.value = null;
+            widgetMenuTarget.value = null;
+            savePanels();
+        }
+
         function confirmMoveWidget() {
             if (!widgetConfirm.value) return;
             changeWidgetPanel(widgetConfirm.value.idx, widgetConfirm.value.panel);
@@ -667,16 +771,50 @@ function loadScript(src, version) {
             savePanels();
         }
 
+        function closeEditor() {
+            const parent = editWidgetParent.value;
+            const parentTab = editParentTab.value;
+            if (parent) {
+                editWidgetForm.value = null;
+                editWidgetParent.value = null;
+                editWidget(parent, null);
+                editParentTab.value = parentTab;
+                if (widgetTab.value !== parentTab) widgetTab.value = parentTab;
+            } else {
+                editWidgetForm.value = null;
+            }
+        }
+
         function saveEditWidget() {
-            if (!currentPanel.value.widgets || !editWidgetForm.value) return;
+            if (!editWidgetForm.value) return;
+            const hadParent = !!editWidgetParent.value;
+            const parentTab = editParentTab.value;
             const mode = editWidgetForm.value.bg_mode || (editWidgetForm.value.color ? 'color' : 'default');
             if (mode !== 'color') editWidgetForm.value.color = '';
             if (mode !== 'image') editWidgetForm.value.bg_image = '';
             if (mode !== 'property') { editWidgetForm.value.bg_object = ''; editWidgetForm.value.bg_property = ''; }
-            const idx = currentPanel.value.widgets.findIndex(w => w.id === editWidgetForm.value.id);
-            if (idx >= 0) currentPanel.value.widgets[idx] = { ...editWidgetForm.value };
+            let parent = editWidgetParent.value;
+            if (parent && !Array.isArray(parent.children)) {
+                const orig = (currentPanel.value.widgets || []).find(w => w.id === parent.id);
+                if (orig && Array.isArray(orig.children)) parent = orig;
+            }
+            if (parent && Array.isArray(parent.children)) {
+                const idx = parent.children.findIndex(w => w.id === editWidgetForm.value.id);
+                if (idx >= 0) parent.children[idx] = { ...editWidgetForm.value };
+                else parent.children.push({ ...editWidgetForm.value });
+            } else if (currentPanel.value.widgets) {
+                const idx = currentPanel.value.widgets.findIndex(w => w.id === editWidgetForm.value.id);
+                if (idx >= 0) currentPanel.value.widgets[idx] = { ...editWidgetForm.value };
+            }
             editWidgetForm.value = null;
-            savePanels();
+            editWidgetParent.value = null;
+            if (hadParent && parent) {
+                editWidget(parent, null);
+                editParentTab.value = parentTab;
+                if (widgetTab.value !== parentTab) widgetTab.value = parentTab;
+            } else {
+                savePanels();
+            }
         }
 
         function startDrag(e, w) {
@@ -1294,6 +1432,7 @@ function loadScript(src, version) {
             if (widgetMenuTarget.value && !e.target.closest('.widget-menu')) {
                 widgetMenuTarget.value = null;
                 widgetPanelSubmenu.value = null;
+                widgetGroupSubmenu.value = null;
             }
         }
 
@@ -1586,10 +1725,12 @@ onMounted(() => {
             widgetTypeComponent, addWidget, getWidgetFields, getWidgetRows, getWidgetTabs, getFieldOptions, fieldVisible,
             getMethodObj, getMethodName, setMethodField, itemLabel,
             editWidgetForm, widgetTab, widgetTabPos, editWidget, saveEditWidget, removeWidget,
+            editWidgetParent, groupAddTarget, addGroupChild, removeGroupChild, moveGroupChild,
+            groupChildrenList, startGroupChildAdd, closeEditor, moveGroupChildOut, confirmOutOfGroup,
             columnIdx, columnList, setColumns, addColumn, removeColumn, moveColumnUp, moveColumnDown, autoDetectColumns, columnFields,
             draggingWidget, startDrag, onDrag, stopDrag,
             resizingWidget, startResize, onResize, stopResize,
-            widgetMenuTarget, widgetPanelSubmenu, widgetConfirm, copyWidget, exportWidget, changeWidgetPanel, selectMoveTarget, confirmMoveWidget,
+            widgetMenuTarget, widgetPanelSubmenu, widgetGroupSubmenu, widgetConfirm, copyWidget, exportWidget, changeWidgetPanel, selectMoveTarget, confirmMoveWidget, moveWidgetToGroup, confirmMoveToGroup,
             showChangeObject, changeObjectGroups, openChangeObject, saveChangeObject,
             showSettingsPanel, settings, savePanels, toggleTheme, cleanupOrphanWidgets, resetAll,
             showExportDialog, exportMode, exportSelectedPanel, exportUsers, exportSelectedUser, loadExportUsers, doExport, doImport,
