@@ -32,7 +32,7 @@ const ValueWidget = {
                 <div class="widget-v-card__title">{{ widget.title || t('widget_value') }}</div>
                 <div class="widget-v-card__spacer"></div>
                 <div v-if="widget.object_info && infoValue" class="widget-v-card__info" style="padding:0;font-size:.75rem">
-                    <span v-if="widget.pre_info">{{ widget.pre_info }}</span>{{ infoValue }}<span v-if="widget.pos_info">{{ widget.pos_info }}</span>
+                    <span v-if="widget.pre_info">{{ widget.pre_info }}</span>{{ infoDisplay }}<span v-if="widget.pos_info">{{ widget.pos_info }}</span>
                 </div>
             </div>
             <div class="widget-v-card__value">
@@ -41,7 +41,7 @@ const ValueWidget = {
             </div>
         </div>`,
     data() {
-        return { value: null, timer: null, infoValue: '', infoTimer: null };
+        return { value: null, timer: null, infoValue: '', infoTimer: null, infoTick: 0, secTimer: null };
     },
     mounted() {
         this.loadValue();
@@ -49,12 +49,19 @@ const ValueWidget = {
         let prop = this.widget.property;
         if (obj && prop) this.timer = setInterval(() => this.loadValue(), 5000);
         if (this.widget.object_info) this.loadInfo();
+        this.secTimer = setInterval(() => { if (this.infoValue) this.infoTick++; }, 1000);
     },
     beforeUnmount() {
         if (this.timer) clearInterval(this.timer);
         if (this.infoTimer) clearInterval(this.infoTimer);
+        if (this.secTimer) clearInterval(this.secTimer);
     },
     computed: {
+        infoDisplay() {
+            if (!this.infoValue) return '';
+            void this.infoTick;
+            return dpInfoDisplay(this.infoValue);
+        },
         displayValue() {
             if (this.value === null) return '—';
             return this.value;

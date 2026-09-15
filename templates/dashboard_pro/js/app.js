@@ -6,6 +6,27 @@ function formatBytes(bytes) {
     return (bytes / 1048576).toFixed(1) + ' MB';
 }
 
+function dpFormatAgo(ts) {
+    const now = Math.floor(Date.now() / 1000);
+    let diff = now - ts;
+    if (diff < 0) diff = 0;
+    const s = diff % 60;
+    const m = Math.floor(diff / 60) % 60;
+    const h = Math.floor(diff / 3600) % 24;
+    const d = Math.floor(diff / 86400);
+    if (d > 0) return d + ' ' + __t('unit_day') + ' ' + h + ' ' + __t('unit_hour') + ' ' + __t('ago_suffix');
+    if (h > 0) return h + ' ' + __t('unit_hour') + ' ' + m + ' ' + __t('unit_min') + ' ' + __t('ago_suffix');
+    if (m > 0) return m + ' ' + __t('unit_min') + ' ' + s + ' ' + __t('unit_sec') + ' ' + __t('ago_suffix');
+    return s + ' ' + __t('unit_sec') + ' ' + __t('ago_suffix');
+}
+
+function dpInfoDisplay(val) {
+    if (val === '' || val === null || val === undefined) return '';
+    const n = Number(val);
+    if (!Number.isFinite(n) || n < 1000000000) return val;
+    return dpFormatAgo(n);
+}
+
 window.__dpWsCache = {};
 window.__dpWsLive = false;
 
@@ -767,7 +788,7 @@ const app = createApp({
             if (obj) loadIconProperties();
         });
         // Generic watcher for any object_* fields (alive, status, current, target, etc.)
-        const extraObjectKeys = ['object_alive', 'object_status', 'object_current', 'object_target'];
+        const extraObjectKeys = ['object_alive', 'object_status', 'object_current', 'object_target', 'object_level'];
         extraObjectKeys.forEach(key => {
             watch(() => editWidgetForm.value?.[key], async (obj) => {
                 if (!obj) { extraProperties.value[key] = []; return; }

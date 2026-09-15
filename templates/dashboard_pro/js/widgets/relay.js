@@ -48,23 +48,30 @@ const RelayWidget = {
                 </div>
             </div>
             <div v-if="widget.object_info && infoValue" class="widget-v-card__info">
-                <span v-if="widget.pre_info">{{ widget.pre_info }}</span>{{ infoValue }}<span v-if="widget.pos_info">{{ widget.pos_info }}</span>
+                <span v-if="widget.pre_info">{{ widget.pre_info }}</span>{{ infoDisplay }}<span v-if="widget.pos_info">{{ widget.pos_info }}</span>
             </div>
             <div v-if="loading" class="widget-v-card__loading"><div class="v-progress-linear v-progress-linear--active"><div class="v-progress-linear__determinate" style="width:100%"></div></div></div>
         </div>`,
     data() {
-        return { isOn: false, loading: false, infoValue: '', timer: null, infoTimer: null, isAlive: true };
+        return { isOn: false, loading: false, infoValue: '', timer: null, infoTimer: null, isAlive: true, infoTick: 0, secTimer: null };
     },
     mounted() {
         this.poll();
         this.timer = setInterval(() => this.poll(), 3000);
         if (this.widget.object_info) this.loadInfo();
+        this.secTimer = setInterval(() => { if (this.infoValue) this.infoTick++; }, 1000);
     },
     beforeUnmount() {
         if (this.timer) clearInterval(this.timer);
         if (this.infoTimer) clearInterval(this.infoTimer);
+        if (this.secTimer) clearInterval(this.secTimer);
     },
     computed: {
+        infoDisplay() {
+            if (!this.infoValue) return '';
+            void this.infoTick;
+            return dpInfoDisplay(this.infoValue);
+        },
         aliveDisabled() {
             return this.widget.object_alive && this.widget.property_alive && this.isAlive === false;
         },

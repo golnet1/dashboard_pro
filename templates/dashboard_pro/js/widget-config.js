@@ -12,7 +12,7 @@
         'keypad', 'roominfo', 'slideshow', 'sliderbuttons', 'thermostat', 'trend'
     ];
     for (var i = 0; i < widgets.length; i++) {
-        document.write('<script src="js/widgets/' + widgets[i] + '.js?v=11"><\/script>');
+        document.write('<script src="js/widgets/' + widgets[i] + '.js?v=13"><\/script>');
     }
 })();
 
