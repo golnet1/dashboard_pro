@@ -52,6 +52,17 @@ $frontend = array(
     'admin' => 'Admin',
     'widget_editor' => 'Widget editor',
     'widget_editor_empty' => 'Section under construction.',
+    'widget_editor_list' => 'Installed widgets',
+    'widget_editor_add' => 'Add widget',
+    'widget_editor_export' => 'Export',
+    'widget_editor_export_desc' => 'Save widget as ZIP archive (JSON + JS)',
+    'widget_editor_delete' => 'Delete',
+    'widget_editor_delete_confirm' => 'Delete widget',
+    'widget_editor_installed' => 'Widget installed: ',
+    'widget_editor_install_error' => 'Widget install error:',
+    'widget_editor_bad_zip' => 'Please select a file in ZIP format',
+    'widget_editor_in_use' => 'Widget is in use in widgets on dashboards. Delete them first. Instances found',
+    'widget_editor_exists' => 'A widget of this type is already installed',
     'about' => 'About',
     'logout' => 'Logout',
 
@@ -307,6 +318,10 @@ $frontend = array(
     // About
     'version' => 'Version',
     'app_desc' => 'Dashboard for MajorDoMo',
+    'about_github' => 'Project',
+    'about_donate' => 'Support development of the module',
+    'about_author' => 'Author',
+    'about_author_name' => 'Oleg Malov',
 
     // Change object dialog
     'old_object' => 'Old object',

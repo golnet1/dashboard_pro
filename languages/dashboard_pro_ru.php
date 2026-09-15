@@ -52,6 +52,17 @@ $frontend = array(
     'admin' => 'Администратор',
     'widget_editor' => 'Редактор виджетов',
     'widget_editor_empty' => 'Раздел в разработке.',
+    'widget_editor_list' => 'Установленные виджеты',
+    'widget_editor_add' => 'Добавить виджет',
+    'widget_editor_export' => 'Экспорт',
+    'widget_editor_export_desc' => 'Сохранить виджет в архив ZIP (JSON + JS)',
+    'widget_editor_delete' => 'Удалить',
+    'widget_editor_delete_confirm' => 'Удалить виджет',
+    'widget_editor_installed' => 'Виджет установлен: ',
+    'widget_editor_install_error' => 'Ошибка установки виджета:',
+    'widget_editor_bad_zip' => 'Выберите файл в формате ZIP',
+    'widget_editor_in_use' => 'Виджет используется в виджетах на дашбордах. Сначала удалите их. Найдено экземпляров',
+    'widget_editor_exists' => 'Виджет такого типа уже установлен',
     'about' => 'О программе',
     'logout' => 'Выход',
 
@@ -307,6 +318,10 @@ $frontend = array(
     // About
     'version' => 'Версия',
     'app_desc' => 'Панель управления для MajorDoMo',
+    'about_github' => 'Проект',
+    'about_donate' => 'Поддержать разработку и развитие модуля',
+    'about_author' => 'Автор',
+    'about_author_name' => 'Олег Малов',
 
     // Change object dialog
     'old_object' => 'Старый объект',

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Pro</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/app.css?v=25">
+    <link rel="stylesheet" href="css/app.css?v=26">
     <script src="js/lib/vue.global.prod.js"></script>
 </head>
 <body>
@@ -483,7 +483,38 @@
                                 <button @click="showWidgetEditorPanel = false" style="background:none;border:none;color:rgba(255,255,255,.7);cursor:pointer;font-size:1.2rem;padding:4px 8px;margin:4px 8px"><i class="fas fa-arrow-left"></i></button>
                             </div>
                             <div class="v-subheader theme--dark" style="margin:8px 16px">{{ t('widget_editor') }}</div>
-                            <div class="v-card v-sheet theme--dark" style="background:rgba(48,48,48,var(--card-alpha,1));border-color:rgba(48,48,48,.56);margin:0 16px;padding:16px;color:var(--text-secondary)">{{ t('widget_editor_empty') }}</div>
+                            <div class="widget-editor">
+                                <div class="widget-editor__toolbar">
+                                    <div class="v-subheader theme--dark" style="margin:8px 0;padding:0">{{ t('widget_editor_list') }} ({{ widgetList.length }})</div>
+                                    <div style="flex:1"></div>
+                                    <button type="button" class="btn-primary widget-editor__add" @click="pickWidgetZip">
+                                        <i class="fas fa-plus"></i> {{ t('widget_editor_add') }}
+                                    </button>
+                                </div>
+                                <div class="widget-editor__list" v-if="widgetList.length">
+                                    <div v-for="(w, i) in widgetList" :key="w.type" class="widget-editor__item">
+                                        <div class="widget-editor__move">
+                                            <button @click="moveWidgetDef(i, -1)" :disabled="i === 0" :title="t('up')"><i class="fas fa-chevron-up"></i></button>
+                                            <button @click="moveWidgetDef(i, 1)" :disabled="i === widgetList.length - 1" :title="t('down')"><i class="fas fa-chevron-down"></i></button>
+                                        </div>
+                                        <i :class="w.icon || 'fas fa-puzzle-piece'" class="widget-editor__item-icon"></i>
+                                        <div class="widget-editor__item-info">
+                                            <div class="widget-editor__item-title">{{ t('widget_' + w.type) }}</div>
+                                            <div class="widget-editor__item-type">{{ w.type }}</div>
+                                        </div>
+                                        <button type="button" class="widget-editor__btn" @click="exportWidgetZip(w)" :title="t('widget_editor_export_desc')">
+                                            <i class="fas fa-file-export"></i> {{ t('widget_editor_export') }}
+                                        </button>
+                                        <button type="button" class="widget-editor__btn widget-editor__btn--danger" @click="deleteWidgetDef(w)">
+                                            <i class="fas fa-trash"></i> {{ t('widget_editor_delete') }}
+                                        </button>
+                                    </div>
+                                </div>
+                                <div v-else class="empty-state">
+                                    <i class="fas fa-puzzle-piece"></i>
+                                    <p>{{ t('widget_editor_empty') }}</p>
+                                </div>
+                            </div>
 						</div>
                         <div v-else-if="!currentPanel" class="home-panels">
                             <div class="home-panels__grid">
@@ -1383,6 +1414,11 @@
                     <h3 style="margin-bottom:.3rem">Dashboard Pro</h3>
                     <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 1.0</p>
                     <p style="color:var(--text-secondary);font-size:.8rem">{{ t('app_desc') }}</p>
+                    <div class="about-links" style="margin-top:1rem;font-size:.85rem;color:var(--text-secondary);line-height:1.8">
+                        <div>{{ t('about_github') }}: <a href="https://github.com/golnet1/dashboard_pro" target="_blank" rel="noopener">Github</a></div>
+                        <div>{{ t('about_donate') }}:<br>Yandex: <a href="https://yoomoney.ru/to/4100130728468" target="_blank" rel="noopener">4100130728468</a></div>
+                        <div>{{ t('about_author') }}: <a href="https://t.me/golnet96" target="_blank" rel="noopener">{{ t('about_author_name') }}</a></div>
+                    </div>
                 </div>
                 <div class="modal-footer" style="justify-content:center">
                     <button class="btn-primary" @click="showAbout = false">{{ t('close') }}</button>
@@ -1395,6 +1431,6 @@
     <script src="js/auth.js?v=9"></script>
     <script src="js/sidebar.js?v=10"></script>
 <script src="js/widget-config.js?v=11"></script>
-<script src="js/app.js?v=38"></script>
+<script src="js/app.js?v=41"></script>
 </body>
 </html>

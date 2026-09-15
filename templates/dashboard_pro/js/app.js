@@ -62,6 +62,7 @@ function wsWidgetPropKeys(w) {
 }
 
 const widgetDefs = ref([]);
+const widgetList = ref([]);
 
 const translations = ref({});
 window.__t = function(text) { return translations.value[text] || text; };
@@ -424,21 +425,25 @@ function loadScript(src, version) {
             });
         }
 
+        async function loadWidgetDefs() {
+            const widgets = await dpAPI('widgets');
+            if (!widgets || !widgets.items) return;
+            widgetDefs.value = widgets.items.map(w => ({
+                type: w.TYPE, icon: w.ICON, title: w.TITLE, desc: w.DESCRIPTION, file: w.FILE, priority: w.PRIORITY
+            }));
+            widgetList.value = [...widgetDefs.value].sort((a, b) => (a.priority || 0) - (b.priority || 0));
+            for (const w of widgets.items) {
+                if (!w.FILE) continue;
+                await loadScript(w.FILE, 14);
+            }
+            widgetDefs.value.forEach(d => registerWidgetComponent(d.type));
+        }
+
         async function loadData() {
             loading.value = true;
             try {
                 await loadTranslations();
-                const widgets = await dpAPI('widgets');
-                if (widgets && widgets.items) {
-                    widgetDefs.value = widgets.items.map(w => ({
-                        type: w.TYPE, icon: w.ICON, title: w.TITLE, desc: w.DESCRIPTION, file: w.FILE, priority: w.PRIORITY
-                    }));
-                    for (const w of widgets.items) {
-                        if (!w.FILE) continue;
-                        await loadScript(w.FILE, 14);
-                    }
-                    widgetDefs.value.forEach(d => registerWidgetComponent(d.type));
-                }
+                await loadWidgetDefs();
                 const data = await dpAPI('panels');
                 if (data.error) return;
                 panels.value = Array.isArray(data) ? data : (data.panels || []);
@@ -1464,6 +1469,98 @@ function loadScript(src, version) {
             }
         }
 
+        function base64ToBlob(b64, mime) {
+            const bin = atob(b64);
+            const bytes = new Uint8Array(bin.length);
+            for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+            return new Blob([bytes], { type: mime || 'application/octet-stream' });
+        }
+
+        async function exportWidgetZip(w) {
+            try {
+                const res = await dpAPI('widgetExport?type=' + encodeURIComponent(w.type));
+                if (res.error) { alert(t('error_label') + ' ' + res.error); return; }
+                if (!res.zip) { alert(t('error_label') + ' empty archive'); return; }
+                const blob = base64ToBlob(res.zip, 'application/zip');
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = res.name || (w.type + '.zip');
+                a.click();
+                URL.revokeObjectURL(url);
+            } catch (e) {
+                alert(t('error_label') + (e.message || e));
+            }
+        }
+
+        function pickWidgetZip() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.zip';
+            input.onchange = (e) => {
+                const file = e.target.files && e.target.files[0];
+                if (!file) return;
+                if (!/\.zip$/i.test(file.name)) { alert(t('widget_editor_bad_zip')); return; }
+                const reader = new FileReader();
+                reader.onload = async () => {
+                    const b64 = String(reader.result || '').split(',')[1] || '';
+                    if (!b64) { alert(t('widget_editor_bad_zip')); return; }
+                    try {
+                        const res = await dpAPI('widgetInstall', { method: 'POST', body: JSON.stringify({ zip: b64 }) });
+                        if (res.error) {
+                            if (res.error === 'widget_exists') {
+                                alert(t('widget_editor_exists') + ': ' + res.type);
+                            } else {
+                                alert(t('widget_editor_install_error') + '\n' + res.error);
+                            }
+                        } else {
+                            alert(t('widget_editor_installed') + (res.type || file.name));
+                            await loadWidgetDefs();
+                        }
+                    } catch (err) {
+                        alert(t('error_label') + (err.message || err));
+                    }
+                };
+                reader.onerror = () => alert(t('error_label') + 'read');
+                reader.readAsDataURL(file);
+            };
+            input.click();
+        }
+
+        async function deleteWidgetDef(w) {
+            if (!confirm(t('widget_editor_delete_confirm') + ' «' + (w.title || w.type) + '»?')) return;
+            try {
+                const res = await dpAPI('widgetDelete', { method: 'POST', body: JSON.stringify({ type: w.type }) });
+                if (res.error) {
+                    if (res.error === 'widget_in_use') {
+                        alert(t('widget_editor_in_use') + ': ' + res.count);
+                    } else {
+                        alert(t('error_label') + ' ' + res.error);
+                    }
+                    return;
+                }
+                await loadWidgetDefs();
+            } catch (e) {
+                alert(t('error_label') + (e.message || e));
+            }
+        }
+
+        async function moveWidgetDef(idx, dir) {
+            const newIdx = idx + dir;
+            if (newIdx < 0 || newIdx >= widgetList.value.length) return;
+            const arr = widgetList.value;
+            [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
+            const order = arr.map(w => w.type);
+            try {
+                const res = await dpAPI('widgetReorder', { method: 'POST', body: JSON.stringify({ order }) });
+                if (res.error) { alert(t('error_label') + ' ' + res.error); await loadWidgetDefs(); return; }
+                widgetDefs.value = arr.map(w => ({ ...w }));
+            } catch (e) {
+                alert(t('error_label') + (e.message || e));
+                await loadWidgetDefs();
+            }
+        }
+
         window.__closeSettings = () => { showSettingsPanel.value = false; };
 
         watch(currentPanel, () => wsSubscribeProperties(), { deep: true });
@@ -1502,6 +1599,7 @@ onMounted(() => {
             isAdmin, toggleEditMode, wsConnected, wsTooltip, wsStatus, wsPulse, wsBytesSent, wsBytesReceived, wsRev, user, userMenuOpen, sidebarMini, toggleSidebar, expandedGroups, childPanels, toggleGroup, forceRefresh, formatBytes,
             showNotifications, notifications, unreadCount, checkNotifications, markNotificationsRead,
             chatOpen, chatMessages, chatText, chatLoading, loadChat, sendChat, toggleChat, formatTime,
+            widgetList, moveWidgetDef, exportWidgetZip, deleteWidgetDef, pickWidgetZip,
             t
         };
     }

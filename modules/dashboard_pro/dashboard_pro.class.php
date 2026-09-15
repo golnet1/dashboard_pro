@@ -427,7 +427,7 @@ class dashboard_pro extends module
             $exists = SQLSelectOne("SELECT ID FROM dashboard_widgets WHERE TYPE LIKE '" . DBSafe($type) . "'");
             if ($exists) {
                 $zip->close(); @unlink($tmpFile);
-                return ['error' => 'widget "' . $type . '" is already installed'];
+                return ['error' => 'widget_exists', 'type' => $type];
             }
 
             $descRaw = $zip->getFromName($jsonName);
@@ -504,10 +504,15 @@ class dashboard_pro extends module
             if ($type === '') return ['error' => 'type is required'];
             if (!preg_match('/^[a-z0-9_\-]{1,40}$/i', $type)) return ['error' => 'invalid widget type'];
 
-            $w = SQLSelectOne("SELECT ID, FILE FROM dashboard_widgets WHERE TYPE LIKE '" . DBSafe($type) . "'");
+            $w = SQLSelectOne("SELECT ID, TYPE, FILE FROM dashboard_widgets WHERE TYPE LIKE '" . DBSafe($type) . "'");
             if (!$w) return ['error' => 'widget "' . $type . '" not found'];
 
-            SQLDelete('dashboard_widgets', 'TYPE', $w['ID']);
+            $usage = $this->countWidgetUsage($type);
+            if ($usage > 0) {
+                return ['error' => 'widget_in_use', 'type' => $type, 'count' => $usage];
+            }
+
+            SQLExec("DELETE FROM dashboard_widgets WHERE ID=" . (int)$w['ID']);
 
             if (!empty($w['FILE'])) {
                 $base = basename($w['FILE']);
@@ -539,6 +544,45 @@ class dashboard_pro extends module
             }
 
             return ['success' => true];
+        }
+
+        if ($params['request'][0] == 'widgetExport') {
+            $this->ensureWidgetsTable();
+            $type = trim((string)($params['type'] ?? ''));
+            if ($type === '') return ['error' => 'type is required'];
+            if (!preg_match('/^[a-z0-9_\-]{1,40}$/i', $type)) return ['error' => 'invalid widget type "' . $type . '"'];
+
+            $w = SQLSelectOne("SELECT TYPE, ICON, TITLE, DESCRIPTION, PRIORITY, FILE FROM dashboard_widgets WHERE TYPE LIKE '" . DBSafe($type) . "'");
+            if (!$w) return ['error' => 'widget "' . $type . '" not found'];
+
+            $file = trim((string)($w['FILE'] ?? ''));
+            if ($file === '' || $file === null) $file = 'js/widgets/' . $type . '.js';
+            $base = basename($file);
+            if (!preg_match('/^[a-z0-9_\-]{1,40}\.js$/i', $base)) return ['error' => 'invalid widget file name "' . $file . '"'];
+
+            $jsPath = DIR_TEMPLATES . $this->name . '/js/widgets/' . $base;
+            $js = is_file($jsPath) ? file_get_contents($jsPath) : '';
+            if ($js === false || trim($js) === '') {
+                return ['error' => 'widget file "' . $base . '" not found or empty'];
+            }
+
+            $json = json_encode($w, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            if ($json === false) return ['error' => 'cannot encode widget description "' . $base . '"'];
+
+            $tmp = tempnam(sys_get_temp_dir(), 'dpw');
+            if ($tmp === false) return ['error' => 'cannot create temp file for archive'];
+            $zip = new ZipArchive();
+            if ($zip->open($tmp, ZipArchive::OVERWRITE) !== true) {
+                @unlink($tmp);
+                return ['error' => 'cannot create zip archive'];
+            }
+            $zip->addFromString($type . '.json', $json);
+            $zip->addFromString($type . '.js', $js);
+            $zip->close();
+            $data = file_get_contents($tmp);
+            @unlink($tmp);
+            if ($data === false || $data === '') return ['error' => 'cannot read zip archive'];
+            return ['success' => true, 'zip' => base64_encode($data), 'name' => $type . '.zip'];
         }
 
         if ($params['request'][0] == 'properties') {
@@ -721,6 +765,44 @@ class dashboard_pro extends module
         } else {
             sg('dashboard_pro_panels', json_encode($panels));
         }
+    }
+
+    function countWidgetUsage($type)
+    {
+        $count = 0;
+        $collections = array();
+
+        $global = gg('dashboard_pro_panels');
+        if ($global !== '' && $global !== false) $collections[] = $global;
+
+        $class = SQLSelectOne("SELECT ID FROM classes WHERE TITLE='DashBoard_Pro'");
+        if ($class && $class['ID']) {
+            $objs = SQLSelect("SELECT TITLE FROM objects WHERE CLASS_ID=" . (int)$class['ID']);
+            if (is_array($objs)) {
+                foreach ($objs as $obj) {
+                    $title = trim((string)($obj['TITLE'] ?? ''));
+                    if (preg_match('/^DashBoard_(.+)$/i', $title, $m)) {
+                        $login = trim($m[1]);
+                        if ($login === '') continue;
+                        $data = $this->loadShardedProperty($login, 'panels');
+                        if ($data !== null && $data !== '') $collections[] = $data;
+                    }
+                }
+            }
+        }
+
+        foreach ($collections as $json) {
+            $panels = json_decode($json, true);
+            if (!is_array($panels)) continue;
+            foreach ($panels as $panel) {
+                if (!is_array($panel) || empty($panel['widgets']) || !is_array($panel['widgets'])) continue;
+                foreach ($panel['widgets'] as $w) {
+                    if (is_array($w) && isset($w['type']) && $w['type'] === $type) $count++;
+                }
+            }
+        }
+
+        return $count;
     }
 
     function loadDashboardSettings()
