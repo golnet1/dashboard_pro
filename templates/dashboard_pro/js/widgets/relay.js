@@ -100,12 +100,12 @@ const RelayWidget = {
             let prop = this.widget.property;
             if (this.widget.object_switch) {
                 const p = this.widget.object_switch.split('/');
-                await dpAPI('method/' + p[0] + (p[1] ? '?' + p[1] : ''));
+                await dpAPI('method/' + p[0] + (p[1] ? '/' + p[1] : ''));
             } else if (this.widget.object_on && this.widget.object_off) {
                 const pon = this.widget.object_on.split('/');
                 const poff = this.widget.object_off.split('/');
                 const p = next ? pon : poff;
-                await dpAPI('method/' + p[0] + (p[1] ? '?' + p[1] : ''));
+                await dpAPI('method/' + p[0] + (p[1] ? '/' + p[1] : ''));
             } else {
                 await dpAPI('setProperty?' + new URLSearchParams({
                     object: obj, property: prop || 'status', value: next ? '1' : '0'

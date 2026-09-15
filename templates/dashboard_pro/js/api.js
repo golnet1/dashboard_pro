@@ -19,9 +19,20 @@ function readProperty(path, opts) {
     const property = (params.get('property') || '').trim();
     const key = getPropertyCacheKey(object, property);
     if (!key) return readKv(path, opts);
-    const entry = window.__dpWsCache[key];
-    if (entry && entry.seeded) {
-        return Promise.resolve({ value: entry.value });
+    const cached = window.__dpWsCache[key];
+    if (cached && cached.seeded) {
+        return Promise.resolve({ value: cached.value });
+    }
+    if (window.__dpWsLive) {
+        const base = (object || '').toLowerCase();
+        const baseEntry = window.__dpWsCache[base];
+        if (baseEntry && baseEntry.seeded) {
+            return Promise.resolve({ value: baseEntry.value });
+        }
+        if (cached) {
+            return Promise.resolve({ value: cached.value });
+        }
+        return Promise.resolve({ value: undefined });
     }
     return dpHttp(path, opts).then(res => {
         if (res && !res.error && res.value !== undefined) {
@@ -85,6 +96,45 @@ function wsApplyWrite(path, res) {
 }
 
 const dpAPI = (path, opts) => {
+    if (typeof path === 'string' && path.startsWith('setProperty')) {
+        const qsIdx = path.indexOf('?');
+        const params = new URLSearchParams(qsIdx >= 0 ? path.slice(qsIdx + 1) : '');
+        const object = (params.get('object') || '').trim();
+        const property = (params.get('property') || '').trim();
+        const value = params.get('value');
+        if (object && property && value !== null) {
+            return fetch('/api.php/data/' + encodeURIComponent(object) + '.' + encodeURIComponent(property), {
+                ...opts,
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...opts?.headers },
+                body: JSON.stringify({ data: value })
+            }).then(r => r.json())
+              .then(d => {
+                  if (d && !d.error && window.__dpWsCache) {
+                      window.__dpWsCache[(object + '.' + property).toLowerCase()] = { seeded: true, value: value };
+                  }
+                  return d;
+              })
+              .catch(e => ({ error: 'setProperty failed' }));
+        }
+    }
+    if (typeof path === 'string' && path.startsWith('method/')) {
+        const rest = path.slice('method/'.length);
+        const qIdx = rest.indexOf('?');
+        const base = qIdx >= 0 ? rest.slice(0, qIdx) : rest;
+        const query = qIdx >= 0 ? rest.slice(qIdx + 1) : '';
+        const parts = base.includes('/') ? base.split('/') : [base];
+        const object = (parts[0] || '').trim();
+        const methodName = parts[1] ? object + '.' + parts[1] : (parts[0] || '');
+        if (!methodName) return Promise.resolve({ error: 'invalid method' });
+        return fetch('/api.php/method/' + encodeURIComponent(methodName) + (query ? '?' + query : ''))
+            .then(r => r.json())
+            .then(d => {
+                if (d && !d.error && object) wsInvalidateObject(object);
+                return d;
+            })
+            .catch(e => ({ error: 'method failed' }));
+    }
     if (window.__dpWsLive && typeof path === 'string') {
         if (path.startsWith('getProperty')) return readProperty(path, opts);
         if (path.startsWith('getProperties') || path.startsWith('history')) return readKv(path, opts);

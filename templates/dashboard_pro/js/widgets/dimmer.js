@@ -93,7 +93,7 @@ const DimmerWidget = {
             try {
                 if (this.widget.object_switch) {
                     const p = this.widget.object_switch.split('/');
-                    await dpAPI('method/' + p[0] + (p[1] ? '?' + p[1] : ''));
+                    await dpAPI('method/' + p[0] + (p[1] ? '/' + p[1] : ''));
                 } else {
                     await dpAPI('setProperty?' + new URLSearchParams({
                         object: obj, property: this.widget.property || 'status', value: next ? '1' : '0'

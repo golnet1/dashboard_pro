@@ -1107,9 +1107,6 @@ const app = createApp({
             root.style.setProperty('--widget-title-size', (1.49 + s.titleSize * 0.005) + 'rem');
             root.style.setProperty('--widget-subtitle-size', (1 + s.subtitleSize * 0.005) + 'rem');
             root.style.setProperty('--widget-size', (65 + s.widgetSize * 0.5) + 'px');
-
-            // debug
-            if (s.debug) console.log('[Dashboard Pro] settings applied', s);
         }
 
         function toggleTheme() {
@@ -1358,8 +1355,6 @@ const app = createApp({
             };
             wsSocket.onmessage = function(msg) {
                 wsBytesReceived.value += typeof msg.data === 'string' ? msg.data.length : (msg.data ? (msg.data.size || msg.data.byteLength || 0) : 0);
-                wsPulse.value = true;
-                setTimeout(() => { wsPulse.value = false; }, 400);
                 try {
                     const data = JSON.parse(msg.data);
                     if (data.action === 'status') {
@@ -1370,6 +1365,8 @@ const app = createApp({
                         return;
                     }
                     if (data.action === 'properties' && data.data) {
+                        wsPulse.value = true;
+                        setTimeout(() => { wsPulse.value = false; }, 400);
                         let updates;
                         try { updates = JSON.parse(data.data); } catch (e) { updates = null; }
                         if (Array.isArray(updates)) {
@@ -1383,6 +1380,8 @@ const app = createApp({
                         return;
                     }
                     if (data.action === 'events' && data.data) {
+                        wsPulse.value = true;
+                        setTimeout(() => { wsPulse.value = false; }, 400);
                         let eventData = data.data;
                         try { eventData = JSON.parse(data.data); } catch (e) {}
                         const eInfo = eventData && eventData.EVENT_DATA ? eventData.EVENT_DATA : eventData;
@@ -1415,12 +1414,6 @@ const app = createApp({
                                 });
                                 unreadCount.value = notifications.value.length;
                             }
-                        } else if (cmd.COMMAND === 'UpdateData' && authenticated.value) {
-                            const curName = currentPanel.value?.name;
-                            loadData().then(() => {
-                                const updated = panels.value.find(p => p.name === curName);
-                                if (updated) currentPanel.value = updated;
-                            });
                         }
                         return;
                     }

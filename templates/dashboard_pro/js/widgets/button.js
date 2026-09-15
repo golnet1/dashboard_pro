@@ -56,7 +56,7 @@ const ButtonWidget = {
                 if (this.widget.method) {
                     const m = this.widget.method;
                     const p = m.includes('/') ? m.split('/') : [m, ''];
-                    await dpAPI('method/' + p[0] + (p[1] ? '?' + p[1] : ''));
+                    await dpAPI('method/' + p[0] + (p[1] ? '/' + p[1] : ''));
                 } else if (this.widget.object && this.widget.value !== undefined) {
                     const params = { object: this.widget.object, value: this.widget.value };
                     if (this.widget.property) params.property = this.widget.property;
