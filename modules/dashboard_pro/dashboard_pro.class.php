@@ -363,6 +363,184 @@ class dashboard_pro extends module
             return ['items' => $widgets];
         }
 
+        if ($params['request'][0] == 'widgetInstall') {
+            $this->ensureWidgetsTable();
+
+            $method = $_SERVER['REQUEST_METHOD'];
+            if ($method != 'POST') return ['error' => 'POST required'];
+
+            $input = json_decode(file_get_contents('php://input'), true);
+            if (!is_array($input)) $input = array();
+
+            $zipB64 = $input['zip'] ?? '';
+            if ($zipB64 === '' || $zipB64 === null) return ['error' => 'zip file (base64) is required'];
+
+            $zipData = base64_decode($zipB64);
+            if ($zipData === false || $zipData === '') return ['error' => 'invalid zip file data'];
+
+            $tmpDir = DIR_TEMPLATES . $this->name . '/tmp';
+            if (!is_dir($tmpDir)) @mkdir($tmpDir, 0755, true);
+            if (!is_dir($tmpDir)) return ['error' => 'cannot create temp directory'];
+
+            $tmpFile = $tmpDir . '/widget_' . uniqid() . '.zip';
+            file_put_contents($tmpFile, $zipData);
+
+            $zip = new ZipArchive();
+            $res = $zip->open($tmpFile);
+            if ($res !== true) {
+                @unlink($tmpFile);
+                return ['error' => 'cannot open zip archive'];
+            }
+
+            $jsonFiles = array();
+            $jsFiles = array();
+            for ($i = 0; $i < $zip->numFiles; $i++) {
+                $name = $zip->getNameIndex($i);
+                if (substr($name, -1) == '/' || strpos($name, '__MACOSX') !== false) continue;
+                $base = basename($name);
+                $ext = strtolower(pathinfo($base, PATHINFO_EXTENSION));
+                if ($ext == 'json') $jsonFiles[] = $name;
+                if ($ext == 'js') $jsFiles[] = $name;
+            }
+
+            if (count($jsonFiles) != 1) {
+                $zip->close(); @unlink($tmpFile);
+                return ['error' => 'archive must contain exactly one .json description file, found ' . count($jsonFiles)];
+            }
+            if (count($jsFiles) != 1) {
+                $zip->close(); @unlink($tmpFile);
+                return ['error' => 'archive must contain exactly one .js widget file, found ' . count($jsFiles)];
+            }
+
+            $jsonName = $jsonFiles[0];
+            $jsName = $jsFiles[0];
+            $type = basename($jsonName, '.json');
+            if ($type !== basename($jsName, '.js')) {
+                $zip->close(); @unlink($tmpFile);
+                return ['error' => 'description file "' . $jsonName . '" and widget file "' . $jsName . '" must have the same base name (TYPE)'];
+            }
+            if (!preg_match('/^[a-z0-9_\-]{1,40}$/i', $type)) {
+                $zip->close(); @unlink($tmpFile);
+                return ['error' => 'invalid widget type "' . $type . '" (only letters, digits, _ and - allowed)'];
+            }
+
+            $exists = SQLSelectOne("SELECT ID FROM dashboard_widgets WHERE TYPE LIKE '" . DBSafe($type) . "'");
+            if ($exists) {
+                $zip->close(); @unlink($tmpFile);
+                return ['error' => 'widget "' . $type . '" is already installed'];
+            }
+
+            $descRaw = $zip->getFromName($jsonName);
+            if ($descRaw === false || trim($descRaw) === '') {
+                $zip->close(); @unlink($tmpFile);
+                return ['error' => 'description file "' . $jsonName . '" is empty'];
+            }
+            $desc = json_decode($descRaw, true);
+            if (!is_array($desc)) {
+                $zip->close(); @unlink($tmpFile);
+                return ['error' => 'description file "' . $jsonName . '" contains invalid JSON: ' . json_last_error_msg()];
+            }
+
+            $descType = '';
+            foreach (array('TYPE', 'type') as $k) { if (!empty($desc[$k])) { $descType = $desc[$k]; break; } }
+            if ($descType !== $type) {
+                $zip->close(); @unlink($tmpFile);
+                return ['error' => 'description file "' . $jsonName . '" TYPE (' . $descType . ') does not match file name "' . $type . '"'];
+            }
+
+            $jsContent = $zip->getFromName($jsName);
+            if ($jsContent === false || trim($jsContent) === '') {
+                $zip->close(); @unlink($tmpFile);
+                return ['error' => 'widget file "' . $jsName . '" is empty'];
+            }
+            if (stripos($jsContent, 'DpWidgets') === false) {
+                $zip->close(); @unlink($tmpFile);
+                return ['error' => 'widget file "' . $jsName . '" does not look like a widget (no DpWidgets registration found)'];
+            }
+
+            $title = '';
+            foreach (array('TITLE', 'title') as $k) { if (!empty($desc[$k])) { $title = $desc[$k]; break; } }
+            $icon = '';
+            foreach (array('ICON', 'icon') as $k) { if (!empty($desc[$k])) { $icon = $desc[$k]; break; } }
+            $description = '';
+            foreach (array('DESCRIPTION', 'description', 'desc') as $k) { if (!empty($desc[$k])) { $description = $desc[$k]; break; } }
+
+            $targetDir = DIR_TEMPLATES . $this->name . '/js/widgets';
+            if (!is_dir($targetDir)) @mkdir($targetDir, 0755, true);
+            if (!is_dir($targetDir)) {
+                $zip->close(); @unlink($tmpFile);
+                return ['error' => 'cannot create widgets directory'];
+            }
+            file_put_contents($targetDir . '/' . $type . '.js', $jsContent);
+
+            $zip->close();
+            @unlink($tmpFile);
+
+            $priority = 0;
+            $mx = SQLSelectOne("SELECT MAX(PRIORITY) as MX FROM dashboard_widgets");
+            if (isset($mx['MX']) && $mx['MX'] !== null) $priority = (int)$mx['MX'] + 1;
+
+            $rec = array(
+                'TYPE' => $type,
+                'ICON' => $icon,
+                'TITLE' => $title,
+                'DESCRIPTION' => $description,
+                'PRIORITY' => $priority,
+                'FILE' => 'js/widgets/' . $type . '.js'
+            );
+            SQLInsert('dashboard_widgets', $rec);
+
+            return ['success' => true, 'type' => $type];
+        }
+
+        if ($params['request'][0] == 'widgetDelete') {
+            $this->ensureWidgetsTable();
+            $method = $_SERVER['REQUEST_METHOD'];
+            if ($method != 'POST') return ['error' => 'POST required'];
+
+            $input = json_decode(file_get_contents('php://input'), true);
+            if (!is_array($input)) $input = array();
+            $type = trim($input['type'] ?? '');
+            if ($type === '') return ['error' => 'type is required'];
+            if (!preg_match('/^[a-z0-9_\-]{1,40}$/i', $type)) return ['error' => 'invalid widget type'];
+
+            $w = SQLSelectOne("SELECT ID, FILE FROM dashboard_widgets WHERE TYPE LIKE '" . DBSafe($type) . "'");
+            if (!$w) return ['error' => 'widget "' . $type . '" not found'];
+
+            SQLDelete('dashboard_widgets', 'TYPE', $w['ID']);
+
+            if (!empty($w['FILE'])) {
+                $base = basename($w['FILE']);
+                if (preg_match('/^[a-z0-9_\-]{1,40}\.js$/i', $base)) {
+                    $target = DIR_TEMPLATES . $this->name . '/js/widgets/' . $base;
+                    if (is_file($target)) @unlink($target);
+                }
+            }
+
+            return ['success' => true, 'type' => $type];
+        }
+
+        if ($params['request'][0] == 'widgetReorder') {
+            $this->ensureWidgetsTable();
+            $method = $_SERVER['REQUEST_METHOD'];
+            if ($method != 'POST') return ['error' => 'POST required'];
+
+            $input = json_decode(file_get_contents('php://input'), true);
+            if (!is_array($input)) $input = array();
+            $order = $input['order'] ?? array();
+            if (!is_array($order) || !count($order)) return ['error' => 'order array is required'];
+
+            $priority = 0;
+            foreach ($order as $type) {
+                $type = trim((string)$type);
+                if (!preg_match('/^[a-z0-9_\-]{1,40}$/i', $type)) continue;
+                SQLExec("UPDATE dashboard_widgets SET PRIORITY=$priority WHERE TYPE LIKE '" . DBSafe($type) . "'");
+                $priority++;
+            }
+
+            return ['success' => true];
+        }
+
         if ($params['request'][0] == 'properties') {
             $object_id = $params['object_id'] ?? 0;
             if (!$object_id) return ['error' => 'object_id required'];

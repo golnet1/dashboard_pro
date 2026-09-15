@@ -50,6 +50,8 @@ $frontend = array(
     'save' => 'Save',
     'user' => 'User',
     'admin' => 'Admin',
+    'widget_editor' => 'Widget editor',
+    'widget_editor_empty' => 'Section under construction.',
     'about' => 'About',
     'logout' => 'Logout',
 
