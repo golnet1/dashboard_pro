@@ -382,7 +382,7 @@ const app = createApp({
             if (wsStatus.value) {
                 extra = `\n${t('clients')}: ${wsStatus.value.COUNT_CLIENTS}\n${t('started')}: ${wsStatus.value.STARTED}`;
             }
-            return `${status}\n${t('sent')}: ${sent}\n${t('received')}: ${recv}\n${t('click_for_status')}${extra}`;
+            return `${status}\n${t('sent')}: ${sent}\n${t('received')}: ${recv}\n${t('click_for_refresh')}${extra}`;
         });
 
         function widgetTypeComponent(type) {
@@ -1677,6 +1677,7 @@ function loadScript(src, version) {
         }
 
         function forceRefresh() {
+            wsRemountWidgets();
             if (wsSocket && wsConnected.value) {
                 const payload = JSON.stringify({ action: 'status' });
                 wsBytesSent.value += payload.length;
