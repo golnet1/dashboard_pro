@@ -111,6 +111,7 @@ const app = createApp({
         const notifications = ref([]);
         const unreadCount = ref(0);
         const showSettingsPanel = ref(false);
+        const showWidgetEditorPanel = ref(false);
         const showAddPanel = ref(false);
         const showAbout = ref(false);
         const showExportDialog = ref(false);
@@ -637,25 +638,37 @@ function loadScript(src, version) {
         const dragChildId = ref(null);
         const dragOverChildId = ref(null);
 
-        function groupChildDragStart(child, e) {
-            dragChildId.value = child.id;
-            if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
-        }
-
-        function groupChildDragOver(child, e) {
+        function groupChildMouseDown(e, child) {
+            if (e.button !== 0) return;
+            if (e.target.closest('button, a, input, select, textarea, .v-slider, .v-input__slider')) return;
             e.preventDefault();
-            dragOverChildId.value = child.id;
-            if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+            dragChildId.value = child.id;
+            dragOverChildId.value = null;
+            document.body.classList.add('widget-dragging');
+            document.addEventListener('mousemove', groupChildMouseMove);
+            document.addEventListener('mouseup', groupChildMouseUp);
         }
 
-        function groupChildDrop(target) {
+        function groupChildMouseMove(e) {
+            const el = document.elementFromPoint(e.clientX, e.clientY);
+            const item = el && el.closest('.widget-group-list__item');
+            const id = item && item.dataset.id;
+            dragOverChildId.value = (id && id !== dragChildId.value) ? id : null;
+        }
+
+        function groupChildMouseUp() {
+            document.removeEventListener('mousemove', groupChildMouseMove);
+            document.removeEventListener('mouseup', groupChildMouseUp);
+            document.body.classList.remove('widget-dragging');
             const parent = editWidgetParent.value || editWidgetForm.value;
-            if (!parent || !Array.isArray(parent.children)) { resetChildDrag(); return; }
-            const from = parent.children.findIndex(c => c.id === dragChildId.value);
-            const to = parent.children.findIndex(c => c.id === target.id);
-            if (from < 0 || to < 0 || from === to) { resetChildDrag(); return; }
-            const [it] = parent.children.splice(from, 1);
-            parent.children.splice(to, 0, it);
+            if (parent && Array.isArray(parent.children)) {
+                const from = parent.children.findIndex(c => c.id === dragChildId.value);
+                const to = parent.children.findIndex(c => c.id === dragOverChildId.value);
+                if (from >= 0 && to >= 0 && from !== to) {
+                    const [it] = parent.children.splice(from, 1);
+                    parent.children.splice(to, 0, it);
+                }
+            }
             resetChildDrag();
         }
 
@@ -1750,21 +1763,31 @@ function loadScript(src, version) {
         const dragWidgetDefId = ref(null);
         const dragWidgetDefOverId = ref(null);
 
-        function widgetDefDragStart(w, e) {
-            dragWidgetDefId.value = w.type;
-            if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
-        }
-
-        function widgetDefDragOver(w, e) {
+        function widgetDefMouseDown(e, w) {
+            if (e.button !== 0) return;
+            if (e.target.closest('button, a, input, select, textarea, .v-slider, .v-input__slider')) return;
             e.preventDefault();
-            dragWidgetDefOverId.value = w.type;
-            if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+            dragWidgetDefId.value = w.type;
+            dragWidgetDefOverId.value = null;
+            document.body.classList.add('widget-dragging');
+            document.addEventListener('mousemove', widgetDefMouseMove);
+            document.addEventListener('mouseup', widgetDefMouseUp);
         }
 
-        async function widgetDefDrop(target) {
+        function widgetDefMouseMove(e) {
+            const el = document.elementFromPoint(e.clientX, e.clientY);
+            const item = el && el.closest('.widget-editor__item');
+            const type = item && item.dataset.id;
+            dragWidgetDefOverId.value = (type && type !== dragWidgetDefId.value) ? type : null;
+        }
+
+        async function widgetDefMouseUp() {
+            document.removeEventListener('mousemove', widgetDefMouseMove);
+            document.removeEventListener('mouseup', widgetDefMouseUp);
+            document.body.classList.remove('widget-dragging');
             const arr = widgetList.value;
             const from = arr.findIndex(x => x.type === dragWidgetDefId.value);
-            const to = arr.findIndex(x => x.type === target.type);
+            const to = arr.findIndex(x => x.type === dragWidgetDefOverId.value);
             dragWidgetDefId.value = null;
             dragWidgetDefOverId.value = null;
             if (from < 0 || to < 0 || from === to) return;
@@ -1785,7 +1808,7 @@ function loadScript(src, version) {
             }
         }
 
-        window.__closeSettings = () => { showSettingsPanel.value = false; };
+        window.__closeSettings = () => { showSettingsPanel.value = false; showWidgetEditorPanel.value = false; };
 
         watch(currentPanel, () => wsSubscribeProperties(), { deep: true });
 
@@ -1811,13 +1834,13 @@ onMounted(() => {
             getMethodObj, getMethodName, setMethodField, itemLabel,
             editWidgetForm, widgetTab, widgetTabPos, editWidget, saveEditWidget, removeWidget,
             editWidgetParent, groupAddTarget, addGroupChild, removeGroupChild, moveGroupChild,
-            groupChildrenList, startGroupChildAdd, closeEditor, moveGroupChildOut, confirmOutOfGroup, moveGroupChild, groupChildDragStart, groupChildDragOver, groupChildDrop, resetChildDrag, dragChildId, dragOverChildId,
+            groupChildrenList, startGroupChildAdd, closeEditor, moveGroupChildOut, confirmOutOfGroup, moveGroupChild, groupChildMouseDown, groupChildMouseMove, groupChildMouseUp, resetChildDrag, dragChildId, dragOverChildId,
             columnIdx, columnList, setColumns, addColumn, removeColumn, moveColumnUp, moveColumnDown, autoDetectColumns, columnFields,
             draggingWidget, startDrag, onDrag, stopDrag,
             resizingWidget, startResize, onResize, stopResize,
             widgetMenuTarget, widgetPanelSubmenu, widgetGroupSubmenu, widgetConfirm, copyWidget, exportWidget, changeWidgetPanel, selectMoveTarget, confirmMoveWidget, moveWidgetToGroup, confirmMoveToGroup,
             showChangeObject, changeObjectGroups, openChangeObject, saveChangeObject, widgetHasChangeObjects,
-            showSettingsPanel, settings, savePanels, toggleTheme, cleanupOrphanWidgets, resetAll,
+            showSettingsPanel, showWidgetEditorPanel, settings, savePanels, toggleTheme, cleanupOrphanWidgets, resetAll,
             showExportDialog, exportMode, exportSelectedPanel, exportUsers, exportSelectedUser, loadExportUsers, doExport, doImport,
             showAddPanel, editPanelData, panelForm, panelTab, panelTabPos, panelError, createPanel, editPanel, openPanelForm, deletePanel, deleteCurrentPanel, movePanel, showAbout, toggleField,
             showIconPicker, iconTarget, iconSearch, iconCategory, iconCategorySearch, iconPage, iconCategories, filteredIconCategories, filteredIcons, totalPages, paginatedIcons, openIconPicker, selectIcon, iconPicked,
@@ -1826,7 +1849,7 @@ onMounted(() => {
             showNotifications, notifications, unreadCount, checkNotifications, markNotificationsRead,
             chatOpen, chatMessages, chatText, chatLoading, loadChat, sendChat, toggleChat, formatTime,
             widgetList, moveWidgetDef, exportWidgetZip, deleteWidgetDef, pickWidgetZip,
-            widgetDefDragStart, widgetDefDragOver, widgetDefDrop, dragWidgetDefId, dragWidgetDefOverId,
+            widgetDefMouseDown, widgetDefMouseMove, widgetDefMouseUp, dragWidgetDefId, dragWidgetDefOverId,
             t
         };
     }

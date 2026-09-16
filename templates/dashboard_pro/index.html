@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Pro</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/app.css?v=36">
+    <link rel="stylesheet" href="css/app.css?v=37">
     <script src="js/lib/vue.global.prod.js"></script>
 </head>
 <body>
@@ -121,10 +121,10 @@
                                     {{ user.is_admin ? t('admin') : t('user') }}
                                 </div>
                                 <div class="user-menu__divider"></div>
-                                <div class="user-menu__item" v-if="isAdmin" @click="userMenuOpen = false; showSettingsPanel = true">
+                                <div class="user-menu__item" v-if="isAdmin" @click="userMenuOpen = false; showSettingsPanel = true; showWidgetEditorPanel = false">
                                     <i class="fas fa-cog"></i> {{ t('settings') }}
                                 </div>
-								<div class="user-menu__item" v-if="isAdmin" @click="userMenuOpen = false; showWidgetEditorPanel = true">
+								<div class="user-menu__item" v-if="isAdmin" @click="userMenuOpen = false; showWidgetEditorPanel = true; showSettingsPanel = false">
                                     <i class="fas fa-puzzle-piece"></i> {{ t('widget_editor') }}
                                 </div>
                                 <div class="user-menu__item" @click="userMenuOpen = false; showAbout = true">
@@ -478,7 +478,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div v-else-if="showWidgetEditorPanel" class="settings-page">
+                        <div v-if="showWidgetEditorPanel" class="settings-page">
                             <div style="margin-bottom:8px">
                                 <button @click="showWidgetEditorPanel = false" style="background:none;border:none;color:rgba(255,255,255,.7);cursor:pointer;font-size:1.2rem;padding:4px 8px;margin:4px 8px"><i class="fas fa-arrow-left"></i></button>
                             </div>
@@ -492,7 +492,7 @@
                                     </button>
                                 </div>
                                 <div class="widget-editor__list" v-if="widgetList.length">
-                                    <div v-for="(w, i) in widgetList" :key="w.type" class="widget-editor__item" :class="{ 'widget-editor__item--dragging': dragWidgetDefId === w.type, 'widget-editor__item--drop-target': dragWidgetDefOverId === w.type }" draggable="true" @dragstart="widgetDefDragStart(w, $event)" @dragover.prevent="widgetDefDragOver(w, $event)" @drop.prevent="widgetDefDrop(w)" @dragend="dragWidgetDefId = null; dragWidgetDefOverId = null">
+                                    <div v-for="(w, i) in widgetList" :key="w.type" class="widget-editor__item" :data-id="w.type" :class="{ 'widget-editor__item--dragging': dragWidgetDefId === w.type, 'widget-editor__item--drop-target': dragWidgetDefOverId === w.type }" @mousedown="widgetDefMouseDown($event, w)">
                                         <i :class="w.icon || 'fas fa-puzzle-piece'" class="widget-editor__item-icon"></i>
                                         <div class="widget-editor__item-info">
                                             <div class="widget-editor__item-title">{{ t('widget_' + w.type) }}</div>
@@ -939,7 +939,7 @@
                                             <span v-if="groupChildrenList.length" style="color:rgba(255,255,255,.55);font-size:.8rem;margin-left:4px">{{ groupChildrenList.length }} {{ t('units_widgets') }}</span>
                                         </div>
                                         <div v-if="groupChildrenList.length" class="widget-group-list">
-                                            <div v-for="(child, ci) in groupChildrenList" :key="child.id" class="widget-group-list__item" :class="{ 'widget-group-list__item--dragging': dragChildId === child.id, 'widget-group-list__item--drop-target': dragOverChildId === child.id }" draggable="true" @dragstart="groupChildDragStart(child, $event)" @dragover.prevent="groupChildDragOver(child, $event)" @drop.prevent="groupChildDrop(child)" @dragend="resetChildDrag">
+                                            <div v-for="(child, ci) in groupChildrenList" :key="child.id" class="widget-group-list__item" :data-id="child.id" :class="{ 'widget-group-list__item--dragging': dragChildId === child.id, 'widget-group-list__item--drop-target': dragOverChildId === child.id }" @mousedown="groupChildMouseDown($event, child)">
                                                 <span class="widget-group-list__avatar"><i :class="child.icon || 'fas fa-square'"></i></span>
                                                 <div class="widget-group-list__content">
                                                     <div class="widget-group-list__title">{{ child.title || t('widget_' + child.type) }}</div>
@@ -1474,6 +1474,6 @@
     <script src="js/auth.js?v=9"></script>
     <script src="js/sidebar.js?v=10"></script>
 <script src="js/widget-config.js?v=11"></script>
-<script src="js/app.js?v=62"></script>
+<script src="js/app.js?v=64"></script>
 </body>
 </html>
