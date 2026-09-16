@@ -463,6 +463,8 @@ select.form-control { appearance: auto; }
 .widget-v-card--on { background:rgba(25,118,210,.15); }
 .widget-v-card__header { display:flex; align-items:center; gap:8px; padding:10px 12px 4px; min-height:40px; }
 .widget-v-card__icon { font-size:var(--widget-icon-size, 23px); color:var(--on-theme-mid); text-align:center; flex-shrink:0; }
+.widget-v-card__icon--hl { background:rgba(25,118,210,.5); border-radius:6px; padding:6px 8px; }
+.widget-v-card__icon--hl--round { border-radius:50%; padding:8px; }
 .widget-v-card__title { font-size:var(--widget-title-size, 1.49rem); font-weight:500; color:var(--on-theme-high); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .widget-v-card__spacer { flex:1; }
 .widget-v-card__value { padding:4px 12px 0; display:flex; align-items:baseline; gap:4px; }

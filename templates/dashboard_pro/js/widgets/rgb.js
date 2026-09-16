@@ -25,13 +25,15 @@ const RGBWidget = {
             { key: 'bg_image', label: 'field_image_url', type: 'text', row: 'bg_row', showIf: { bg_mode: 'image' } },
             { key: 'bg_object', label: 'field_bg_object', type: 'object', row: 'bg_row', showIf: { bg_mode: 'property' } },
             { key: 'bg_property', label: 'field_bg_property', type: 'property', row: 'bg_row', showIf: { bg_mode: 'property' } },
+            { key: 'background', label: 'field_icon_bg', type: 'checkbox', row: 'icon_hl' },
+            { key: 'round', label: 'field_icon_round', type: 'checkbox', row: 'icon_hl' },
         ],
     },
     defaults: { icon: 'fas fa-palette', icon_type: 'icon', property: 'status', background: false, round: false },
     template: `
-        <div class="widget-v-card" :class="{ 'widget-v-card--on': isOn }" :style="cardStyle">
+        <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header">
-                <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon" :style="isOn ? 'color:var(--primary)' : ''"></i>
+                <i v-if="widget.icon" class="widget-v-card__icon" :class="[widget.icon, iconHlClass]"></i>
                 <div class="widget-v-card__title">{{ widget.title || 'RGB' }}</div>
                 <div class="widget-v-card__spacer"></div>
                 <div class="v-input--switch" :class="{ 'input--is-checked': isOn }" @click.stop="toggle">
@@ -66,6 +68,10 @@ const RGBWidget = {
             const s = {};
             if (this.widget.color) s.backgroundColor = this.widget.color;
             return s;
+        },
+        iconHlClass() {
+            if (!this.widget.background || !this.isOn) return '';
+            return this.widget.round ? 'widget-v-card__icon--hl widget-v-card__icon--hl--round' : 'widget-v-card__icon--hl';
         }
     },
     methods: {

@@ -40,13 +40,15 @@ const DimmerWidget = {
             { key: 'property_info', label: 'field_info_property', type: 'property', row: 'info_row' },
             { key: 'pre_info', label: 'field_info_prefix', type: 'text', row: 'info_affix' },
             { key: 'pos_info', label: 'field_info_postfix', type: 'text', row: 'info_affix' },
+            { key: 'background', label: 'field_icon_bg', type: 'checkbox', row: 'icon_hl' },
+            { key: 'round', label: 'field_icon_round', type: 'checkbox', row: 'icon_hl' },
         ],
     },
     defaults: { icon: 'fas fa-lightbulb', icon_type: 'icon', property: 'level', level_min: 0, level_max: 100, level_step: 1, background: false, round: false },
     template: `
-        <div class="widget-v-card" :class="{ 'widget-v-card--on': isOn }" :style="cardStyle">
+        <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header">
-                <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon" :style="isOn ? 'color:var(--primary)' : ''"></i>
+                <i v-if="widget.icon" class="widget-v-card__icon" :class="[widget.icon, iconHlClass]"></i>
                 <div class="widget-v-card__title">{{ widget.title || t('widget_dimmer') }}</div>
                 <div class="widget-v-card__spacer"></div>
                 <div class="v-input--switch" :class="{ 'input--is-checked': isOn }" :style="aliveDisabled ? 'opacity:.4;pointer-events:none' : ''" @click.stop="toggle">
@@ -97,6 +99,10 @@ const DimmerWidget = {
         },
         aliveDisabled() {
             return this.widget.object_alive && this.widget.property_alive && this.isAlive === false;
+        },
+        iconHlClass() {
+            if (!this.widget.background || !this.isOn) return '';
+            return this.widget.round ? 'widget-v-card__icon--hl widget-v-card__icon--hl--round' : 'widget-v-card__icon--hl';
         },
         cardStyle() {
             const s = {};
