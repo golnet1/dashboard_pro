@@ -67,8 +67,10 @@ $frontend = array(
     'logout' => 'Выход',
 
     // Panel
-    'edit_panel' => 'Редактировать панель',
     'add_panel' => 'Добавить панель',
+    'app_title' => 'Название дашборда',
+    'app_title_default' => 'Dashboard Pro',
+    'edit_panel' => 'Редактировать панель',
     'title' => 'Название',
     'icon_type' => 'Тип иконки',
     'icon' => 'Иконка',

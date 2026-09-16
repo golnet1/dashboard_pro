@@ -67,8 +67,10 @@ $frontend = array(
     'logout' => 'Logout',
 
     // Panel
-    'edit_panel' => 'Edit panel',
     'add_panel' => 'Add panel',
+    'app_title' => 'Dashboard title',
+    'app_title_default' => 'Dashboard Pro',
+    'edit_panel' => 'Edit panel',
     'title' => 'Title',
     'icon_type' => 'Icon type',
     'icon' => 'Icon',

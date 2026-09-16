@@ -18,7 +18,7 @@
             <div class="login-card">
                 <div class="login-logo">
                     <i class="fas fa-chart-line"></i>
-                    <h1>Dashboard Pro</h1>
+                    <h1>{{ settings.appTitle || 'Dashboard Pro' }}</h1>
                     <p>{{ t('sign_in') }}</p>
                 </div>
                     <div class="login-field">
@@ -145,7 +145,7 @@
                                 <i class="fas fa-chart-line"></i>
                             </div>
                             <div class="sidebar-brand__text">
-                                <span class="sidebar-brand__title">Dashboard Pro</span>
+                                <span class="sidebar-brand__title">{{ settings.appTitle || 'Dashboard Pro' }}</span>
                             </div>
                         </div>
                         <hr class="sidebar-divider">
@@ -184,6 +184,24 @@
                             </div>
                             <div class="row" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:0 16px;align-items:start">
                                 <div style="display:flex;flex-direction:column;gap:16px">
+                                <div class="v-card v-sheet theme--dark" style="background:rgba(48,48,48,var(--card-alpha,1));border-color:rgba(48,48,48,.56)">
+                                    <div class="v-list v-sheet theme--dark transparent">
+                                        <div class="v-subheader theme--dark">{{ t('app_title') }}</div>
+                                        <div class="v-list-item theme--dark">
+                                            <div class="v-list-item__content">
+                                                <div class="v-input v-input--hide-details theme--dark v-text-field">
+                                                    <div class="v-input__control">
+                                                        <div class="v-input__slot">
+                                                            <div class="v-text-field__slot">
+                                                                <input v-model="settings.appTitle" @change="savePanels()" :placeholder="t('app_title_default')" style="background:transparent;border:none;color:#fff;outline:none;width:100%;padding:16px 0 4px;font-size:16px">
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                                 <div class="v-card v-sheet theme--dark" style="background:rgba(48,48,48,var(--card-alpha,1));border-color:rgba(48,48,48,.56)">
                                     <div class="v-list v-sheet theme--dark transparent">
                                         <div class="v-subheader theme--dark">{{ t('default_panel') }}</div>
@@ -478,7 +496,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div v-if="showWidgetEditorPanel" class="settings-page">
+                        <div v-else-if="showWidgetEditorPanel" class="settings-page">
                             <div style="margin-bottom:8px">
                                 <button @click="showWidgetEditorPanel = false" style="background:none;border:none;color:rgba(255,255,255,.7);cursor:pointer;font-size:1.2rem;padding:4px 8px;margin:4px 8px"><i class="fas fa-arrow-left"></i></button>
                             </div>
@@ -1474,6 +1492,6 @@
     <script src="js/auth.js?v=9"></script>
     <script src="js/sidebar.js?v=10"></script>
 <script src="js/widget-config.js?v=11"></script>
-<script src="js/app.js?v=70"></script>
+<script src="js/app.js?v=72"></script>
 </body>
 </html>
