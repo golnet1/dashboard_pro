@@ -58,7 +58,7 @@ const RoundSliderWidget = {
         this.load();
         this.$nextTick(() => this.draw());
         const obj = this.widget.object_value || this.widget.object;
-        if (obj) this.timer = setInterval(() => this.load(), 5000);
+        if (obj && !window.__dpWsLive) this.timer = setInterval(() => this.load(), 5000);
     },
     beforeUnmount() { if (this.timer) clearInterval(this.timer); },
     methods: {

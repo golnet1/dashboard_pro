@@ -66,7 +66,7 @@ const DimmerWidget = {
             </div>
         </div>`,
     data() {
-        return { isOn: false, level: 0, loading: false, timer: null, infoTimer: null, infoValue: '', isAlive: true, min: 0, max: 100, step: 1, infoTick: 0, secTimer: null };
+        return { isOn: false, level: 0, loading: false, timer: null, infoTimer: null, infoValue: '', isAlive: true, min: 0, max: 100, step: 1, infoTick: 0, secTimer: null, _toggleUntil: 0 };
     },
     mounted() {
         this.min = this.widget.level_min != null ? Number(this.widget.level_min) : 0;
@@ -74,7 +74,7 @@ const DimmerWidget = {
         this.step = this.widget.level_step != null ? Number(this.widget.level_step) : 1;
         this.loadState();
         let obj = this.levelObject();
-        if (obj) this.timer = setInterval(() => this.loadState(), 5000);
+        if (obj && !window.__dpWsLive) this.timer = setInterval(() => this.loadState(), 5000);
         if (this.widget.object_alive && this.widget.property_alive) this.checkAlive();
         if (this.widget.object_info) this.loadInfo();
         this.secTimer = setInterval(() => { if (this.infoValue) this.infoTick++; }, 1000);
@@ -112,6 +112,7 @@ const DimmerWidget = {
             return this.widget.property_level || this.widget.property || 'level';
         },
         async loadState() {
+            if (Date.now() < this._toggleUntil) return;
             const obj = this.levelObject();
             if (!obj) return;
             try {
@@ -127,6 +128,7 @@ const DimmerWidget = {
             if (this.loading || this.aliveDisabled) return;
             this.loading = true;
             const next = !this.isOn;
+            this._toggleUntil = window.__dpWsLive ? 0 : Date.now() + 4000;
             try {
                 if (this.widget.object_switch) {
                     const p = this.widget.object_switch.split('/');
@@ -143,7 +145,6 @@ const DimmerWidget = {
                     }));
                 }
                 this.isOn = next;
-                if (next && this.level === 0) this.level = Math.round((this.max - this.min) / 2);
             } catch (e) { /* silent */ }
             this.loading = false;
         },

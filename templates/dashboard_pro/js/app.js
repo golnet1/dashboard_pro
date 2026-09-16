@@ -439,7 +439,7 @@ function loadScript(src, version) {
             widgetList.value = [...widgetDefs.value].sort((a, b) => (a.priority || 0) - (b.priority || 0));
             for (const w of widgets.items) {
                 if (!w.FILE) continue;
-                await loadScript(w.FILE, 21);
+                await loadScript(w.FILE, 25);
             }
             widgetDefs.value.forEach(d => registerWidgetComponent(d.type));
         }
@@ -1543,6 +1543,12 @@ function loadScript(src, version) {
             });
         }
 
+        function wsRemountWidgets() {
+            (currentPanel.value?.widgets || []).forEach(w => {
+                wsRev[w.id] = (wsRev[w.id] || 0) + 1;
+            });
+        }
+
         function initWebSocket() {
             const loc = window.location;
             const protocol = loc.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -1558,6 +1564,7 @@ function loadScript(src, version) {
                 wsBytesSent.value += subEvents.length;
                 wsSocket.send(subEvents);
                 wsSubscribeProperties();
+                wsRemountWidgets();
             };
             wsSocket.onerror = function(e) {
                 console.error('WS error', e);
@@ -1664,6 +1671,7 @@ function loadScript(src, version) {
                 wsConnected.value = false;
                 wsSetLive(false);
                 wsSubscribedProps = [];
+                wsRemountWidgets();
                 wsReconnectTimer = setTimeout(initWebSocket, 5000);
             };
         }

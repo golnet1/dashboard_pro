@@ -46,15 +46,15 @@ const RGBWidget = {
             </div>
         </div>`,
     data() {
-        return { isOn: false, currentColor: '#ffffff', loading: false, timer: null, colorTimer: null };
+        return { isOn: false, currentColor: '#ffffff', loading: false, timer: null, colorTimer: null, _toggleUntil: 0 };
     },
     mounted() {
         this.loadState();
         let obj = this.widget.object_value || this.widget.object;
-        if (obj) this.timer = setInterval(() => this.loadState(), 5000);
+        if (obj && !window.__dpWsLive) this.timer = setInterval(() => this.loadState(), 5000);
         if (this.widget.object_color) {
             this.loadColor();
-            this.colorTimer = setInterval(() => this.loadColor(), 5000);
+            if (!window.__dpWsLive) this.colorTimer = setInterval(() => this.loadColor(), 5000);
         }
     },
     beforeUnmount() {
@@ -70,12 +70,13 @@ const RGBWidget = {
     },
     methods: {
         async loadState() {
+            if (Date.now() < this._toggleUntil) return;
             let obj = this.widget.object_value || this.widget.object;
             let prop = this.widget.property;
             if (!obj) return;
             try {
                 const d = await dpAPI('getProperty?' + new URLSearchParams({ object: obj, property: prop || 'status' }));
-                if (!d.error) {
+                if (!d.error && d.value !== undefined) {
                     const val = typeof d.value === 'string' ? d.value : String(d.value);
                     this.isOn = val === '1' || val === 'ON' || val === 'true';
                 }
@@ -96,6 +97,7 @@ const RGBWidget = {
             if (this.loading) return;
             this.loading = true;
             const next = !this.isOn;
+            this._toggleUntil = window.__dpWsLive ? 0 : Date.now() + 4000;
             let obj = this.widget.object_value || this.widget.object;
             try {
                 if (this.widget.object_switch) {

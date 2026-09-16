@@ -60,7 +60,7 @@ const StatusWidget = {
     mounted() {
         this.load();
         const obj = this.widget.object_status || this.widget.object;
-        if (obj) this.timer = setInterval(() => this.load(), 5000);
+        if (obj && !window.__dpWsLive) this.timer = setInterval(() => this.load(), 5000);
     },
     beforeUnmount() {
         if (this.timer) clearInterval(this.timer);

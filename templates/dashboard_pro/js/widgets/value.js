@@ -47,7 +47,7 @@ const ValueWidget = {
         this.loadValue();
         let obj = this.widget.object_value || this.widget.object;
         let prop = this.widget.property;
-        if (obj && prop) this.timer = setInterval(() => this.loadValue(), 5000);
+        if (obj && prop && !window.__dpWsLive) this.timer = setInterval(() => this.loadValue(), 5000);
         if (this.widget.object_info) this.loadInfo();
         this.secTimer = setInterval(() => { if (this.infoValue) this.infoTick++; }, 1000);
     },

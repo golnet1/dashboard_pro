@@ -57,7 +57,7 @@ const ColorSliderWidget = {
     },
     mounted() {
         this.loadColor();
-        if (this.widget.object) this.timer = setInterval(() => this.loadColor(), 5000);
+        if (this.widget.object && !window.__dpWsLive) this.timer = setInterval(() => this.loadColor(), 5000);
     },
     beforeUnmount() {
         if (this.timer) clearInterval(this.timer);
@@ -68,7 +68,7 @@ const ColorSliderWidget = {
             try {
                 const params = this.widget.property ? { object: this.widget.object, property: this.widget.property } : { object: this.widget.object };
                 const d = await dpAPI('getProperty?' + new URLSearchParams(params));
-                if (!d.error && d.value) {
+                if (!d.error && d.value !== undefined && d.value !== null) {
                     let c = String(d.value).replace('#','');
                     if (c.length >= 6) {
                         this.r = parseInt(c.substring(0,2), 16) || 255;

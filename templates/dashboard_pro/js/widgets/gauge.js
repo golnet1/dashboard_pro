@@ -43,7 +43,7 @@ const GaugeWidget = {
     mounted() {
         this.loadValue();
         let obj = this.widget.object_value || this.widget.object;
-        if (obj) this.timer = setInterval(() => this.loadValue(), 5000);
+        if (obj && !window.__dpWsLive) this.timer = setInterval(() => this.loadValue(), 5000);
     },
     beforeUnmount() {
         if (this.timer) clearInterval(this.timer);

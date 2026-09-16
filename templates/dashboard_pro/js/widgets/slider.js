@@ -53,7 +53,7 @@ const SliderWidget = {
         this.loadValue();
         let obj = this.widget.object_value || this.widget.object;
         let prop = this.widget.property;
-        if (obj && prop) this.timer = setInterval(() => this.loadValue(), 5000);
+        if (obj && prop && !window.__dpWsLive) this.timer = setInterval(() => this.loadValue(), 5000);
     },
     beforeUnmount() {
         if (this.timer) clearInterval(this.timer);

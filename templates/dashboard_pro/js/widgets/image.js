@@ -43,7 +43,7 @@ const ImageWidget = {
         let obj = this.widget.object_value || this.widget.object;
         if (obj) {
             this.loadObjValue();
-            this.valueTimer = setInterval(() => this.loadObjValue(), 3000);
+            if (!window.__dpWsLive) this.valueTimer = setInterval(() => this.loadObjValue(), 3000);
         }
         if (this.widget.timeout && this.widget.timeout > 0) {
             this.timer = setInterval(() => this.updateUrl(), this.widget.timeout * 1000);

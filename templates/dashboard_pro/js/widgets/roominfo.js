@@ -57,7 +57,7 @@ const RoomInfoWidget = {
     },
     mounted() {
         this.loadAll();
-        this.timer = setInterval(() => this.loadAll(), 10000);
+        if (!window.__dpWsLive) this.timer = setInterval(() => this.loadAll(), 10000);
     },
     beforeUnmount() {
         if (this.timer) clearInterval(this.timer);
@@ -66,7 +66,7 @@ const RoomInfoWidget = {
         async load(sensor) {
             try {
                 const d = await dpAPI('getProperty?' + new URLSearchParams({ object: sensor.object, property: sensor.property || 'value' }));
-                if (!d.error) this.values[sensor.object] = d.value;
+                if (!d.error && d.value !== undefined) this.values[sensor.object] = d.value;
             } catch(e) {}
         },
         async loadAll() {

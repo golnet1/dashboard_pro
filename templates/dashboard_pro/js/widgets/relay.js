@@ -53,11 +53,11 @@ const RelayWidget = {
             <div v-if="loading" class="widget-v-card__loading"><div class="v-progress-linear v-progress-linear--active"><div class="v-progress-linear__determinate" style="width:100%"></div></div></div>
         </div>`,
     data() {
-        return { isOn: false, loading: false, infoValue: '', timer: null, infoTimer: null, isAlive: true, infoTick: 0, secTimer: null };
+        return { isOn: false, loading: false, infoValue: '', timer: null, infoTimer: null, isAlive: true, infoTick: 0, secTimer: null, _toggleUntil: 0 };
     },
     mounted() {
         this.poll();
-        this.timer = setInterval(() => this.poll(), 3000);
+        if (!window.__dpWsLive) this.timer = setInterval(() => this.poll(), 3000);
         if (this.widget.object_info) this.loadInfo();
         this.secTimer = setInterval(() => { if (this.infoValue) this.infoTick++; }, 1000);
     },
@@ -87,13 +87,14 @@ const RelayWidget = {
             if (this.widget.object_alive && this.widget.property_alive) this.checkAlive();
         },
         async loadState() {
+            if (Date.now() < this._toggleUntil) return;
             let obj = this.widget.object_value || this.widget.object;
             let prop = this.widget.property;
             if (!obj) return;
             try {
                 const params = prop ? { object: obj, property: prop } : { object: obj };
                 const d = await dpAPI('getProperty?' + new URLSearchParams(params));
-                if (!d.error) {
+                if (!d.error && d.value !== undefined) {
                     const val = typeof d.value === 'string' ? d.value : String(d.value);
                     this.isOn = val === '1' || val === 'ON' || val === 'true';
                 }
@@ -103,6 +104,7 @@ const RelayWidget = {
             if (this.loading || this.aliveDisabled) return;
             this.loading = true;
             const next = !this.isOn;
+            this._toggleUntil = window.__dpWsLive ? 0 : Date.now() + 4000;
             let obj = this.widget.object_value || this.widget.object;
             let prop = this.widget.property;
             if (this.widget.object_switch) {

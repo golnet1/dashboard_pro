@@ -49,7 +49,7 @@ const MapWidget = {
     mounted() {
         this.load();
         const obj = this.widget.object_value || this.widget.object;
-        if (obj) this.timer = setInterval(() => this.load(), 30000);
+        if (obj && !window.__dpWsLive) this.timer = setInterval(() => this.load(), 30000);
         this.$nextTick(() => this.drawMap());
     },
     beforeUnmount() { if (this.timer) clearInterval(this.timer); },
@@ -65,7 +65,7 @@ const MapWidget = {
             }
             try {
                 const d = await dpAPI('getProperty?' + new URLSearchParams({ object: obj, property: prop || 'coordinates' }));
-                if (!d.error && d.value) {
+                if (!d.error && d.value !== undefined && d.value !== null) {
                     const parts = String(d.value).split(/[,;:\s]+/);
                     if (parts.length >= 2) {
                         this.lat = parseFloat(parts[0]);

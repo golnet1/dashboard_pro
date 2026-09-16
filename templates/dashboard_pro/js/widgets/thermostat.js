@@ -60,7 +60,7 @@ const ThermostatWidget = {
     },
     mounted() {
         this.load();
-        this.timer = setInterval(() => this.load(), 10000);
+        if (!window.__dpWsLive) this.timer = setInterval(() => this.load(), 10000);
     },
     beforeUnmount() {
         if (this.timer) clearInterval(this.timer);

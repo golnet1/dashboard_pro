@@ -56,7 +56,7 @@ const SliderButtonsWidget = {
     },
     mounted() {
         this.load();
-        if (this.widget.object) this.timer = setInterval(() => this.load(), 5000);
+        if (this.widget.object && !window.__dpWsLive) this.timer = setInterval(() => this.load(), 5000);
     },
     beforeUnmount() {
         if (this.timer) clearInterval(this.timer);

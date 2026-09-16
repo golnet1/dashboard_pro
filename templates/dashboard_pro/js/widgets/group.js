@@ -56,7 +56,7 @@ const GroupWidget = {
     },
     mounted() {
         this.checkAvailable();
-        this.availTimer = setInterval(() => this.checkAvailable(), 3000);
+        if (!window.__dpWsLive) this.availTimer = setInterval(() => this.checkAvailable(), 3000);
     },
     beforeUnmount() { if (this.availTimer) clearInterval(this.availTimer); },
     computed: {
@@ -86,7 +86,8 @@ const GroupWidget = {
             if (!obj || !prop) { this.available = true; return; }
             try {
                 const d = await dpAPI('getProperty?' + new URLSearchParams({ object: obj, property: prop }));
-                this.available = !d.error && String(d.value) !== '0' && String(d.value).toLowerCase() !== 'false';
+                if (d.error || d.value === undefined || d.value === null) return;
+                this.available = String(d.value) !== '0' && String(d.value).toLowerCase() !== 'false';
             } catch (e) { /* keep last state on transient error */ }
         },
         cellStyle(child) {
