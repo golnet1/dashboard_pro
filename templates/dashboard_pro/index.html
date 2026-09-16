@@ -593,7 +593,7 @@
                                             <div class="widget-menu__item" @click="copyWidget(idx); widgetMenuTarget = null">
                                                 <i class="fas fa-copy"></i><span>{{ t('copy_widget') }}</span>
                                             </div>
-                                            <div class="widget-menu__item" @click="openChangeObject(idx); widgetMenuTarget = null">
+                                            <div class="widget-menu__item" v-if="widgetHasChangeObjects(w)" @click="openChangeObject(idx); widgetMenuTarget = null">
                                                 <i class="fas fa-recycle"></i><span>{{ t('change_objects') }}</span>
                                             </div>
                                             <div class="widget-menu__item" @click="exportWidget(w); widgetMenuTarget = null">
@@ -1483,6 +1483,6 @@
     <script src="js/auth.js?v=9"></script>
     <script src="js/sidebar.js?v=10"></script>
 <script src="js/widget-config.js?v=11"></script>
-<script src="js/app.js?v=56"></script>
+<script src="js/app.js?v=58"></script>
 </body>
 </html>

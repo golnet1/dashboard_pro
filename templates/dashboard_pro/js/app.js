@@ -656,6 +656,30 @@ function loadScript(src, version) {
             a.click(); URL.revokeObjectURL(url);
         }
 
+        function widgetHasChangeObjects(w) {
+            if (!w) return false;
+            const fieldDefs = [
+                { field: 'object', alias: null },
+                { field: 'object_info', alias: null },
+                { field: 'object_alive', alias: null },
+                { field: 'object_value', alias: null },
+                { field: 'icon_object', alias: 'iconObject' },
+                { field: 'bg_object', alias: 'bgObject' },
+                { field: 'method', alias: null },
+                { field: 'object_switch', alias: null },
+                { field: 'object_on', alias: null },
+                { field: 'object_off', alias: null },
+                { field: 'object_color', alias: null },
+            ];
+            return fieldDefs.some(fd => {
+                let val = w[fd.field];
+                if (!val && fd.alias) val = w[fd.alias];
+                if (!val) return false;
+                if (fd.field === 'method' || fd.field.startsWith('object_')) return !!val.split('/')[0];
+                return true;
+            });
+        }
+
         function openChangeObject(idx) {
             const w = currentPanel.value.widgets[idx];
             if (!w) return;
@@ -689,6 +713,7 @@ function loadScript(src, version) {
             changeObjectGroups.value = vals;
             showChangeObject.value = true;
             widgetMenuTarget.value = null;
+            if (!objects.value.length) loadObjects();
         }
 
         function saveChangeObject() {
@@ -1731,7 +1756,7 @@ onMounted(() => {
             draggingWidget, startDrag, onDrag, stopDrag,
             resizingWidget, startResize, onResize, stopResize,
             widgetMenuTarget, widgetPanelSubmenu, widgetGroupSubmenu, widgetConfirm, copyWidget, exportWidget, changeWidgetPanel, selectMoveTarget, confirmMoveWidget, moveWidgetToGroup, confirmMoveToGroup,
-            showChangeObject, changeObjectGroups, openChangeObject, saveChangeObject,
+            showChangeObject, changeObjectGroups, openChangeObject, saveChangeObject, widgetHasChangeObjects,
             showSettingsPanel, settings, savePanels, toggleTheme, cleanupOrphanWidgets, resetAll,
             showExportDialog, exportMode, exportSelectedPanel, exportUsers, exportSelectedUser, loadExportUsers, doExport, doImport,
             showAddPanel, editPanelData, panelForm, panelTab, panelTabPos, panelError, createPanel, editPanel, openPanelForm, deletePanel, deleteCurrentPanel, movePanel, showAbout, toggleField,
