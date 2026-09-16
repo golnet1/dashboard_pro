@@ -323,6 +323,7 @@ $frontend = array(
     'version' => 'Версия',
     'app_desc' => 'Панель управления для MajorDoMo',
     'about_github' => 'Проект',
+    'about_telegram' => 'Обсуждение модуля',
     'about_donate' => 'Поддержать разработку и развитие модуля',
     'about_author' => 'Автор',
     'about_author_name' => 'Олег Малов',

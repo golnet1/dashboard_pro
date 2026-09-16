@@ -323,6 +323,7 @@ $frontend = array(
     'version' => 'Version',
     'app_desc' => 'Dashboard for MajorDoMo',
     'about_github' => 'Project',
+    'about_telegram' => 'Module discussion',
     'about_donate' => 'Support development of the module',
     'about_author' => 'Author',
     'about_author_name' => 'Oleg Malov',
