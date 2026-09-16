@@ -906,6 +906,9 @@ class dashboard_pro extends module
             array('sliderbuttons', 'fas fa-plus-minus', 'Slider with buttons', 'Slider with +/- buttons'),
             array('thermostat', 'fas fa-thermometer-half', 'Thermostat', 'Temperature control'),
             array('trend', 'fas fa-chart-line', 'Trend', 'Value trend'),
+            array('tvremote', 'fas fa-tv', 'TV remote', 'TV remote control'),
+            array('musicremote', 'fas fa-music', 'Music remote', 'Music center remote control'),
+            array('acremote', 'fas fa-snowflake', 'AC remote', 'Air conditioner remote control'),
         );
     }
 
@@ -949,6 +952,21 @@ class dashboard_pro extends module
                 SQLInsert('dashboard_widgets', $rec);
             }
         } else {
+            $priority = (int)SQLSelectOne("SELECT MAX(PRIORITY) as MX FROM dashboard_widgets")['MX'] + 1;
+            foreach ($this->widgetDefaults() as $w) {
+                $exists = SQLSelectOne("SELECT ID FROM dashboard_widgets WHERE TYPE LIKE '" . DBSafe($w[0]) . "'");
+                if (!$exists) {
+                    $rec = array(
+                        'TYPE' => $w[0],
+                        'ICON' => $w[1],
+                        'TITLE' => $w[2],
+                        'DESCRIPTION' => $w[3],
+                        'PRIORITY' => $priority++,
+                        'FILE' => 'js/widgets/' . $w[0] . '.js'
+                    );
+                    SQLInsert('dashboard_widgets', $rec);
+                }
+            }
             SQLExec("UPDATE dashboard_widgets SET FILE = CONCAT('js/widgets/', TYPE, '.js') WHERE FILE = '' OR FILE IS NULL");
         }
     }
