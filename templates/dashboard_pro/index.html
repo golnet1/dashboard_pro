@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Pro</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/app.css?v=31">
+    <link rel="stylesheet" href="css/app.css?v=36">
     <script src="js/lib/vue.global.prod.js"></script>
 </head>
 <body>
@@ -492,20 +492,16 @@
                                     </button>
                                 </div>
                                 <div class="widget-editor__list" v-if="widgetList.length">
-                                    <div v-for="(w, i) in widgetList" :key="w.type" class="widget-editor__item">
-                                        <div class="widget-editor__move">
-                                            <button @click="moveWidgetDef(i, -1)" :disabled="i === 0" :title="t('up')"><i class="fas fa-chevron-up"></i></button>
-                                            <button @click="moveWidgetDef(i, 1)" :disabled="i === widgetList.length - 1" :title="t('down')"><i class="fas fa-chevron-down"></i></button>
-                                        </div>
+                                    <div v-for="(w, i) in widgetList" :key="w.type" class="widget-editor__item" :class="{ 'widget-editor__item--dragging': dragWidgetDefId === w.type, 'widget-editor__item--drop-target': dragWidgetDefOverId === w.type }" draggable="true" @dragstart="widgetDefDragStart(w, $event)" @dragover.prevent="widgetDefDragOver(w, $event)" @drop.prevent="widgetDefDrop(w)" @dragend="dragWidgetDefId = null; dragWidgetDefOverId = null">
                                         <i :class="w.icon || 'fas fa-puzzle-piece'" class="widget-editor__item-icon"></i>
                                         <div class="widget-editor__item-info">
                                             <div class="widget-editor__item-title">{{ t('widget_' + w.type) }}</div>
                                             <div class="widget-editor__item-type">{{ w.type }}</div>
                                         </div>
-                                        <button type="button" class="widget-editor__btn" @click="exportWidgetZip(w)" :title="t('widget_editor_export_desc')">
+                                        <button type="button" class="widget-editor__btn" @click="exportWidgetZip(w)" :title="t('widget_editor_export_desc')" draggable="false">
                                             <i class="fas fa-file-export"></i> {{ t('widget_editor_export') }}
                                         </button>
-                                        <button type="button" class="widget-editor__btn widget-editor__btn--danger" @click="deleteWidgetDef(w)">
+                                        <button type="button" class="widget-editor__btn widget-editor__btn--danger" @click="deleteWidgetDef(w)" draggable="false">
                                             <i class="fas fa-trash"></i> {{ t('widget_editor_delete') }}
                                         </button>
                                     </div>
@@ -943,20 +939,23 @@
                                             <span v-if="groupChildrenList.length" style="color:rgba(255,255,255,.55);font-size:.8rem;margin-left:4px">{{ groupChildrenList.length }} {{ t('units_widgets') }}</span>
                                         </div>
                                         <div v-if="groupChildrenList.length" class="widget-group-list">
-                                            <div v-for="(child, ci) in groupChildrenList" :key="child.id" class="widget-group-list__item">
-                                                <span class="widget-group-list__icon"><i :class="child.icon || 'fas fa-square'"></i></span>
-                                                <span class="widget-group-list__title">{{ child.title || t('widget_' + child.type) }}</span>
-                                                <span class="widget-group-list__colslider" :title="t('field_group_columns')">
-                                                    <input type="range" class="v-slider__form" min="1" :max="Math.max(1, Number(editWidgetForm.columns) || 1)" step="1" v-model.number="child.span">
-                                                    <span class="v-slider__form-value">{{ child.span || 1 }}</span>
-                                                </span>
-                                                <span class="widget-group-list__type">{{ t('widget_' + child.type) }}</span>
-                                                <span class="spacer"></span>
-                                                <button type="button" class="v-btn v-btn--is-elevated v-btn--fab v-btn--has-bg v-btn--round v-size--x-small" @click="moveGroupChild(child, ci > 0 ? -1 : 0)" :disabled="ci === 0" :title="t('move_up')"><i class="fas fa-angle-up"></i></button>
-                                                <button type="button" class="v-btn v-btn--is-elevated v-btn--fab v-btn--has-bg v-btn--round v-size--x-small" :disabled="ci >= groupChildrenList.length - 1" :title="t('move_down')" @click="moveGroupChild(child, 1)"><i class="fas fa-angle-down"></i></button>
-                                                <button type="button" class="v-btn v-btn--is-elevated v-btn--fab v-btn--has-bg v-btn--round v-size--x-small" :title="t('edit')" @click="editWidget(child, editWidgetForm)"><i class="fas fa-pencil"></i></button>
-                                                <button type="button" class="v-btn v-btn--is-elevated v-btn--fab v-btn--has-bg v-btn--round v-size--x-small" :title="t('widget_out_group')" @click="moveGroupChildOut(child)"><i class="fas fa-sign-out-alt"></i></button>
-                                                <button type="button" class="v-btn v-btn--is-elevated v-btn--fab v-btn--has-bg v-btn--round v-size--x-small" :title="t('delete')" @click="removeGroupChild(child)"><i class="fas fa-trash"></i></button>
+                                            <div v-for="(child, ci) in groupChildrenList" :key="child.id" class="widget-group-list__item" :class="{ 'widget-group-list__item--dragging': dragChildId === child.id, 'widget-group-list__item--drop-target': dragOverChildId === child.id }" draggable="true" @dragstart="groupChildDragStart(child, $event)" @dragover.prevent="groupChildDragOver(child, $event)" @drop.prevent="groupChildDrop(child)" @dragend="resetChildDrag">
+                                                <span class="widget-group-list__avatar"><i :class="child.icon || 'fas fa-square'"></i></span>
+                                                <div class="widget-group-list__content">
+                                                    <div class="widget-group-list__title">{{ child.title || t('widget_' + child.type) }}</div>
+                                                    <div class="widget-group-list__type">{{ t('widget_' + child.type) }}</div>
+                                                </div>
+                                                <div class="widget-group-list__action">
+                                                    <div class="widget-group-list__colslider">
+                                                        <div class="widget-group-list__colslider-label">{{ t('field_group_columns') }}</div>
+                                                        <dp-slider :model-value="child.span || 1" :min="1" :max="Math.max(1, Number(editWidgetForm.columns) || 1)" :step="1" :label="''" @update:model-value="child.span = $event"></dp-slider>
+                                                    </div>
+                                                    <div class="widget-group-list__buttons">
+                                                        <button type="button" class="v-btn v-btn--icon v-btn--round theme--dark v-size--default" draggable="false" :title="t('edit')" @click="editWidget(child, editWidgetForm)"><i class="fas fa-cog"></i></button>
+                                                        <button type="button" class="v-btn v-btn--icon v-btn--round theme--dark v-size--default" draggable="false" :title="t('widget_out_group')" @click="moveGroupChildOut(child)"><i class="fas fa-external-link-alt"></i></button>
+                                                        <button type="button" class="v-btn v-btn--icon v-btn--round theme--dark v-size--default" draggable="false" :title="t('delete')" @click="removeGroupChild(child)"><i class="far fa-trash-alt"></i></button>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                         <div v-else style="padding:24px;text-align:center;color:rgba(255,255,255,.45);font-size:.9rem">
@@ -1085,15 +1084,7 @@
                                                             </div>
                                                         </template>
                                                         <template v-else-if="field.type === 'slider'">
-                                                            <div class="v-input v-text-field">
-                                                                <div class="v-input__control">
-                                                                    <div class="v-input__slot v-input__slot--slider">
-                                                                        <span class="v-label v-label--active">{{ t(field.label) }}</span>
-                                                                        <input type="range" class="v-slider__form" :min="field.min || 0" :max="field.max || 100" :step="field.step || 1" v-model.number="editWidgetForm[field.key]">
-                                                                        <span class="v-slider__form-value">{{ editWidgetForm[field.key] }}</span>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
+                                                            <dp-slider :model-value="Number(editWidgetForm[field.key]) || (field.min || 0)" :min="field.min || 0" :max="field.max || 100" :step="field.step || 1" :label="t(field.label)" @update:model-value="editWidgetForm[field.key] = $event"></dp-slider>
                                                         </template>
                                                         <template v-else-if="field.type === 'textarea'">
                                                             <div class="v-input v-text-field">
@@ -1483,6 +1474,6 @@
     <script src="js/auth.js?v=9"></script>
     <script src="js/sidebar.js?v=10"></script>
 <script src="js/widget-config.js?v=11"></script>
-<script src="js/app.js?v=58"></script>
+<script src="js/app.js?v=62"></script>
 </body>
 </html>

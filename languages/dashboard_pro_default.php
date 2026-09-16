@@ -113,6 +113,7 @@ $frontend = array(
     'move_down' => 'Move down',
     'delete_column' => 'Delete column',
     'edit' => 'Edit',
+    'drag_to_reorder' => 'Drag to reorder',
     'auto_detect' => 'Auto-detect',
     'column' => 'Column ',
     'no_columns' => 'No columns. Press + to add.',

@@ -634,6 +634,36 @@ function loadScript(src, version) {
             parent.children.splice(ni, 0, it);
         }
 
+        const dragChildId = ref(null);
+        const dragOverChildId = ref(null);
+
+        function groupChildDragStart(child, e) {
+            dragChildId.value = child.id;
+            if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function groupChildDragOver(child, e) {
+            e.preventDefault();
+            dragOverChildId.value = child.id;
+            if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+        }
+
+        function groupChildDrop(target) {
+            const parent = editWidgetParent.value || editWidgetForm.value;
+            if (!parent || !Array.isArray(parent.children)) { resetChildDrag(); return; }
+            const from = parent.children.findIndex(c => c.id === dragChildId.value);
+            const to = parent.children.findIndex(c => c.id === target.id);
+            if (from < 0 || to < 0 || from === to) { resetChildDrag(); return; }
+            const [it] = parent.children.splice(from, 1);
+            parent.children.splice(to, 0, it);
+            resetChildDrag();
+        }
+
+        function resetChildDrag() {
+            dragChildId.value = null;
+            dragOverChildId.value = null;
+        }
+
         function addGroupChild(type) {
             groupAddTarget.value = editWidgetForm.value;
             addWidget(type);
@@ -1714,6 +1744,36 @@ function loadScript(src, version) {
             if (newIdx < 0 || newIdx >= widgetList.value.length) return;
             const arr = widgetList.value;
             [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
+            await saveWidgetDefOrder(arr);
+        }
+
+        const dragWidgetDefId = ref(null);
+        const dragWidgetDefOverId = ref(null);
+
+        function widgetDefDragStart(w, e) {
+            dragWidgetDefId.value = w.type;
+            if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function widgetDefDragOver(w, e) {
+            e.preventDefault();
+            dragWidgetDefOverId.value = w.type;
+            if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+        }
+
+        async function widgetDefDrop(target) {
+            const arr = widgetList.value;
+            const from = arr.findIndex(x => x.type === dragWidgetDefId.value);
+            const to = arr.findIndex(x => x.type === target.type);
+            dragWidgetDefId.value = null;
+            dragWidgetDefOverId.value = null;
+            if (from < 0 || to < 0 || from === to) return;
+            const [it] = arr.splice(from, 1);
+            arr.splice(to, 0, it);
+            await saveWidgetDefOrder(arr);
+        }
+
+        async function saveWidgetDefOrder(arr) {
             const order = arr.map(w => w.type);
             try {
                 const res = await dpAPI('widgetReorder', { method: 'POST', body: JSON.stringify({ order }) });
@@ -1751,7 +1811,7 @@ onMounted(() => {
             getMethodObj, getMethodName, setMethodField, itemLabel,
             editWidgetForm, widgetTab, widgetTabPos, editWidget, saveEditWidget, removeWidget,
             editWidgetParent, groupAddTarget, addGroupChild, removeGroupChild, moveGroupChild,
-            groupChildrenList, startGroupChildAdd, closeEditor, moveGroupChildOut, confirmOutOfGroup,
+            groupChildrenList, startGroupChildAdd, closeEditor, moveGroupChildOut, confirmOutOfGroup, moveGroupChild, groupChildDragStart, groupChildDragOver, groupChildDrop, resetChildDrag, dragChildId, dragOverChildId,
             columnIdx, columnList, setColumns, addColumn, removeColumn, moveColumnUp, moveColumnDown, autoDetectColumns, columnFields,
             draggingWidget, startDrag, onDrag, stopDrag,
             resizingWidget, startResize, onResize, stopResize,
@@ -1766,6 +1826,7 @@ onMounted(() => {
             showNotifications, notifications, unreadCount, checkNotifications, markNotificationsRead,
             chatOpen, chatMessages, chatText, chatLoading, loadChat, sendChat, toggleChat, formatTime,
             widgetList, moveWidgetDef, exportWidgetZip, deleteWidgetDef, pickWidgetZip,
+            widgetDefDragStart, widgetDefDragOver, widgetDefDrop, dragWidgetDefId, dragWidgetDefOverId,
             t
         };
     }
@@ -1780,6 +1841,81 @@ function registerWidgetComponent(type) {
         comp || { template: '<div>' + (t('widget_' + type) || type) + '</div>' });
     return app.component('widget-' + type);
 }
+
+const DpSlider = {
+    props: {
+        modelValue: { type: Number, default: 0 },
+        label: { type: String, default: '' },
+        min: { type: Number, default: 0 },
+        max: { type: Number, default: 100 },
+        step: { type: Number, default: 1 }
+    },
+    emits: ['update:modelValue'],
+    data() { return { dragging: false }; },
+    computed: {
+        range() { return Math.max(0, this.max - this.min); },
+        pct() { return this.range ? ((Number(this.modelValue) - this.min) / this.range) * 100 : 0; },
+        ticks() {
+            const arr = [];
+            if (this.step <= 0) return arr;
+            const count = this.range / this.step;
+            if (count > 12) return arr;
+            for (let i = 0; i <= count; i++) arr.push(i * this.step + this.min);
+            return arr;
+        }
+    },
+    methods: {
+        setFromEvent(e, rect) {
+            const r = rect || e.currentTarget.getBoundingClientRect();
+            const ratio = (e.clientX - r.left) / r.width;
+            let v = this.min + ratio * this.range;
+            if (this.step) v = Math.round((v - this.min) / this.step) * this.step + this.min;
+            v = Math.min(this.max, Math.max(this.min, v));
+            if (v !== Number(this.modelValue)) this.$emit('update:modelValue', v);
+        },
+        onDown(e) {
+            this.dragging = true;
+            const track = e.currentTarget.parentNode;
+            const rect = track.getBoundingClientRect();
+            const compute = ev => {
+                const ratio = (ev.clientX - rect.left) / rect.width;
+                let v = this.min + ratio * this.range;
+                if (this.step) v = Math.round((v - this.min) / this.step) * this.step + this.min;
+                v = Math.min(this.max, Math.max(this.min, v));
+                if (v !== Number(this.modelValue)) this.$emit('update:modelValue', v);
+            };
+            compute(e);
+            const up = () => { this.dragging = false; window.removeEventListener('mousemove', compute); window.removeEventListener('mouseup', up); };
+            window.addEventListener('mousemove', compute);
+            window.addEventListener('mouseup', up);
+        }
+    },
+    template: `
+        <div class="v-input v-input__slider theme--dark">
+            <div class="v-input__control">
+                <div class="v-input__slot">
+                    <label class="v-label theme--dark">{{ label }}</label>
+                    <div class="v-slider v-slider--horizontal theme--dark" @mousedown="setFromEvent">
+                        <input :value="modelValue" disabled="disabled" readonly="readonly" tabindex="-1">
+                        <div class="v-slider__track-container">
+                            <div class="v-slider__track-background" :style="{ right: '0px', width: 'calc(' + (100 - pct) + '%)' }"></div>
+                            <div class="v-slider__track-fill primary" :style="{ left: '0px', right: 'auto', width: pct + '%' }"></div>
+                        </div>
+                        <div class="v-slider__ticks-container v-slider__ticks-container--always-show" v-if="ticks.length">
+                            <span v-for="tv in ticks" :key="tv" class="v-slider__tick" :class="{ 'v-slider__tick--filled': tv <= Number(modelValue) }" :style="{ width: '4px', height: '4px', left: 'calc(' + ((tv - min) / range * 100) + '% - 2px)', top: 'calc(50% - 2px)' }">
+                                <div class="v-slider__tick-label">{{ tv }}</div>
+                            </span>
+                        </div>
+                        <div role="slider" tabindex="0" class="v-slider__thumb-container primary--text" :class="{ 'v-slider__thumb-container--active': dragging }" :style="{ left: pct + '%' }" @mousedown.stop="onDown">
+                            <div class="v-slider__thumb primary"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="v-messages theme--dark"><div class="v-messages__wrapper"></div></div>
+            </div>
+        </div>`
+};
+app.component('dp-slider', DpSlider);
 
 const vm = app.mount('#app');
 window.__dp_vm = vm;
