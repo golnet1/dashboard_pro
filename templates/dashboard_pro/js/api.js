@@ -32,6 +32,7 @@ function readProperty(path, opts) {
         if (cached) {
             return Promise.resolve({ value: cached.value });
         }
+        return Promise.resolve({ value: undefined });
     }
     return dpHttp(path, opts).then(res => {
         if (res && !res.error && res.value !== undefined) {
@@ -126,12 +127,9 @@ const dpAPI = (path, opts) => {
         const object = (parts[0] || '').trim();
         const methodName = parts[1] ? object + '.' + parts[1] : (parts[0] || '');
         if (!methodName) return Promise.resolve({ error: 'invalid method' });
+        if (object) wsInvalidateObject(object);
         return fetch('/api.php/method/' + encodeURIComponent(methodName) + (query ? '?' + query : ''))
             .then(r => r.json())
-            .then(d => {
-                if (d && !d.error && object) wsInvalidateObject(object);
-                return d;
-            })
             .catch(e => ({ error: 'method failed' }));
     }
     if (window.__dpWsLive && typeof path === 'string') {

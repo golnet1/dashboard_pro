@@ -41,7 +41,7 @@ const ValueWidget = {
             </div>
         </div>`,
     data() {
-        return { value: null, timer: null, infoValue: '', infoTimer: null, infoTick: 0, secTimer: null };
+        return { value: null, timer: null, infoValue: (this.widget && window.__dpInfoCache[this.widget.id]) || '', infoTimer: null, infoTick: 0, secTimer: null, _infoRetry: [] };
     },
     mounted() {
         this.loadValue();
@@ -55,6 +55,8 @@ const ValueWidget = {
         if (this.timer) clearInterval(this.timer);
         if (this.infoTimer) clearInterval(this.infoTimer);
         if (this.secTimer) clearInterval(this.secTimer);
+        (this._infoRetry || []).forEach(t => clearTimeout(t));
+        this._infoRetry = [];
     },
     computed: {
         infoDisplay() {
@@ -93,21 +95,23 @@ const ValueWidget = {
                 }
             } catch (e) { /* silent */ }
         },
-        async loadInfo() {
+        setInfo(v) {
+            if (v === undefined || v === null || v === '') return;
+            this.infoValue = v;
+            if (this.widget && this.widget.id) window.__dpInfoCache[this.widget.id] = v;
+        },
+        async refreshInfo() {
             if (!this.widget.object_info) return;
             try {
                 const params = this.widget.property_info ? { object: this.widget.object_info, property: this.widget.property_info } : { object: this.widget.object_info };
-                const d = await dpAPI('getProperty?' + new URLSearchParams(params));
-                if (!d.error) this.infoValue = d.value;
+                const d = await dpHttp('getProperty?' + new URLSearchParams(params));
+                if (d && !d.error) this.setInfo(d.value);
             } catch (e) { /* silent */ }
-            this.infoTimer = setInterval(() => {
-                if (this.widget.object_info) {
-                    const params = this.widget.property_info ? { object: this.widget.object_info, property: this.widget.property_info } : { object: this.widget.object_info };
-                    dpAPI('getProperty?' + new URLSearchParams(params))
-                        .then(d => { if (!d.error) this.infoValue = d.value; })
-                        .catch(() => {});
-                }
-            }, 5000);
+        },
+        async loadInfo() {
+            if (!this.widget.object_info) return;
+            await this.refreshInfo();
+            this.infoTimer = setInterval(() => this.refreshInfo(), 5000);
         }
     }
 };

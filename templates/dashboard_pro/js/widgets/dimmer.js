@@ -55,7 +55,7 @@ const DimmerWidget = {
                     <div class="v-input--switch__track"><div class="v-input--switch__thumb"></div></div>
                 </div>
             </div>
-            <div v-if="widget.object_info" class="widget-v-card__info" style="padding:7px 12px 8px">
+            <div v-if="widget.object_info" class="widget-v-card__info" style="height:30px;box-sizing:border-box;display:flex;align-items:center;padding:0 12px;white-space:nowrap;overflow:hidden">
                 <span v-if="widget.pre_info">{{ widget.pre_info }}</span><span v-if="infoValue">{{ infoDisplay }}</span><span v-if="widget.pos_info">{{ widget.pos_info }}</span>
             </div>
             <div class="widget-v-card__body" style="padding:12px 12px 12px">
@@ -68,7 +68,8 @@ const DimmerWidget = {
             </div>
         </div>`,
     data() {
-        return { isOn: false, level: 0, loading: false, timer: null, infoTimer: null, infoValue: '', isAlive: true, min: 0, max: 100, step: 1, infoTick: 0, secTimer: null, _toggleUntil: 0 };
+        const st = (this.widget && window.__dpWidgetState[this.widget.id]) || {};
+        return { isOn: !!st.isOn, level: st.level || 0, loading: false, timer: null, infoTimer: null, infoValue: (this.widget && window.__dpInfoCache[this.widget.id]) || '', isAlive: true, min: 0, max: 100, step: 1, infoTick: 0, secTimer: null, _toggleUntil: 0, _infoRetry: [] };
     },
     mounted() {
         this.min = this.widget.level_min != null ? Number(this.widget.level_min) : 0;
@@ -85,6 +86,8 @@ const DimmerWidget = {
         if (this.timer) clearInterval(this.timer);
         if (this.infoTimer) clearInterval(this.infoTimer);
         if (this.secTimer) clearInterval(this.secTimer);
+        (this._infoRetry || []).forEach(t => clearTimeout(t));
+        this._infoRetry = [];
     },
     computed: {
         infoDisplay() {
@@ -111,6 +114,11 @@ const DimmerWidget = {
         }
     },
     methods: {
+        uiState() {
+            const id = this.widget && this.widget.id;
+            if (!id) return null;
+            return window.__dpWidgetState[id] || (window.__dpWidgetState[id] = {});
+        },
         levelObject() {
             return this.widget.object_level || this.widget.object_value || this.widget.object;
         },
@@ -127,6 +135,8 @@ const DimmerWidget = {
                     const val = Number(d.value);
                     this.level = isNaN(val) ? 0 : Math.min(this.max, Math.max(this.min, val));
                     this.isOn = this.level > 0;
+                    const st = this.uiState();
+                    if (st) { st.level = this.level; st.isOn = this.isOn; }
                 }
             } catch (e) { /* silent */ }
         },
@@ -151,6 +161,10 @@ const DimmerWidget = {
                     }));
                 }
                 this.isOn = next;
+                if (!next) this.level = 0;
+                const st = this.uiState();
+                if (st) { st.isOn = next; st.level = this.level; }
+                this.scheduleInfoRefresh();
             } catch (e) { /* silent */ }
             this.loading = false;
         },
@@ -163,6 +177,9 @@ const DimmerWidget = {
                     object: obj, property: this.levelProperty(), value: String(this.level)
                 }));
                 this.isOn = this.level > 0;
+                const st = this.uiState();
+                if (st) { st.level = this.level; st.isOn = this.isOn; }
+                this.scheduleInfoRefresh();
             } catch (e) { /* silent */ }
             this.loading = false;
         },
@@ -172,21 +189,29 @@ const DimmerWidget = {
                 this.isAlive = !d.error && String(d.value) !== '0';
             } catch (e) { /* keep current state on transient error */ }
         },
-        async loadInfo() {
+        setInfo(v) {
+            if (v === undefined || v === null || v === '') return;
+            this.infoValue = v;
+            if (this.widget && this.widget.id) window.__dpInfoCache[this.widget.id] = v;
+        },
+        async refreshInfo() {
             if (!this.widget.object_info) return;
             try {
                 const params = this.widget.property_info ? { object: this.widget.object_info, property: this.widget.property_info } : { object: this.widget.object_info };
-                const d = await dpAPI('getProperty?' + new URLSearchParams(params));
-                if (!d.error) this.infoValue = d.value;
+                const d = await dpHttp('getProperty?' + new URLSearchParams(params));
+                if (d && !d.error) this.setInfo(d.value);
             } catch (e) { /* silent */ }
-            this.infoTimer = setInterval(() => {
-                if (this.widget.object_info) {
-                    const params = this.widget.property_info ? { object: this.widget.object_info, property: this.widget.property_info } : { object: this.widget.object_info };
-                    dpAPI('getProperty?' + new URLSearchParams(params))
-                        .then(d => { if (!d.error) this.infoValue = d.value; })
-                        .catch(() => {});
-                }
-            }, 5000);
+        },
+        scheduleInfoRefresh() {
+            if (!this.widget.object_info) return;
+            this.refreshInfo();
+            (this._infoRetry || []).forEach(t => clearTimeout(t));
+            this._infoRetry = [setTimeout(() => this.refreshInfo(), 400), setTimeout(() => this.refreshInfo(), 1500)];
+        },
+        async loadInfo() {
+            if (!this.widget.object_info) return;
+            await this.refreshInfo();
+            this.infoTimer = setInterval(() => this.refreshInfo(), 5000);
         }
     }
 };

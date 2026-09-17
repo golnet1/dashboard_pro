@@ -49,13 +49,14 @@ const RelayWidget = {
                     <div class="v-input--switch__track"><div class="v-input--switch__thumb"></div></div>
                 </div>
             </div>
-            <div v-if="widget.object_info" class="widget-v-card__info" style="padding:7px 12px 8px">
+            <div v-if="widget.object_info" class="widget-v-card__info" style="height:30px;box-sizing:border-box;display:flex;align-items:center;padding:0 12px;white-space:nowrap;overflow:hidden">
                 <span v-if="widget.pre_info">{{ widget.pre_info }}</span><span v-if="infoValue">{{ infoDisplay }}</span><span v-if="widget.pos_info">{{ widget.pos_info }}</span>
             </div>
             <div v-if="loading" class="widget-v-card__loading"><div class="v-progress-linear v-progress-linear--active"><div class="v-progress-linear__determinate" style="width:100%"></div></div></div>
         </div>`,
     data() {
-        return { isOn: false, loading: false, infoValue: '', timer: null, infoTimer: null, isAlive: true, infoTick: 0, secTimer: null, _toggleUntil: 0 };
+        const st = (this.widget && window.__dpWidgetState[this.widget.id]) || {};
+        return { isOn: !!st.isOn, loading: false, infoValue: (this.widget && window.__dpInfoCache[this.widget.id]) || '', timer: null, infoTimer: null, isAlive: true, infoTick: 0, secTimer: null, _toggleUntil: 0, _infoRetry: [] };
     },
     mounted() {
         this.poll();
@@ -67,6 +68,8 @@ const RelayWidget = {
         if (this.timer) clearInterval(this.timer);
         if (this.infoTimer) clearInterval(this.infoTimer);
         if (this.secTimer) clearInterval(this.secTimer);
+        (this._infoRetry || []).forEach(t => clearTimeout(t));
+        this._infoRetry = [];
     },
     computed: {
         infoDisplay() {
@@ -88,6 +91,11 @@ const RelayWidget = {
         }
     },
     methods: {
+        uiState() {
+            const id = this.widget && this.widget.id;
+            if (!id) return null;
+            return window.__dpWidgetState[id] || (window.__dpWidgetState[id] = {});
+        },
         async poll() {
             if (this.widget.object_value || this.widget.object) this.loadState();
             if (this.widget.object_alive && this.widget.property_alive) this.checkAlive();
@@ -103,6 +111,8 @@ const RelayWidget = {
                 if (!d.error && d.value !== undefined) {
                     const val = typeof d.value === 'string' ? d.value : String(d.value);
                     this.isOn = val === '1' || val === 'ON' || val === 'true';
+                    const st = this.uiState();
+                    if (st) st.isOn = this.isOn;
                 }
             } catch (e) { /* silent */ }
         },
@@ -127,23 +137,34 @@ const RelayWidget = {
                 }));
             }
             this.isOn = next;
+            const st = this.uiState();
+            if (st) st.isOn = next;
+            this.scheduleInfoRefresh();
             this.loading = false;
         },
-        async loadInfo() {
+        setInfo(v) {
+            if (v === undefined || v === null || v === '') return;
+            this.infoValue = v;
+            if (this.widget && this.widget.id) window.__dpInfoCache[this.widget.id] = v;
+        },
+        async refreshInfo() {
             if (!this.widget.object_info) return;
             try {
                 const params = this.widget.property_info ? { object: this.widget.object_info, property: this.widget.property_info } : { object: this.widget.object_info };
-                const d = await dpAPI('getProperty?' + new URLSearchParams(params));
-                if (!d.error) this.infoValue = d.value;
+                const d = await dpHttp('getProperty?' + new URLSearchParams(params));
+                if (d && !d.error) this.setInfo(d.value);
             } catch (e) { /* silent */ }
-            this.infoTimer = setInterval(() => {
-                if (this.widget.object_info) {
-                    const params = this.widget.property_info ? { object: this.widget.object_info, property: this.widget.property_info } : { object: this.widget.object_info };
-                    dpAPI('getProperty?' + new URLSearchParams(params))
-                        .then(d => { if (!d.error) this.infoValue = d.value; })
-                        .catch(() => {});
-                }
-            }, 5000);
+        },
+        scheduleInfoRefresh() {
+            if (!this.widget.object_info) return;
+            this.refreshInfo();
+            (this._infoRetry || []).forEach(t => clearTimeout(t));
+            this._infoRetry = [setTimeout(() => this.refreshInfo(), 400), setTimeout(() => this.refreshInfo(), 1500)];
+        },
+        async loadInfo() {
+            if (!this.widget.object_info) return;
+            await this.refreshInfo();
+            this.infoTimer = setInterval(() => this.refreshInfo(), 5000);
         },
         async checkAlive() {
             try {

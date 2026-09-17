@@ -29,6 +29,8 @@ function dpInfoDisplay(val) {
 
 window.__dpWsCache = {};
 window.__dpWsLive = false;
+window.__dpInfoCache = window.__dpInfoCache || {};
+window.__dpWidgetState = window.__dpWidgetState || {};
 
 const WS_OBJECT_FIELDS = [
     ['object_value', 'property'],
@@ -441,7 +443,7 @@ function loadScript(src, version) {
             widgetList.value = [...widgetDefs.value].sort((a, b) => (a.priority || 0) - (b.priority || 0));
             for (const w of widgets.items) {
                 if (!w.FILE) continue;
-                await loadScript(w.FILE, 54);
+                await loadScript(w.FILE, 57);
             }
             widgetDefs.value.forEach(d => registerWidgetComponent(d.type));
         }
@@ -1542,21 +1544,31 @@ function loadScript(src, version) {
             wsSocket.send(payload);
         }
 
+        let wsRemountTimer = null;
+        const wsPendingRemount = new Set();
+
+        function queueWsRemount(id) {
+            if (id === undefined || id === null) return;
+            wsPendingRemount.add(id);
+            if (wsRemountTimer) return;
+            wsRemountTimer = setTimeout(() => {
+                wsRemountTimer = null;
+                wsPendingRemount.forEach(wid => { wsRev[wid] = (wsRev[wid] || 0) + 1; });
+                wsPendingRemount.clear();
+            }, 120);
+        }
+
         function wsRefreshWidgets(propKey) {
             const key = String(propKey).toLowerCase();
             const base = key.split('.')[0];
             (currentPanel.value?.widgets || []).forEach(w => {
                 const keys = wsWidgetPropKeys(w);
-                if (keys.has(key) || keys.has(base)) {
-                    wsRev[w.id] = (wsRev[w.id] || 0) + 1;
-                }
+                if (keys.has(key) || keys.has(base)) queueWsRemount(w.id);
             });
         }
 
         function wsRemountWidgets() {
-            (currentPanel.value?.widgets || []).forEach(w => {
-                wsRev[w.id] = (wsRev[w.id] || 0) + 1;
-            });
+            (currentPanel.value?.widgets || []).forEach(w => queueWsRemount(w.id));
         }
 
         function initWebSocket() {
