@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Pro</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/app.css?v=42">
+    <link rel="stylesheet" href="css/app.css?v=43">
     <script src="js/lib/vue.global.prod.js"></script>
 </head>
 <body>
@@ -59,7 +59,7 @@
                         <i class="fas fa-bars"></i>
                         <span class="app-bar__menu-tooltip">{{ sidebarMini ? t('show_sidebar') : t('hide_sidebar') }}</span>
                     </button>
-                    <span class="app-bar__title">{{ showSettingsPanel ? t('settings') : (currentPanel?.title || t('home_panel')) }}</span>
+                    <span class="app-bar__title">{{ showSettingsPanel ? t('settings') : (showWidgetEditorPanel ? t('widget_editor') : (currentPanel?.title || t('home_panel'))) }}</span>
                     <div class="app-bar__spacer"></div>
                     <div class="app-bar__actions">
                         <button @click="forceRefresh" :title="wsTooltip" :class="{ 'ws-online': wsConnected, 'ws-offline': !wsConnected, 'ws-pulse': wsPulse }">
@@ -100,7 +100,7 @@
                             </div>
                         </div>
                         <button v-if="isAdmin" @click="toggleTheme" :title="settings.theme === 'dark' ? t('light_theme') : t('dark_theme')"><i :class="settings.theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon'"></i></button>
-                        <button v-if="isAdmin" @click="toggleEditMode" :title="editMode ? t('save') : t('edit_mode')" :class="{ active: editMode }"><i :class="editMode ? 'fas fa-save' : 'fas fa-pen'"></i></button>
+                        <button v-if="isAdmin" @click="toggleEditMode" :title="editMode ? t('save') : t('edit_mode')" :class="{ active: editMode, 'has-unsaved': hasUnsavedChanges }"><i :class="editMode ? 'fas fa-save' : 'fas fa-pen'"></i></button>
                         <button v-if="isAdmin && editMode" @click="addPlusButton" :title="plusTooltip"><i class="fas fa-plus"></i></button>
                         <div style="position:relative">
                             <button class="user-avatar-btn" @click.stop="userMenuOpen = !userMenuOpen" :title="t('user')">
@@ -500,7 +500,6 @@
                             <div style="margin-bottom:8px">
                                 <button @click="showWidgetEditorPanel = false" style="background:none;border:none;color:rgba(255,255,255,.7);cursor:pointer;font-size:1.2rem;padding:4px 8px;margin:4px 8px"><i class="fas fa-arrow-left"></i></button>
                             </div>
-                            <div class="v-subheader theme--dark" style="margin:8px 16px">{{ t('widget_editor') }}</div>
                             <div class="widget-editor">
                                 <div class="widget-editor__toolbar">
                                     <div class="v-subheader theme--dark" style="margin:8px 0;padding:0">{{ t('widget_editor_list') }} ({{ widgetList.length }})</div>
@@ -1492,6 +1491,6 @@
     <script src="js/auth.js?v=9"></script>
     <script src="js/sidebar.js?v=10"></script>
 <script src="js/widget-config.js?v=11"></script>
-<script src="js/app.js?v=84"></script>
+<script src="js/app.js?v=86"></script>
 </body>
 </html>

@@ -106,6 +106,7 @@ const app = createApp({
         const chatMessages = ref([]);
         const chatText = ref('');
         const chatLoading = ref(false);
+        const hasUnsavedChanges = ref(false);
 
         const showNotifications = ref(false);
         const notifications = ref([]);
@@ -439,7 +440,7 @@ function loadScript(src, version) {
             widgetList.value = [...widgetDefs.value].sort((a, b) => (a.priority || 0) - (b.priority || 0));
             for (const w of widgets.items) {
                 if (!w.FILE) continue;
-                await loadScript(w.FILE, 40);
+                await loadScript(w.FILE, 41);
             }
             widgetDefs.value.forEach(d => registerWidgetComponent(d.type));
         }
@@ -978,11 +979,17 @@ function loadScript(src, version) {
             });
         });
 
-        async function savePanels() {
+        function savePanels() {
+            applySettings();
+            hasUnsavedChanges.value = true;
+        }
+
+        async function commitChanges() {
             await dpAPI('panels', { method: 'POST', body: JSON.stringify({ panels: panels.value }) });
             const s = await dpAPI('settings', { method: 'POST', body: JSON.stringify(settings.value) });
             if (s && !s.error) Object.assign(settings.value, s);
             applySettings();
+            hasUnsavedChanges.value = false;
         }
 
         async function loadIconProperties(oid) {
@@ -1472,7 +1479,9 @@ function loadScript(src, version) {
         }
 
         function toggleEditMode() {
-            if (editMode.value) savePanels();
+            if (editMode.value) {
+                commitChanges();
+            }
             editMode.value = !editMode.value;
         }
 
@@ -1850,7 +1859,7 @@ onMounted(() => {
             resizingWidget, startResize, onResize, stopResize,
             widgetMenuTarget, widgetPanelSubmenu, widgetGroupSubmenu, widgetConfirm, copyWidget, exportWidget, changeWidgetPanel, selectMoveTarget, confirmMoveWidget, moveWidgetToGroup, confirmMoveToGroup,
             showChangeObject, changeObjectGroups, openChangeObject, saveChangeObject, widgetHasChangeObjects,
-            showSettingsPanel, showWidgetEditorPanel, settings, savePanels, toggleTheme, cleanupOrphanWidgets, resetAll,
+            showSettingsPanel, showWidgetEditorPanel, settings, savePanels, commitChanges, hasUnsavedChanges, toggleTheme, cleanupOrphanWidgets, resetAll,
             showExportDialog, exportMode, exportSelectedPanel, exportUsers, exportSelectedUser, loadExportUsers, doExport, doImport,
             showAddPanel, editPanelData, panelForm, panelTab, panelTabPos, panelError, createPanel, editPanel, openPanelForm, deletePanel, deleteCurrentPanel, movePanel, showAbout, toggleField,
             showIconPicker, iconTarget, iconSearch, iconCategory, iconCategorySearch, iconPage, iconCategories, filteredIconCategories, filteredIcons, totalPages, paginatedIcons, openIconPicker, selectIcon, iconPicked,
