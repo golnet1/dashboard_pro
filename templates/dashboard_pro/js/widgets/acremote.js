@@ -103,7 +103,16 @@ const AcRemoteWidget = {
         async send(code) {
             try {
                 if (this.widget.send_mode === 'script') {
-                    await dpAPI('scriptRun?' + new URLSearchParams({ script: this.widget.script, param: code }));
+                    let params;
+                    try { params = JSON.parse(code); } catch (e) { params = null; }
+                    if (params && typeof params === 'object') {
+                        const qs = new URLSearchParams(params);
+                        const url = '/api.php/script/' + encodeURIComponent(this.widget.script) + (qs.toString() ? '?' + qs.toString() : '');
+                        const res = await fetch(url);
+                        if (!res.ok) console.error('scriptRun failed:', res.status);
+                    } else {
+                        await dpAPI('scriptRun?' + new URLSearchParams({ script: this.widget.script, param: code }));
+                    }
                 } else if (this.widget.send_mode === 'command') {
                     await dpAPI('execCommand?' + new URLSearchParams({ command: (this.widget.command_prefix || '') + code }));
                 } else if (this.widget.object) {
@@ -147,10 +156,10 @@ const AcRemoteWidget = {
         },
         stateJSON() {
             return JSON.stringify({
-                on: this.on,
+                on: this.on ? 1 : 0,
                 mode: this.mode || 'auto',
                 temp: this.temp,
-                swing: this.swingOn,
+                swing: this.swingOn ? 1 : 0,
                 fan: this.fan
             });
         },

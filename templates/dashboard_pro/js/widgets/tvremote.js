@@ -111,7 +111,9 @@ const TvRemoteWidget = {
             const code = this.codeFor(k);
             try {
                 if (this.widget.send_mode === 'script') {
-                    await dpAPI('scriptRun?' + new URLSearchParams({ script: this.widget.script, param: code }));
+                    const url = '/api.php/script/' + encodeURIComponent(this.widget.script) + '?' + new URLSearchParams({ key: code });
+                    const res = await fetch(url);
+                    if (!res.ok) console.error('scriptRun failed:', res.status);
                 } else if (this.widget.send_mode === 'tv') {
                     const ip = (this.widget.tv_ip || '').trim();
                     if (!ip) return;

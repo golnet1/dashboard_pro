@@ -287,6 +287,10 @@ class dashboard_pro extends module
             $script = trim($params['script'] ?? '');
             $param = isset($params['param']) ? $params['param'] : '';
             if (!$script) return ['error' => 'script required'];
+            if (is_string($param)) {
+                $decoded = json_decode($param, true);
+                if (is_array($decoded)) $param = $decoded;
+            }
             $result = runScript($script, $param);
             return ['success' => true, 'result' => $result];
         }
