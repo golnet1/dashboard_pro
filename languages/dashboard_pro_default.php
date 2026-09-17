@@ -734,6 +734,7 @@ $frontend = array(
     'rc_back' => 'Back',
     'rc_ok' => 'OK',
     'rc_info' => 'Info',
+    'rc_exit' => 'Exit',
     'rc_up' => 'Up',
     'rc_down' => 'Down',
     'rc_left' => 'Left',

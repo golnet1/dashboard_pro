@@ -35,13 +35,13 @@ const TvRemoteWidget = {
             <div class="widget-v-card__body dp-remote__body">
                 <button class="dp-remote__power" @click="press('power')" :title="t('rc_power')"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 3.5v8"/><path d="M6.4 7.2a8 8 0 1 0 11.2 0"/></svg></button>
                 <div class="dp-remote__row">
-                    <button v-for="k in ['menu','home','input']" :key="'fn'+k" class="dp-remote__key dp-remote__key--small" @click="press(k)">{{ t('rc_' + k) }}</button>
+                    <button v-for="k in ['menu','home','info']" :key="'fn'+k" class="dp-remote__key dp-remote__key--small" @click="press(k)">{{ t('rc_' + k) }}</button>
                 </div>
                 <div class="dp-remote__numgrid">
                     <button v-for="n in ['1','2','3','4','5','6','7','8','9']" :key="n" class="dp-remote__key dp-remote__key--num" @click="press(n)">{{ n }}</button>
-                    <button class="dp-remote__key dp-remote__key--num" @click="press('mute')">{{ t('rc_mute') }}</button>
+                    <button class="dp-remote__key dp-remote__key--num" @click="press('input')">{{ t('rc_input') }}</button>
                     <button class="dp-remote__key dp-remote__key--num" @click="press('0')">0</button>
-                    <button class="dp-remote__key dp-remote__key--num dp-remote__key--center" @click="press('ok')">{{ t('rc_ok') }}</button>
+                    <button class="dp-remote__key dp-remote__key--num" @click="press('exit')">{{ t('rc_exit') }}</button>
                 </div>
                 <div class="dp-remote__dpad">
                     <span></span>
@@ -60,12 +60,12 @@ const TvRemoteWidget = {
                         <button class="dp-remote__key dp-remote__key--big" @click="press('vol-')">{{ t('rc_vol_down') }}</button>
                     </div>
                     <div class="dp-remote__col">
-                        <button class="dp-remote__key dp-remote__key--big" @click="press('ch+')">{{ t('rc_ch_up') }}</button>
-                        <button class="dp-remote__key dp-remote__key--big" @click="press('ch-')">{{ t('rc_ch_down') }}</button>
+                        <button class="dp-remote__key dp-remote__key--big" @click="press('mute')">{{ t('rc_mute') }}</button>
+                        <button class="dp-remote__key dp-remote__key--big" @click="press('back')">{{ t('rc_back') }}</button>
                     </div>
                     <div class="dp-remote__col">
-                        <button class="dp-remote__key dp-remote__key--big" @click="press('back')">{{ t('rc_back') }}</button>
-                        <button class="dp-remote__key dp-remote__key--big" @click="press('info')">{{ t('rc_info') }}</button>
+                        <button class="dp-remote__key dp-remote__key--big" @click="press('ch+')">{{ t('rc_ch_up') }}</button>
+                        <button class="dp-remote__key dp-remote__key--big" @click="press('ch-')">{{ t('rc_ch_down') }}</button>
                     </div>
                 </div>
             </div>
@@ -85,7 +85,7 @@ const TvRemoteWidget = {
         codeFor(k) {
             const v = this.codeMap[k];
             if (v !== undefined && v !== null && v !== '') return String(v);
-            const tv = { power: 'Power', info: 'Info', menu: 'Menu', home: 'Home', input: 'Source', back: 'Back', ok: 'Confirm', up: 'CursorUp', down: 'CursorDown', left: 'CursorLeft', right: 'CursorRight', mute: 'Mute', 'vol+': 'VolumeUp', 'vol-': 'VolumeDown', 'ch+': 'ChannelStepUp', 'ch-': 'ChannelStepDown', '0': 'Digit0', '1': 'Digit1', '2': 'Digit2', '3': 'Digit3', '4': 'Digit4', '5': 'Digit5', '6': 'Digit6', '7': 'Digit7', '8': 'Digit8', '9': 'Digit9' };
+            const tv = { power: 'Power', info: 'Info', exit: 'Exit', menu: 'Menu', home: 'Home', input: 'Source', back: 'Back', ok: 'Confirm', up: 'CursorUp', down: 'CursorDown', left: 'CursorLeft', right: 'CursorRight', mute: 'Mute', 'vol+': 'VolumeUp', 'vol-': 'VolumeDown', 'ch+': 'ChannelStepUp', 'ch-': 'ChannelStepDown', '0': 'Digit0', '1': 'Digit1', '2': 'Digit2', '3': 'Digit3', '4': 'Digit4', '5': 'Digit5', '6': 'Digit6', '7': 'Digit7', '8': 'Digit8', '9': 'Digit9' };
             return tv[k] || k;
         },
         async press(k) {

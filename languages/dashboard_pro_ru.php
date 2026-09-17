@@ -734,6 +734,7 @@ $frontend = array(
     'rc_back' => 'Назад',
     'rc_ok' => 'OK',
     'rc_info' => 'Инфо',
+    'rc_exit' => 'Выход',
     'rc_up' => 'Вверх',
     'rc_down' => 'Вниз',
     'rc_left' => 'Влево',

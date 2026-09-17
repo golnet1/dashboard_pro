@@ -523,15 +523,15 @@ select.form-control { appearance: auto; }
 .dp-remote__col { display:flex; flex-direction:column; gap:6px; }
 .dp-remote__rows { display:flex; flex-direction:column; gap:6px; }
 .dp-remote__row { display:flex; justify-content:center; gap:6px; }
-.dp-remote__cols { display:flex; justify-content:center; gap:6px; }
+.dp-remote__cols { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; width:100%; }
 .dp-remote__power { width:42px; height:42px; border-radius:50%; border:none; background:linear-gradient(145deg,#f87171,#dc2626); color:#fff; font-size:1.15rem; cursor:pointer; box-shadow:0 2px 6px rgba(220,38,38,.5), inset 0 1px 0 rgba(255,255,255,.35); display:flex; align-items:center; justify-content:center; align-self:center; transition:transform .08s; margin-bottom:2px; }
 .dp-remote__power:active { transform:scale(.92); }
 .dp-remote__key { min-width:34px; height:34px; border-radius:9px; border:1px solid rgba(255,255,255,.16); background:linear-gradient(180deg,rgba(255,255,255,.16),rgba(255,255,255,.04)); color:rgba(255,255,255,.92); font-size:.72rem; font-weight:700; letter-spacing:.03em; cursor:pointer; box-shadow:0 1px 0 rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.14); display:flex; align-items:center; justify-content:center; gap:4px; padding:0 8px; transition:transform .06s,filter .1s; }
 .dp-remote__key:hover { filter:brightness(1.15); }
 .dp-remote__key:active { transform:translateY(1px) scale(.97); }
-.dp-remote__key--small { min-width:30px; height:28px; border-radius:7px; font-size:.64rem; flex:1; }
-.dp-remote__key--num { min-width:30px; height:32px; border-radius:8px; font-size:.9rem; width:100%; }
-.dp-remote__key--big { min-width:64px; height:36px; border-radius:10px; font-size:.78rem; }
+.dp-remote__key--small { min-width:30px; height:36px; border-radius:9px; font-size:.78rem; flex:1; }
+    .dp-remote__key--num { min-width:30px; height:36px; border-radius:9px; font-size:.9rem; width:100%; }
+    .dp-remote__key--big { min-width:0; width:100%; height:36px; border-radius:9px; font-size:.78rem; }
 .dp-remote__key--wide { flex:1; max-width:98px; }
 .dp-remote__key--arrow { width:38px; height:34px; border-radius:9px; font-size:1rem; padding:0; }
 .dp-remote__key--mode { width:78px; flex:0 0 78px; height:36px; font-size:.72rem; }
