@@ -22,17 +22,20 @@ const ButtonWidget = {
             { key: 'bg_image', label: 'field_image_url', type: 'text', row: 'bg_row', showIf: { bg_mode: 'image' } },
             { key: 'bg_object', label: 'field_bg_object', type: 'object', row: 'bg_row', showIf: { bg_mode: 'property' } },
             { key: 'bg_property', label: 'field_bg_property', type: 'property', row: 'bg_row', showIf: { bg_mode: 'property' } },
+            { key: 'object_alive', label: 'field_alive_flag', type: 'object', row: 'alive_row' },
+            { key: 'property_alive', label: 'field_alive_property', type: 'property', row: 'alive_row' },
+            { key: 'alive_timeout', label: 'field_alive_timeout', type: 'number', step: 1 },
         ],
     },
     defaults: { icon: 'fas fa-play', icon_type: 'icon', buttonText: 'default_execute', hold: 1, value: '1', command: '', method: '' },
     template: `
-        <div class="widget-v-card" :style="cardStyle">
+        <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled }" :style="cardStyle">
             <div class="widget-v-card__header">
                 <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon"></i>
                 <div class="widget-v-card__title">{{ widget.title || t('widget_button') }}</div>
             </div>
             <div class="widget-v-card__body" style="display:flex;align-items:center;justify-content:center;flex:1;padding:8px">
-                <button class="v-btn v-btn--is-elevated v-btn--has-bg theme--dark" style="min-width:120px" :class="{ 'v-btn--loading': loading }" @click="execute" :disabled="loading">
+                <button class="v-btn v-btn--is-elevated v-btn--has-bg theme--dark" style="min-width:120px" :class="{ 'v-btn--loading': loading }" @click="execute" :disabled="loading || aliveDisabled">
                     <span class="v-btn__content">
                         <i v-if="widget.icon" :class="widget.icon" style="margin-right:6px"></i>
                         {{ loading ? '...' : (widget.buttonText || t('default_execute')) }}
@@ -40,8 +43,18 @@ const ButtonWidget = {
                 </button>
             </div>
         </div>`,
-    data() { return { loading: false }; },
+    data() { return { loading: false, isAlive: true, availTimer: null }; },
+    mounted() {
+        if (this.widget.object_alive && this.widget.property_alive) {
+            this.checkAlive();
+            this.availTimer = setInterval(() => this.checkAlive(), (this.widget.alive_timeout || 3) * 1000);
+        }
+    },
+    beforeUnmount() { if (this.availTimer) clearInterval(this.availTimer); },
     computed: {
+        aliveDisabled() {
+            return this.widget.object_alive && this.widget.property_alive && this.isAlive === false;
+        },
         cardStyle() {
             const s = {};
             if (this.widget.color) s.backgroundColor = this.widget.color;
@@ -49,6 +62,12 @@ const ButtonWidget = {
         }
     },
     methods: {
+        async checkAlive() {
+            try {
+                const d = await dpAPI('getProperty?' + new URLSearchParams({ object: this.widget.object_alive, property: this.widget.property_alive }));
+                this.isAlive = !d.error && String(d.value) !== '0';
+            } catch (e) { /* keep current state on transient error */ }
+        },
         async execute() {
             if (this.loading) return;
             this.loading = true;

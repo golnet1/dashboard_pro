@@ -25,30 +25,33 @@ const RGBWidget = {
             { key: 'bg_image', label: 'field_image_url', type: 'text', row: 'bg_row', showIf: { bg_mode: 'image' } },
             { key: 'bg_object', label: 'field_bg_object', type: 'object', row: 'bg_row', showIf: { bg_mode: 'property' } },
             { key: 'bg_property', label: 'field_bg_property', type: 'property', row: 'bg_row', showIf: { bg_mode: 'property' } },
+            { key: 'object_alive', label: 'field_alive_flag', type: 'object', row: 'alive_row' },
+            { key: 'property_alive', label: 'field_alive_property', type: 'property', row: 'alive_row' },
+            { key: 'alive_timeout', label: 'field_alive_timeout', type: 'number', step: 1 },
             { key: 'background', label: 'field_icon_bg', type: 'checkbox', row: 'icon_hl' },
             { key: 'round', label: 'field_icon_round', type: 'checkbox', row: 'icon_hl' },
         ],
     },
     defaults: { icon: 'fas fa-palette', icon_type: 'icon', property: 'status', background: false, round: false },
     template: `
-        <div class="widget-v-card" :style="cardStyle">
+        <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled }" :style="cardStyle">
             <div class="widget-v-card__header">
                 <i v-if="widget.icon" class="widget-v-card__icon" :class="[widget.icon, iconHlClass]"></i>
                 <div class="widget-v-card__title">{{ widget.title || 'RGB' }}</div>
                 <div class="widget-v-card__spacer"></div>
-                <div class="v-input--switch" :class="{ 'input--is-checked': isOn }" @click.stop="toggle">
+                <div class="v-input--switch" :class="{ 'input--is-checked': isOn }" :style="aliveDisabled ? 'opacity:.4;pointer-events:none' : ''" @click.stop="toggle">
                     <div class="v-input--switch__track"><div class="v-input--switch__thumb"></div></div>
                 </div>
             </div>
             <div class="widget-v-card__body" style="padding:4px 12px 12px;display:flex;flex-direction:column;gap:8px">
                 <div style="display:flex;gap:8px;align-items:center">
-                    <input type="color" v-model="currentColor" @input="onColorChange" style="width:100%;height:40px;background:transparent;border:1px solid rgba(255,255,255,.2);border-radius:4px;cursor:pointer">
+                    <input type="color" v-model="currentColor" @input="onColorChange" :disabled="aliveDisabled" style="width:100%;height:40px;background:transparent;border:1px solid rgba(255,255,255,.2);border-radius:4px;cursor:pointer">
                     <span style="font-size:.8rem;font-family:monospace;color:rgba(255,255,255,.6)">{{ currentColor }}</span>
                 </div>
             </div>
         </div>`,
     data() {
-        return { isOn: false, currentColor: '#ffffff', loading: false, timer: null, colorTimer: null, _toggleUntil: 0 };
+        return { isOn: false, currentColor: '#ffffff', loading: false, timer: null, colorTimer: null, _toggleUntil: 0, isAlive: true, availTimer: null };
     },
     mounted() {
         this.loadState();
@@ -58,12 +61,20 @@ const RGBWidget = {
             this.loadColor();
             if (!window.__dpWsLive) this.colorTimer = setInterval(() => this.loadColor(), 5000);
         }
+        if (this.widget.object_alive && this.widget.property_alive) {
+            this.checkAlive();
+            this.availTimer = setInterval(() => this.checkAlive(), (this.widget.alive_timeout || 3) * 1000);
+        }
     },
     beforeUnmount() {
         if (this.timer) clearInterval(this.timer);
         if (this.colorTimer) clearInterval(this.colorTimer);
+        if (this.availTimer) clearInterval(this.availTimer);
     },
     computed: {
+        aliveDisabled() {
+            return this.widget.object_alive && this.widget.property_alive && this.isAlive === false;
+        },
         cardStyle() {
             const s = {};
             if (this.widget.color) s.backgroundColor = this.widget.color;
@@ -75,6 +86,12 @@ const RGBWidget = {
         }
     },
     methods: {
+        async checkAlive() {
+            try {
+                const d = await dpAPI('getProperty?' + new URLSearchParams({ object: this.widget.object_alive, property: this.widget.property_alive }));
+                this.isAlive = !d.error && String(d.value) !== '0';
+            } catch (e) { /* keep current state on transient error */ }
+        },
         async loadState() {
             if (Date.now() < this._toggleUntil) return;
             let obj = this.widget.object_value || this.widget.object;

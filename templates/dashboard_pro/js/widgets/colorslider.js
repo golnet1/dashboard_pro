@@ -17,11 +17,14 @@ const ColorSliderWidget = {
             { key: 'bg_image', label: 'field_image_url', type: 'text', row: 'bg_row', showIf: { bg_mode: 'image' } },
             { key: 'bg_object', label: 'field_bg_object', type: 'object', row: 'bg_row', showIf: { bg_mode: 'property' } },
             { key: 'bg_property', label: 'field_bg_property', type: 'property', row: 'bg_row', showIf: { bg_mode: 'property' } },
+            { key: 'object_alive', label: 'field_alive_flag', type: 'object', row: 'alive_row' },
+            { key: 'property_alive', label: 'field_alive_property', type: 'property', row: 'alive_row' },
+            { key: 'alive_timeout', label: 'field_alive_timeout', type: 'number', step: 1 },
         ],
     },
     defaults: { icon: 'fas fa-palette', icon_type: 'icon' },
     template: `
-        <div class="widget-v-card" :style="cardStyle">
+        <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled }" :style="cardStyle">
             <div class="widget-v-card__header">
                 <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon"></i>
                 <div class="widget-v-card__title">{{ widget.title || t('widget_colorslider') }}</div>
@@ -31,23 +34,26 @@ const ColorSliderWidget = {
             <div class="widget-v-card__body" style="padding:8px 12px 12px;display:flex;flex-direction:column;gap:8px">
                 <div style="display:flex;gap:8px;align-items:center">
                     <span style="font-size:.72rem;color:rgba(255,255,255,.5);width:16px">R</span>
-                    <input type="range" min="0" max="255" v-model.number="r" @input="updateColor" style="flex:1;accent-color:#ef4444">
+                    <input type="range" min="0" max="255" v-model.number="r" @input="updateColor" style="flex:1;accent-color:#ef4444" :disabled="aliveDisabled">
                 </div>
                 <div style="display:flex;gap:8px;align-items:center">
                     <span style="font-size:.72rem;color:rgba(255,255,255,.5);width:16px">G</span>
-                    <input type="range" min="0" max="255" v-model.number="g" @input="updateColor" style="flex:1;accent-color:#22c55e">
+                    <input type="range" min="0" max="255" v-model.number="g" @input="updateColor" style="flex:1;accent-color:#22c55e" :disabled="aliveDisabled">
                 </div>
                 <div style="display:flex;gap:8px;align-items:center">
                     <span style="font-size:.72rem;color:rgba(255,255,255,.5);width:16px">B</span>
-                    <input type="range" min="0" max="255" v-model.number="b" @input="updateColor" style="flex:1;accent-color:#3b82f6">
+                    <input type="range" min="0" max="255" v-model.number="b" @input="updateColor" style="flex:1;accent-color:#3b82f6" :disabled="aliveDisabled">
                 </div>
                 <div :style="'height:24px;border-radius:4px;background:' + hexColor + ';border:1px solid rgba(255,255,255,.15)'"></div>
             </div>
         </div>`,
     data() {
-        return { r: 255, g: 255, b: 255, timer: null };
+        return { r: 255, g: 255, b: 255, timer: null, isAlive: true, availTimer: null };
     },
     computed: {
+        aliveDisabled() {
+            return this.widget.object_alive && this.widget.property_alive && this.isAlive === false;
+        },
         cardStyle() {
             const s = {};
             if (this.widget.color) s.backgroundColor = this.widget.color;
@@ -58,11 +64,22 @@ const ColorSliderWidget = {
     mounted() {
         this.loadColor();
         if (this.widget.object && !window.__dpWsLive) this.timer = setInterval(() => this.loadColor(), 5000);
+        if (this.widget.object_alive && this.widget.property_alive) {
+            this.checkAlive();
+            this.availTimer = setInterval(() => this.checkAlive(), (this.widget.alive_timeout || 3) * 1000);
+        }
     },
     beforeUnmount() {
         if (this.timer) clearInterval(this.timer);
+        if (this.availTimer) clearInterval(this.availTimer);
     },
     methods: {
+        async checkAlive() {
+            try {
+                const d = await dpAPI('getProperty?' + new URLSearchParams({ object: this.widget.object_alive, property: this.widget.property_alive }));
+                this.isAlive = !d.error && String(d.value) !== '0';
+            } catch (e) { /* keep current state on transient error */ }
+        },
         async loadColor() {
             if (!this.widget.object) return;
             try {

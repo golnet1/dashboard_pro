@@ -22,11 +22,14 @@ const SliderWidget = {
             { key: 'bg_image', label: 'field_image_url', type: 'text', row: 'bg_row', showIf: { bg_mode: 'image' } },
             { key: 'bg_object', label: 'field_bg_object', type: 'object', row: 'bg_row', showIf: { bg_mode: 'property' } },
             { key: 'bg_property', label: 'field_bg_property', type: 'property', row: 'bg_row', showIf: { bg_mode: 'property' } },
+            { key: 'object_alive', label: 'field_alive_flag', type: 'object', row: 'alive_row' },
+            { key: 'property_alive', label: 'field_alive_property', type: 'property', row: 'alive_row' },
+            { key: 'alive_timeout', label: 'field_alive_timeout', type: 'number', step: 1 },
         ],
     },
     defaults: { icon: 'fas fa-sliders-h', icon_type: 'icon', property: 'level', min: 0, max: 100, step: 1, prepend_icon: '', append_icon: '' },
     template: `
-        <div class="widget-v-card" :style="cardStyle">
+        <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled }" :style="cardStyle">
             <div class="widget-v-card__header">
                 <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon"></i>
                 <div class="widget-v-card__title">{{ widget.title || t('widget_slider') }}</div>
@@ -36,7 +39,7 @@ const SliderWidget = {
             <div class="widget-v-card__body" style="padding:0 12px 12px">
                 <div class="v-slider theme--dark" style="width:100%">
                     <i v-if="widget.prepend_icon" :class="widget.prepend_icon" style="font-size:.85rem;color:rgba(255,255,255,.5);margin-right:4px;cursor:pointer" @click="down"></i>
-                    <input type="range" class="v-slider__input" :min="min" :max="max" :step="step" v-model.number="currentValue" @input="onInput" @change="onChange" :disabled="loading">
+                    <input type="range" class="v-slider__input" :min="min" :max="max" :step="step" v-model.number="currentValue" @input="onInput" @change="onChange" :disabled="loading || aliveDisabled">
                     <div class="v-slider__track"><div class="v-slider__track-fill" :style="{width: fillPercent + '%'}"></div></div>
                     <div class="v-slider__thumb-container" :style="{left: fillPercent + '%'}"><div class="v-slider__thumb"></div></div>
                     <i v-if="widget.append_icon" :class="widget.append_icon" style="font-size:.85rem;color:rgba(255,255,255,.5);margin-left:4px;cursor:pointer" @click="up"></i>
@@ -44,7 +47,7 @@ const SliderWidget = {
             </div>
         </div>`,
     data() {
-        return { currentValue: 0, loading: false, timer: null, min: 0, max: 100, step: 1 };
+        return { currentValue: 0, loading: false, timer: null, min: 0, max: 100, step: 1, isAlive: true, availTimer: null };
     },
     mounted() {
         this.min = this.widget.min != null ? Number(this.widget.min) : 0;
@@ -54,11 +57,19 @@ const SliderWidget = {
         let obj = this.widget.object_value || this.widget.object;
         let prop = this.widget.property;
         if (obj && prop && !window.__dpWsLive) this.timer = setInterval(() => this.loadValue(), 5000);
+        if (this.widget.object_alive && this.widget.property_alive) {
+            this.checkAlive();
+            this.availTimer = setInterval(() => this.checkAlive(), (this.widget.alive_timeout || 3) * 1000);
+        }
     },
     beforeUnmount() {
         if (this.timer) clearInterval(this.timer);
+        if (this.availTimer) clearInterval(this.availTimer);
     },
     computed: {
+        aliveDisabled() {
+            return this.widget.object_alive && this.widget.property_alive && this.isAlive === false;
+        },
         fillPercent() {
             const range = this.max - this.min;
             if (range === 0) return 0;
@@ -71,6 +82,12 @@ const SliderWidget = {
         }
     },
     methods: {
+        async checkAlive() {
+            try {
+                const d = await dpAPI('getProperty?' + new URLSearchParams({ object: this.widget.object_alive, property: this.widget.property_alive }));
+                this.isAlive = !d.error && String(d.value) !== '0';
+            } catch (e) { /* keep current state on transient error */ }
+        },
         async loadValue() {
             let obj = this.widget.object_value || this.widget.object;
             let prop = this.widget.property;

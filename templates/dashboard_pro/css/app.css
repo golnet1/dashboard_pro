@@ -553,7 +553,7 @@ select.form-control { appearance: auto; }
 .dp-remote__disp-swing { margin-left:6px; font-size:.9rem; color:#4fc3f7; }
 .dp-remote__temp { display:flex; align-items:center; gap:14px; justify-content:center; }
 .dp-remote__temp .dp-remote__key { width:46px; height:40px; border-radius:50%; font-size:1.1rem; font-weight:800; }
-.widget-v-card--disabled .widget-v-card__header, .widget-v-card--disabled .group-widgets-grid { opacity:.35; pointer-events:none; filter:grayscale(.4); }
+.widget-v-card--disabled .widget-v-card__header, .widget-v-card--disabled .widget-v-card__body, .widget-v-card--disabled .group-widgets-grid { opacity:.35; pointer-events:none; filter:grayscale(.4); }
 .widget-v-card--disabled .widget-v-card__header .widget-menu { pointer-events:auto; font-size:.9rem; }
 .widget-v-card__locked-icon { margin-left:auto; font-size:1rem; color:var(--on-theme-dim); padding-right:8px; flex-shrink:0; align-self:center; }
 

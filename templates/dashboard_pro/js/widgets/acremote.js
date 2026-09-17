@@ -21,11 +21,14 @@ const AcRemoteWidget = {
             { key: 'bg_image', label: 'field_image_url', type: 'text', row: 'bg_row', showIf: { bg_mode: 'image' } },
             { key: 'bg_object', label: 'field_bg_object', type: 'object', row: 'bg_row', showIf: { bg_mode: 'property' } },
             { key: 'bg_property', label: 'field_bg_property', type: 'property', row: 'bg_row', showIf: { bg_mode: 'property' } },
+            { key: 'object_alive', label: 'field_alive_flag', type: 'object', row: 'alive_row' },
+            { key: 'property_alive', label: 'field_alive_property', type: 'property', row: 'alive_row' },
+            { key: 'alive_timeout', label: 'field_alive_timeout', type: 'number', step: 1 },
         ],
     },
     defaults: { icon: 'fas fa-snowflake', icon_type: 'icon', property: 'value', send_mode: 'property', codes: '' },
     template: `
-        <div class="widget-v-card" :style="cardStyle" style="display:flex;flex-direction:column">
+        <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled }" :style="cardStyle" style="display:flex;flex-direction:column">
             <div class="widget-v-card__header">
                 <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon"></i>
                 <div class="widget-v-card__title">{{ widget.title || t('widget_acremote') }}</div>
@@ -56,8 +59,18 @@ const AcRemoteWidget = {
                 </div>
             </div>
         </div>`,
-    data() { return { mode: '', on: false, temp: 22, swingOn: false, fan: 0 }; },
+    data() { return { mode: '', on: false, temp: 22, swingOn: false, fan: 0, isAlive: true, availTimer: null }; },
+    mounted() {
+        if (this.widget.object_alive && this.widget.property_alive) {
+            this.checkAlive();
+            this.availTimer = setInterval(() => this.checkAlive(), (this.widget.alive_timeout || 3) * 1000);
+        }
+    },
+    beforeUnmount() { if (this.availTimer) clearInterval(this.availTimer); },
     computed: {
+        aliveDisabled() {
+            return this.widget.object_alive && this.widget.property_alive && this.isAlive === false;
+        },
         cardStyle() {
             const s = {};
             if (this.widget.color) s.backgroundColor = this.widget.color;
@@ -75,6 +88,12 @@ const AcRemoteWidget = {
         }
     },
     methods: {
+        async checkAlive() {
+            try {
+                const d = await dpAPI('getProperty?' + new URLSearchParams({ object: this.widget.object_alive, property: this.widget.property_alive }));
+                this.isAlive = !d.error && String(d.value) !== '0';
+            } catch (e) { /* keep current state on transient error */ }
+        },
         codeFor(k) {
             const v = this.codeMap[k];
             return v !== undefined && v !== null && v !== '' ? String(v) : k;

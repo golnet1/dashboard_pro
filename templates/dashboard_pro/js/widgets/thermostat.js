@@ -25,11 +25,14 @@ const ThermostatWidget = {
             { key: 'bg_image', label: 'field_image_url', type: 'text', row: 'bg_row', showIf: { bg_mode: 'image' } },
             { key: 'bg_object', label: 'field_bg_object', type: 'object', row: 'bg_row', showIf: { bg_mode: 'property' } },
             { key: 'bg_property', label: 'field_bg_property', type: 'property', row: 'bg_row', showIf: { bg_mode: 'property' } },
+            { key: 'object_alive', label: 'field_alive_flag', type: 'object', row: 'alive_row' },
+            { key: 'property_alive', label: 'field_alive_property', type: 'property', row: 'alive_row' },
+            { key: 'alive_timeout', label: 'field_alive_timeout', type: 'number', step: 1 },
         ],
     },
     defaults: { icon: 'fas fa-thermometer-half', icon_type: 'icon', min: 5, max: 35 },
     template: `
-        <div class="widget-v-card" :style="cardStyle" style="display:flex;flex-direction:column">
+        <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled }" :style="cardStyle" style="display:flex;flex-direction:column">
             <div class="widget-v-card__header">
                 <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon"></i>
                 <div class="widget-v-card__title">{{ widget.title || t('widget_thermostat') }}</div>
@@ -38,20 +41,23 @@ const ThermostatWidget = {
             </div>
             <div class="widget-v-card__body" style="padding:8px 12px 12px;display:flex;flex-direction:column;align-items:center;gap:8px">
                 <div style="display:flex;align-items:center;gap:16px">
-                    <button @click="adjustTarget(-1)" :disabled="loading" style="width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.05);color:rgba(255,255,255,.8);font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center">−</button>
+                    <button @click="adjustTarget(-1)" :disabled="loading || aliveDisabled" style="width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.05);color:rgba(255,255,255,.8);font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center">−</button>
                     <div style="text-align:center">
                         <div style="font-size:2.2rem;font-weight:300;color:rgba(255,255,255,.87)">{{ target }}</div>
                         <div style="font-size:.7rem;color:rgba(255,255,255,.4)">°C</div>
                     </div>
-                    <button @click="adjustTarget(1)" :disabled="loading" style="width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.05);color:rgba(255,255,255,.8);font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center">+</button>
+                    <button @click="adjustTarget(1)" :disabled="loading || aliveDisabled" style="width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.05);color:rgba(255,255,255,.8);font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center">+</button>
                 </div>
                 <div v-if="currentTemp !== null" style="font-size:.8rem;color:rgba(255,255,255,.5)">{{ t('current_label') }} {{ currentTemp }}°C</div>
             </div>
         </div>`,
     data() {
-        return { target: 22, currentTemp: null, isOn: false, loading: false, timer: null };
+        return { target: 22, currentTemp: null, isOn: false, loading: false, timer: null, isAlive: true, availTimer: null };
     },
     computed: {
+        aliveDisabled() {
+            return this.widget.object_alive && this.widget.property_alive && this.isAlive === false;
+        },
         cardStyle() {
             const s = {};
             if (this.widget.color) s.backgroundColor = this.widget.color;
@@ -61,11 +67,22 @@ const ThermostatWidget = {
     mounted() {
         this.load();
         if (!window.__dpWsLive) this.timer = setInterval(() => this.load(), 10000);
+        if (this.widget.object_alive && this.widget.property_alive) {
+            this.checkAlive();
+            this.availTimer = setInterval(() => this.checkAlive(), (this.widget.alive_timeout || 3) * 1000);
+        }
     },
     beforeUnmount() {
         if (this.timer) clearInterval(this.timer);
+        if (this.availTimer) clearInterval(this.availTimer);
     },
     methods: {
+        async checkAlive() {
+            try {
+                const d = await dpAPI('getProperty?' + new URLSearchParams({ object: this.widget.object_alive, property: this.widget.property_alive }));
+                this.isAlive = !d.error && String(d.value) !== '0';
+            } catch (e) { /* keep current state on transient error */ }
+        },
         async load() {
             if (this.widget.object_current) {
                 try {

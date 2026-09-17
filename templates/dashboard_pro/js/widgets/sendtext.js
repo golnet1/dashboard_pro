@@ -19,25 +19,38 @@ const SendTextWidget = {
             { key: 'bg_image', label: 'field_image_url', type: 'text', row: 'bg_row', showIf: { bg_mode: 'image' } },
             { key: 'bg_object', label: 'field_bg_object', type: 'object', row: 'bg_row', showIf: { bg_mode: 'property' } },
             { key: 'bg_property', label: 'field_bg_property', type: 'property', row: 'bg_row', showIf: { bg_mode: 'property' } },
+            { key: 'object_alive', label: 'field_alive_flag', type: 'object', row: 'alive_row' },
+            { key: 'property_alive', label: 'field_alive_property', type: 'property', row: 'alive_row' },
+            { key: 'alive_timeout', label: 'field_alive_timeout', type: 'number', step: 1 },
         ],
     },
     defaults: { icon: 'fas fa-paper-plane', icon_type: 'icon', url: '', autosend: false },
     template: `
-        <div class="widget-v-card" :style="cardStyle">
+        <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled }" :style="cardStyle">
             <div class="widget-v-card__header">
                 <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon"></i>
                 <div class="widget-v-card__title">{{ widget.title || t('widget_sendtext') }}</div>
             </div>
             <div class="widget-v-card__body" style="display:flex;flex-direction:column;gap:8px;padding:8px 12px">
                 <div style="display:flex;gap:6px">
-                    <input v-model="text" :placeholder="widget.placeholder || t('ph_enter_text')" style="flex:1;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:4px;padding:8px 10px;color:#fff;font-size:.9rem;outline:none" @keyup.enter="send">
-                    <button class="icon-btn" @click="send" :title="t('send')" style="margin-top:0"><i class="fas fa-paper-plane"></i></button>
+                    <input v-model="text" :placeholder="widget.placeholder || t('ph_enter_text')" style="flex:1;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:4px;padding:8px 10px;color:#fff;font-size:.9rem;outline:none" @keyup.enter="send" :disabled="aliveDisabled">
+                    <button class="icon-btn" @click="send" :title="t('send')" style="margin-top:0" :disabled="aliveDisabled"><i class="fas fa-paper-plane"></i></button>
                 </div>
                 <div v-if="response" style="font-size:.8rem;color:rgba(255,255,255,.6);word-break:break-all">{{ response }}</div>
             </div>
         </div>`,
-    data() { return { text: '', response: '', sending: false }; },
+    data() { return { text: '', response: '', sending: false, isAlive: true, availTimer: null }; },
+    mounted() {
+        if (this.widget.object_alive && this.widget.property_alive) {
+            this.checkAlive();
+            this.availTimer = setInterval(() => this.checkAlive(), (this.widget.alive_timeout || 3) * 1000);
+        }
+    },
+    beforeUnmount() { if (this.availTimer) clearInterval(this.availTimer); },
     computed: {
+        aliveDisabled() {
+            return this.widget.object_alive && this.widget.property_alive && this.isAlive === false;
+        },
         cardStyle() {
             const s = {};
             if (this.widget.color) s.backgroundColor = this.widget.color;
@@ -45,6 +58,12 @@ const SendTextWidget = {
         }
     },
     methods: {
+        async checkAlive() {
+            try {
+                const d = await dpAPI('getProperty?' + new URLSearchParams({ object: this.widget.object_alive, property: this.widget.property_alive }));
+                this.isAlive = !d.error && String(d.value) !== '0';
+            } catch (e) { /* keep current state on transient error */ }
+        },
         async send() {
             if (!this.text || this.sending) return;
             this.sending = true;

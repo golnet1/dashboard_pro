@@ -21,11 +21,14 @@ const RoundSliderWidget = {
             { key: 'bg_image', label: 'field_image_url', type: 'text', row: 'bg_row', showIf: { bg_mode: 'image' } },
             { key: 'bg_object', label: 'field_bg_object', type: 'object', row: 'bg_row', showIf: { bg_mode: 'property' } },
             { key: 'bg_property', label: 'field_bg_property', type: 'property', row: 'bg_row', showIf: { bg_mode: 'property' } },
+            { key: 'object_alive', label: 'field_alive_flag', type: 'object', row: 'alive_row' },
+            { key: 'property_alive', label: 'field_alive_property', type: 'property', row: 'alive_row' },
+            { key: 'alive_timeout', label: 'field_alive_timeout', type: 'number', step: 1 },
         ],
     },
     defaults: { icon: 'fas fa-circle', icon_type: 'icon', min: 0, max: 100, step: 1, unit: '%' },
     template: `
-        <div class="widget-v-card" :style="cardStyle">
+        <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled }" :style="cardStyle">
             <div class="widget-v-card__header">
                 <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon"></i>
                 <div class="widget-v-card__title">{{ widget.title || t('widget_roundslider') }}</div>
@@ -35,8 +38,11 @@ const RoundSliderWidget = {
                 <div style="position:absolute;font-size:1.2rem;font-weight:500;color:rgba(255,255,255,.87);pointer-events:none">{{ displayValue }}{{ widget.unit || '' }}</div>
             </div>
         </div>`,
-    data() { return { currentValue: null, dragging: false, timer: null }; },
+    data() { return { currentValue: null, dragging: false, timer: null, isAlive: true, availTimer: null }; },
     computed: {
+        aliveDisabled() {
+            return this.widget.object_alive && this.widget.property_alive && this.isAlive === false;
+        },
         cardStyle() {
             const s = {};
             if (this.widget.color) s.backgroundColor = this.widget.color;
@@ -59,9 +65,19 @@ const RoundSliderWidget = {
         this.$nextTick(() => this.draw());
         const obj = this.widget.object_value || this.widget.object;
         if (obj && !window.__dpWsLive) this.timer = setInterval(() => this.load(), 5000);
+        if (this.widget.object_alive && this.widget.property_alive) {
+            this.checkAlive();
+            this.availTimer = setInterval(() => this.checkAlive(), (this.widget.alive_timeout || 3) * 1000);
+        }
     },
-    beforeUnmount() { if (this.timer) clearInterval(this.timer); },
+    beforeUnmount() { if (this.timer) clearInterval(this.timer); if (this.availTimer) clearInterval(this.availTimer); },
     methods: {
+        async checkAlive() {
+            try {
+                const d = await dpAPI('getProperty?' + new URLSearchParams({ object: this.widget.object_alive, property: this.widget.property_alive }));
+                this.isAlive = !d.error && String(d.value) !== '0';
+            } catch (e) { /* keep current state on transient error */ }
+        },
         async load() {
             const obj = this.widget.object_value || this.widget.object;
             const prop = this.widget.property;
