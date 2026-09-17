@@ -24,9 +24,10 @@ const AcRemoteWidget = {
             { key: 'object_alive', label: 'field_alive_flag', type: 'object', row: 'alive_row' },
             { key: 'property_alive', label: 'field_alive_property', type: 'property', row: 'alive_row' },
             { key: 'alive_timeout', label: 'field_alive_timeout', type: 'number', step: 1 },
+            { key: 'remember', label: 'field_remember_state', type: 'checkbox' },
         ],
     },
-    defaults: { icon: 'fas fa-snowflake', icon_type: 'icon', property: 'value', send_mode: 'property', codes: '' },
+    defaults: { icon: 'fas fa-snowflake', icon_type: 'icon', property: 'value', send_mode: 'property', codes: '', remember: false },
     template: `
         <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled }" :style="cardStyle" style="display:flex;flex-direction:column">
             <div class="widget-v-card__header">
@@ -61,6 +62,7 @@ const AcRemoteWidget = {
         </div>`,
     data() { return { mode: '', on: false, temp: 22, swingOn: false, fan: 0, isAlive: true, availTimer: null }; },
     mounted() {
+        if (this.widget.remember) this.restoreState();
         if (this.widget.object_alive && this.widget.property_alive) {
             this.checkAlive();
             this.availTimer = setInterval(() => this.checkAlive(), (this.widget.alive_timeout || 3) * 1000);
@@ -111,30 +113,65 @@ const AcRemoteWidget = {
                 }
             } catch (e) { console.error(e); }
         },
-        togglePower() {
+        async togglePower() {
             this.on = !this.on;
-            this.send(this.codeFor('power'));
+            if (this.on && !this.mode) this.mode = 'auto';
+            this.send(this.stateJSON());
+            this.saveState();
         },
         setMode(m) {
             this.mode = this.mode === m ? '' : m;
-            this.swingOn = false;
-            this.send(this.codeFor(this.mode || 'mode'));
+            if (!this.mode) this.mode = 'auto';
+            this.send(this.stateJSON());
+            this.saveState();
         },
         toggleSwing() {
             this.swingOn = !this.swingOn;
-            this.send(this.codeFor('swing'));
+            this.send(this.stateJSON());
+            this.saveState();
         },
         tempUp() {
             if (this.temp < 32) this.temp++;
-            this.send(this.codeFor('temp+'));
+            this.send(this.stateJSON());
+            this.saveState();
         },
         tempDown() {
             if (this.temp > 16) this.temp--;
-            this.send(this.codeFor('temp-'));
+            this.send(this.stateJSON());
+            this.saveState();
         },
         cycleFan() {
             this.fan = (this.fan + 1) % 5;
-            this.send(this.codeFor('fan') + ' ' + this.fanName);
+            this.send(this.stateJSON());
+            this.saveState();
+        },
+        stateJSON() {
+            return JSON.stringify({
+                on: this.on,
+                mode: this.mode || 'auto',
+                temp: this.temp,
+                swing: this.swingOn,
+                fan: this.fan
+            });
+        },
+        saveState() {
+            if (!this.widget.remember) return;
+            try {
+                localStorage.setItem('dp_ac_' + this.widget.id, JSON.stringify({
+                    mode: this.mode, on: this.on, temp: this.temp, swingOn: this.swingOn, fan: this.fan
+                }));
+            } catch (e) { /* storage unavailable */ }
+        },
+        restoreState() {
+            try {
+                const s = JSON.parse(localStorage.getItem('dp_ac_' + this.widget.id) || 'null');
+                if (!s) return;
+                if (typeof s.mode === 'string') this.mode = s.mode;
+                if (typeof s.on === 'boolean') this.on = s.on;
+                if (typeof s.temp === 'number') this.temp = s.temp;
+                if (typeof s.swingOn === 'boolean') this.swingOn = s.swingOn;
+                if (typeof s.fan === 'number') this.fan = s.fan;
+            } catch (e) { /* ignore corrupted state */ }
         }
     }
 };

@@ -365,6 +365,7 @@ $frontend = array(
     'field_alive_flag' => 'Признак доступности',
     'field_alive_property' => 'Свойство (доступность)',
     'field_alive_timeout' => 'Таймаут (сек)',
+    'field_remember_state' => 'Сохранять последние настройки',
     'field_api_key' => 'API Key (OpenWeatherMap)',
     'field_api_key_owm' => 'API Key',
     'field_average' => 'Среднее',

@@ -365,6 +365,7 @@ $frontend = array(
     'field_alive_flag' => 'Alive flag',
     'field_alive_property' => 'Property (alive)',
     'field_alive_timeout' => 'Timeout (sec)',
+    'field_remember_state' => 'Remember last settings',
     'field_api_key' => 'API Key (OpenWeatherMap)',
     'field_api_key_owm' => 'API Key',
     'field_average' => 'Average',
