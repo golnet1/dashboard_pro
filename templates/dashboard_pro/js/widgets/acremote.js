@@ -27,7 +27,7 @@ const AcRemoteWidget = {
             { key: 'remember', label: 'field_remember_state', type: 'checkbox' },
         ],
     },
-    defaults: { icon: 'fas fa-snowflake', icon_type: 'icon', property: 'value', send_mode: 'property', codes: '', remember: false },
+    defaults: { icon: 'fas fa-snowflake', icon_type: 'icon', property: 'value', send_mode: 'property', codes: '', remember: false, width: 300, height: 380, minWidth: 280, minHeight: 356 },
     template: `
         <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled }" :style="cardStyle" style="display:flex;flex-direction:column">
             <div class="widget-v-card__header">

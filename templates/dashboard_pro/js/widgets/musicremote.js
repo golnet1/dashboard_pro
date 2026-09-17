@@ -26,7 +26,7 @@ const MusicRemoteWidget = {
             { key: 'alive_timeout', label: 'field_alive_timeout', type: 'number', step: 1 },
         ],
     },
-    defaults: { icon: 'fas fa-music', icon_type: 'icon', property: 'value', send_mode: 'property', codes: '' },
+    defaults: { icon: 'fas fa-music', icon_type: 'icon', property: 'value', send_mode: 'property', codes: '', width: 320, height: 350, minWidth: 240, minHeight: 330 },
     template: `
         <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled }" :style="cardStyle" style="display:flex;flex-direction:column">
             <div class="widget-v-card__header">
@@ -41,14 +41,14 @@ const MusicRemoteWidget = {
                     <button class="dp-remote__key dp-remote__key--p" @click="press('next')" :title="t('rc_next')"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M15 5h3v14h-3V5zM5 5v14l9.5-7L5 5z"/></svg></button>
                 </div>
                 <div class="dp-remote__row">
-                    <button class="dp-remote__key dp-remote__key--wide" @click="press('stop')">{{ t('rc_stop') }}</button>
-                    <button class="dp-remote__key dp-remote__key--wide" @click="press('pause')">{{ t('rc_pause') }}</button>
-                    <button class="dp-remote__key dp-remote__key--wide" @click="press('eject')">{{ t('rc_eject') }}</button>
+                    <button class="dp-remote__key dp-remote__key--wide" @click="press('stop')" :title="t('rc_stop')"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg></button>
+                    <button class="dp-remote__key dp-remote__key--wide" @click="press('pause')" :title="t('rc_pause')"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><rect x="7" y="5" width="3.5" height="14" rx="1"/><rect x="13.5" y="5" width="3.5" height="14" rx="1"/></svg></button>
+                    <button class="dp-remote__key dp-remote__key--wide" @click="press('eject')" :title="t('rc_eject')"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 5l7 8H5l7-8z"/><rect x="5" y="15" width="14" height="3" rx="1"/></svg></button>
                 </div>
                 <div class="dp-remote__row">
-                    <button class="dp-remote__key dp-remote__key--wide" @click="press('vol-')">{{ t('rc_vol_down') }}</button>
-                    <button class="dp-remote__key dp-remote__key--wide" @click="press('mute')">{{ t('rc_mute') }}</button>
-                    <button class="dp-remote__key dp-remote__key--wide" @click="press('vol+')">{{ t('rc_vol_up') }}</button>
+                    <button class="dp-remote__key dp-remote__key--wide" @click="press('vol-')" :title="t('rc_vol_down')"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M4 9h3l4-4v14l-4-4H4V9z"/><rect x="13" y="11" width="7" height="2" rx="1"/></svg></button>
+                    <button class="dp-remote__key dp-remote__key--wide" @click="press('mute')" :title="t('rc_mute')"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M4 9h3l4-4v14l-4-4H4V9z"/><path d="M14 9.5l5.5 5.5M19.5 9.5L14 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg></button>
+                    <button class="dp-remote__key dp-remote__key--wide" @click="press('vol+')" :title="t('rc_vol_up')"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M4 9h3l4-4v14l-4-4H4V9z"/><rect x="13" y="11" width="7" height="2" rx="1"/><rect x="15.5" y="8.5" width="2" height="7" rx="1"/></svg></button>
                 </div>
                 <div class="dp-remote__row">
                     <button class="dp-remote__key dp-remote__key--wide" :class="{ 'dp-remote__key--active': src === 'cd' }" @click="selectSrc('cd')">{{ t('rc_cd') }}</button>

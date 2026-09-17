@@ -440,7 +440,7 @@ function loadScript(src, version) {
             widgetList.value = [...widgetDefs.value].sort((a, b) => (a.priority || 0) - (b.priority || 0));
             for (const w of widgets.items) {
                 if (!w.FILE) continue;
-                await loadScript(w.FILE, 41);
+                await loadScript(w.FILE, 44);
             }
             widgetDefs.value.forEach(d => registerWidgetComponent(d.type));
         }
@@ -925,8 +925,8 @@ function loadScript(src, version) {
             if (!w) return;
             const dx = e.clientX - resizeStart.value.x;
             const dy = e.clientY - resizeStart.value.y;
-            w.width = Math.max(100, resizeStart.value.w + dx);
-            w.height = Math.max(60, resizeStart.value.h + dy);
+            w.width = Math.max(w.minWidth || 100, resizeStart.value.w + dx);
+            w.height = Math.max(w.minHeight || 60, resizeStart.value.h + dy);
         }
 
         function stopResize() {
