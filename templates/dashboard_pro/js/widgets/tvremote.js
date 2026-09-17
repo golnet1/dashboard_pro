@@ -41,7 +41,7 @@ const TvRemoteWidget = {
                     <button v-for="n in ['1','2','3','4','5','6','7','8','9']" :key="n" class="dp-remote__key dp-remote__key--num" @click="press(n)">{{ n }}</button>
                     <button class="dp-remote__key dp-remote__key--num" @click="press('input')">{{ t('rc_input') }}</button>
                     <button class="dp-remote__key dp-remote__key--num" @click="press('0')">0</button>
-                    <button class="dp-remote__key dp-remote__key--num" @click="press('exit')">{{ t('rc_exit') }}</button>
+                    <button class="dp-remote__key dp-remote__key--num" @click="press('settings')">{{ t('rc_settings') }}</button>
                 </div>
                 <div class="dp-remote__dpad">
                     <span></span>
@@ -85,7 +85,7 @@ const TvRemoteWidget = {
         codeFor(k) {
             const v = this.codeMap[k];
             if (v !== undefined && v !== null && v !== '') return String(v);
-            const tv = { power: 'Power', info: 'Info', exit: 'Exit', menu: 'Menu', home: 'Home', input: 'Source', back: 'Back', ok: 'Confirm', up: 'CursorUp', down: 'CursorDown', left: 'CursorLeft', right: 'CursorRight', mute: 'Mute', 'vol+': 'VolumeUp', 'vol-': 'VolumeDown', 'ch+': 'ChannelStepUp', 'ch-': 'ChannelStepDown', '0': 'Digit0', '1': 'Digit1', '2': 'Digit2', '3': 'Digit3', '4': 'Digit4', '5': 'Digit5', '6': 'Digit6', '7': 'Digit7', '8': 'Digit8', '9': 'Digit9' };
+            const tv = { power: 'Power', info: 'Info', settings: 'Settings', menu: 'Menu', home: 'Home', input: 'Source', back: 'Back', ok: 'Confirm', up: 'CursorUp', down: 'CursorDown', left: 'CursorLeft', right: 'CursorRight', mute: 'Mute', 'vol+': 'VolumeUp', 'vol-': 'VolumeDown', 'ch+': 'ChannelStepUp', 'ch-': 'ChannelStepDown', '0': 'Digit0', '1': 'Digit1', '2': 'Digit2', '3': 'Digit3', '4': 'Digit4', '5': 'Digit5', '6': 'Digit6', '7': 'Digit7', '8': 'Digit8', '9': 'Digit9' };
             return tv[k] || k;
         },
         async press(k) {
