@@ -31,8 +31,8 @@ const ValueWidget = {
                 <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon"></i>
                 <div class="widget-v-card__title">{{ widget.title || t('widget_value') }}</div>
                 <div class="widget-v-card__spacer"></div>
-                <div v-if="widget.object_info && infoValue" class="widget-v-card__info" style="padding:0;font-size:.75rem">
-                    <span v-if="widget.pre_info">{{ widget.pre_info }}</span>{{ infoDisplay }}<span v-if="widget.pos_info">{{ widget.pos_info }}</span>
+                <div v-if="widget.object_info" class="widget-v-card__info" style="padding:0;font-size:.75rem">
+                    <span v-if="widget.pre_info">{{ widget.pre_info }}</span><span v-if="infoValue">{{ infoDisplay }}</span><span v-if="widget.pos_info">{{ widget.pos_info }}</span>
                 </div>
             </div>
             <div class="widget-v-card__value">

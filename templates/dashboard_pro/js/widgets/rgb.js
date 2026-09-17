@@ -36,7 +36,7 @@ const RGBWidget = {
     template: `
         <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled }" :style="cardStyle">
             <div class="widget-v-card__header">
-                <i v-if="widget.icon" class="widget-v-card__icon" :class="[widget.icon, iconHlClass]"></i>
+                <i v-if="widget.icon" class="widget-v-card__icon" :class="[widget.icon, iconHlClass]" style="display:inline-flex;align-items:center;justify-content:center;width:35px;height:35px;padding:0"></i>
                 <div class="widget-v-card__title">{{ widget.title || 'RGB' }}</div>
                 <div class="widget-v-card__spacer"></div>
                 <div class="v-input--switch" :class="{ 'input--is-checked': isOn }" :style="aliveDisabled ? 'opacity:.4;pointer-events:none' : ''" @click.stop="toggle">

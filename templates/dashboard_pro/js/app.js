@@ -36,6 +36,7 @@ const WS_OBJECT_FIELDS = [
     ['object_info', 'property_info'],
     ['object_alive', 'property_alive'],
     ['object_status', 'property_status'],
+    ['object_level', 'property_level'],
     ['bg_object', 'bg_property'],
     ['icon_object', 'icon_property']
 ];
@@ -440,7 +441,7 @@ function loadScript(src, version) {
             widgetList.value = [...widgetDefs.value].sort((a, b) => (a.priority || 0) - (b.priority || 0));
             for (const w of widgets.items) {
                 if (!w.FILE) continue;
-                await loadScript(w.FILE, 50);
+                await loadScript(w.FILE, 54);
             }
             widgetDefs.value.forEach(d => registerWidgetComponent(d.type));
         }

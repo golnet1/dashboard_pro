@@ -48,17 +48,17 @@ const DimmerWidget = {
     template: `
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header">
-                <i v-if="widget.icon" class="widget-v-card__icon" :class="[widget.icon, iconHlClass]"></i>
+                <i v-if="widget.icon" class="widget-v-card__icon" :class="[widget.icon, iconHlClass]" style="display:inline-flex;align-items:center;justify-content:center;width:35px;height:35px;padding:0"></i>
                 <div class="widget-v-card__title">{{ widget.title || t('widget_dimmer') }}</div>
                 <div class="widget-v-card__spacer"></div>
                 <div class="v-input--switch" :class="{ 'input--is-checked': isOn }" :style="aliveDisabled ? 'opacity:.4;pointer-events:none' : ''" @click.stop="toggle">
                     <div class="v-input--switch__track"><div class="v-input--switch__thumb"></div></div>
                 </div>
             </div>
-            <div v-if="widget.object_info && infoValue" class="widget-v-card__info">
-                <span v-if="widget.pre_info">{{ widget.pre_info }}</span>{{ infoDisplay }}<span v-if="widget.pos_info">{{ widget.pos_info }}</span>
+            <div v-if="widget.object_info" class="widget-v-card__info" style="padding:7px 12px 8px">
+                <span v-if="widget.pre_info">{{ widget.pre_info }}</span><span v-if="infoValue">{{ infoDisplay }}</span><span v-if="widget.pos_info">{{ widget.pos_info }}</span>
             </div>
-            <div class="widget-v-card__body" style="padding:0 12px 12px">
+            <div class="widget-v-card__body" style="padding:12px 12px 12px">
                 <div class="v-slider theme--dark" style="width:100%">
                     <input type="range" class="v-slider__input" :min="min" :max="max" :step="step" v-model.number="level" @change="onChange" :disabled="loading">
                     <div class="v-slider__track"><div class="v-slider__track-fill" :style="{width: levelPerc + '%'}"></div></div>

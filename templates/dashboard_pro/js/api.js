@@ -32,7 +32,6 @@ function readProperty(path, opts) {
         if (cached) {
             return Promise.resolve({ value: cached.value });
         }
-        return Promise.resolve({ value: undefined });
     }
     return dpHttp(path, opts).then(res => {
         if (res && !res.error && res.value !== undefined) {
