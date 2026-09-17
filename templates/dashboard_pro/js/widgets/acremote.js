@@ -38,25 +38,29 @@ const AcRemoteWidget = {
                 <div class="dp-remote__display">
                     <template v-if="on">{{ modeName }}<span v-if="swingOn" class="dp-remote__disp-swing">&#x2195;</span></template>
                     <template v-else>--</template>
-                    <small>{{ t('rc_fan') }}:&nbsp;{{ fanName }}&nbsp;&middot;&nbsp;{{ temp }}&#x00B0;</small>
+                    <small>{{ t('rc_fan') }}:&nbsp;<b v-if="fan === 0" style="font-weight:800">A</b><svg v-else viewBox="0 0 20 16" width="15" height="12" fill="currentColor" style="vertical-align:middle"><rect x="0" y="9" width="3" height="7" rx="1"/><rect v-if="fan >= 2" x="5.5" y="6" width="3" height="10" rx="1"/><rect v-if="fan >= 3" x="11" y="3" width="3" height="13" rx="1"/><rect v-if="fan >= 4" x="16.5" y="0" width="3" height="16" rx="1"/></svg>&nbsp;&middot;&nbsp;{{ temp }}&#x00B0;</small>
                 </div>
                 <button class="dp-remote__power" @click="togglePower" :title="t('rc_power')"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 3.5v8"/><path d="M6.4 7.2a8 8 0 1 0 11.2 0"/></svg></button>
                 <div class="dp-remote__row">
-                    <button v-for="m in ['auto','cool','heat']" :key="m" class="dp-remote__key dp-remote__key--mode" :class="{ 'dp-remote__key--active': on && mode === m }" @click="setMode(m)">{{ t('rc_' + m) }}</button>
+                    <button class="dp-remote__key dp-remote__key--mode" :class="{ 'dp-remote__key--active': on && mode === 'auto' }" @click="setMode('auto')" :title="t('rc_auto')"><span style="font-weight:800;font-size:1.15rem;line-height:1">A</span></button>
+                    <button class="dp-remote__key dp-remote__key--mode" :class="{ 'dp-remote__key--active': on && mode === 'cool' }" @click="setMode('cool')" :title="t('rc_cool')"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 2v20M4.2 6.6l15.6 10.8M19.8 6.6L4.2 17.4"/><path d="M12 6.5l-3-3M12 6.5l3-3M12 17.5l-3 3M12 17.5l3 3"/><path d="M5.6 10.2L2 9M5.6 13.8L2 15M18.4 10.2L22 9M18.4 13.8L22 15"/></svg></button>
+                    <button class="dp-remote__key dp-remote__key--mode" :class="{ 'dp-remote__key--active': on && mode === 'heat' }" @click="setMode('heat')" :title="t('rc_heat')"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.4 4.4l2.1 2.1M17.5 17.5l2.1 2.1M19.6 4.4L17.5 6.5M6.5 17.5l-2.1 2.1"/></svg></button>
                 </div>
                 <div class="dp-remote__row">
-                    <button v-for="m in ['dry','fan','swing']" :key="m" class="dp-remote__key dp-remote__key--mode" :class="{ 'dp-remote__key--active': on && (m === 'swing' ? swingOn : mode === m) }" @click="m === 'swing' ? toggleSwing() : setMode(m)">{{ t(m === 'swing' ? 'rc_swing' : 'rc_' + m) }}</button>
+                    <button class="dp-remote__key dp-remote__key--mode" :class="{ 'dp-remote__key--active': on && mode === 'dry' }" @click="setMode('dry')" :title="t('rc_dry')"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 2c-5 5.5-8 9-8 13a8 8 0 0 0 16 0c0-4-3-7.5-8-13z"/></svg></button>
+                    <button class="dp-remote__key dp-remote__key--mode" :class="{ 'dp-remote__key--active': on && mode === 'fan' }" @click="setMode('fan')" :title="t('rc_fan')"><i class="fas fa-fan"></i></button>
+                    <button class="dp-remote__key dp-remote__key--mode" :class="{ 'dp-remote__key--active': on && swingOn }" @click="toggleSwing()" :title="t('rc_swing')"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 4l4 5h-3v6h3l-4 5-4-5h3v-6H8z"/></svg></button>
                 </div>
                 <div class="dp-remote__temp">
-                    <button class="dp-remote__key" @click="tempDown" :title="t('rc_temp_down')">&#x2796;</button>
+                    <button class="dp-remote__key" @click="tempDown" :title="t('rc_temp_down')"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M4 7h16l-8 13z"/></svg></button>
                     <div style="text-align:center;min-width:56px">
                         <div style="font-size:1.05rem;font-weight:800">{{ temp }}&#x00B0;</div>
                         <div style="font-size:.55rem;letter-spacing:.14em;color:rgba(255,255,255,.55)">{{ t('rc_temp') }}</div>
                     </div>
-                    <button class="dp-remote__key" @click="tempUp" :title="t('rc_temp_up')">&#x2795;</button>
+                    <button class="dp-remote__key" @click="tempUp" :title="t('rc_temp_up')"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 4L4 17h16z"/></svg></button>
                 </div>
                 <div class="dp-remote__row">
-                    <button class="dp-remote__key dp-remote__key--wide" @click="cycleFan">{{ t('rc_fan') }}:&nbsp;{{ fanName }}</button>
+                    <button class="dp-remote__key dp-remote__key--wide" @click="cycleFan" :title="t('rc_fan')"><i class="fas fa-fan"></i></button>
                 </div>
             </div>
         </div>`,
@@ -129,27 +133,32 @@ const AcRemoteWidget = {
             this.saveState();
         },
         setMode(m) {
+            if (!this.on) return;
             this.mode = this.mode === m ? '' : m;
             if (!this.mode) this.mode = 'auto';
             this.send(this.stateJSON());
             this.saveState();
         },
         toggleSwing() {
+            if (!this.on) return;
             this.swingOn = !this.swingOn;
             this.send(this.stateJSON());
             this.saveState();
         },
         tempUp() {
+            if (!this.on) return;
             if (this.temp < 32) this.temp++;
             this.send(this.stateJSON());
             this.saveState();
         },
         tempDown() {
+            if (!this.on) return;
             if (this.temp > 16) this.temp--;
             this.send(this.stateJSON());
             this.saveState();
         },
         cycleFan() {
+            if (!this.on) return;
             this.fan = (this.fan + 1) % 5;
             this.send(this.stateJSON());
             this.saveState();
