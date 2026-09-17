@@ -273,6 +273,24 @@ class dashboard_pro extends module
             return ['success' => $return_var === 0, 'output' => implode("\n", $output)];
         }
 
+        if ($params['request'][0] == 'tvKey') {
+            $ip = trim($params['ip'] ?? '');
+            $port = trim($params['port'] ?? '1925');
+            $key = trim($params['key'] ?? '');
+            if (!$ip || !$key) return ['error' => 'ip and key required'];
+            $data = array('key' => $key);
+            $res = postURL('http://' . $ip . ':' . $port . '/1/input/key', json_encode($data), 1);
+            return ['success' => true, 'response' => $res];
+        }
+
+        if ($params['request'][0] == 'scriptRun') {
+            $script = trim($params['script'] ?? '');
+            $param = isset($params['param']) ? $params['param'] : '';
+            if (!$script) return ['error' => 'script required'];
+            $result = runScript($script, $param);
+            return ['success' => true, 'result' => $result];
+        }
+
         if ($params['request'][0] == 'users') {
             $login = $this->getUserLogin();
             $users = SQLSelect("SELECT ID, USERNAME, NAME FROM users WHERE USERNAME != '" . DBSafe($login) . "' ORDER BY USERNAME");

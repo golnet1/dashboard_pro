@@ -8,10 +8,13 @@ const TvRemoteWidget = {
             { key: 'icon_object', label: 'field_icon_object', type: 'object', row: 'icon_row', showIf: { icon_type: 'property' } },
             { key: 'icon_property', label: 'field_icon_property', type: 'property', row: 'icon_row', showIf: { icon_type: 'property' } },
             { key: 'icon_url', label: 'field_icon_url', type: 'text', row: 'icon_row', showIf: { icon_type: 'url' } },
-            { key: 'send_mode', label: 'field_send_mode', type: 'select', row: 'send_row', options: [{value:'property',label:'opt_set_property'},{value:'command',label:'opt_command'}] },
+            { key: 'send_mode', label: 'field_send_mode', type: 'select', row: 'send_row', options: [{value:'property',label:'opt_set_property'},{value:'command',label:'opt_command'},{value:'tv',label:'opt_tv'},{value:'script',label:'opt_script'}] },
             { key: 'object', label: 'field_send_object', type: 'object', row: 'obj_prop', showIf: { send_mode: 'property' } },
             { key: 'property', label: 'field_property', type: 'property', row: 'obj_prop', showIf: { send_mode: 'property' } },
             { key: 'command_prefix', label: 'field_command_prefix', type: 'text', row: 'obj_prop', showIf: { send_mode: 'command' }, placeholder: 'ph_command_prefix' },
+            { key: 'tv_ip', label: 'field_tv_ip', type: 'text', row: 'obj_prop', showIf: { send_mode: 'tv' }, placeholder: 'ph_tv_ip' },
+            { key: 'tv_port', label: 'field_tv_port', type: 'text', row: 'obj_prop', showIf: { send_mode: 'tv' }, placeholder: '1925' },
+            { key: 'script', label: 'field_script', type: 'text', row: 'obj_prop', showIf: { send_mode: 'script' }, placeholder: 'ph_script' },
             { key: 'codes', label: 'field_codes', type: 'textarea', rows: 6, placeholder: 'ph_codes' },
         ],
         advanced: [
@@ -62,7 +65,7 @@ const TvRemoteWidget = {
                     </div>
                     <div class="dp-remote__col">
                         <button class="dp-remote__key dp-remote__key--big" @click="press('back')">{{ t('rc_back') }}</button>
-                        <button class="dp-remote__key dp-remote__key--big dp-remote__key--danger" @click="press('power')"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 3.5v8"/><path d="M6.4 7.2a8 8 0 1 0 11.2 0"/></svg></button>
+                        <button class="dp-remote__key dp-remote__key--big" @click="press('info')">{{ t('rc_info') }}</button>
                     </div>
                 </div>
             </div>
@@ -81,12 +84,20 @@ const TvRemoteWidget = {
     methods: {
         codeFor(k) {
             const v = this.codeMap[k];
-            return v !== undefined && v !== null && v !== '' ? String(v) : k;
+            if (v !== undefined && v !== null && v !== '') return String(v);
+            const tv = { power: 'Power', info: 'Info', menu: 'Menu', home: 'Home', input: 'Source', back: 'Back', ok: 'Confirm', up: 'CursorUp', down: 'CursorDown', left: 'CursorLeft', right: 'CursorRight', mute: 'Mute', 'vol+': 'VolumeUp', 'vol-': 'VolumeDown', 'ch+': 'ChannelStepUp', 'ch-': 'ChannelStepDown', '0': 'Digit0', '1': 'Digit1', '2': 'Digit2', '3': 'Digit3', '4': 'Digit4', '5': 'Digit5', '6': 'Digit6', '7': 'Digit7', '8': 'Digit8', '9': 'Digit9' };
+            return tv[k] || k;
         },
         async press(k) {
             const code = this.codeFor(k);
             try {
-                if (this.widget.send_mode === 'command') {
+                if (this.widget.send_mode === 'script') {
+                    await dpAPI('scriptRun?' + new URLSearchParams({ script: this.widget.script, param: code }));
+                } else if (this.widget.send_mode === 'tv') {
+                    const ip = (this.widget.tv_ip || '').trim();
+                    if (!ip) return;
+                    await dpAPI('tvKey?' + new URLSearchParams({ ip: ip, port: (this.widget.tv_port || '1925').trim(), key: code }));
+                } else if (this.widget.send_mode === 'command') {
                     await dpAPI('execCommand?' + new URLSearchParams({ command: (this.widget.command_prefix || '') + code }));
                 } else if (this.widget.object) {
                     const params = { object: this.widget.object, value: code };

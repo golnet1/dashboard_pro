@@ -8,10 +8,11 @@ const MusicRemoteWidget = {
             { key: 'icon_object', label: 'field_icon_object', type: 'object', row: 'icon_row', showIf: { icon_type: 'property' } },
             { key: 'icon_property', label: 'field_icon_property', type: 'property', row: 'icon_row', showIf: { icon_type: 'property' } },
             { key: 'icon_url', label: 'field_icon_url', type: 'text', row: 'icon_row', showIf: { icon_type: 'url' } },
-            { key: 'send_mode', label: 'field_send_mode', type: 'select', row: 'send_row', options: [{value:'property',label:'opt_set_property'},{value:'command',label:'opt_command'}] },
+            { key: 'send_mode', label: 'field_send_mode', type: 'select', row: 'send_row', options: [{value:'property',label:'opt_set_property'},{value:'command',label:'opt_command'},{value:'script',label:'opt_script'}] },
             { key: 'object', label: 'field_send_object', type: 'object', row: 'obj_prop', showIf: { send_mode: 'property' } },
             { key: 'property', label: 'field_property', type: 'property', row: 'obj_prop', showIf: { send_mode: 'property' } },
             { key: 'command_prefix', label: 'field_command_prefix', type: 'text', row: 'obj_prop', showIf: { send_mode: 'command' }, placeholder: 'ph_command_prefix' },
+            { key: 'script', label: 'field_script', type: 'text', row: 'obj_prop', showIf: { send_mode: 'script' }, placeholder: 'ph_script' },
             { key: 'codes', label: 'field_codes', type: 'textarea', rows: 6, placeholder: 'ph_codes' },
         ],
         advanced: [
@@ -72,12 +73,16 @@ const MusicRemoteWidget = {
     methods: {
         codeFor(k) {
             const v = this.codeMap[k];
-            return v !== undefined && v !== null && v !== '' ? String(v) : k;
+            if (v !== undefined && v !== null && v !== '') return String(v);
+            const tv = { power: 'Power', prev: 'Previous', next: 'Next', 'vol+': 'VolumeUp', 'vol-': 'VolumeDown', mute: 'Mute', stop: 'Stop', pause: 'Pause', play: 'PlayPause' };
+            return tv[k] || k;
         },
         async send(k) {
             const code = this.codeFor(k);
             try {
-                if (this.widget.send_mode === 'command') {
+                if (this.widget.send_mode === 'script') {
+                    await dpAPI('scriptRun?' + new URLSearchParams({ script: this.widget.script, param: code }));
+                } else if (this.widget.send_mode === 'command') {
                     await dpAPI('execCommand?' + new URLSearchParams({ command: (this.widget.command_prefix || '') + code }));
                 } else if (this.widget.object) {
                     const params = { object: this.widget.object, value: code };
