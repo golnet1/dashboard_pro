@@ -9,6 +9,13 @@ $dictionary = array(
     'DASHBOARD_PRO_COPY_SELF' => 'Нельзя копировать себе',
     'DASHBOARD_PRO_OVERWRITE_CONFIRM' => 'У пользователя «%s» уже есть данные. Перезаписать?',
     'DASHBOARD_PRO_ALICE' => 'Алиса',
+    'DASHBOARD_PRO_MOTION_NONE' => 'Движения нет',
+    'DASHBOARD_PRO_MOTION_YES' => 'Движение есть',
+    'DASHBOARD_PRO_STATE_CLOSED' => 'Закрыто',
+    'DASHBOARD_PRO_STATE_OPEN' => 'Открыто',
+    'DASHBOARD_PRO_TEMP_SHORT' => 'темп.',
+    'DASHBOARD_PRO_HUM_SHORT' => 'влажн.',
+    'DASHBOARD_PRO_LOCATION' => 'Локация',
 );
 
 foreach ($dictionary as $k => $v) {
@@ -188,7 +195,7 @@ $frontend = array(
     'audit_msg_store_truncated' => 'Обрезан конец настроек (JSON) — показаны последние доступные виджеты',
     'cleanup_restore' => 'Восстановить панель',
     'cleanup_restore_result' => 'Настройки восстановлены, отрезано лишнего: %c симв.',
-    'cleanup_restore_reset' => 'Данные повреждены необратимо и сброшены. Восстановите панели через Wizard.',
+    'cleanup_restore_reset' => 'Данные повреждены необратимо и сброшены. Восстановите панели через Wizard или Импорт.',
     'reason_panel_no_name' => 'У панели отсутствует имя',
     'reason_panel_widgets_bad' => 'Некорректный список виджетов панели',
     'reason_broken_entry' => 'Повреждённая запись виджета',

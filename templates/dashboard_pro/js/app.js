@@ -446,7 +446,7 @@ function loadScript(src, version) {
             widgetList.value = [...widgetDefs.value].sort((a, b) => (a.priority || 0) - (b.priority || 0));
             for (const w of widgets.items) {
                 if (!w.FILE) continue;
-                await loadScript(w.FILE, 57);
+                await loadScript(w.FILE, 58);
             }
             widgetDefs.value.forEach(d => registerWidgetComponent(d.type));
         }
@@ -492,7 +492,8 @@ function loadScript(src, version) {
         function addWidget(type) {
             const def = widgetDefs.value.find(d => d.type === type);
             const comp = getWidgetComponent(type);
-            const typeDefaults = (comp && comp.defaults) || W.fields.defaults[type] || {};
+            const rawDefaults = (comp && comp.defaults) || W.fields.defaults[type] || {};
+            const typeDefaults = typeof rawDefaults === 'function' ? rawDefaults() : rawDefaults;
             const widgetTabs = getWidgetTabs(type);
             const allFields = widgetTabs.flatMap(tab => getWidgetFields(type, tab.fields || tab.key));
             const fieldDefaults = {};

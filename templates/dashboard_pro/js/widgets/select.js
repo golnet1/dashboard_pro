@@ -24,7 +24,7 @@ const SelectWidget = {
             { key: 'alive_timeout', label: 'field_alive_timeout', type: 'number', step: 1 },
         ],
     },
-    defaults: { icon: 'fas fa-list', icon_type: 'icon', options: JSON.stringify([{label:'Вкл',value:'1'},{label:'Выкл',value:'0'}]) },
+    defaults: () => ({ icon: 'fas fa-list', icon_type: 'icon', options: JSON.stringify([{label:window.__t('default_on'),value:'1'},{label:window.__t('default_off'),value:'0'}]) }),
     template: `
         <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled }" :style="cardStyle">
             <div class="widget-v-card__header">

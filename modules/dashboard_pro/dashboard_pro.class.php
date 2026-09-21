@@ -1099,7 +1099,7 @@ class dashboard_pro extends module
 
     function wizardBuild($input)
     {
-        $devices = SQLSelect("SELECT LINKED_OBJECT, TYPE FROM devices WHERE SYSTEM_DEVICE=0 AND ARCHIVED=0 AND LINKED_OBJECT<>'' ORDER BY TYPE, LINKED_OBJECT");
+        $devices = SQLSelect("SELECT TITLE, LINKED_OBJECT, TYPE FROM devices WHERE SYSTEM_DEVICE=0 AND ARCHIVED=0 AND LINKED_OBJECT<>'' ORDER BY TYPE, LINKED_OBJECT");
         if (!is_array($devices)) $devices = array();
 
         $locTitles = array();
@@ -1119,8 +1119,10 @@ class dashboard_pro extends module
         foreach ($devices as $d) {
             $title = trim((string)($d['LINKED_OBJECT'] ?? ''));
             if ($title === '') continue;
+            $name = trim((string)($d['TITLE'] ?? ''));
+            if ($name === '') $name = $title;
             $type = trim((string)($d['TYPE'] ?? ''));
-            $widgets = $this->wizardWidgetsForType($type, $title);
+            $widgets = $this->wizardWidgetsForType($type, $title, $name);
             if (empty($widgets)) continue;
             $locId = 0;
             $obj = SQLSelectOne("SELECT LOCATION_ID FROM objects WHERE TITLE='" . DBSafe($title) . "'");
@@ -1142,13 +1144,13 @@ class dashboard_pro extends module
         ksort($byLoc);
 
         $panels = array();
-        $names = array();
+        $ts = (int)round(microtime(true) * 1000);
         $cols = 6;
         $w = 200;
         $h = 90;
         $gap = 10;
         foreach ($byLoc as $locId => $wlist) {
-            $ptitle = isset($locTitles[$locId]) && $locTitles[$locId] !== '' ? $locTitles[$locId] : ('Location ' . $locId);
+            $ptitle = isset($locTitles[$locId]) && $locTitles[$locId] !== '' ? $locTitles[$locId] : (LANG_DASHBOARD_PRO_LOCATION . ' ' . $locId);
             $widgets = array();
             $i = 0;
             foreach ($wlist as $wd) {
@@ -1159,14 +1161,8 @@ class dashboard_pro extends module
                 $widgets[] = $wd;
                 $i++;
             }
-            $base = $this->wizardPanelName($ptitle);
-            $name = $base;
-            $k = 2;
-            while (isset($names[$name])) {
-                $name = $base . '_' . $k;
-                $k++;
-            }
-            $names[$name] = true;
+            $name = 'p_' . $ts;
+            $ts++;
             $panels[] = array(
                 'name' => $name,
                 'title' => $ptitle,
@@ -1186,102 +1182,82 @@ class dashboard_pro extends module
         );
     }
 
-    function wizardPanelName($title)
+    function wizardWidgetId()
     {
-        $out = preg_replace_callback('/./us', function ($m) {
-            static $map = array(
-                'а' => 'a', 'б' => 'b', 'в' => 'v', 'г' => 'g', 'д' => 'd', 'е' => 'e', 'ё' => 'e',
-                'ж' => 'zh', 'з' => 'z', 'и' => 'i', 'й' => 'y', 'к' => 'k', 'л' => 'l', 'м' => 'm',
-                'н' => 'n', 'о' => 'o', 'п' => 'p', 'р' => 'r', 'с' => 's', 'т' => 't', 'у' => 'u',
-                'ф' => 'f', 'х' => 'h', 'ц' => 'ts', 'ч' => 'ch', 'ш' => 'sh', 'щ' => 'sch',
-                'ъ' => '', 'ы' => 'y', 'ь' => '', 'э' => 'e', 'ю' => 'yu', 'я' => 'ya',
-                'А' => 'a', 'Б' => 'b', 'В' => 'v', 'Г' => 'g', 'Д' => 'd', 'Е' => 'e', 'Ё' => 'e',
-                'Ж' => 'zh', 'З' => 'z', 'И' => 'i', 'Й' => 'y', 'К' => 'k', 'Л' => 'l', 'М' => 'm',
-                'Н' => 'n', 'О' => 'o', 'П' => 'p', 'Р' => 'r', 'С' => 's', 'Т' => 't', 'У' => 'u',
-                'Ф' => 'f', 'Х' => 'h', 'Ц' => 'ts', 'Ч' => 'ch', 'Ш' => 'sh', 'Щ' => 'sch',
-                'Ъ' => '', 'Ы' => 'y', 'Ь' => '', 'Э' => 'e', 'Ю' => 'yu', 'Я' => 'ya',
-            );
-            $ch = $m[0];
-            return isset($map[$ch]) ? $map[$ch] : $ch;
-        }, (string)$title);
-        $out = strtolower($out);
-        $out = preg_replace('/[^a-z0-9]+/', '_', $out);
-        $out = trim($out, '_');
-        if ($out === '') $out = 'panel';
-        return $out;
+        static $ms = null;
+        if ($ms === null) $ms = (int)round(microtime(true) * 1000);
+        return 'w_' . $ms++ . '_' . mt_rand(0, 999);
     }
 
-    function wizardWidgetsForType($type, $title)
+    function wizardWidgetsForType($type, $object, $name)
     {
+        $title = $object;
         $base = array('icon_type' => 'icon', 'width' => 200, 'height' => 90);
         switch ($type) {
             case 'relay':
                 return array(array_merge($base, array(
-                    'id' => $title, 'type' => 'relay', 'title' => $title,
+                    'id' => $this->wizardWidgetId(), 'type' => 'relay', 'title' => $name,
                     'icon' => 'fas fa-power-off',
                     'object' => $title, 'property' => 'status',
                     'object_on' => $title . '/turnOn',
                     'object_off' => $title . '/turnOff',
-                    'object_alive' => $title, 'property_alive' => 'alive',
                 )));
             case 'dimmer':
                 return array(array_merge($base, array(
-                    'id' => $title, 'type' => 'dimmer', 'title' => $title,
+                    'id' => $this->wizardWidgetId(), 'type' => 'dimmer', 'title' => $name,
                     'icon' => 'fas fa-lightbulb',
-                    'object' => $title, 'property' => 'level',
+                    'object' => $title, 'property' => 'status',
                     'object_level' => $title, 'property_level' => 'level',
                     'object_on' => $title . '/turnOn',
                     'object_off' => $title . '/turnOff',
-                    'object_alive' => $title, 'property_alive' => 'alive',
                     'level_min' => 0, 'level_max' => 100, 'level_step' => 1,
                 )));
             case 'rgb':
                 return array(array_merge($base, array(
-                    'id' => $title, 'type' => 'rgb', 'title' => $title,
+                    'id' => $this->wizardWidgetId(), 'type' => 'rgb', 'title' => $name,
                     'icon' => 'fas fa-palette',
                     'object' => $title, 'property' => 'status',
                     'object_on' => $title . '/turnOn',
                     'object_off' => $title . '/turnOff',
-                    'object_alive' => $title, 'property_alive' => 'alive',
                 )));
             case 'motion':
                 return array(array_merge($base, array(
-                    'id' => $title, 'type' => 'status', 'title' => $title,
+                    'id' => $this->wizardWidgetId(), 'type' => 'status', 'title' => $name,
                     'icon' => 'fas fa-running',
                     'object_status' => $title, 'property_status' => 'status',
                     'statuses' => json_encode(array(
-                        array('status' => '0', 'title' => 'Движения нет', 'icon' => 'fas fa-user', 'color' => '#64748b'),
-                        array('status' => '1', 'title' => 'Движение есть', 'icon' => 'fas fa-running', 'color' => '#22c55e'),
+                        array('status' => '0', 'title' => LANG_DASHBOARD_PRO_MOTION_NONE, 'icon' => 'fas fa-user', 'color' => '#64748b'),
+                        array('status' => '1', 'title' => LANG_DASHBOARD_PRO_MOTION_YES, 'icon' => 'fas fa-running', 'color' => '#22c55e'),
                     )),
                 )));
             case 'sensor_temp':
                 return array(array_merge($base, array(
-                    'id' => $title, 'type' => 'value', 'title' => $title,
+                    'id' => $this->wizardWidgetId(), 'type' => 'value', 'title' => $name,
                     'icon' => 'fas fa-thermometer-half',
                     'object' => $title, 'property' => 'value', 'unit' => '°C',
                 )));
             case 'sensor_light':
                 return array(array_merge($base, array(
-                    'id' => $title, 'type' => 'value', 'title' => $title,
+                    'id' => $this->wizardWidgetId(), 'type' => 'value', 'title' => $name,
                     'icon' => 'fas fa-sun',
                     'object' => $title, 'property' => 'value', 'unit' => 'lx',
                 )));
             case 'sensor_temphum':
                 return array(
                     array_merge($base, array(
-                        'id' => $title . '_temp', 'type' => 'value', 'title' => $title . ' (темп.)',
+                        'id' => $this->wizardWidgetId(), 'type' => 'value', 'title' => $name . ' (' . LANG_DASHBOARD_PRO_TEMP_SHORT . ')',
                         'icon' => 'fas fa-thermometer-half',
                         'object' => $title, 'property' => 'value', 'unit' => '°C',
                     )),
                     array_merge($base, array(
-                        'id' => $title . '_hum', 'type' => 'value', 'title' => $title . ' (влажн.)',
+                        'id' => $this->wizardWidgetId(), 'type' => 'value', 'title' => $name . ' (' . LANG_DASHBOARD_PRO_HUM_SHORT . ')',
                         'icon' => 'fas fa-tint',
                         'object' => $title, 'property' => 'valueHumidity', 'unit' => '%',
                     )),
                 );
             case 'thermostat':
                 return array(array_merge($base, array(
-                    'id' => $title, 'type' => 'thermostat', 'title' => $title,
+                    'id' => $this->wizardWidgetId(), 'type' => 'thermostat', 'title' => $name,
                     'icon' => 'fas fa-temperature-high',
                     'object_current' => $title, 'property_current' => 'TempCurrent',
                     'object_target' => $title, 'property_target' => 'TempSet',
@@ -1290,18 +1266,18 @@ class dashboard_pro extends module
                 )));
             case 'roborock_vacuum':
                 return array(array_merge($base, array(
-                    'id' => $title, 'type' => 'status', 'title' => $title,
+                    'id' => $this->wizardWidgetId(), 'type' => 'status', 'title' => $name,
                     'icon' => 'fas fa-robot',
                     'object_status' => $title, 'property_status' => 'status',
                 )));
             case 'openable':
                 return array(array_merge($base, array(
-                    'id' => $title, 'type' => 'status', 'title' => $title,
+                    'id' => $this->wizardWidgetId(), 'type' => 'status', 'title' => $name,
                     'icon' => 'fas fa-door-open',
                     'object_status' => $title, 'property_status' => 'status',
                     'statuses' => json_encode(array(
-                        array('status' => '0', 'title' => 'Закрыто', 'icon' => 'fas fa-door-closed', 'color' => '#64748b'),
-                        array('status' => '1', 'title' => 'Открыто', 'icon' => 'fas fa-door-open', 'color' => '#22c55e'),
+                        array('status' => '0', 'title' => LANG_DASHBOARD_PRO_STATE_CLOSED, 'icon' => 'fas fa-door-closed', 'color' => '#64748b'),
+                        array('status' => '1', 'title' => LANG_DASHBOARD_PRO_STATE_OPEN, 'icon' => 'fas fa-door-open', 'color' => '#22c55e'),
                     )),
                 )));
             case 'button':

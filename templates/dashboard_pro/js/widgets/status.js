@@ -20,7 +20,7 @@ const StatusWidget = {
             { key: 'bg_property', label: 'field_bg_property', type: 'property', row: 'bg_row', showIf: { bg_mode: 'property' } },
         ],
     },
-    defaults: { icon: 'fas fa-info-circle', icon_type: 'icon', statuses: JSON.stringify([{status:'0',title:'Выкл',icon:'fas fa-power-off',color:'#ef4444'},{status:'1',title:'Вкл',icon:'fas fa-check',color:'#22c55e'}]) },
+    defaults: () => ({ icon: 'fas fa-info-circle', icon_type: 'icon', statuses: JSON.stringify([{status:'0',title:window.__t('default_off'),icon:'fas fa-power-off',color:'#ef4444'},{status:'1',title:window.__t('default_on'),icon:'fas fa-check',color:'#22c55e'}]) }),
     template: `
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header">
