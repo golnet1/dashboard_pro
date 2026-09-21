@@ -303,6 +303,20 @@ class dashboard_pro extends module
             return ['count' => $count, 'items' => $items];
         }
 
+        if ($params['request'][0] == 'auditWidgets') {
+            return $this->auditWidgetsReport();
+        }
+
+        if ($params['request'][0] == 'cleanupWidgets') {
+            $input = $this->bodyInput();
+            if (!is_array($input)) $input = array();
+            return $this->cleanupWidgetsData($input);
+        }
+
+        if ($params['request'][0] == 'restorePanels') {
+            return $this->restorePanels();
+        }
+
         if ($params['request'][0] == 'execCommand') {
             $command = $params['command'] ?? '';
             if (!$command) return ['error' => 'command required'];
@@ -864,6 +878,419 @@ class dashboard_pro extends module
         }
 
         return $count;
+    }
+
+    function widgetRefKeys()
+    {
+        return array('object', 'level_object', 'object_info', 'object_on', 'object_off', 'object_switch', 'object_color', 'mode_object', 'status_object', 'power_object', 'value_object', 'alarm_object', 'notify_object', 'link_object');
+    }
+
+    function auditIssue($panel, $id, $type, $title, $soft, $reasons, $path = null)
+    {
+        return array('panel' => $panel, 'id' => $id, 'type' => $type, 'title' => $title, 'soft' => (bool)$soft, 'reasons' => $reasons, 'path' => $path);
+    }
+
+    function jsonCutPoints($raw)
+    {
+        $cuts = array();
+        $len = strlen($raw);
+        $depth = 0;
+        $inStr = false;
+        $esc = false;
+        for ($i = 0; $i < $len; $i++) {
+            $c = $raw[$i];
+            if ($inStr) {
+                if ($esc) $esc = false;
+                elseif ($c === '\\') $esc = true;
+                elseif ($c === '"') $inStr = false;
+                continue;
+            }
+            if ($c === '"') {
+                $inStr = true;
+                continue;
+            }
+            if ($c === '{' || $c === '[') {
+                $depth++;
+            } elseif ($c === '}' || $c === ']') {
+                $depth--;
+                if ($depth < 0) $depth = 0;
+                if ($depth === 0) $cuts[] = $i + 1;
+            }
+        }
+        return $cuts;
+    }
+
+    function autoCloseJson($s)
+    {
+        $len = strlen($s);
+        $stack = array();
+        $inStr = false;
+        $esc = false;
+        for ($i = 0; $i < $len; $i++) {
+            $c = $s[$i];
+            if ($inStr) {
+                if ($esc) $esc = false;
+                elseif ($c === '\\') $esc = true;
+                elseif ($c === '"') $inStr = false;
+                continue;
+            }
+            if ($c === '"') {
+                $inStr = true;
+                continue;
+            }
+            if ($c === '{' || $c === '[') {
+                $stack[] = $c;
+            } elseif ($c === '}' || $c === ']') {
+                $open = count($stack) ? $stack[count($stack) - 1] : '';
+                if ($open === '{' && $c === '}') array_pop($stack);
+                elseif ($open === '[' && $c === ']') array_pop($stack);
+            }
+        }
+        $tail = '';
+        if ($inStr) {
+            $tail = $esc ? '\\' : '';
+            $tail .= '"';
+        }
+        for ($j = count($stack) - 1; $j >= 0; $j--) {
+            $tail .= $stack[$j] === '{' ? '}' : ']';
+        }
+        return $s . $tail;
+    }
+
+    function repairTruncatedJson($raw)
+    {
+        if ($raw === '') return false;
+        $raw = rtrim($raw);
+        $decoded = json_decode($raw, true);
+        if ($decoded !== null) return false;
+        $cuts = $this->jsonCutPoints($raw);
+        $cuts = array_reverse($cuts);
+        $seen = array();
+        foreach ($cuts as $cut) {
+            if ($cut < 1) continue;
+            $key = $cut;
+            if (isset($seen[$key])) continue;
+            $seen[$key] = true;
+            $prefix = rtrim(substr($raw, 0, $cut), " \t\r\n,");
+            if ($prefix === '') continue;
+            $candidate = $this->autoCloseJson($prefix);
+            $d = json_decode($candidate, true);
+            if (is_array($d) || is_object($d)) return $candidate;
+        }
+        $candidate = $this->autoCloseJson($raw);
+        $d = json_decode($candidate, true);
+        if (is_array($d) || is_object($d)) return $candidate;
+        return false;
+    }
+
+    function restorePanels()
+    {
+        $login = $this->getUserLogin();
+        if (!$login) {
+            return array('error' => 'no_login');
+        }
+        $raw = $this->loadShardedProperty($login, 'panels');
+        if ($raw === null || trim($raw) === '') {
+            return array('error' => 'empty');
+        }
+        $repaired = $this->repairTruncatedJson($raw);
+        if ($repaired === false) {
+            return array('error' => 'unrepairable');
+        }
+        $this->saveShardedProperty($login, 'panels', $repaired);
+        $tail = strlen($raw) - strlen($repaired);
+        $decoded = json_decode($repaired, true);
+        return array('restored' => true, 'tail' => $tail, 'widgets' => is_array($decoded) ? count($decoded) : 0);
+    }
+
+    function auditWidgetsReport()
+    {
+        $panels = $this->loadPanels();
+
+        $defTypes = array();
+        $defs = SQLSelect("SELECT TYPE, TITLE, FILE FROM dashboard_widgets");
+        if (is_array($defs)) {
+            foreach ($defs as $d) {
+                $defTypes[trim((string)$d['TYPE'])] = true;
+            }
+        }
+
+        $objSet = array();
+        $objs = SQLSelect("SELECT TITLE FROM objects");
+        if (is_array($objs)) {
+            foreach ($objs as $o) {
+                $objSet[trim((string)$o['TITLE'])] = true;
+            }
+        }
+
+        $refObjKeys = $this->widgetRefKeys();
+        $items = array();
+        $messages = array();
+        $restorable = false;
+
+        $panelsRaw = $this->loadShardedProperty($this->getUserLogin(), 'panels');
+        $panelsDecoded = ($panelsRaw !== null && $panelsRaw !== '') ? json_decode($panelsRaw, true) : null;
+        if ($panelsRaw !== null && $panelsRaw !== '' && $panelsDecoded === null) {
+            $repaired = $this->repairTruncatedJson($panelsRaw);
+            if ($repaired !== false) {
+                $messages[] = array('message' => 'store_truncated', 'store' => 'panels', 'tail' => strlen($panelsRaw) - strlen($repaired));
+                $panelsDecoded = json_decode($repaired, true);
+                if (is_array($panelsDecoded)) {
+                    $panels = $panelsDecoded;
+                    $restorable = true;
+                }
+            } else {
+                $messages[] = array('message' => 'store_corrupt', 'store' => 'panels');
+            }
+        }
+
+        foreach (array('settings', 'widgets') as $storeName) {
+            $storeData = $this->loadShardedProperty($this->getUserLogin(), $storeName);
+            if ($storeData === null || trim($storeData) === '') continue;
+            $decoded = json_decode($storeData, true);
+            if ($decoded === null) {
+                $messages[] = array('message' => 'store_corrupt', 'store' => $storeName);
+            }
+        }
+
+        if (is_array($panels)) {
+            foreach ($panels as $panel) {
+                if (!is_array($panel)) {
+                    $items[] = $this->auditIssue('', '', '', '', true, array(array('reason' => 'broken_panel')));
+                    continue;
+                }
+                $pname = trim((string)($panel['name'] ?? ($panel['title'] ?? '')));
+                if ($pname === '') $pname = '';
+                if (empty($panel['name'])) {
+                    $items[] = $this->auditIssue($pname, '', '', '', true, array(array('reason' => 'panel_no_name')));
+                }
+                $widgets = $panel['widgets'] ?? null;
+                if ($widgets !== null && !is_array($widgets)) {
+                    $items[] = $this->auditIssue($pname, '', '', '', true, array(array('reason' => 'panel_widgets_bad')));
+                    continue;
+                }
+                if (!is_array($widgets)) continue;
+                $seen = array();
+                $this->auditWalkWidgets($widgets, $pname, $defTypes, $objSet, $refObjKeys, $seen, $items, array());
+            }
+        }
+
+        $orphan = array();
+        if (is_array($defs)) {
+            $defaultTypes = array();
+            foreach ($this->widgetDefaults() as $wd) {
+                $defaultTypes[trim((string)$wd[0])] = true;
+            }
+            foreach ($defs as $d) {
+                $type = trim((string)$d['TYPE']);
+                if ($type === '') continue;
+                if (isset($defaultTypes[$type])) continue;
+                if (!$this->countWidgetUsage($type)) {
+                    $orphan[] = array('type' => $type, 'title' => (string)$d['TITLE'], 'file' => (string)$d['FILE']);
+                }
+            }
+        }
+
+        return array('items' => $items, 'orphanDefs' => $orphan, 'messages' => $messages, 'restorable' => $restorable);
+    }
+
+    function auditWalkWidgets($widgets, $pname, $defTypes, $objSet, $refObjKeys, &$seen, &$items, $pathPrefix)
+    {
+        foreach ($widgets as $i => $w) {
+            $path = $pathPrefix;
+            $path[] = (int)$i;
+            if (!is_array($w)) {
+                $items[] = $this->auditIssue($pname, '', '', '', false, array(array('reason' => 'broken_entry')), $path);
+                continue;
+            }
+            $id = isset($w['id']) ? trim((string)$w['id']) : '';
+            $type = isset($w['type']) ? trim((string)$w['type']) : '';
+            $reasons = array();
+            $soft = false;
+
+            if ($id === '') {
+                $reasons[] = array('reason' => 'empty_id');
+            } elseif (isset($seen[$id])) {
+                $reasons[] = array('reason' => 'dup_id', 'detail' => $id);
+            }
+            if ($id !== '') $seen[$id] = true;
+
+            if ($type === '') {
+                $reasons[] = array('reason' => 'missing_type');
+            } elseif (!isset($defTypes[$type])) {
+                $reasons[] = array('reason' => 'unknown_type', 'detail' => $type);
+            }
+
+            if (trim((string)($w['title'] ?? '')) === '') {
+                $reasons[] = array('reason' => 'missing_title');
+            }
+
+            foreach (array('x', 'y', 'width', 'height') as $k) {
+                $v = $w[$k] ?? '';
+                if ($v === '' || $v === null) {
+                    $reasons[] = array('reason' => 'missing_fields', 'detail' => $k);
+                    continue;
+                }
+                if (!is_numeric($v)) {
+                    $reasons[] = array('reason' => 'non_numeric', 'detail' => $k . '=' . $v);
+                }
+            }
+            $x = (isset($w['x']) && is_numeric($w['x'])) ? (float)$w['x'] : null;
+            $y = (isset($w['y']) && is_numeric($w['y'])) ? (float)$w['y'] : null;
+            $wd = (isset($w['width']) && is_numeric($w['width'])) ? (float)$w['width'] : null;
+            $ht = (isset($w['height']) && is_numeric($w['height'])) ? (float)$w['height'] : null;
+            if ($wd !== null && $wd <= 0) $reasons[] = array('reason' => 'bad_size', 'detail' => 'width=' . $wd);
+            if ($ht !== null && $ht <= 0) $reasons[] = array('reason' => 'bad_size', 'detail' => 'height=' . $ht);
+            if ($x !== null && $y !== null) {
+                if ($x < 0 || $y < 0) $reasons[] = array('reason' => 'bad_pos');
+                if ($x > 10000 || $y > 10000) $reasons[] = array('reason' => 'offscreen');
+            }
+
+            foreach ($refObjKeys as $rk) {
+                if (!array_key_exists($rk, $w)) continue;
+                $val = trim((string)$w[$rk]);
+                if ($val === '') continue;
+                $parts = explode('/', $val);
+                $objName = trim($parts[0]);
+                if (!isset($objSet[$objName])) {
+                    $reasons[] = array('reason' => 'object_missing', 'detail' => $val);
+                }
+            }
+
+            if (count($reasons)) {
+                $items[] = $this->auditIssue($pname, $id, $type, isset($w['title']) ? $w['title'] : '', $soft, $reasons, $path);
+            }
+
+            if (!empty($w['children']) && is_array($w['children'])) {
+                $childPrefix = $path;
+                $childPrefix[] = 'children';
+                $this->auditWalkWidgets($w['children'], $pname, $defTypes, $objSet, $refObjKeys, $seen, $items, $childPrefix);
+            }
+        }
+    }
+
+    function visitedPanelPaths($paths)
+    {
+        $set = array();
+        foreach ($paths as $p) {
+            if (is_array($p) && count($p)) {
+                $key = implode('/', $p);
+                $set[$key] = true;
+            }
+        }
+        return $set;
+    }
+
+    function filterPaths(&$widgets, $base, $pathSet, &$removed)
+    {
+        if (!is_array($widgets)) return $widgets;
+        $out = array();
+        foreach ($widgets as $i => $w) {
+            $cur = $base;
+            $cur[] = $i;
+            $key = implode('/', $cur);
+            if (isset($pathSet[$key])) {
+                $removed++;
+                continue;
+            }
+            if (is_array($w) && !empty($w['children']) && is_array($w['children'])) {
+                $cb = $cur;
+                $cb[] = 'children';
+                $w['children'] = $this->filterPaths($w['children'], $cb, $pathSet, $removed);
+            }
+            $out[] = $w;
+        }
+        return $out;
+    }
+
+    function countWidgetIdRec($widgets, $id)
+    {
+        if (!is_array($widgets)) return 0;
+        $count = 0;
+        foreach ($widgets as $w) {
+            if (!is_array($w)) continue;
+            if (isset($w['id']) && (string)$w['id'] === $id) $count++;
+            if (!empty($w['children']) && is_array($w['children'])) {
+                $count += $this->countWidgetIdRec($w['children'], $id);
+            }
+        }
+        return $count;
+    }
+
+    function removeWidgetByIdRec(&$widgets, $id)
+    {
+        if (!is_array($widgets)) return 0;
+        foreach ($widgets as $i => $w) {
+            if (is_array($w) && isset($w['id']) && (string)$w['id'] === $id) {
+                array_splice($widgets, $i, 1);
+                return 1;
+            }
+        }
+        foreach ($widgets as $i => $w) {
+            if (is_array($w) && !empty($w['children']) && is_array($w['children'])) {
+                if ($this->removeWidgetByIdRec($w['children'], $id)) {
+                    $widgets[$i]['children'] = $w['children'];
+                    return 1;
+                }
+            }
+        }
+        return 0;
+    }
+
+    function cleanupWidgetsData($input)
+    {
+        $ids = isset($input['ids']) && is_array($input['ids']) ? $input['ids'] : array();
+        $types = isset($input['types']) && is_array($input['types']) ? $input['types'] : array();
+        $removed = 0;
+
+        if (count($ids)) {
+            $panels = $this->loadPanels();
+            if (is_array($panels)) {
+                foreach ($panels as $pi => $panel) {
+                    if (!is_array($panel)) continue;
+                    $pname = trim((string)($panel['name'] ?? ''));
+                    if ($pname === '' || empty($panel['widgets']) || !is_array($panel['widgets'])) continue;
+                    $paths = array();
+                    $idsOnly = array();
+                    foreach ($ids as $r) {
+                        if (!is_array($r)) continue;
+                        if (isset($r['path']) && is_array($r['path']) && count($r['path'])) {
+                            if (trim((string)($r['panel'] ?? '')) === $pname) $paths[] = $r['path'];
+                        } elseif (isset($r['id']) && trim((string)$r['id']) !== '') {
+                            if (trim((string)($r['panel'] ?? '')) === $pname) $idsOnly[] = trim((string)$r['id']);
+                        }
+                    }
+                    if (!count($paths) && !count($idsOnly)) continue;
+                    if (count($paths)) {
+                        $pathSet = $this->visitedPanelPaths($paths);
+                        $panel['widgets'] = $this->filterPaths($panel['widgets'], array(), $pathSet, $removed);
+                    }
+                    foreach ($idsOnly as $wid) {
+                        if ($this->countWidgetIdRec($panel['widgets'], $wid) === 1) {
+                            $removed += $this->removeWidgetByIdRec($panel['widgets'], $wid);
+                        }
+                    }
+                    $panels[$pi] = $panel;
+                }
+                $this->savePanels($panels);
+            }
+        }
+
+        $typesRemoved = 0;
+        $defaultTypes = array();
+        foreach ($this->widgetDefaults() as $wd) {
+            $defaultTypes[trim((string)$wd[0])] = true;
+        }
+        foreach ($types as $type) {
+            $type = trim((string)$type);
+            if ($type === '') continue;
+            if (isset($defaultTypes[$type])) continue;
+            if ($this->countWidgetUsage($type)) continue;
+            SQLExec("DELETE FROM dashboard_widgets WHERE TYPE LIKE '" . DBSafe($type) . "'");
+            $typesRemoved++;
+        }
+
+        return array('removed' => $removed, 'typesRemoved' => $typesRemoved);
     }
 
     function loadDashboardSettings()

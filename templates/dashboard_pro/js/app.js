@@ -120,6 +120,9 @@ const app = createApp({
         const showAbout = ref(false);
         const showExportDialog = ref(false);
         const exportMode = ref('all');
+        const showCleanupDialog = ref(false);
+        const cleanupReport = ref(null);
+        const cleanupBusy = ref(false);
         const exportSelectedPanel = ref('');
         const exportUsers = ref([]);
         const exportSelectedUser = ref('');
@@ -1333,11 +1336,73 @@ function loadScript(src, version) {
         }
 
         function cleanupOrphanWidgets() {
-            if (!confirm(t('confirm_delete_orphans'))) return;
-            const allWidgetIds = new Set();
-            panels.value.forEach(p => (p.widgets || []).forEach(w => allWidgetIds.add(w.id)));
-            savePanels();
-            alert(t('alert_cleanup_done'));
+            cleanupRun();
+        }
+
+        async function cleanupRun() {
+            if (cleanupBusy.value) return;
+            cleanupReport.value = null;
+            cleanupBusy.value = true;
+            try {
+                const res = await dpAPI('auditWidgets');
+                if (res && res.error) { alert(t('error_label') + ' ' + res.error); return; }
+                const report = { items: [], orphanDefs: [], messages: res.messages || [], restorable: !!res.restorable };
+                (res.items || []).forEach(it => { report.items.push({ ...it, checked: !it.soft }); });
+                (res.orphanDefs || []).forEach(d => { report.orphanDefs.push({ ...d, checked: false }); });
+                cleanupReport.value = report;
+                showCleanupDialog.value = true;
+            } finally {
+                cleanupBusy.value = false;
+            }
+        }
+
+        function cleanupReasons(item) {
+            return (item.reasons || []).map(r => {
+                const label = t('reason_' + r.reason);
+                return r.detail ? label + ': ' + r.detail : label;
+            });
+        }
+
+        async function applyCleanup() {
+            if (!cleanupReport.value) return;
+            const ids = [];
+            cleanupReport.value.items.forEach(it => { if (it.checked && Array.isArray(it.path) && it.path.length) ids.push({ panel: it.panel, path: it.path }); });
+            const types = cleanupReport.value.orphanDefs.filter(d => d.checked).map(d => d.type);
+            if (!ids.length && !types.length) { showCleanupDialog.value = false; return; }
+            try {
+                const res = await dpAPI('cleanupWidgets', { method: 'POST', body: JSON.stringify({ ids, types }) });
+                if (res && res.error) { alert(t('error_label') + ' ' + res.error); return; }
+                showCleanupDialog.value = false;
+                cleanupReport.value = null;
+                await loadData();
+                if (typeof res === 'object' && res) {
+                    const wc = Number(res.removed) || 0;
+                    const tc = Number(res.typesRemoved) || 0;
+                    if (wc + tc > 0) {
+                        alert(t('cleanup_result_removed').replace('%w', String(wc)).replace('%t', String(tc)));
+                    } else {
+                        alert(t('cleanup_result_none'));
+                    }
+                } else {
+                    alert(t('alert_cleanup_done'));
+                }
+            } catch (e) {
+                alert(t('unknown_error'));
+            }
+        }
+
+        async function restorePanels() {
+            if (!cleanupReport.value) return;
+            try {
+                const res = await dpAPI('restorePanels', { method: 'POST', body: '{}' });
+                if (res && res.error) { alert(t('error_label') + ' ' + res.error); return; }
+                showCleanupDialog.value = false;
+                cleanupReport.value = null;
+                await loadData();
+                alert(t('cleanup_restore_result').replace('%c', String(Number(res.tail) || 0)));
+            } catch (e) {
+                alert(t('unknown_error'));
+            }
         }
 
         function resetAll() {
@@ -1873,6 +1938,7 @@ onMounted(() => {
             showChangeObject, changeObjectGroups, openChangeObject, saveChangeObject, widgetHasChangeObjects,
             showSettingsPanel, showWidgetEditorPanel, settings, savePanels, commitChanges, hasUnsavedChanges, toggleTheme, cleanupOrphanWidgets, resetAll,
             showExportDialog, exportMode, exportSelectedPanel, exportUsers, exportSelectedUser, loadExportUsers, doExport, doImport,
+            showCleanupDialog, cleanupReport, cleanupBusy, cleanupReasons, applyCleanup, restorePanels,
             showAddPanel, editPanelData, panelForm, panelTab, panelTabPos, panelError, createPanel, editPanel, openPanelForm, deletePanel, deleteCurrentPanel, movePanel, showAbout, toggleField,
             showIconPicker, iconTarget, iconSearch, iconCategory, iconCategorySearch, iconPage, iconCategories, filteredIconCategories, filteredIcons, totalPages, paginatedIcons, openIconPicker, selectIcon, iconPicked,
             objects, iconProperties, infoProperties, widgetProperties, bgProperties, extraProperties, methodCache, loadObjects, loadIconProperties, loadInfoProperties, loadWidgetProperties, loadBgProperties, widgetBgStyle,

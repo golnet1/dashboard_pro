@@ -738,3 +738,9 @@ body.widget-dragging, body.widget-dragging * { cursor: grabbing !important; }
 .group-widgets-grid--dividers .group-widgets-grid__cell { border-right:1px solid var(--on-theme-dim); border-bottom:1px solid var(--on-theme-dim); }
 .group-widgets-grid--empty { display:flex; align-items:center; justify-content:center; gap:8px; padding:16px; color:var(--on-theme-dim); font-size:.85rem; text-align:center; }
 .widget-v-card__count { margin-left:auto; font-size:.75rem; color:var(--on-theme-dim); padding-right:8px; flex-shrink:0; align-self:center; }
+
+/* Cleanup audit dialog */
+.cleanup-badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:.72rem; background:rgba(229,57,53,.18); color:#ff8a80; border:1px solid rgba(229,57,53,.4); }
+.cleanup-badge--soft { background:rgba(255,193,7,.14); color:#ffd54f; border-color:rgba(255,193,7,.4); }
+.cleanup-msg { padding:10px 14px; border-radius:8px; margin-bottom:12px; font-size:.85rem; background:rgba(255,193,7,.12); color:#ffd54f; border:1px solid rgba(255,193,7,.35); }
+.cleanup-msg > div { margin:2px 0; }

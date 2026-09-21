@@ -1465,6 +1465,72 @@
             </div>
         </div>
 
+        <div class="v-dialog__content v-dialog__content--active" v-if="showCleanupDialog" style="z-index:203">
+            <div class="v-dialog v-dialog--active v-dialog--persistent v-dialog--scrollable" style="width:720px" tabindex="0">
+                <div class="v-card v-sheet theme--dark export-dialog-card">
+                    <div class="v-card__title" style="flex-shrink:0">
+                        <span class="headline_m">{{ t('cleanup_audit_title') }}</span>
+                        <span style="flex:1"></span>
+                        <span class="grey--text" style="font-size:.8rem">{{ cleanupBusy ? t('cleanup_scanning') : '' }}</span>
+                    </div>
+                    <hr role="separator" class="v-divider theme--dark" style="flex-shrink:0">
+                    <div class="v-card__text pa-4" style="overflow-y:auto;flex:1;max-height:60vh">
+                        <template v-if="cleanupReport">
+                            <div v-if="cleanupReport.messages.length" class="cleanup-msg">
+                                <div v-for="(msg, mi) in cleanupReport.messages" :key="'m' + mi"><i class="fas fa-exclamation-triangle" style="margin-right:6px"></i>{{ t('audit_msg_' + msg.message) }}<span v-if="msg.store"> ({{ msg.store }})</span></div>
+                            </div>
+                            <div v-if="!cleanupReport.items.length && !cleanupReport.orphanDefs.length && !cleanupReport.messages.length" class="grey--text" style="padding:12px 0">{{ t('cleanup_no_issues') }}</div>
+                            <template v-else>
+                                <div v-if="cleanupReport.items.length" class="v-subheader theme--dark" style="padding-left:0">
+                                    {{ t('cleanup_section_widgets') }} ({{ cleanupReport.items.length }})
+                                </div>
+                                <div v-for="(item, idx) in cleanupReport.items" :key="'i' + idx" class="v-list-item theme--dark" style="padding-left:0;border-bottom:1px solid rgba(255,255,255,.06)">
+                                    <div class="v-list-item__action" style="margin-right:12px">
+                                        <div class="v-input theme--dark v-input--selection-controls v-input--switch" :class="{ 'input--is-checked': item.checked }">
+                                            <div class="v-input__control"><div class="v-input__slot v-input__slot--switch"><div class="v-input--switch__track" @click.stop="item.checked = !item.checked"><div class="v-input--switch__thumb"></div></div></div></div>
+                                        </div>
+                                    </div>
+                                    <div class="v-list-item__content py-0">
+                                        <div class="v-list-item__title" style="font-size:.85rem">
+                                            <span v-if="item.type">{{ item.type }}</span>
+                                            <span v-else class="grey--text">{{ t('cleanup_panel') }}</span>
+                                            <span class="grey--text" v-if="item.title"> — {{ item.title }}</span>
+                                            <span class="grey--text" v-if="item.id" style="font-size:.75rem"> ({{ item.id }})</span>
+                                        </div>
+                                        <div class="v-list-item__subtitle" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">
+                                            <span v-for="(r, ri) in cleanupReasons(item)" :key="ri" class="cleanup-badge" :class="{ 'cleanup-badge--soft': item.soft }">{{ r }}</span>
+                                        </div>
+                                        <div class="context-label"> {{ t('cleanup_panel') }}{{ item.panel }}</div>
+                                    </div>
+                                </div>
+                                <div v-if="cleanupReport.orphanDefs.length" class="v-subheader theme--dark" style="padding-left:0;margin-top:16px">
+                                    {{ t('cleanup_section_defs') }} ({{ cleanupReport.orphanDefs.length }})
+                                </div>
+                                <div v-for="(d, di) in cleanupReport.orphanDefs" :key="'d' + di" class="v-list-item theme--dark" style="padding-left:0;border-bottom:1px solid rgba(255,255,255,.06)">
+                                    <div class="v-list-item__action" style="margin-right:12px">
+                                        <div class="v-input theme--dark v-input--selection-controls v-input--switch" :class="{ 'input--is-checked': d.checked }">
+                                            <div class="v-input__control"><div class="v-input__slot v-input__slot--switch"><div class="v-input--switch__track" @click.stop="d.checked = !d.checked"><div class="v-input--switch__thumb"></div></div></div></div>
+                                        </div>
+                                    </div>
+                                    <div class="v-list-item__content py-0">
+                                        <div class="v-list-item__title" style="font-size:.85rem">{{ d.type }} <span class="grey--text">— {{ d.title }}</span></div>
+                                        <div class="v-list-item__subtitle">{{ d.file }}</div>
+                                    </div>
+                                </div>
+                            </template>
+                        </template>
+                    </div>
+                    <hr role="separator" class="v-divider theme--dark" style="flex-shrink:0">
+                    <div class="v-card__actions pa-4" style="flex-shrink:0;gap:8px;display:flex">
+                        <button v-if="cleanupReport && cleanupReport.restorable" type="button" class="v-btn v-btn--is-elevated v-btn--has-bg theme--dark v-size--default success" @click="restorePanels"><span class="v-btn__content"><i class="fas fa-wrench v-icon--left"></i>{{ t('cleanup_restore') }}</span></button>
+                        <button v-else-if="cleanupReport && (cleanupReport.items.length || cleanupReport.orphanDefs.length)" type="button" class="v-btn v-btn--is-elevated v-btn--has-bg theme--dark v-size--default error" @click="applyCleanup"><span class="v-btn__content"><i class="fas fa-trash-alt v-icon--left"></i>{{ t('cleanup_delete_selected') }}</span></button>
+                        <span style="flex:1"></span>
+                        <button type="button" class="v-btn v-btn--is-elevated v-btn--has-bg theme--dark v-size--default" @click="showCleanupDialog = false"><span class="v-btn__content">{{ t('close') }}</span></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="modal-overlay" v-if="showAbout" @click.self="showAbout = false">
             <div class="modal" style="max-width:400px">
                 <div class="modal-header"><h3>{{ t('about') }}</h3><button class="modal-close" @click="showAbout = false">&times;</button></div>
@@ -1491,6 +1557,6 @@
     <script src="js/auth.js?v=9"></script>
     <script src="js/sidebar.js?v=10"></script>
 <script src="js/widget-config.js?v=11"></script>
-<script src="js/app.js?v=101"></script>
+<script src="js/app.js?v=105"></script>
 </body>
 </html>
