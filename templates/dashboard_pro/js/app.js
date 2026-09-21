@@ -156,7 +156,7 @@ const app = createApp({
         const wsStatus = ref(null);
         const wsRev = reactive({});
         const bgColorMap = reactive({});
-        const settings = ref({ appTitle: '', theme: 'light', defaultPanel: '', debug: false, font: 'Roboto', hideMenu: false, hideChat: false, menuBg: '', panelBg: '', usePanelImage: true, useHeaderImage: false, cardsOpacity: 44, menuOpacity: 16, dialogOpacity: 12, primaryColor: '#1976d2', lightThemeColor: '#ffffff', darkThemeColor: '#303030', iconSize: 0, titleSize: 0, subtitleSize: 0, widgetSize: 0 });
+        const settings = ref({ appTitle: '', theme: 'light', defaultPanel: '', debug: false, font: 'Roboto', hideMenu: false, hideChat: false, menuBg: '', panelBg: '', usePanelImage: true, useHeaderImage: false, cardsOpacity: 44, menuOpacity: 16, dialogOpacity: 12, primaryColor: '#1976d2', lightThemeColor: '#ffffff', darkThemeColor: '#303030', iconSize: 0, titleSize: 0, subtitleSize: 0, widgetSize: 0, grid: false, noOverlap: false, gridStep: 10 });
 
         const filteredDefs = computed(() =>
             widgetSearch.value
@@ -448,7 +448,7 @@ function loadScript(src, version) {
             widgetList.value = [...widgetDefs.value].sort((a, b) => (a.priority || 0) - (b.priority || 0));
             for (const w of widgets.items) {
                 if (!w.FILE) continue;
-                await loadScript(w.FILE, 62);
+                await loadScript(w.FILE, 63);
             }
             widgetDefs.value.forEach(d => registerWidgetComponent(d.type));
         }
@@ -939,14 +939,70 @@ function loadScript(src, version) {
             document.addEventListener('mouseup', stopDrag);
         }
 
+        function getWidgetSiblings(w) {
+            const scan = (items) => {
+                for (const it of items || []) {
+                    if (it === w) return items;
+                    if (Array.isArray(it.children)) {
+                        const r = scan(it.children);
+                        if (r) return r;
+                    }
+                }
+                return null;
+            };
+            return scan(currentPanel.value.widgets) || [];
+        }
+
+        function snapToGrid(v) {
+            const step = Math.max(1, settings.value.gridStep || 10);
+            return Math.round(v / step) * step;
+        }
+
         function onDrag(e) {
             const w = draggingWidget.value;
             if (!w) return;
             const canvas = document.querySelector('.widgets-canvas');
             if (!canvas) return;
             const r = canvas.getBoundingClientRect();
-            w.x = Math.max(0, e.clientX - r.left - dragOffset.value.x);
-            w.y = Math.max(0, e.clientY - r.top - dragOffset.value.y);
+            let nx = Math.max(0, e.clientX - r.left - dragOffset.value.x);
+            let ny = Math.max(0, e.clientY - r.top - dragOffset.value.y);
+            if (settings.value.grid) {
+                nx = snapToGrid(nx);
+                ny = snapToGrid(ny);
+            }
+            if (settings.value.noOverlap) {
+                const rect = { x: nx, y: ny, w: w.width || 280, h: w.height || 200 };
+                const gap = settings.value.grid ? Math.max(1, settings.value.gridStep || 10) : 0;
+                const siblings = getWidgetSiblings(w);
+                for (let pass = 0; pass < 3; pass++) {
+                    let moved = false;
+                    for (const o of siblings) {
+                        if (o === w) continue;
+                        const orect = { x: (o.x || 0) - gap, y: (o.y || 0) - gap, w: (o.width || 280) + gap * 2, h: (o.height || 200) + gap * 2 };
+                        const ox = Math.min(rect.x + rect.w, orect.x + orect.w) - Math.max(rect.x, orect.x);
+                        const oy = Math.min(rect.y + rect.h, orect.y + orect.h) - Math.max(rect.y, orect.y);
+                        if (ox > 0 && oy > 0) {
+                            if (ox < oy) {
+                                rect.x = rect.x < orect.x ? orect.x - rect.w : orect.x + orect.w;
+                            } else {
+                                rect.y = rect.y < orect.y ? orect.y - rect.h : orect.y + orect.h;
+                            }
+                            rect.x = Math.max(0, rect.x);
+                            rect.y = Math.max(0, rect.y);
+                            moved = true;
+                        }
+                    }
+                    if (!moved) break;
+                }
+                nx = rect.x;
+                ny = rect.y;
+                if (settings.value.grid) {
+                    nx = snapToGrid(nx);
+                    ny = snapToGrid(ny);
+                }
+            }
+            w.x = nx;
+            w.y = ny;
         }
 
         function stopDrag() {
@@ -970,6 +1026,10 @@ function loadScript(src, version) {
             const dy = e.clientY - resizeStart.value.y;
             w.width = Math.max(w.minWidth || 100, resizeStart.value.w + dx);
             w.height = Math.max(w.minHeight || 60, resizeStart.value.h + dy);
+            if (settings.value.grid) {
+                w.width = snapToGrid(w.width);
+                w.height = snapToGrid(w.height);
+            }
         }
 
         function stopResize() {

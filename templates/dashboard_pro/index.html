@@ -451,6 +451,48 @@
                                 <div style="display:flex;flex-direction:column;gap:16px">
                                 <div class="v-card v-sheet theme--dark" style="background:rgba(48,48,48,var(--card-alpha,1));border-color:rgba(48,48,48,.56)">
                                     <div class="v-list v-sheet theme--dark v-list--subheader transparent">
+                                        <div class="v-subheader theme--dark">{{ t('layout') }}</div>
+                                        <div class="v-list-item theme--dark">
+                                            <div class="v-list-item__action">
+                                                <div class="v-input theme--dark v-input--selection-controls v-input--switch primary--text" :class="{ 'input--is-checked': settings.grid }">
+                                                    <div class="v-input__control"><div class="v-input__slot v-input__slot--switch"><div class="v-input--switch__track" @click.stop="settings.grid = !settings.grid; savePanels()"><div class="v-input--switch__thumb"></div></div></div></div>
+                                                </div>
+                                            </div>
+                                            <div class="v-list-item__content py-0">
+                                                <div class="v-list-item__title">{{ t('field_grid') }}</div>
+                                                <div class="v-list-item__subtitle">{{ t('field_grid_desc') }}</div>
+                                            </div>
+                                        </div>
+                                        <div class="v-list-item theme--dark">
+                                            <div class="v-list-item__action">
+                                                <div class="v-input theme--dark v-input--selection-controls v-input--switch primary--text" :class="{ 'input--is-checked': settings.noOverlap }">
+                                                    <div class="v-input__control"><div class="v-input__slot v-input__slot--switch"><div class="v-input--switch__track" @click.stop="settings.noOverlap = !settings.noOverlap; savePanels()"><div class="v-input--switch__thumb"></div></div></div></div>
+                                                </div>
+                                            </div>
+                                            <div class="v-list-item__content py-0">
+                                                <div class="v-list-item__title">{{ t('field_no_overlap') }}</div>
+                                                <div class="v-list-item__subtitle">{{ t('field_no_overlap_desc') }}</div>
+                                            </div>
+                                        </div>
+                                        <div class="v-list-item theme--dark">
+                                            <div class="v-list-item__content">
+                                                <div class="v-input theme--dark v-text-field">
+                                                    <div class="v-input__control">
+                                                        <div class="v-input__slot">
+                                                            <div class="v-text-field__slot">
+                                                                <label class="v-label theme--dark" style="left:0;right:auto;position:absolute">{{ t('field_grid_step') }}</label>
+                                                                 <input type="number" v-model.number="settings.gridStep" @change="savePanels()" min="1" style="background:transparent;border:none;color:#fff;outline:none;width:100%;padding:18px 0 4px;font-size:16px">
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="v-text-field__details"><div class="v-messages theme--dark"><div class="v-messages__wrapper"><div class="v-messages__message">{{ t('field_grid_step_desc') }}</div></div></div></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="v-card v-sheet theme--dark" style="background:rgba(48,48,48,var(--card-alpha,1));border-color:rgba(48,48,48,.56)">
+                                    <div class="v-list v-sheet theme--dark v-list--subheader transparent">
                                         <div class="v-subheader theme--dark">{{ t('tools') }}</div>
                                         <div class="v-list-item theme--dark">
                                             <div class="v-list-item__action">
@@ -1557,6 +1599,6 @@
     <script src="js/auth.js?v=9"></script>
     <script src="js/sidebar.js?v=10"></script>
 <script src="js/widget-config.js?v=11"></script>
-<script src="js/app.js?v=120"></script>
+<script src="js/app.js?v=121"></script>
 </body>
 </html>
