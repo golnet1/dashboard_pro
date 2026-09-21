@@ -10,12 +10,16 @@ const ThermostatWidget = {
             { key: 'icon_url', label: 'field_icon_url', type: 'text', row: 'icon_row', showIf: { icon_type: 'url' } },
             { key: 'object', label: 'field_object', type: 'object', row: 'obj_prop' },
             { key: 'property', label: 'field_property', type: 'property', row: 'obj_prop' },
+            { key: 'object_switch_obj', label: 'field_switch_object', type: 'method_object', parent: 'object_switch', row: 'm_switch' },
+            { key: 'object_switch', label: 'field_switch_method', type: 'method', parent: 'object_switch', row: 'm_switch' },
+            { key: 'object_on_obj', label: 'field_on_object', type: 'method_object', parent: 'object_on', row: 'm_on' },
+            { key: 'object_on', label: 'field_on_method', type: 'method', parent: 'object_on', row: 'm_on' },
+            { key: 'object_off_obj', label: 'field_off_object', type: 'method_object', parent: 'object_off', row: 'm_off' },
+            { key: 'object_off', label: 'field_off_method', type: 'method', parent: 'object_off', row: 'm_off' },
             { key: 'object_current', label: 'field_object_current', type: 'object', row: 'temp_current' },
             { key: 'property_current', label: 'field_property_current', type: 'property', row: 'temp_current' },
             { key: 'object_target', label: 'field_object_target', type: 'object', row: 'temp_target' },
             { key: 'property_target', label: 'field_property_target', type: 'property', row: 'temp_target' },
-            { key: 'object_status', label: 'field_status_object', type: 'object', row: 'temp_status' },
-            { key: 'property_status', label: 'field_status_property', type: 'property', row: 'temp_status' },
             { key: 'min', label: 'field_min', type: 'number', default: 5, row: 'range' },
             { key: 'max', label: 'field_max', type: 'number', default: 35, row: 'range' },
         ],
@@ -28,16 +32,20 @@ const ThermostatWidget = {
             { key: 'object_alive', label: 'field_alive_flag', type: 'object', row: 'alive_row' },
             { key: 'property_alive', label: 'field_alive_property', type: 'property', row: 'alive_row' },
             { key: 'alive_timeout', label: 'field_alive_timeout', type: 'number', step: 1 },
+            { key: 'background', label: 'field_icon_bg', type: 'checkbox', row: 'icon_hl' },
+            { key: 'round', label: 'field_icon_round', type: 'checkbox', row: 'icon_hl' },
         ],
     },
-    defaults: { icon: 'fas fa-thermometer-half', icon_type: 'icon', min: 5, max: 35 },
+    defaults: { icon: 'fas fa-thermometer-half', icon_type: 'icon', min: 5, max: 35, background: false, round: false },
     template: `
         <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled }" :style="cardStyle" style="display:flex;flex-direction:column">
             <div class="widget-v-card__header">
-                <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon"></i>
+                <i v-if="widget.icon" class="widget-v-card__icon" :class="[widget.icon, iconHlClass]" style="display:inline-flex;align-items:center;justify-content:center;width:35px;height:35px;padding:0"></i>
                 <div class="widget-v-card__title">{{ widget.title || t('widget_thermostat') }}</div>
                 <div class="widget-v-card__spacer"></div>
-                <span :style="'font-size:.72rem;padding:2px 8px;border-radius:10px;' + (isOn ? 'background:rgba(239,68,68,.2);color:#ef4444' : 'background:rgba(100,116,139,.2);color:#64748b')">{{ isOn ? 'ON' : 'OFF' }}</span>
+                <div class="v-input--switch" :class="{ 'input--is-checked': isOn }" :style="aliveDisabled ? 'opacity:.4;pointer-events:none' : ''" @click.stop="toggle">
+                    <div class="v-input--switch__track"><div class="v-input--switch__thumb"></div></div>
+                </div>
             </div>
             <div class="widget-v-card__body" style="padding:8px 12px 12px;display:flex;flex-direction:column;align-items:center;gap:8px">
                 <div style="display:flex;align-items:center;gap:16px">
@@ -50,13 +58,19 @@ const ThermostatWidget = {
                 </div>
                 <div v-if="currentTemp !== null" style="font-size:.8rem;color:rgba(255,255,255,.5)">{{ t('current_label') }} {{ currentTemp }}°C</div>
             </div>
+            <div v-if="loading" class="widget-v-card__loading"><div class="v-progress-linear v-progress-linear--active"><div class="v-progress-linear__determinate" style="width:100%"></div></div></div>
         </div>`,
     data() {
-        return { target: 22, currentTemp: null, isOn: false, loading: false, timer: null, isAlive: true, availTimer: null };
+        const st = (this.widget && window.__dpWidgetState[this.widget.id]) || {};
+        return { target: st.target || 22, currentTemp: null, isOn: !!st.isOn, loading: false, timer: null, isAlive: true, availTimer: null, _toggleUntil: 0 };
     },
     computed: {
         aliveDisabled() {
             return this.widget.object_alive && this.widget.property_alive && this.isAlive === false;
+        },
+        iconHlClass() {
+            if (!this.widget.background || !this.isOn) return '';
+            return this.widget.round ? 'widget-v-card__icon--hl widget-v-card__icon--hl--round' : 'widget-v-card__icon--hl';
         },
         cardStyle() {
             const s = {};
@@ -65,8 +79,8 @@ const ThermostatWidget = {
         }
     },
     mounted() {
-        this.load();
-        if (!window.__dpWsLive) this.timer = setInterval(() => this.load(), 10000);
+        this.poll();
+        if (!window.__dpWsLive) this.timer = setInterval(() => this.poll(), 3000);
         if (this.widget.object_alive && this.widget.property_alive) {
             this.checkAlive();
             this.availTimer = setInterval(() => this.checkAlive(), (this.widget.alive_timeout || 3) * 1000);
@@ -77,34 +91,83 @@ const ThermostatWidget = {
         if (this.availTimer) clearInterval(this.availTimer);
     },
     methods: {
-        async checkAlive() {
-            try {
-                const d = await dpAPI('getProperty?' + new URLSearchParams({ object: this.widget.object_alive, property: this.widget.property_alive }));
-                this.isAlive = !d.error && String(d.value) !== '0';
-            } catch (e) { /* keep current state on transient error */ }
+        uiState() {
+            const id = this.widget && this.widget.id;
+            if (!id) return null;
+            return window.__dpWidgetState[id] || (window.__dpWidgetState[id] = {});
         },
-        async load() {
+        async poll() {
+            this.loadState();
+            this.loadTemp();
+            if (this.widget.object_alive && this.widget.property_alive) this.checkAlive();
+        },
+        statusSource() {
+            return {
+                object: this.widget.object_value || this.widget.object || this.widget.object_status || '',
+                property: this.widget.property || this.widget.property_status || 'status'
+            };
+        },
+        async loadState() {
+            const src = this.statusSource();
+            if (!src.object) return;
+            if (Date.now() < this._toggleUntil) return;
+            try {
+                const params = src.property ? { object: src.object, property: src.property } : { object: src.object };
+                const d = await dpAPI('getProperty?' + new URLSearchParams(params));
+                if (!d.error && d.value !== undefined) {
+                    const val = typeof d.value === 'string' ? d.value : String(d.value);
+                    this.isOn = val === '1' || val === 'ON' || val === 'true';
+                    const st = this.uiState();
+                    if (st) st.isOn = this.isOn;
+                }
+            } catch(e) {}
+        },
+        async loadTemp() {
             if (this.widget.object_current) {
                 try {
                     const params = this.widget.property_current ? { object: this.widget.object_current, property: this.widget.property_current } : { object: this.widget.object_current };
                     const d = await dpAPI('getProperty?' + new URLSearchParams(params));
-                    if (!d.error && d.value !== undefined) this.currentTemp = parseFloat(d.value);
+                    if (!d.error && d.value !== undefined) {
+                        const v = parseFloat(d.value);
+                        if (!isNaN(v)) this.currentTemp = v;
+                    }
                 } catch(e) {}
             }
             if (this.widget.object_target) {
                 try {
                     const params = this.widget.property_target ? { object: this.widget.object_target, property: this.widget.property_target } : { object: this.widget.object_target };
                     const d = await dpAPI('getProperty?' + new URLSearchParams(params));
-                    if (!d.error && d.value !== undefined) this.target = parseFloat(d.value) || 22;
+                    if (!d.error && d.value !== undefined) {
+                        this.target = parseFloat(d.value) || 22;
+                        const st = this.uiState();
+                        if (st) st.target = this.target;
+                    }
                 } catch(e) {}
             }
-            if (this.widget.object_status) {
-                try {
-                    const params = this.widget.property_status ? { object: this.widget.object_status, property: this.widget.property_status } : { object: this.widget.object_status };
-                    const d = await dpAPI('getProperty?' + new URLSearchParams(params));
-                    if (!d.error) this.isOn = String(d.value) === '1' || String(d.value) === 'ON';
-                } catch(e) {}
+        },
+        async toggle() {
+            if (this.loading || this.aliveDisabled) return;
+            this.loading = true;
+            const next = !this.isOn;
+            this._toggleUntil = window.__dpWsLive ? 0 : Date.now() + 4000;
+            const src = this.statusSource();
+            if (this.widget.object_switch) {
+                const p = this.widget.object_switch.split('/');
+                await dpAPI('method/' + p[0] + (p[1] ? '/' + p[1] : ''));
+            } else if (this.widget.object_on && this.widget.object_off) {
+                const pon = this.widget.object_on.split('/');
+                const poff = this.widget.object_off.split('/');
+                const p = next ? pon : poff;
+                await dpAPI('method/' + p[0] + (p[1] ? '/' + p[1] : ''));
+            } else {
+                await dpAPI('setProperty?' + new URLSearchParams({
+                    object: src.object, property: src.property || 'status', value: next ? '1' : '0'
+                }));
             }
+            this.isOn = next;
+            const st = this.uiState();
+            if (st) st.isOn = next;
+            this.loading = false;
         },
         async adjustTarget(delta) {
             this.loading = true;
@@ -115,9 +178,17 @@ const ThermostatWidget = {
                 try {
                     const params = prop ? { object: obj, property: prop, value: String(this.target) } : { object: obj, value: String(this.target) };
                     await dpAPI('setProperty?' + new URLSearchParams(params));
+                    const st = this.uiState();
+                    if (st) st.target = this.target;
                 } catch(e) {}
             }
             this.loading = false;
+        },
+        async checkAlive() {
+            try {
+                const d = await dpAPI('getProperty?' + new URLSearchParams({ object: this.widget.object_alive, property: this.widget.property_alive }));
+                this.isAlive = !d.error && String(d.value) !== '0';
+            } catch (e) { /* keep current state on transient error */ }
         }
     }
 };

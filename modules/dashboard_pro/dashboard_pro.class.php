@@ -1259,9 +1259,9 @@ class dashboard_pro extends module
                 return array(array_merge($base, array(
                     'id' => $this->wizardWidgetId(), 'type' => 'thermostat', 'title' => $name,
                     'icon' => 'fas fa-temperature-high',
-                    'object_current' => $title, 'property_current' => 'TempCurrent',
-                    'object_target' => $title, 'property_target' => 'TempSet',
-                    'object_status' => $title, 'property_status' => 'status',
+                    'object' => $title, 'property' => 'status',
+                    'object_current' => $title, 'property_current' => 'value',
+                    'object_target' => $title, 'property_target' => 'currentTargetValue',
                     'min' => 5, 'max' => 35,
                 )));
             case 'roborock_vacuum':
