@@ -1409,7 +1409,7 @@ function loadScript(src, version) {
                 showCleanupDialog.value = false;
                 cleanupReport.value = null;
                 await loadData();
-                alert(t('cleanup_restore_result').replace('%c', String(Number(res.tail) || 0)));
+                alert(t(res.reset ? 'cleanup_restore_reset' : 'cleanup_restore_result').replace('%c', String(Number(res.tail) || 0)));
             } catch (e) {
                 alert(t('unknown_error'));
             }

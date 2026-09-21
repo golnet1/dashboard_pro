@@ -747,14 +747,9 @@ class dashboard_pro extends module
     function saveShardedProperty($login, $basePropName, $json)
     {
         $len = strlen($json);
+        $total = 1;
         if ($len <= self::MAX_PROPERTY_CHARS) {
             sg("DashBoard_{$login}.{$basePropName}", $json);
-            for ($i = 1; $i <= self::MAX_SHARDS; $i++) {
-                $propName = "{$basePropName}{$i}";
-                $existing = gg("DashBoard_{$login}.{$propName}");
-                if ($existing === false || $existing === '') break;
-                sg("DashBoard_{$login}.{$propName}", '');
-            }
         } else {
             $chunks = str_split($json, self::MAX_PROPERTY_CHARS);
             $total = count($chunks);
@@ -762,12 +757,38 @@ class dashboard_pro extends module
                 $propName = $i === 0 ? $basePropName : "{$basePropName}{$i}";
                 sg("DashBoard_{$login}.{$propName}", $chunk);
             }
-            for ($i = $total; $i <= self::MAX_SHARDS; $i++) {
-                $propName = "{$basePropName}{$i}";
-                $existing = gg("DashBoard_{$login}.{$propName}");
-                if ($existing === false || $existing === '') break;
-                sg("DashBoard_{$login}.{$propName}", '');
+        }
+        $this->dropShards($login, $basePropName, $total);
+    }
+
+    function dropShards($login, $basePropName, $keep)
+    {
+        $objectTitle = "DashBoard_{$login}";
+        $obj = SQLSelectOne("SELECT ID FROM objects WHERE TITLE='" . DBSafe($objectTitle) . "'");
+        if (!$obj || empty($obj['ID'])) return;
+        $oid = (int)$obj['ID'];
+        $indices = array();
+        $re = '/^' . preg_quote("DashBoard_{$login}.{$basePropName}", '/') . '(\d+)$/';
+        $rows = SQLSelect("SELECT PROPERTY_NAME FROM pvalues WHERE OBJECT_ID={$oid} AND PROPERTY_NAME LIKE '" . DBSafe("DashBoard_{$login}.{$basePropName}") . "%'");
+        if (is_array($rows)) {
+            foreach ($rows as $row) {
+                if (preg_match($re, $row['PROPERTY_NAME'], $m)) $indices[(int)$m[1]] = true;
             }
+        }
+        $reDef = '/^' . preg_quote($basePropName, '/') . '(\d+)$/';
+        $defs = SQLSelect("SELECT TITLE FROM properties WHERE OBJECT_ID={$oid}");
+        if (is_array($defs)) {
+            foreach ($defs as $d) {
+                if (preg_match($reDef, $d['TITLE'], $m)) $indices[(int)$m[1]] = true;
+            }
+        }
+        foreach (array_keys($indices) as $idx) {
+            $pn = "DashBoard_{$login}.{$basePropName}{$idx}";
+            $val = SQLSelectOne("SELECT VALUE FROM pvalues WHERE OBJECT_ID={$oid} AND PROPERTY_NAME='" . DBSafe($pn) . "'");
+            $isEmpty = (!$val || $val['VALUE'] === '' || $val['VALUE'] === null);
+            if ($idx < $keep && !$isEmpty) continue;
+            SQLExec("DELETE FROM pvalues WHERE OBJECT_ID={$oid} AND PROPERTY_NAME='" . DBSafe($pn) . "'");
+            SQLExec("DELETE FROM properties WHERE OBJECT_ID={$oid} AND TITLE='" . DBSafe("{$basePropName}{$idx}") . "'");
         }
     }
 
@@ -969,6 +990,29 @@ class dashboard_pro extends module
         $raw = rtrim($raw);
         $decoded = json_decode($raw, true);
         if ($decoded !== null) return false;
+
+        // 1) try to close dangling quotes/brackets on the whole payload
+        $cand = $this->autoCloseJson($raw);
+        $d = json_decode($cand, true);
+        if (is_array($d)) return $cand;
+
+        // 2) cut an unterminated trailing string fragment, then close brackets
+        $stripped = $this->trimTrailingFragment($raw);
+        if ($stripped !== $raw) {
+            $cand = $this->autoCloseJson($stripped);
+            $d = json_decode($cand, true);
+            if (is_array($d)) return $cand;
+        }
+
+        // 3) drop a leading fragment with missing opening bracket, then close
+        $leading = $this->trimLeadingFragment($stripped);
+        if ($leading !== $stripped) {
+            $cand = $this->autoCloseJson($leading);
+            $d = json_decode($cand, true);
+            if (is_array($d)) return $cand;
+        }
+
+        // 4) fall back to cut-point recovery on complete entries
         $cuts = $this->jsonCutPoints($raw);
         $cuts = array_reverse($cuts);
         $seen = array();
@@ -983,10 +1027,53 @@ class dashboard_pro extends module
             $d = json_decode($candidate, true);
             if (is_array($d) || is_object($d)) return $candidate;
         }
+
+        // 5) last resort on the whole payload
         $candidate = $this->autoCloseJson($raw);
         $d = json_decode($candidate, true);
         if (is_array($d) || is_object($d)) return $candidate;
         return false;
+    }
+
+    function trimTrailingFragment($raw)
+    {
+        $len = strlen($raw);
+        $inStr = false;
+        $esc = false;
+        $openQuote = -1;
+        for ($i = 0; $i < $len; $i++) {
+            $c = $raw[$i];
+            if ($inStr) {
+                if ($esc) $esc = false;
+                elseif ($c === '\\') $esc = true;
+                elseif ($c === '"') {
+                    $inStr = false;
+                    $openQuote = -1;
+                }
+                continue;
+            }
+            if ($c === '"') {
+                $inStr = true;
+                $openQuote = $i;
+            }
+        }
+        if (!$inStr) return $raw;
+        return rtrim(substr($raw, 0, $openQuote), " \t\r\n,");
+    }
+
+    function trimLeadingFragment($raw)
+    {
+        $len = strlen($raw);
+        $openIdx = -1;
+        for ($i = 0; $i < $len; $i++) {
+            $c = $raw[$i];
+            if ($c === '{' || $c === '[') {
+                $openIdx = $i;
+                break;
+            }
+        }
+        if ($openIdx <= 0) return $raw;
+        return substr($raw, $openIdx);
     }
 
     function restorePanels()
@@ -1001,7 +1088,8 @@ class dashboard_pro extends module
         }
         $repaired = $this->repairTruncatedJson($raw);
         if ($repaired === false) {
-            return array('error' => 'unrepairable');
+            $this->saveShardedProperty($login, 'panels', '[]');
+            return array('restored' => true, 'reset' => true, 'tail' => 0, 'widgets' => 0);
         }
         $this->saveShardedProperty($login, 'panels', $repaired);
         $tail = strlen($raw) - strlen($repaired);
@@ -1260,6 +1348,7 @@ class dashboard_pro extends module
                 }
             } else {
                 $messages[] = array('message' => 'store_corrupt', 'store' => 'panels');
+                $restorable = true;
             }
         }
 

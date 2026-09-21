@@ -188,6 +188,7 @@ $frontend = array(
     'audit_msg_store_truncated' => 'Обрезан конец настроек (JSON) — показаны последние доступные виджеты',
     'cleanup_restore' => 'Восстановить панель',
     'cleanup_restore_result' => 'Настройки восстановлены, отрезано лишнего: %c симв.',
+    'cleanup_restore_reset' => 'Данные повреждены необратимо и сброшены. Восстановите панели через Wizard.',
     'reason_panel_no_name' => 'У панели отсутствует имя',
     'reason_panel_widgets_bad' => 'Некорректный список виджетов панели',
     'reason_broken_entry' => 'Повреждённая запись виджета',

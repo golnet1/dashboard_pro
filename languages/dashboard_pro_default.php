@@ -188,6 +188,7 @@ $frontend = array(
     'audit_msg_store_truncated' => 'Settings end is truncated (JSON) - showing last available widgets',
     'cleanup_restore' => 'Restore panel',
     'cleanup_restore_result' => 'Settings restored, %c chars trimmed',
+    'cleanup_restore_reset' => 'Data is unrecoverably corrupted and has been reset. Rebuild panels with Wizard.',
     'reason_missing_title' => 'Missing title',
     'reason_panel_no_name' => 'Panel has no name',
     'reason_panel_widgets_bad' => 'Invalid widget list of panel',
