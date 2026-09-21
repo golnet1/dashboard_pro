@@ -21,7 +21,7 @@ const TrendWidget = {
             { key: 'bg_property', label: 'field_bg_property', type: 'property', row: 'bg_row', showIf: { bg_mode: 'property' } },
         ],
     },
-    defaults: { icon: 'fas fa-chart-line', icon_type: 'icon', property: 'value', interval: 30, round: 1 },
+    defaults: { icon: 'fas fa-chart-line', icon_type: 'icon', property: 'value', interval: 30, round: 1, height: 180 },
     template: `
         <div class="widget-v-card" :style="cardStyle" style="display:flex;flex-direction:column">
             <div class="widget-v-card__header">

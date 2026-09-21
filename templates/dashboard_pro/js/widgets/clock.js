@@ -22,7 +22,7 @@ const ClockWidget = {
             { key: 'bg_property', label: 'field_bg_property', type: 'property', row: 'bg_row', showIf: { bg_mode: 'property' } },
         ],
     },
-    defaults: { icon: 'fas fa-clock', icon_type: 'icon', locale: 'ru-RU', viewTime: true, viewDate: true, sizeTime: 48, sizeDate: 16 },
+    defaults: { icon: 'fas fa-clock', icon_type: 'icon', locale: 'ru-RU', viewTime: true, viewDate: true, sizeTime: 48, sizeDate: 16, height: 130 },
     template: `
         <div class="widget-v-card" :style="cardStyle" style="display:flex;flex-direction:column;align-items:center;justify-content:center">
             <div v-if="widget.viewTime || widget.viewTime == undefined" :style="'font-size:' + (widget.sizeTime || 48) + 'px;font-weight:300;color:rgba(255,255,255,.87);letter-spacing:2px;line-height:1.2'">{{ time }}</div>

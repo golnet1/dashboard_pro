@@ -24,7 +24,7 @@ const SendTextWidget = {
             { key: 'alive_timeout', label: 'field_alive_timeout', type: 'number', step: 1 },
         ],
     },
-    defaults: { icon: 'fas fa-paper-plane', icon_type: 'icon', url: '', autosend: false },
+    defaults: { icon: 'fas fa-paper-plane', icon_type: 'icon', url: '', autosend: false, height: 110 },
     template: `
         <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled }" :style="cardStyle">
             <div class="widget-v-card__header">

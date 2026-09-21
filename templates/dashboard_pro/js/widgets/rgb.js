@@ -32,7 +32,7 @@ const RGBWidget = {
             { key: 'round', label: 'field_icon_round', type: 'checkbox', row: 'icon_hl' },
         ],
     },
-    defaults: { icon: 'fas fa-palette', icon_type: 'icon', property: 'status', background: false, round: false },
+    defaults: { icon: 'fas fa-palette', icon_type: 'icon', property: 'status', background: false, round: false, height: 125 },
     template: `
         <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled }" :style="cardStyle">
             <div class="widget-v-card__header">

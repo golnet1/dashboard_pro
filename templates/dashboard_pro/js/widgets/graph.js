@@ -20,7 +20,7 @@ const GraphWidget = {
             { key: 'bg_property', label: 'field_bg_property', type: 'property', row: 'bg_row', showIf: { bg_mode: 'property' } },
         ],
     },
-    defaults: { icon: 'fas fa-chart-line', icon_type: 'icon', days: 1 },
+    defaults: { icon: 'fas fa-chart-line', icon_type: 'icon', days: 1, height: 180 },
     template: `
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header">

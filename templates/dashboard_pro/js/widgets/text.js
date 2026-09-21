@@ -21,7 +21,7 @@ const TextWidget = {
             { key: 'bg_property', label: 'field_bg_property', type: 'property', row: 'bg_row', showIf: { bg_mode: 'property' } },
         ],
     },
-    defaults: { icon: 'fas fa-font', icon_type: 'icon', text: '' },
+    defaults: { icon: 'fas fa-font', icon_type: 'icon', text: '', height: 100 },
     template: `
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header">

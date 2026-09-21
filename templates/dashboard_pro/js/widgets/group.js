@@ -30,7 +30,7 @@ const GroupWidget = {
             { key: 'bg_property', label: 'field_bg_property', type: 'property', row: 'bg_row', showIf: { bg_mode: 'property' } },
         ],
     },
-    defaults: { icon: 'fas fa-layer-group', icon_type: 'icon', hide_title: false, hide_icon: false, hide_count: false, dividers: false, columns: 2, children: [] },
+    defaults: { icon: 'fas fa-layer-group', icon_type: 'icon', hide_title: false, hide_icon: false, hide_count: false, dividers: false, columns: 2, children: [], height: 200 },
     template: `
         <div class="widget-v-card" :class="{ 'widget-v-card--disabled': !available }" :style="cardStyle">
             <div class="widget-v-card__header" v-if="!widget.hide_title || !widget.hide_icon">

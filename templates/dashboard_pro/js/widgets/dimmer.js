@@ -44,7 +44,7 @@ const DimmerWidget = {
             { key: 'round', label: 'field_icon_round', type: 'checkbox', row: 'icon_hl' },
         ],
     },
-    defaults: { icon: 'fas fa-lightbulb', icon_type: 'icon', property: 'level', level_min: 0, level_max: 100, level_step: 1, background: false, round: false },
+    defaults: { icon: 'fas fa-lightbulb', icon_type: 'icon', property: 'level', level_min: 0, level_max: 100, level_step: 1, background: false, round: false, height: 115 },
     template: `
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header">

@@ -26,7 +26,7 @@ const RoundSliderWidget = {
             { key: 'alive_timeout', label: 'field_alive_timeout', type: 'number', step: 1 },
         ],
     },
-    defaults: { icon: 'fas fa-circle', icon_type: 'icon', min: 0, max: 100, step: 1, unit: '%' },
+    defaults: { icon: 'fas fa-circle', icon_type: 'icon', min: 0, max: 100, step: 1, unit: '%', height: 170 },
     template: `
         <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled }" :style="cardStyle">
             <div class="widget-v-card__header">

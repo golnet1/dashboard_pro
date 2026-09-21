@@ -26,7 +26,7 @@ const ProgressBarWidget = {
             { key: 'pos_info', label: 'field_info_postfix', type: 'text', row: 'info_affix' },
         ],
     },
-    defaults: { icon: 'fas fa-chart-bar', icon_type: 'icon', level_min: 0, level_max: 100, striped: false, rounded: false, color_progress: 'primary' },
+    defaults: { icon: 'fas fa-chart-bar', icon_type: 'icon', level_min: 0, level_max: 100, striped: false, rounded: false, color_progress: 'primary', height: 100 },
     template: `
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header" v-if="widget.title || widget.icon">

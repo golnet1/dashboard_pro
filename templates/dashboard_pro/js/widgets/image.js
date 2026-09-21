@@ -22,7 +22,7 @@ const ImageWidget = {
             { key: 'bg_property', label: 'field_bg_property', type: 'property', row: 'bg_row', showIf: { bg_mode: 'property' } },
         ],
     },
-    defaults: { icon: 'fas fa-image', icon_type: 'icon', url: '', timeout: 0 },
+    defaults: { icon: 'fas fa-image', icon_type: 'icon', url: '', timeout: 0, height: 200 },
     template: `
         <div class="widget-v-card" :style="cardStyle" style="padding:0;overflow:hidden">
             <div v-if="loading" style="display:flex;align-items:center;justify-content:center;height:100%">

@@ -38,7 +38,7 @@ const RelayWidget = {
             { key: 'round', label: 'field_icon_round', type: 'checkbox', row: 'icon_hl' },
         ],
     },
-    defaults: { icon: 'fas fa-power-off', icon_type: 'icon', background: false, round: false },
+    defaults: { icon: 'fas fa-power-off', icon_type: 'icon', background: false, round: false, height: 90 },
     template: `
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header">

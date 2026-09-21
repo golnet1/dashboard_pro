@@ -20,7 +20,7 @@ const TimelineWidget = {
             { key: 'bg_property', label: 'field_bg_property', type: 'property', row: 'bg_row', showIf: { bg_mode: 'property' } },
         ],
     },
-    defaults: { icon: 'fas fa-stream', icon_type: 'icon', url: '' },
+    defaults: { icon: 'fas fa-stream', icon_type: 'icon', url: '', height: 160 },
     template: `
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header">

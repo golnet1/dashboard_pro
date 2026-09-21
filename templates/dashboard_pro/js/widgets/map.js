@@ -21,7 +21,7 @@ const MapWidget = {
             { key: 'bg_property', label: 'field_bg_property', type: 'property', row: 'bg_row', showIf: { bg_mode: 'property' } },
         ],
     },
-    defaults: { icon: 'fas fa-map-marker-alt', icon_type: 'icon', lat: '', lon: '' },
+    defaults: { icon: 'fas fa-map-marker-alt', icon_type: 'icon', lat: '', lon: '', height: 180 },
     template: `
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header">

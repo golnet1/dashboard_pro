@@ -1,6 +1,6 @@
 const TestWidget = {
     props: ['widget'],
-    defaults: { icon: 'fas fa-flask' },
+    defaults: { icon: 'fas fa-flask', height: 100 },
     template: `
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header">

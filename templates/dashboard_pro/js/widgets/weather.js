@@ -22,7 +22,7 @@ const WeatherWidget = {
             { key: 'bg_property', label: 'field_bg_property', type: 'property', row: 'bg_row', showIf: { bg_mode: 'property' } },
         ],
     },
-    defaults: { icon: 'fas fa-cloud-sun', icon_type: 'icon', api_key: '', city_id: '', lat: '', lon: '' },
+    defaults: { icon: 'fas fa-cloud-sun', icon_type: 'icon', api_key: '', city_id: '', lat: '', lon: '', height: 150 },
     template: `
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header">

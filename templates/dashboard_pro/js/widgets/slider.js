@@ -27,7 +27,7 @@ const SliderWidget = {
             { key: 'alive_timeout', label: 'field_alive_timeout', type: 'number', step: 1 },
         ],
     },
-    defaults: { icon: 'fas fa-sliders-h', icon_type: 'icon', property: 'level', min: 0, max: 100, step: 1, prepend_icon: '', append_icon: '' },
+    defaults: { icon: 'fas fa-sliders-h', icon_type: 'icon', property: 'level', min: 0, max: 100, step: 1, prepend_icon: '', append_icon: '', height: 100 },
     template: `
         <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled }" :style="cardStyle">
             <div class="widget-v-card__header">

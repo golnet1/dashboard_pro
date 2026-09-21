@@ -17,7 +17,7 @@ const CalendarWidget = {
             { key: 'bg_property', label: 'field_bg_property', type: 'property', row: 'bg_row', showIf: { bg_mode: 'property' } },
         ],
     },
-    defaults: { icon: 'fas fa-calendar-alt', icon_type: 'icon' },
+    defaults: { icon: 'fas fa-calendar-alt', icon_type: 'icon', height: 200 },
     template: `
         <div class="widget-v-card" :style="cardStyle" style="display:flex;flex-direction:column">
             <div class="widget-v-card__header">

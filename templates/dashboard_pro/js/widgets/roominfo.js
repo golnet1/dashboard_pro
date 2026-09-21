@@ -19,7 +19,7 @@ const RoomInfoWidget = {
             { key: 'bg_property', label: 'field_bg_property', type: 'property', row: 'bg_row', showIf: { bg_mode: 'property' } },
         ],
     },
-    defaults: { icon: 'fas fa-home', icon_type: 'icon', sensors: JSON.stringify([{object:'',label:'',icon:'',suffix:''}]) },
+    defaults: { icon: 'fas fa-home', icon_type: 'icon', height: 140, sensors: JSON.stringify([{object:'',label:'',icon:'',suffix:''}]) },
     template: `
         <div class="widget-v-card" :style="cardStyle" style="display:flex;flex-direction:column">
             <div class="widget-v-card__header">

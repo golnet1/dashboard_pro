@@ -36,7 +36,7 @@ const ThermostatWidget = {
             { key: 'round', label: 'field_icon_round', type: 'checkbox', row: 'icon_hl' },
         ],
     },
-    defaults: { icon: 'fas fa-thermometer-half', icon_type: 'icon', min: 5, max: 35, background: false, round: false },
+    defaults: { icon: 'fas fa-thermometer-half', icon_type: 'icon', min: 5, max: 35, background: false, round: false, height: 140 },
     template: `
         <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled }" :style="cardStyle" style="display:flex;flex-direction:column">
             <div class="widget-v-card__header">

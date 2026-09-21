@@ -19,7 +19,7 @@ const SlideShowWidget = {
             { key: 'bg_property', label: 'field_bg_property', type: 'property', row: 'bg_row', showIf: { bg_mode: 'property' } },
         ],
     },
-    defaults: { icon: 'fas fa-images', icon_type: 'icon', images: '', interval: 5 },
+    defaults: { icon: 'fas fa-images', icon_type: 'icon', images: '', interval: 5, height: 200 },
     template: `
         <div class="widget-v-card" :style="'overflow:hidden;position:relative;' + cardStyleStr" style="display:flex;align-items:center;justify-content:center">
             <img v-if="currentImage" :src="currentImage" style="width:100%;height:100%;object-fit:cover;transition:opacity .5s" :style="'opacity:' + (loaded ? 1 : 0)">

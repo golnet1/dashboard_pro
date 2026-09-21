@@ -15,7 +15,7 @@ const PanelLinkWidget = {
             { key: 'bg_property', label: 'field_bg_property', type: 'property', row: 'bg_row', showIf: { bg_mode: 'property' } },
         ],
     },
-    defaults: { icon: 'fas fa-link', panel: '', image: '' },
+    defaults: { icon: 'fas fa-link', panel: '', image: '', height: 100 },
     template: `
         <div class="widget-v-card" :style="cardStyle" style="cursor:pointer" @click="goToPanel">
             <div v-if="panelImage" style="height:60%;overflow:hidden">

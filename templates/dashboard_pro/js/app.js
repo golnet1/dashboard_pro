@@ -448,7 +448,7 @@ function loadScript(src, version) {
             widgetList.value = [...widgetDefs.value].sort((a, b) => (a.priority || 0) - (b.priority || 0));
             for (const w of widgets.items) {
                 if (!w.FILE) continue;
-                await loadScript(w.FILE, 61);
+                await loadScript(w.FILE, 62);
             }
             widgetDefs.value.forEach(d => registerWidgetComponent(d.type));
         }
@@ -522,7 +522,7 @@ function loadScript(src, version) {
                 colors: JSON.stringify([{color:'#a9d70b'},{color:'#f9c802'},{color:'#ff0000'}]),
                 striped: false, color_progress: 'primary',
                 viewTime: true, viewDate: true, sizeTime: 48, sizeDate: 16,
-                x: 0, y: 0, width: 280, height: 200,
+                x: 0, y: 0, width: 280, height: 170,
                 ...fieldDefaults,
                 ...typeDefaults
             };
@@ -535,6 +535,40 @@ function loadScript(src, version) {
                 groupAddTarget.value = null;
                 showAddWidget.value = false;
                 return;
+            }
+            const wList = currentPanel.value.widgets;
+            if (Array.isArray(wList) && wList.length) {
+                const gap = 10;
+                const ww = Number(w.width) || 280;
+                const colLimit = 6 * 280 + 5 * gap;
+                const rows = [];
+                const rowIdx = new Map();
+                wList.forEach(ex => {
+                    const ry = Number(ex.y) || 0;
+                    if (!rowIdx.has(ry)) {
+                        rowIdx.set(ry, rows.length);
+                        rows.push({ y: ry, maxRight: 0, bottom: ry + (Number(ex.height) || 170) });
+                    }
+                    const r = rows[rowIdx.get(ry)];
+                    r.maxRight = Math.max(r.maxRight, (Number(ex.x) || 0) + (Number(ex.width) || 280));
+                    r.bottom = Math.max(r.bottom, ry + (Number(ex.height) || 170));
+                });
+                rows.sort((a, b) => a.y - b.y);
+                let placed = false;
+                for (const r of rows) {
+                    if (r.maxRight + gap + ww <= colLimit) {
+                        w.x = r.maxRight + gap;
+                        w.y = r.y;
+                        placed = true;
+                        break;
+                    }
+                }
+                if (!placed) {
+                    let bottom = 0;
+                    rows.forEach(r => { bottom = Math.max(bottom, r.bottom); });
+                    w.x = 0;
+                    w.y = bottom + gap;
+                }
             }
             if (!currentPanel.value.widgets) currentPanel.value.widgets = [];
             currentPanel.value.widgets.push(w);

@@ -43,7 +43,7 @@ const TableWidget = {
             { key: 'color_column', label: 'field_color_column', type: 'text' },
         ],
     },
-    defaults: { icon: 'fas fa-table', icon_type: 'icon', url: '', query: '', refresh: 60, columns: '[]' },
+    defaults: { icon: 'fas fa-table', icon_type: 'icon', url: '', query: '', refresh: 60, columns: '[]', height: 200 },
     template: `
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header">

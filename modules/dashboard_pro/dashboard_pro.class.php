@@ -1146,7 +1146,7 @@ class dashboard_pro extends module
         $panels = array();
         $ts = (int)round(microtime(true) * 1000);
         $cols = 6;
-        $w = 200;
+        $w = 280;
         $h = 90;
         $gap = 10;
         foreach ($byLoc as $locId => $wlist) {
@@ -1157,7 +1157,6 @@ class dashboard_pro extends module
                 $wd['x'] = ($i % $cols) * ($w + $gap);
                 $wd['y'] = (int)floor($i / $cols) * ($h + $gap);
                 $wd['width'] = $w;
-                $wd['height'] = $h;
                 $widgets[] = $wd;
                 $i++;
             }
@@ -1189,10 +1188,43 @@ class dashboard_pro extends module
         return 'w_' . $ms++ . '_' . mt_rand(0, 999);
     }
 
+    function widgetDefaultHeight($type)
+    {
+        static $cache = array();
+        if (isset($cache[$type])) return $cache[$type];
+        $cache[$type] = 170;
+        $def = SQLSelectOne("SELECT FILE FROM dashboard_widgets WHERE TYPE='" . DBSafe($type) . "'");
+        if ($def && !empty($def['FILE'])) {
+            $path = DIR_TEMPLATES . $this->name . '/' . $def['FILE'];
+            if (is_file($path)) {
+                $content = file_get_contents($path);
+                foreach (preg_split('/\R/', $content) as $line) {
+                    if (strpos($line, 'defaults:') === false) continue;
+                    if (preg_match('/\bheight\s*:\s*(\d+)/', $line, $m)) $cache[$type] = (int)$m[1];
+                    break;
+                }
+            }
+        }
+        return $cache[$type];
+    }
+
     function wizardWidgetsForType($type, $object, $name)
     {
         $title = $object;
-        $base = array('icon_type' => 'icon', 'width' => 200, 'height' => 90);
+        $base = array('icon_type' => 'icon', 'width' => 280, 'height' => $this->widgetDefaultHeight($type));
+        static $withUpdated = null;
+        if ($withUpdated === null) {
+            $withUpdated = array();
+            $rows = SQLSelect("SELECT PROPERTY_NAME FROM pvalues WHERE PROPERTY_NAME LIKE '%.updated'");
+            if (is_array($rows)) {
+                foreach ($rows as $r) {
+                    $pn = trim((string)($r['PROPERTY_NAME'] ?? ''));
+                    $dot = strrpos($pn, '.');
+                    if ($dot !== false) $withUpdated[strtolower(substr($pn, 0, $dot))] = true;
+                }
+            }
+        }
+        $info = isset($withUpdated[strtolower($title)]) ? array('object_info' => $title, 'property_info' => 'updated') : array();
         switch ($type) {
             case 'relay':
                 return array(array_merge($base, array(
@@ -1201,7 +1233,7 @@ class dashboard_pro extends module
                     'object' => $title, 'property' => 'status',
                     'object_on' => $title . '/turnOn',
                     'object_off' => $title . '/turnOff',
-                )));
+                ), $info));
             case 'dimmer':
                 return array(array_merge($base, array(
                     'id' => $this->wizardWidgetId(), 'type' => 'dimmer', 'title' => $name,
@@ -1211,7 +1243,7 @@ class dashboard_pro extends module
                     'object_on' => $title . '/turnOn',
                     'object_off' => $title . '/turnOff',
                     'level_min' => 0, 'level_max' => 100, 'level_step' => 1,
-                )));
+                ), $info));
             case 'rgb':
                 return array(array_merge($base, array(
                     'id' => $this->wizardWidgetId(), 'type' => 'rgb', 'title' => $name,
@@ -1235,25 +1267,25 @@ class dashboard_pro extends module
                     'id' => $this->wizardWidgetId(), 'type' => 'value', 'title' => $name,
                     'icon' => 'fas fa-thermometer-half',
                     'object' => $title, 'property' => 'value', 'unit' => '°C',
-                )));
+                ), $info));
             case 'sensor_light':
                 return array(array_merge($base, array(
                     'id' => $this->wizardWidgetId(), 'type' => 'value', 'title' => $name,
                     'icon' => 'fas fa-sun',
                     'object' => $title, 'property' => 'value', 'unit' => 'lx',
-                )));
+                ), $info));
             case 'sensor_temphum':
                 return array(
                     array_merge($base, array(
                         'id' => $this->wizardWidgetId(), 'type' => 'value', 'title' => $name . ' (' . LANG_DASHBOARD_PRO_TEMP_SHORT . ')',
                         'icon' => 'fas fa-thermometer-half',
                         'object' => $title, 'property' => 'value', 'unit' => '°C',
-                    )),
+                    ), $info),
                     array_merge($base, array(
                         'id' => $this->wizardWidgetId(), 'type' => 'value', 'title' => $name . ' (' . LANG_DASHBOARD_PRO_HUM_SHORT . ')',
                         'icon' => 'fas fa-tint',
                         'object' => $title, 'property' => 'valueHumidity', 'unit' => '%',
-                    )),
+                    ), $info),
                 );
             case 'thermostat':
                 return array(array_merge($base, array(

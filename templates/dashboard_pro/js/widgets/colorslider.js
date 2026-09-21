@@ -22,7 +22,7 @@ const ColorSliderWidget = {
             { key: 'alive_timeout', label: 'field_alive_timeout', type: 'number', step: 1 },
         ],
     },
-    defaults: { icon: 'fas fa-palette', icon_type: 'icon' },
+    defaults: { icon: 'fas fa-palette', icon_type: 'icon', height: 150 },
     template: `
         <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled }" :style="cardStyle">
             <div class="widget-v-card__header">
