@@ -987,6 +987,9 @@ function loadScript(src, version) {
 
         function savePanels() {
             applySettings();
+            if (!editMode.value) {
+                editMode.value = true;
+            }
             hasUnsavedChanges.value = true;
         }
 
@@ -1400,6 +1403,29 @@ function loadScript(src, version) {
                 cleanupReport.value = null;
                 await loadData();
                 alert(t('cleanup_restore_result').replace('%c', String(Number(res.tail) || 0)));
+            } catch (e) {
+                alert(t('unknown_error'));
+            }
+        }
+
+        async function runWizard() {
+            if (panels.value && panels.value.length) {
+                if (!confirm(t('wizard_confirm'))) return;
+            }
+            try {
+                const res = await dpAPI('wizard', { method: 'POST', body: '{}' });
+                if (res && res.error) { alert(t('error_label') + ' ' + res.error); return; }
+                if (res && res.panels) {
+                    panels.value = res.panels;
+                    currentPanel.value = null;
+                    savePanels();
+                    selectPanel(panels.value.find(p => p.panelType !== 'group') || panels.value[0] || null);
+                }
+                if (res && typeof res === 'object' && res.panelsCount !== undefined) {
+                    alert(t('wizard_done').replace('%p', String(Number(res.panelsCount) || 0)).replace('%d', String(Number(res.devices) || 0)).replace('%w', String(Number(res.widgets) || 0)));
+                } else {
+                    alert(t('wizard_done_simple'));
+                }
             } catch (e) {
                 alert(t('unknown_error'));
             }
@@ -1938,7 +1964,7 @@ onMounted(() => {
             showChangeObject, changeObjectGroups, openChangeObject, saveChangeObject, widgetHasChangeObjects,
             showSettingsPanel, showWidgetEditorPanel, settings, savePanels, commitChanges, hasUnsavedChanges, toggleTheme, cleanupOrphanWidgets, resetAll,
             showExportDialog, exportMode, exportSelectedPanel, exportUsers, exportSelectedUser, loadExportUsers, doExport, doImport,
-            showCleanupDialog, cleanupReport, cleanupBusy, cleanupReasons, applyCleanup, restorePanels,
+            showCleanupDialog, cleanupReport, cleanupBusy, cleanupReasons, applyCleanup, restorePanels, runWizard,
             showAddPanel, editPanelData, panelForm, panelTab, panelTabPos, panelError, createPanel, editPanel, openPanelForm, deletePanel, deleteCurrentPanel, movePanel, showAbout, toggleField,
             showIconPicker, iconTarget, iconSearch, iconCategory, iconCategorySearch, iconPage, iconCategories, filteredIconCategories, filteredIcons, totalPages, paginatedIcons, openIconPicker, selectIcon, iconPicked,
             objects, iconProperties, infoProperties, widgetProperties, bgProperties, extraProperties, methodCache, loadObjects, loadIconProperties, loadInfoProperties, loadWidgetProperties, loadBgProperties, widgetBgStyle,
