@@ -1001,6 +1001,13 @@ function loadScript(src, version) {
             hasUnsavedChanges.value = false;
         }
 
+        async function saveSettingsNow() {
+            applySettings();
+            const s = await dpAPI('settings', { method: 'POST', body: JSON.stringify(settings.value) });
+            if (s && !s.error) Object.assign(settings.value, s);
+            applySettings();
+        }
+
         async function loadIconProperties(oid) {
             if (!oid) oid = panelForm.value.iconObject;
             if (!oid) { iconProperties.value = []; return; }
@@ -1335,7 +1342,7 @@ function loadScript(src, version) {
 
         function toggleTheme() {
             settings.value.theme = settings.value.theme === 'light' ? 'dark' : 'light';
-            savePanels();
+            saveSettingsNow();
         }
 
         function cleanupOrphanWidgets() {
