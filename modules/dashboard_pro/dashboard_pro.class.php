@@ -89,6 +89,16 @@ class dashboard_pro extends module
         if (!$session) {
             $session = new session("prj");
         }
+        if (empty($session->data['SITE_USERNAME']) && empty($session->data['AUTHORIZED'])) {
+            $rememberUser = $this->restoreRememberedUser();
+            if ($rememberUser) {
+                $session->data['SITE_USERNAME'] = $rememberUser['USERNAME'];
+                $session->data['SITE_USER_ID'] = $rememberUser['ID'];
+                $session->data['SITE_USER_ACCESS'] = $rememberUser['IS_ADMIN'] ? 'admin' : 'user';
+                $session->data['SPA_LOGGED_OUT'] = false;
+                $session->save();
+            }
+        }
         if ($params['request'][0] == 'test') {
             return ['status' => 'ok', 'time' => time(), 'session' => $session ? 'active' : 'none'];
         }
@@ -114,12 +124,26 @@ class dashboard_pro extends module
                     'is_admin' => true
                 ];
             }
+            $rememberUser = $this->restoreRememberedUser();
+            if ($rememberUser && $session) {
+                $session->data['SITE_USERNAME'] = $rememberUser['USERNAME'];
+                $session->data['SITE_USER_ID'] = $rememberUser['ID'];
+                $session->data['SITE_USER_ACCESS'] = $rememberUser['IS_ADMIN'] ? 'admin' : 'user';
+                $session->data['SPA_LOGGED_OUT'] = false;
+                $session->save();
+                return [
+                    'authenticated' => true,
+                    'username' => $rememberUser['USERNAME'],
+                    'name' => $rememberUser['NAME'] ?? $rememberUser['USERNAME'],
+                    'avatar' => $rememberUser['AVATAR'] ? '/cms/avatars/' . $rememberUser['AVATAR'] : '',
+                    'is_admin' => (bool)$rememberUser['IS_ADMIN']
+                ];
+            }
             return ['authenticated' => false];
         }
 
         if ($params['request'][0] == 'login') {
-            $raw = file_get_contents('php://input');
-            $input = $raw ? json_decode($raw, true) : array();
+            $input = $this->bodyInput();
             if (!is_array($input)) $input = array();
             $username = $params['login'] ?? $input['login'] ?? '';
             $password = $params['password'] ?? $input['password'] ?? '';
@@ -134,6 +158,7 @@ class dashboard_pro extends module
                     $session->data['SITE_USER_ACCESS'] = $user['IS_ADMIN'] ? 'admin' : 'user';
                     $session->data['SPA_LOGGED_OUT'] = false;
                     $session->save();
+                    $this->issueRememberToken($user['USERNAME']);
                 }
                 return [
                     'success' => true,
@@ -154,13 +179,14 @@ class dashboard_pro extends module
                 $session->data['SPA_LOGGED_OUT'] = true;
                 $session->save();
             }
+            $this->clearRememberToken();
             return ['success' => true];
         }
 
         if ($params['request'][0] == 'panels') {
             $method = $_SERVER['REQUEST_METHOD'];
             if ($method == 'POST') {
-                $input = json_decode(file_get_contents('php://input'), true);
+                $input = $this->bodyInput();
                 $panels = $input['panels'] ?? $input['data'] ?? $input;
                 $this->savePanels($panels);
                 return ['success' => true];
@@ -171,7 +197,7 @@ class dashboard_pro extends module
         if ($params['request'][0] == 'settings') {
             $method = $_SERVER['REQUEST_METHOD'];
             if ($method == 'POST') {
-                $input = json_decode(file_get_contents('php://input'), true);
+                $input = $this->bodyInput();
                 $settings = $input['settings'] ?? $input['data'] ?? $input;
                 $this->saveDashboardSettings($settings);
                 return ['success' => true];
@@ -182,7 +208,7 @@ class dashboard_pro extends module
         if ($params['request'][0] == 'chat') {
             $method = $_SERVER['REQUEST_METHOD'];
             if ($method == 'POST') {
-                $input = json_decode(file_get_contents('php://input'), true);
+                $input = $this->bodyInput();
                 $text = trim($input['message'] ?? '');
                 if ($text === '') return ['error' => 'Message is empty'];
                 $member_id = 0;
@@ -216,7 +242,7 @@ class dashboard_pro extends module
         if ($params['request'][0] == 'notifications') {
             $method = $_SERVER['REQUEST_METHOD'];
             if ($method == 'POST') {
-                $input = json_decode(file_get_contents('php://input'), true);
+                $input = $this->bodyInput();
                 $ids = $input['ids'] ?? array();
                 if (!empty($ids)) {
                     $int_ids = array();
@@ -233,15 +259,28 @@ class dashboard_pro extends module
                         $ids_str = implode(',', $int_ids);
                         SQLExec("UPDATE module_notifications SET IS_READ=1 WHERE ID IN ($ids_str)");
                     }
-                    if ($max_shout > 0 && $session) {
-                        $session->data['DASHBOARD_PRO_LAST_SHOUT'] = $max_shout;
-                        $session->save();
+                    if ($max_shout > 0) {
+                        $login = $this->getUserLogin();
+                        if ($login) {
+                            $this->ensureClassAndObject($login);
+                            sg('DashBoard_' . $login . '.last_shout', (string)$max_shout);
+                        } elseif ($session) {
+                            $session->data['DASHBOARD_PRO_LAST_SHOUT'] = $max_shout;
+                            $session->save();
+                        }
                     }
                 }
                 return ['success' => true];
             }
             $items = SQLSelect("SELECT * FROM module_notifications WHERE IS_READ=0 ORDER BY ADDED DESC LIMIT 50");
-            $last_shout = ($session && !empty($session->data['DASHBOARD_PRO_LAST_SHOUT'])) ? (int)$session->data['DASHBOARD_PRO_LAST_SHOUT'] : 0;
+            $login = $this->getUserLogin();
+            $last_shout = 0;
+            if ($login) {
+                $last_shout = (int)gg('DashBoard_' . $login . '.last_shout');
+            }
+            if (!$last_shout && $session && !empty($session->data['DASHBOARD_PRO_LAST_SHOUT'])) {
+                $last_shout = (int)$session->data['DASHBOARD_PRO_LAST_SHOUT'];
+            }
             $shouts = SQLSelect("SELECT ID, MESSAGE, ADDED FROM shouts WHERE MEMBER_ID=0 AND ID > $last_shout ORDER BY ADDED DESC LIMIT 20");
             $computer_name = gg('site_title');
             if (!$computer_name) {
@@ -302,7 +341,7 @@ class dashboard_pro extends module
         }
 
         if ($params['request'][0] == 'exportToUser') {
-            $input = json_decode(file_get_contents('php://input'), true);
+            $input = $this->bodyInput();
             $targetUser = $input['targetUser'] ?? '';
             $confirmed = $input['confirmed'] ?? false;
 
@@ -391,7 +430,7 @@ class dashboard_pro extends module
             $method = $_SERVER['REQUEST_METHOD'];
             if ($method != 'POST') return ['error' => 'POST required'];
 
-            $input = json_decode(file_get_contents('php://input'), true);
+            $input = $this->bodyInput();
             if (!is_array($input)) $input = array();
 
             $zipB64 = $input['zip'] ?? '';
@@ -520,7 +559,7 @@ class dashboard_pro extends module
             $method = $_SERVER['REQUEST_METHOD'];
             if ($method != 'POST') return ['error' => 'POST required'];
 
-            $input = json_decode(file_get_contents('php://input'), true);
+            $input = $this->bodyInput();
             if (!is_array($input)) $input = array();
             $type = trim($input['type'] ?? '');
             if ($type === '') return ['error' => 'type is required'];
@@ -552,7 +591,7 @@ class dashboard_pro extends module
             $method = $_SERVER['REQUEST_METHOD'];
             if ($method != 'POST') return ['error' => 'POST required'];
 
-            $input = json_decode(file_get_contents('php://input'), true);
+            $input = $this->bodyInput();
             if (!is_array($input)) $input = array();
             $order = $input['order'] ?? array();
             if (!is_array($order) || !count($order)) return ['error' => 'order array is required'];
@@ -998,6 +1037,74 @@ class dashboard_pro extends module
         parent::install();
     }
 
+    function bodyInput()
+    {
+        if (is_array($GLOBALS['input'] ?? null)) return $GLOBALS['input'];
+        $raw = file_get_contents('php://input');
+        return $raw ? json_decode($raw, true) : array();
+    }
+
+    function ensureRememberTable()
+    {
+        static $rememberTableReady = false;
+        if ($rememberTableReady) return;
+        SQLExec("CREATE TABLE IF NOT EXISTS `dashboard_pro_remember` (
+            `ID` int(10) unsigned NOT NULL AUTO_INCREMENT,
+            `TOKEN` varchar(64) NOT NULL DEFAULT '',
+            `USERNAME` varchar(50) NOT NULL DEFAULT '',
+            `CREATED` int(10) unsigned NOT NULL DEFAULT '0',
+            PRIMARY KEY (`ID`),
+            UNIQUE KEY `TOKEN` (`TOKEN`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        $rememberTableReady = true;
+    }
+
+    function issueRememberToken($username)
+    {
+        $this->ensureRememberTable();
+        $token = bin2hex(random_bytes(32));
+        $hash = hash('sha256', $token);
+        SQLExec("DELETE FROM dashboard_pro_remember WHERE USERNAME LIKE '" . DBSafe($username) . "'");
+        SQLExec("INSERT INTO dashboard_pro_remember (TOKEN, USERNAME, CREATED) VALUES ('" . $hash . "', '" . DBSafe($username) . "', " . time() . ")");
+        setcookie('dp_remember', $token, array(
+            'expires'  => time() + 2592000,
+            'path'     => '/',
+            'secure'   => false,
+            'httponly' => true,
+            'samesite' => 'Lax'
+        ));
+    }
+
+    function clearRememberToken()
+    {
+        if (empty($_COOKIE['dp_remember'])) return;
+        $this->ensureRememberTable();
+        $hash = hash('sha256', $_COOKIE['dp_remember']);
+        SQLExec("DELETE FROM dashboard_pro_remember WHERE TOKEN LIKE '" . $hash . "'");
+        setcookie('dp_remember', '', array(
+            'expires'  => time() - 3600,
+            'path'     => '/',
+            'secure'   => false,
+            'httponly' => true,
+            'samesite' => 'Lax'
+        ));
+    }
+
+    function restoreRememberedUser()
+    {
+        if (empty($_COOKIE['dp_remember'])) return false;
+        $this->ensureRememberTable();
+        $hash = hash('sha256', $_COOKIE['dp_remember']);
+        $row = SQLSelectOne("SELECT * FROM dashboard_pro_remember WHERE TOKEN LIKE '" . $hash . "'");
+        if (!$row) return false;
+        $user = SQLSelectOne("SELECT * FROM users WHERE USERNAME LIKE '" . DBSafe($row['USERNAME']) . "'");
+        if (!$user || empty($user['USERNAME'])) {
+            SQLExec("DELETE FROM dashboard_pro_remember WHERE ID=" . (int)$row['ID']);
+            return false;
+        }
+        return $user;
+    }
+
     function dbInstall($data)
     {
         $data = <<<EOD
@@ -1025,6 +1132,10 @@ EOD;
         $tables = SQLSelect("SHOW TABLES LIKE 'dashboard_widgets'");
         if (count($tables) > 0) {
             SQLExec("DROP TABLE dashboard_widgets");
+        }
+        $tables = SQLSelect("SHOW TABLES LIKE 'dashboard_pro_remember'");
+        if (count($tables) > 0) {
+            SQLExec("DROP TABLE dashboard_pro_remember");
         }
         parent::uninstall();
     }

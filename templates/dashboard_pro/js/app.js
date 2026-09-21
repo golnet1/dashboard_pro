@@ -1853,7 +1853,6 @@ onMounted(() => {
             document.addEventListener('click', handleClickOutside);
             loadTranslations();
             initAuth();
-            checkNotifications();
             setInterval(() => { if (!wsConnected.value) checkNotifications(); }, 10000);
             initWebSocket();
         });
