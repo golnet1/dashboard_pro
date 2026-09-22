@@ -21,9 +21,16 @@ const TableWidget = {
             { key: 'bg_object', label: 'field_bg_object', type: 'object', row: 'bg_row', showIf: { bg_mode: 'property' } },
             { key: 'bg_property', label: 'field_bg_property', type: 'property', row: 'bg_row', showIf: { bg_mode: 'property' } },
         ],
-        advanced: [],
+        advanced: [
+            { key: 'callback_type', label: 'field_callback_type', type: 'select', options: [{value:'none',label:'opt_none'},{value:'property',label:'opt_property'},{value:'method',label:'opt_method'},{value:'script',label:'opt_script'}] },
+            { key: 'object', label: 'field_object', type: 'object', row: 'cb_obj_prop', showIf: { callback_type: 'property' } },
+            { key: 'property', label: 'field_property', type: 'property', row: 'cb_obj_prop', showIf: { callback_type: 'property' } },
+            { key: 'callback_method_obj', label: 'field_method_object', type: 'method_object', parent: 'callback_method', row: 'cb_method', showIf: { callback_type: 'method' } },
+            { key: 'callback_method', label: 'field_method', type: 'method', parent: 'callback_method', row: 'cb_method', showIf: { callback_type: 'method' } },
+            { key: 'script', label: 'field_script', type: 'text', showIf: { callback_type: 'script' } },
+        ],
     },
-    defaults: { icon: 'fas fa-table', icon_type: 'icon', query: '', timeout: 0, columns: '[]', height: 200 },
+    defaults: { icon: 'fas fa-table', icon_type: 'icon', query: '', timeout: 0, columns: '[]', height: 200, callback_type: 'none', script: '', callback_method: '' },
     template: `
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header">
@@ -43,7 +50,7 @@ const TableWidget = {
                                 :style="thStyle(col)"
                                 :class="col.sortable ? 'dp-sortable' : ''"
                                 @click="col.sortable !== false && sortBy(ci)">
-                                {{ col.text || col.value || t('column') + (ci+1) }}
+                                {{ col.info || col.data_name || t('column') + (ci+1) }}
                                 <i v-if="col.sortable !== false" class="fas" :class="sortCol === ci ? (sortAsc ? 'fa-caret-up' : 'fa-caret-down') : 'fa-sort'" style="opacity:.5;font-size:.7rem;margin-left:4px"></i>
                             </th>
                         </tr>
@@ -52,33 +59,33 @@ const TableWidget = {
                         <tr v-for="(item, ri) in rows" :key="ri" style="border-top:1px solid rgba(255,255,255,.06)">
                             <td v-for="(col, ci) in cols" :key="ci" v-if="col" :class="'text-' + (col.align || 'start')" :style="tdStyle(col)">
                                 <div v-if="col.type === 'checkbox'">
-                                    <span v-if="getBoolean(item[col.value])" style="color:#66bb6a"><i class="fas fa-check"></i></span>
+                                    <span v-if="getBoolean(item[col.data_name])" style="color:#66bb6a"><i class="fas fa-check"></i></span>
                                     <span v-else style="color:rgba(255,255,255,.3)"><i class="fas fa-times"></i></span>
                                 </div>
                                 <div v-else-if="col.type === 'chip'">
-                                    <span class="dp-chip" :style="{ background: item[col.colorValue] || col.color || 'rgba(255,255,255,.15)' }" style="padding:2px 10px;border-radius:12px;display:inline-block;white-space:nowrap">
-                                        {{ col.pre }}<a :style="{color: getChipText(item[col.colorValue])}">{{ item[col.value] }}</a>{{ col.pos }}
+                                    <span class="dp-chip" :style="{ background: item[col.color_column] || col.color || 'rgba(255,255,255,.15)' }" style="padding:2px 10px;border-radius:12px;display:inline-block;white-space:nowrap">
+                                        {{ col.pre }}<a :style="{color: getChipText(item[col.color_column])}">{{ item[col.data_name] }}</a>{{ col.pos }}
                                     </span>
                                 </div>
-                                <div v-else-if="col.type === 'icon'" :style="{ color: item[col.colorValue] || '#fff' }">
-                                    <i :class="item[col.value] || ''"></i>
+                                <div v-else-if="col.type === 'icon'" :style="{ color: item[col.color_column] || '#fff' }">
+                                    <i :class="item[col.data_name] || ''"></i>
                                 </div>
                                 <div v-else-if="col.type === 'progressbar'" style="width:100%;min-width:120px">
                                     <div style="display:flex;align-items:center;gap:6px">
-                                        <div class="dp-progress" :style="{ background: (item[col.colorValue] || '#1976d2') } + ''">
-                                            <div :style="{ width: Math.max(0, Math.min(100, Number(item[col.value]) || 0)) + '%', height: '100%', backgroundColor: item[col.colorValue] || '#1976d2', borderRadius: col.striped ? '0' : (col.rounded ? '4px' : '0'), backgroundImage: col.striped ? 'repeating-linear-gradient(45deg, rgba(255,255,255,.3) 0 6px, transparent 6px 12px)' : 'none' }"></div>
+                                        <div class="dp-progress" :style="{ background: (item[col.color_column] || '#1976d2') } + ''">
+                                            <div :style="{ width: Math.max(0, Math.min(100, Number(item[col.data_name]) || 0)) + '%', height: '100%', backgroundColor: item[col.color_column] || '#1976d2', borderRadius: col.striped ? '0' : (col.rounded ? '4px' : '0'), backgroundImage: col.striped ? 'repeating-linear-gradient(45deg, rgba(255,255,255,.3) 0 6px, transparent 6px 12px)' : 'none' }"></div>
                                         </div>
-                                        <span style="font-size:.75rem;white-space:nowrap">{{ col.pre }}<a style="color:rgba(255,255,255,.9)">{{ item[col.value] }}</a>{{ col.pos }}</span>
+                                        <span style="font-size:.75rem;white-space:nowrap">{{ col.pre }}<a style="color:rgba(255,255,255,.9)">{{ item[col.data_name] }}</a>{{ col.pos }}</span>
                                     </div>
                                 </div>
                                 <div v-else-if="col.type === 'button'">
-                                    <button type="button" class="dp-btn" :style="{ background: item[col.colorValue] || col.color || 'rgba(255,255,255,.15)' }" @click.stop="btnClick(item, col)">
-                                        <i v-if="item[col.iconValue]" :class="item[col.iconValue]" style="margin-right:4px"></i>
-                                        {{ col.pre }}{{ item[col.value] }}{{ col.pos }}
+                                    <button type="button" class="dp-btn" :style="{ background: item[col.color_column] || col.color || 'rgba(255,255,255,.15)' }" @click.stop="btnClick(item, col)">
+                                        <i v-if="item[col.icon_value]" :class="item[col.icon_value]" style="margin-right:4px"></i>
+                                        {{ col.pre }}{{ item[col.data_name] }}{{ col.pos }}
                                     </button>
                                 </div>
                                 <div v-else>
-                                    {{ col.pre }}{{ item[col.value] }}{{ col.pos }}
+                                    {{ col.pre }}{{ item[col.data_name] }}{{ col.pos }}
                                 </div>
                             </td>
                         </tr>
@@ -107,7 +114,7 @@ const TableWidget = {
                 if (Array.isArray(p)) arr = p;
             } catch(e) {}
             if (!arr.length && this.items.length) {
-                arr = Object.keys(this.items[0]).map(k => ({ text: k, value: k, type: 'string' }));
+                arr = Object.keys(this.items[0]).map(k => ({ info: k, data_name: k, type: 'string', align: 'start', sortable: true }));
             }
             return arr;
         },
@@ -116,7 +123,7 @@ const TableWidget = {
             if (this.sortCol >= 0 && this.cols[this.sortCol]) {
                 const c = this.cols[this.sortCol];
                 r = [...r].sort((a, b) => {
-                    const av = a[c.value], bv = b[c.value];
+                    const av = a[c.data_name], bv = b[c.data_name];
                     const an = Number(av), bn = Number(bv);
                     const cmp = (!isNaN(an) && !isNaN(bn) && av !== '' && bv !== '') ? (an - bn) : String(av).localeCompare(String(bv));
                     return this.sortAsc ? cmp : -cmp;
@@ -156,8 +163,11 @@ const TableWidget = {
             else { this.sortCol = ci; this.sortAsc = true; }
         },
         btnClick(item, col) {
-            if (this.widget.callback_type === 'property' && this.widget.property) {
-                dpAPI('setProperty?' + new URLSearchParams({ object: this.widget.property.split('.')[0] || '', property: this.widget.property.split('.')[1] || 'value', value: String(item[col.value]) }));
+            if (this.widget.callback_type === 'property' && this.widget.object && this.widget.property) {
+                dpAPI('setProperty?' + new URLSearchParams({ object: this.widget.object, property: this.widget.property, value: String(item[col.data_name]) }));
+            } else if (this.widget.callback_type === 'method' && this.widget.callback_method) {
+                const p = String(this.widget.callback_method).split('/');
+                dpAPI('method/' + p[0] + (p[1] ? '/' + p[1] : '') + '?param=' + encodeURIComponent(JSON.stringify(item)));
             } else if (this.widget.callback_type === 'script' && this.widget.script) {
                 dpAPI('scriptRun?' + new URLSearchParams({ script: this.widget.script, param: JSON.stringify(item) }));
             }

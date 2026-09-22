@@ -1070,7 +1070,7 @@
                                                      @click="columnIdx = ci"
                                                      style="padding:8px 16px;cursor:pointer;border-radius:4px 0 0 4px;white-space:nowrap;font-size:.85rem;color:rgba(255,255,255,.7);transition:background .15s"
                                                      :style="columnIdx === ci ? 'background:rgba(255,255,255,.1);color:#fff' : ''">
-                                                    {{ col.data_name || t('column') + (ci + 1) }}
+                                                    {{ col.info || col.data_name || t('column') + (ci + 1) }}
                                                 </div>
                                             </div>
                                             <div style="flex:1;min-width:0" v-if="columnList.length">
@@ -1090,7 +1090,7 @@
                                                             <div class="v-input__control">
                                                                 <div class="v-input__slot">
                                                                     <select :value="columnList[columnIdx][f.key]" @change="(cols = columnList)[columnIdx][f.key] = $event.target.value; setColumns(cols)">
-                                                                        <option v-for="opt in f.options" :key="opt.value" :value="opt.value" style="background:#1e1e1e;color:#fff">{{ opt.title }}</option>
+                                                                        <option v-for="opt in f.options" :key="opt.value" :value="opt.value" style="background:#1e1e1e;color:#fff">{{ t(opt.label) || opt.title }}</option>
                                                                     </select>
                                                                     <label class="v-label v-label--active">{{ t(f.label) }}</label>
                                                                 </div>
@@ -1687,6 +1687,6 @@
     <script src="js/auth.js?v=9"></script>
     <script src="js/sidebar.js?v=10"></script>
 <script src="js/widget-config.js?v=11"></script>
-<script src="js/app.js?v=124"></script>
+<script src="js/app.js?v=125"></script>
 </body>
 </html>

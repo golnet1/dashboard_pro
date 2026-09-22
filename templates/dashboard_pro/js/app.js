@@ -352,9 +352,9 @@ const app = createApp({
             { key: 'info', label: 'field_info' },
             { key: 'data_name', label: 'field_column_name' },
             { key: 'align', label: 'field_align', type: 'select', options: [
-                { value: 'start', title: 'Left' },
-                { value: 'center', title: 'Center' },
-                { value: 'end', title: 'Right' },
+                { value: 'start', title: 'Left', label: 'opt_align_start' },
+                { value: 'center', title: 'Center', label: 'opt_align_center' },
+                { value: 'end', title: 'Right', label: 'opt_align_end' },
             ]},
             { key: 'width', label: 'field_width' },
             { key: 'sortable', label: 'field_sortable', type: 'switch' },
