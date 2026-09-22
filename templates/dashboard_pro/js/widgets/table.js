@@ -46,7 +46,6 @@ const TableWidget = {
                     <thead>
                         <tr>
                             <th v-for="(col, ci) in cols" :key="ci"
-                                v-if="col"
                                 :style="thStyle(col)"
                                 :class="col.sortable ? 'dp-sortable' : ''"
                                 @click="onSort(ci, col)">
@@ -57,7 +56,7 @@ const TableWidget = {
                     </thead>
                     <tbody>
                         <tr v-for="(item, ri) in rows" :key="ri" style="border-top:1px solid rgba(255,255,255,.06)">
-                            <td v-for="(col, ci) in cols" :key="ci" v-if="col" :class="'text-' + (col.align || 'start')" :style="tdStyle(col)">
+                            <td v-for="(col, ci) in cols" :key="ci" :style="tdStyle(col)">
                                 <div v-if="col.type === 'checkbox'">
                                     <span v-if="getBoolean(item[col.data_name])" style="color:#66bb6a"><i class="fas fa-check"></i></span>
                                     <span v-else style="color:rgba(255,255,255,.3)"><i class="fas fa-times"></i></span>
@@ -72,7 +71,7 @@ const TableWidget = {
                                 </div>
                                 <div v-else-if="col.type === 'progressbar'" style="width:100%;min-width:120px">
                                     <div style="display:flex;align-items:center;gap:6px">
-                                        <div class="dp-progress" :style="{ background: (item[col.color_column] || '#1976d2') } + ''">
+                                        <div class="dp-progress" :style="{ background: (item[col.color_column] || '#1976d2') }">
                                             <div :style="{ width: Math.max(0, Math.min(100, Number(item[col.data_name]) || 0)) + '%', height: '100%', backgroundColor: item[col.color_column] || '#1976d2', borderRadius: col.striped ? '0' : (col.rounded ? '4px' : '0'), backgroundImage: col.striped ? 'repeating-linear-gradient(45deg, rgba(255,255,255,.3) 0 6px, transparent 6px 12px)' : 'none' }"></div>
                                         </div>
                                         <span style="font-size:.75rem;white-space:nowrap">{{ col.pre }}<a style="color:rgba(255,255,255,.9)">{{ item[col.data_name] }}</a>{{ col.pos }}</span>
@@ -117,7 +116,7 @@ const TableWidget = {
                 arr = Object.keys(this.items[0]).map(k => ({ info: k, data_name: k, type: 'string', align: 'start', sortable: true }));
             }
             arr.forEach(c => { if (c && c.data_type && !c.type) c.type = c.data_type; });
-            return arr;
+            return arr.filter(c => c);
         },
         rows() {
             let r = this.items;
