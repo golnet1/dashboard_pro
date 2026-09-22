@@ -465,6 +465,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .widget-v-card__loading { position:absolute; bottom:0; left:0; right:0; }
 .graph-canvas { display:block; width:100%; height:100%; cursor:crosshair; touch-action:none; }
 .graph-toolbar { position:absolute; top:6px; left:6px; display:flex; gap:4px; z-index:2; }
+.widget-v-card__header > .graph-toolbar.table-toolbar { position:static; margin-left:auto; }
 .graph-toolbar button { width:24px; height:24px; border:1px solid rgba(255,255,255,.22); background:rgba(0,0,0,.35); color:rgba(255,255,255,.85) !important; border-radius:5px; font-size:.62rem; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .15s,color .15s; padding:0; }
 .graph-toolbar button:hover { background:rgba(255,255,255,.18); color:#fff !important; }
 .table-toolbar { position:absolute; top:6px; right:34px; left:auto; z-index:2; }
