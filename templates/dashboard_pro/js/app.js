@@ -271,7 +271,7 @@ const app = createApp({
 
         function addColumn() {
             const cols = columnList.value;
-            cols.push({ info: '', data_name: '', align: 'start', width: '', sortable: true, separator: false, data_type: '', color_column: '' });
+            cols.push({ info: '', data_name: '', align: 'start', width: '', sortable: true, separator: false, data_type: 'string', color_column: '', pre: '', pos: '', icon_value: '', striped: false, rounded: false });
             setColumns(cols);
             columnIdx.value = cols.length - 1;
         }
@@ -295,8 +295,17 @@ const app = createApp({
             setColumns(cols);
             columnIdx.value = idx + 1;
         }
-        function autoDetectColumns() {
-            // Placeholder: will be implemented when table data fetching is ready
+        async function autoDetectColumns() {
+            const query = (editWidgetForm.value?.query || '').trim();
+            if (!query) return;
+            try {
+                const d = await dpAPI('query?' + new URLSearchParams({ query }));
+                if (!d || d.error || !Array.isArray(d.data) || !d.data.length) return;
+                const keys = Object.keys(d.data[0]);
+                const cols = keys.map(k => ({ info: k, data_name: k, align: 'start', width: '', sortable: true, separator: false, data_type: 'string', color_column: '', pre: '', pos: '', icon_value: '', striped: false, rounded: false }));
+                setColumns(cols);
+                columnIdx.value = 0;
+            } catch(e) {}
         }
 
         // ---- Series editing for graph widget ----
@@ -351,13 +360,27 @@ const app = createApp({
             { key: 'sortable', label: 'field_sortable', type: 'switch' },
             { key: 'separator', label: 'field_separator', type: 'switch' },
             { key: 'data_type', label: 'field_data_type', type: 'select', options: [
-                { value: '', title: '—' },
                 { value: 'string', title: 'String' },
-                { value: 'number', title: 'Number' },
-                { value: 'date', title: 'Date' },
+                { value: 'checkbox', title: 'Checkbox' },
+                { value: 'chip', title: 'Chip' },
+                { value: 'icon', title: 'Icon' },
+                { value: 'progressbar', title: 'Progressbar' },
+                { value: 'button', title: 'Button' },
             ]},
-            { key: 'color_column', label: 'field_color_column' },
+            { key: 'pre', label: 'field_pre', showIf: { data_type: ['string', 'chip', 'progressbar'] } },
+            { key: 'pos', label: 'field_pos', showIf: { data_type: ['string', 'chip', 'progressbar'] } },
+            { key: 'icon_value', label: 'field_icon_value', showIf: { data_type: 'button' } },
+            { key: 'color_column', label: 'field_color_column', showIf: { data_type: ['chip', 'icon', 'progressbar', 'button'] } },
+            { key: 'striped', label: 'field_striped', type: 'switch', showIf: { data_type: 'progressbar' } },
+            { key: 'rounded', label: 'field_rounded', type: 'switch', showIf: { data_type: 'progressbar' } },
         ];
+
+        function columnFieldVisible(col, field) {
+            if (!col || !field || !field.showIf) return true;
+            const [depKey, depVal] = Object.entries(field.showIf)[0];
+            const val = col[depKey];
+            return Array.isArray(depVal) ? depVal.includes(val) : val === depVal;
+        }
 
         function widgetBgStyle(w) {
             const s = {};
@@ -2094,7 +2117,7 @@ onMounted(() => {
             editWidgetForm, widgetTab, widgetTabPos, editWidget, saveEditWidget, removeWidget,
             editWidgetParent, groupAddTarget, removeGroupChild,
             groupChildrenList, startGroupChildAdd, closeEditor, moveGroupChildOut, confirmOutOfGroup, groupChildMouseDown, groupChildMouseMove, groupChildMouseUp, resetChildDrag, dragChildId, dragOverChildId,
-            columnIdx, columnList, setColumns, addColumn, removeColumn, moveColumnUp, moveColumnDown, autoDetectColumns, columnFields,
+            columnIdx, columnList, setColumns, addColumn, removeColumn, moveColumnUp, moveColumnDown, autoDetectColumns, columnFields, columnFieldVisible,
             seriesIdx, seriesList, setSeries, addSeries, removeSeries, setSeriesField, seriesProps, loadSeriesProps, seriesScaleOptions,
             draggingWidget, startDrag, onDrag, stopDrag,
             resizingWidget, startResize, onResize, stopResize,

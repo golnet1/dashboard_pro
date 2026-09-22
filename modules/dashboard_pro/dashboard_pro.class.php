@@ -432,6 +432,21 @@ class dashboard_pro extends module
             return ['success' => true];
         }
 
+        if ($params['request'][0] == 'query') {
+            $method = $_SERVER['REQUEST_METHOD'];
+            if ($method == 'POST') {
+                $input = $this->bodyInput();
+                $query = $input['query'] ?? '';
+            } else {
+                $query = $params['query'] ?? '';
+            }
+            $query = trim($query);
+            if ($query === '') return ['data' => array(), 'error' => 'query required'];
+            if (!preg_match('/^\s*SELECT/i', $query)) return ['data' => array(), 'error' => 'only SELECT queries are allowed'];
+            $result = SQLSelect($query);
+            return array('data' => is_array($result) ? $result : array());
+        }
+
         if ($params['request'][0] == 'history') {
             $varname = $params['object'] ?? '';
             $property = $params['property'] ?? '';

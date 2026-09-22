@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Pro</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/app.css?v=43">
+    <link rel="stylesheet" href="css/app.css?v=44">
     <script src="js/lib/vue.global.prod.js"></script>
 </head>
 <body>
@@ -1074,7 +1074,7 @@
                                                 </div>
                                             </div>
                                             <div style="flex:1;min-width:0" v-if="columnList.length">
-                                                <div v-for="(f, fi) in columnFields" :key="f.key">
+                                                <div v-for="(f, fi) in columnFields" :key="f.key" v-if="columnFieldVisible(columnList[columnIdx], f)">
                                                     <template v-if="f.type === 'switch'">
                                                         <div class="v-input v-input--selection-controls v-input--switch" :class="{ 'input--is-checked': columnList[columnIdx][f.key] }">
                                                             <div class="v-input__control">
@@ -1687,6 +1687,6 @@
     <script src="js/auth.js?v=9"></script>
     <script src="js/sidebar.js?v=10"></script>
 <script src="js/widget-config.js?v=11"></script>
-<script src="js/app.js?v=123"></script>
+<script src="js/app.js?v=124"></script>
 </body>
 </html>

@@ -467,6 +467,14 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .graph-toolbar { position:absolute; top:6px; left:6px; display:flex; gap:4px; z-index:2; }
 .graph-toolbar button { width:24px; height:24px; border:1px solid rgba(255,255,255,.22); background:rgba(0,0,0,.35); color:rgba(255,255,255,.85) !important; border-radius:5px; font-size:.62rem; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .15s,color .15s; padding:0; }
 .graph-toolbar button:hover { background:rgba(255,255,255,.18); color:#fff !important; }
+.table-toolbar { position:absolute; top:6px; right:34px; left:auto; z-index:2; }
+.dp-table { width:100%; border-collapse:collapse; font-size:.8rem; display:block; overflow:auto; }
+.dp-table thead, .dp-table tbody tr { display:table; width:100%; table-layout:fixed; }
+.dp-table th.dp-sortable { user-select:none; }
+.dp-table th.dp-sortable:hover { color:#fff; }
+.dp-chip { padding:2px 10px; border-radius:12px; display:inline-block; white-space:nowrap; }
+.dp-progress { width:100%; min-width:80px; height:14px; background:rgba(255,255,255,.12); border-radius:4px; overflow:hidden; }
+.dp-btn { border:none; border-radius:5px; padding:3px 10px; color:#fff; cursor:pointer; font-size:.75rem; white-space:nowrap; }
 .dp-remote__body { display:flex; flex-direction:column; gap:8px; padding:10px 12px 14px; overflow:hidden; }
 .dp-remote__col { display:flex; flex-direction:column; gap:6px; }
 .dp-remote__row { display:flex; justify-content:center; gap:6px; }
