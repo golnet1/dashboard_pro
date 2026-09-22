@@ -679,7 +679,7 @@
         </template>
 
         <!-- ===== Add Widget Modal ===== -->
-        <div class="modal-overlay" v-if="showAddWidget" @click.self="showAddWidget = false; groupAddTarget = null">
+        <div class="modal-overlay" v-if="showAddWidget">
             <div class="modal modal-lg">
                 <div class="modal-header"><h3>{{ t('add_widget') }}</h3><button class="modal-close" @click="showAddWidget = false; groupAddTarget = null">&times;</button></div>
                 <div class="modal-body">
@@ -696,7 +696,7 @@
 
 
 
-        <div id="panel-edit" class="v-dialog__content v-dialog__content--active" v-if="showAddPanel" @click.self="showAddPanel = false; editPanelData = null" style="z-index:202">
+        <div id="panel-edit" class="v-dialog__content v-dialog__content--active" v-if="showAddPanel" style="z-index:202">
             <div class="v-dialog v-dialog--active v-dialog--persistent v-dialog--scrollable" style="width:550px" tabindex="0">
                 <div class="v-card v-sheet theme--dark" style="background-color:rgba(48,48,48,var(--dialog-alpha,1));border-color:#303030;display:flex;flex-direction:column;max-height:70vh;overflow:hidden">
                     <div class="v-card__title" style="flex-shrink:0">
@@ -962,7 +962,7 @@
         </div>
 
         <!-- ===== Widget Editor ===== -->
-        <div id="widget-edit" class="v-dialog__content v-dialog__content--active" v-if="editWidgetForm" @click.self="closeEditor()" style="z-index:202">
+        <div id="widget-edit" class="v-dialog__content v-dialog__content--active" v-if="editWidgetForm" style="z-index:202">
             <div class="v-dialog v-dialog--active v-dialog--persistent v-dialog--scrollable" style="width:700px" tabindex="0">
                 <div class="v-card v-sheet theme--dark" style="background-color:rgba(48,48,48,var(--dialog-alpha,1));border-color:#303030;display:flex;flex-direction:column;max-height:70vh;overflow:hidden">
                     <div class="v-card__title" style="flex-shrink:0">
@@ -1521,7 +1521,7 @@
             </div>
         </div>
 
-        <div class="v-dialog__content v-dialog__content--active" v-if="showExportDialog" @click.self="showExportDialog = false" style="z-index:202">
+        <div class="v-dialog__content v-dialog__content--active" v-if="showExportDialog" style="z-index:202">
             <div class="v-dialog v-dialog--active v-dialog--persistent v-dialog--scrollable" style="width:520px" tabindex="0">
                 <div class="v-card v-sheet theme--dark export-dialog-card">
                     <div class="v-card__title" style="flex-shrink:0">
