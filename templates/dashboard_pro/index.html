@@ -1074,7 +1074,10 @@
                                                 </div>
                                             </div>
                                             <div style="flex:1;min-width:0" v-if="columnList.length">
-                                                <div v-for="(f, fi) in columnFields" :key="f.key" v-if="columnFieldVisible(columnList[columnIdx], f)">
+                                                <template v-for="(crow, cri) in getColumnFieldRows()" :key="cri">
+                                                <div :class="crow.row ? 'd-flex gap-2' : ''" :style="crow.row ? 'align-items:flex-start' : ''">
+                                                <template v-for="f in crow.fields" :key="f.key">
+                                                <div v-if="columnFieldVisible(columnList[columnIdx], f)" :style="crow.row ? 'flex:1;min-width:0' : ''">
                                                     <template v-if="f.type === 'switch'">
                                                         <div class="v-input v-input--selection-controls v-input--switch" :class="{ 'input--is-checked': columnList[columnIdx][f.key] }">
                                                             <div class="v-input__control">
@@ -1109,6 +1112,9 @@
                                                         </div>
                                                     </template>
                                                 </div>
+                                                </template>
+                                                </div>
+                                                </template>
                                             </div>
                                             <div v-else style="flex:1;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.35);font-size:.9rem">
                                                 {{ t('no_columns') }}
@@ -1701,6 +1707,6 @@
     <script src="js/auth.js?v=9"></script>
     <script src="js/sidebar.js?v=10"></script>
 <script src="js/widget-config.js?v=11"></script>
-<script src="js/app.js?v=128"></script>
+<script src="js/app.js?v=129"></script>
 </body>
 </html>

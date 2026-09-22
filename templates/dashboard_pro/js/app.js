@@ -199,6 +199,18 @@ const app = createApp({
             return rows;
         }
 
+        function getColumnFieldRows() {
+            const rows = [];
+            let cur = [], curRow = null;
+            for (const f of columnFields) {
+                if (f.row !== curRow && cur.length) { rows.push({ fields: cur, row: curRow }); cur = []; }
+                curRow = f.row || null;
+                cur.push(f);
+            }
+            if (cur.length) rows.push({ fields: cur, row: curRow });
+            return rows;
+        }
+
         function getWidgetTabs(type) {
             const comp = getWidgetComponent(type);
             let tabs = [];
@@ -2128,7 +2140,7 @@ onMounted(() => {
             editWidgetForm, widgetTab, widgetTabPos, editWidget, saveEditWidget, removeWidget,
             editWidgetParent, groupAddTarget, removeGroupChild,
             groupChildrenList, startGroupChildAdd, closeEditor, moveGroupChildOut, confirmOutOfGroup, groupChildMouseDown, groupChildMouseMove, groupChildMouseUp, resetChildDrag, dragChildId, dragOverChildId,
-            columnIdx, columnList, setColumns, addColumn, removeColumn, moveColumnUp, moveColumnDown, autoDetectColumns, columnFields, columnFieldVisible,
+            columnIdx, columnList, setColumns, addColumn, removeColumn, moveColumnUp, moveColumnDown, autoDetectColumns, columnFields, columnFieldVisible, getColumnFieldRows,
             seriesIdx, seriesList, setSeries, addSeries, removeSeries, setSeriesField, seriesProps, loadSeriesProps, seriesScaleOptions,
             draggingWidget, startDrag, onDrag, stopDrag,
             resizingWidget, startResize, onResize, stopResize,
