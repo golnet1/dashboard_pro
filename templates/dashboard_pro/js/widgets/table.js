@@ -49,7 +49,7 @@ const TableWidget = {
                                 v-if="col"
                                 :style="thStyle(col)"
                                 :class="col.sortable ? 'dp-sortable' : ''"
-                                @click="col.sortable !== false && sortBy(ci)">
+                                @click="onSort(ci, col)">
                                 {{ col.info || col.data_name || t('column') + (ci+1) }}
                                 <i v-if="col.sortable !== false" class="fas" :class="sortCol === ci ? (sortAsc ? 'fa-caret-up' : 'fa-caret-down') : 'fa-sort'" style="opacity:.5;font-size:.7rem;margin-left:4px"></i>
                             </th>
@@ -116,6 +116,7 @@ const TableWidget = {
             if (!arr.length && this.items.length) {
                 arr = Object.keys(this.items[0]).map(k => ({ info: k, data_name: k, type: 'string', align: 'start', sortable: true }));
             }
+            arr.forEach(c => { if (c && c.data_type && !c.type) c.type = c.data_type; });
             return arr;
         },
         rows() {
@@ -161,6 +162,10 @@ const TableWidget = {
         sortBy(ci) {
             if (this.sortCol === ci) this.sortAsc = !this.sortAsc;
             else { this.sortCol = ci; this.sortAsc = true; }
+        },
+        onSort(ci, col) {
+            if (col.sortable === false) return;
+            this.sortBy(ci);
         },
         btnClick(item, col) {
             if (this.widget.callback_type === 'property' && this.widget.object && this.widget.property) {

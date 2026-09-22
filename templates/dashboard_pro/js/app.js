@@ -512,7 +512,7 @@ function loadScript(src, version) {
             widgetList.value = [...widgetDefs.value].sort((a, b) => (a.priority || 0) - (b.priority || 0));
             for (const w of widgets.items) {
                 if (!w.FILE) continue;
-                await loadScript(w.FILE, 65);
+                await loadScript(w.FILE, 66);
             }
             widgetDefs.value.forEach(d => registerWidgetComponent(d.type));
         }
