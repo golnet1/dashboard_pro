@@ -374,6 +374,7 @@ $frontend = array(
     'field_switch_object' => 'Объект (перекл)',
     'field_time_format' => 'Формат времени',
     'field_timeout' => 'Таймаут',
+    'field_refresh_period' => 'Период обновления (сек)',
     'field_title' => 'Название',
     'field_url_json' => 'URL (JSON)',
     'field_value' => 'Значение',

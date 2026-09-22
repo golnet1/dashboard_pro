@@ -374,6 +374,7 @@ $frontend = array(
     'field_switch_object' => 'Object (toggle)',
     'field_time_format' => 'Time format',
     'field_timeout' => 'Timeout',
+    'field_refresh_period' => 'Refresh period (sec)',
     'field_title' => 'Title',
     'field_url_json' => 'URL (JSON)',
     'field_value' => 'Value',
