@@ -92,6 +92,7 @@ const app = createApp({
         const showAddWidget = ref(false);
         const widgetSearch = ref('');
         const editWidgetForm = ref(null);
+        const editWidgetIsNew = ref(false);
         const editWidgetParent = ref(null);
         const editParentTab = ref('widgets');
         const groupAddTarget = ref(null);
@@ -576,7 +577,8 @@ function loadScript(src, version) {
             const allFields = widgetTabs.flatMap(tab => getWidgetFields(type, tab.fields || tab.key));
             const fieldDefaults = {};
             allFields.forEach(f => {
-                if (f.key && f.default !== undefined) fieldDefaults[f.key] = f.default;
+                if (!f.key) return;
+                if (!(f.key in fieldDefaults)) fieldDefaults[f.key] = (f.default !== undefined) ? f.default : '';
             });
             const w = {
                 id: 'w_' + Date.now() + '_' + Math.floor(Math.random() * 1000), type,
@@ -616,32 +618,40 @@ function loadScript(src, version) {
             if (Array.isArray(wList) && wList.length) {
                 const gap = 10;
                 const ww = Number(w.width) || 280;
+                const wh = Number(w.height) || 170;
                 const colLimit = 6 * 280 + 5 * gap;
-                const rows = [];
-                const rowIdx = new Map();
+                const exW = (ex) => Number(ex.width) || 280;
+                const exH = (ex) => Number(ex.height) || 170;
+                const exX = (ex) => Number(ex.x) || 0;
+                const exY = (ex) => Number(ex.y) || 0;
+                const overlaps = (x, y) => wList.some(ex =>
+                    x < exX(ex) + exW(ex) && x + ww > exX(ex) &&
+                    y < exY(ex) + exH(ex) && y + wh > exY(ex)
+                );
+                const xs = [0];
                 wList.forEach(ex => {
-                    const ry = Number(ex.y) || 0;
-                    if (!rowIdx.has(ry)) {
-                        rowIdx.set(ry, rows.length);
-                        rows.push({ y: ry, maxRight: 0, bottom: ry + (Number(ex.height) || 170) });
-                    }
-                    const r = rows[rowIdx.get(ry)];
-                    r.maxRight = Math.max(r.maxRight, (Number(ex.x) || 0) + (Number(ex.width) || 280));
-                    r.bottom = Math.max(r.bottom, ry + (Number(ex.height) || 170));
+                    const r = Math.max(0, Math.min(exX(ex) + exW(ex) + gap, Math.max(0, colLimit - ww)));
+                    xs.push(r);
                 });
-                rows.sort((a, b) => a.y - b.y);
+                const ys = [0];
+                wList.forEach(ex => { ys.push(Math.max(0, exY(ex) + exH(ex) + gap)); });
+                const uniqXs = [...new Set(xs)].sort((a, b) => a - b);
+                const uniqYs = [...new Set(ys)].sort((a, b) => a - b);
                 let placed = false;
-                for (const r of rows) {
-                    if (r.maxRight + gap + ww <= colLimit) {
-                        w.x = r.maxRight + gap;
-                        w.y = r.y;
-                        placed = true;
-                        break;
+                for (const y of uniqYs) {
+                    for (const x of uniqXs) {
+                        if (!overlaps(x, y)) {
+                            w.x = x;
+                            w.y = y;
+                            placed = true;
+                            break;
+                        }
                     }
+                    if (placed) break;
                 }
                 if (!placed) {
                     let bottom = 0;
-                    rows.forEach(r => { bottom = Math.max(bottom, r.bottom); });
+                    wList.forEach(ex => { bottom = Math.max(bottom, exY(ex) + exH(ex)); });
                     w.x = 0;
                     w.y = bottom + gap;
                 }
@@ -649,6 +659,7 @@ function loadScript(src, version) {
             if (!currentPanel.value.widgets) currentPanel.value.widgets = [];
             currentPanel.value.widgets.push(w);
             showAddWidget.value = false;
+            editWidgetIsNew.value = true;
             editWidgetForm.value = w;
         }
 
@@ -659,6 +670,7 @@ function loadScript(src, version) {
             columnIdx.value = 0;
             seriesIdx.value = 0;
             editWidgetParent.value = parent || null;
+            editWidgetIsNew.value = false;
             const def = widgetDefs.value.find(d => d.type === w.type);
             editWidgetForm.value = {
                 ...w,
@@ -676,6 +688,15 @@ function loadScript(src, version) {
                 series: typeof w.series === 'string' ? w.series : JSON.stringify(w.series || []),
                 refresh: w.refresh || 60,
             };
+            if (def && def.fields) {
+                for (const fields of Object.values(def.fields)) {
+                    for (const f of fields) {
+                        if (f.key && !(f.key in editWidgetForm.value)) {
+                            editWidgetForm.value[f.key] = (f.default !== undefined) ? f.default : '';
+                        }
+                    }
+                }
+            }
             widgetProperties.value = [];
             infoProperties.value = [];
             await loadObjects();
@@ -959,6 +980,14 @@ function loadScript(src, version) {
                 editParentTab.value = parentTab;
                 if (widgetTab.value !== parentTab) widgetTab.value = parentTab;
             } else {
+                if (editWidgetIsNew.value) {
+                    const wid = editWidgetForm.value && editWidgetForm.value.id;
+                    if (wid && Array.isArray(currentPanel.value.widgets)) {
+                        const idx = currentPanel.value.widgets.findIndex(w => w.id === wid);
+                        if (idx >= 0) currentPanel.value.widgets.splice(idx, 1);
+                    }
+                    editWidgetIsNew.value = false;
+                }
                 editWidgetForm.value = null;
             }
         }
@@ -986,6 +1015,7 @@ function loadScript(src, version) {
             }
             editWidgetForm.value = null;
             editWidgetParent.value = null;
+            editWidgetIsNew.value = false;
             if (hadParent && parent) {
                 editWidget(parent, null);
                 editParentTab.value = parentTab;
@@ -2137,7 +2167,7 @@ onMounted(() => {
             showAddWidget, widgetSearch, filteredDefs, plusTooltip, addPlusButton,
             widgetTypeComponent, addWidget, getWidgetFields, getWidgetRows, getWidgetTabs, getFieldOptions, fieldVisible,
             getMethodObj, getMethodName, setMethodField, itemLabel,
-            editWidgetForm, widgetTab, widgetTabPos, editWidget, saveEditWidget, removeWidget,
+            editWidgetForm, editWidgetIsNew, widgetTab, widgetTabPos, editWidget, saveEditWidget, removeWidget,
             editWidgetParent, groupAddTarget, removeGroupChild,
             groupChildrenList, startGroupChildAdd, closeEditor, moveGroupChildOut, confirmOutOfGroup, groupChildMouseDown, groupChildMouseMove, groupChildMouseUp, resetChildDrag, dragChildId, dragOverChildId,
             columnIdx, columnList, setColumns, addColumn, removeColumn, moveColumnUp, moveColumnDown, autoDetectColumns, columnFields, columnFieldVisible, getColumnFieldRows,

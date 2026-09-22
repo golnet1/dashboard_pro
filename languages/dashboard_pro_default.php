@@ -108,6 +108,7 @@ $frontend = array(
     'cancel' => 'Cancel',
     'delete' => 'Delete',
     'add' => 'Add',
+    'create' => 'Create',
 
     // Widget editor
     'edit_widget' => 'Edit: ',

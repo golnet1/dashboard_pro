@@ -1369,7 +1369,7 @@
                     <div class="v-card__actions">
                         <div class="spacer"></div>
                         <button type="button" class="v-btn v-btn--text theme--dark v-size--default primary--text text--darken-1" @click="closeEditor"><span class="v-btn__content">{{ t('cancel') }}</span></button>
-                        <button type="button" class="v-btn v-btn--text theme--dark v-size--default primary--text text--darken-1" @click="saveEditWidget"><span class="v-btn__content">{{ editWidgetForm.title ? t('save') : 'Create' }}</span></button>
+                        <button type="button" class="v-btn v-btn--text theme--dark v-size--default primary--text text--darken-1" @click="saveEditWidget"><span class="v-btn__content">{{ editWidgetIsNew ? t('create') : t('save') }}</span></button>
                     </div>
                 </div>
             </div>
@@ -1707,6 +1707,6 @@
     <script src="js/auth.js?v=9"></script>
     <script src="js/sidebar.js?v=10"></script>
 <script src="js/widget-config.js?v=11"></script>
-<script src="js/app.js?v=129"></script>
+<script src="js/app.js?v=133"></script>
 </body>
 </html>
