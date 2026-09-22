@@ -1277,6 +1277,18 @@
                                                                 </div>
                                                             </div>
                                                         </template>
+                                                        <template v-else-if="field.type === 'script'">
+                                                            <div class="v-input v-text-field v-select" style="flex:1">
+                                                                <div class="v-input__control">
+                                                                    <div class="v-input__slot"><label class="v-label v-label--active">{{ t(field.label) }}</label>
+                                                                         <select v-model="editWidgetForm[field.key]">
+                                                                             <option value="" style="background:#1e1e1e;color:#fff">{{ field.placeholder || t('select_default') }}</option>
+                                                                             <option v-for="s in scripts" :key="s.ID" :value="s.TITLE" style="background:#1e1e1e;color:#fff">{{ s.TITLE }}{{ s.DESCRIPTION ? ' - ' + s.DESCRIPTION : '' }}</option>
+                                                                        </select>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </template>
                                                         <template v-else-if="field.type === 'method'">
                                                             <div class="v-input v-text-field v-select" style="flex:1">
                                                                 <div class="v-input__control">
@@ -1687,6 +1699,6 @@
     <script src="js/auth.js?v=9"></script>
     <script src="js/sidebar.js?v=10"></script>
 <script src="js/widget-config.js?v=11"></script>
-<script src="js/app.js?v=125"></script>
+<script src="js/app.js?v=126"></script>
 </body>
 </html>

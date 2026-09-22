@@ -27,7 +27,7 @@ const TableWidget = {
             { key: 'property', label: 'field_property', type: 'property', showIf: { callback_type: 'property' } },
             { key: 'callback_method_obj', label: 'field_method_object', type: 'method_object', parent: 'callback_method', showIf: { callback_type: 'method' } },
             { key: 'callback_method', label: 'field_method', type: 'method', parent: 'callback_method', showIf: { callback_type: 'method' } },
-            { key: 'script', label: 'field_script', type: 'text', showIf: { callback_type: 'script' } },
+            { key: 'script', label: 'field_script', type: 'script', showIf: { callback_type: 'script' } },
         ],
     },
     defaults: { icon: 'fas fa-table', icon_type: 'icon', query: '', timeout: 0, columns: '[]', height: 200, callback_type: 'none', script: '', callback_method: '' },

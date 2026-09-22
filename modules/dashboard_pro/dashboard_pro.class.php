@@ -761,6 +761,11 @@ class dashboard_pro extends module
             return ['items' => $methods];
         }
 
+        if ($params['request'][0] == 'scripts') {
+            $scripts = SQLSelect("SELECT ID, TITLE, DESCRIPTION FROM scripts WHERE TYPE=0 ORDER BY TITLE");
+            return ['items' => $scripts];
+        }
+
         return ['error' => 'Unknown API endpoint'];
     }
 

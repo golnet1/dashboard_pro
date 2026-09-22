@@ -140,6 +140,7 @@ const app = createApp({
         const iconPageSize = 24;
         const panelForm = ref({ title: '', iconType: 'icon', icon: 'fas fa-folder', iconObject: '', iconProperty: '', image: '', hideNav: false, hideHome: false, panelType: 'group', parentGroup: 'root', dropdownNav: false, openOnClick: false, infoObject: '', infoProperty: '', infoPrefix: '', infoPostfix: '', background: false, circle: false, iconColor: 'default', showImageNav: false, individualSettings: false, showImageBg: false, bgSize: 'cover', verticalCompact: false });
         const objects = ref([]);
+        const scripts = ref([]);
         const iconProperties = ref([]);
         const infoProperties = ref([]);
         const widgetProperties = ref([]);
@@ -666,6 +667,7 @@ function loadScript(src, version) {
             widgetProperties.value = [];
             infoProperties.value = [];
             await loadObjects();
+            if (!scripts.value.length) await loadScripts();
             if (w.object) {
                 const res = await dpAPI('properties?object_id=' + encodeURIComponent(w.object));
                 widgetProperties.value = res.items || [];
@@ -1229,6 +1231,15 @@ function loadScript(src, version) {
                 objects.value = res.items || [];
             } catch(e) {
                 console.error('loadObjects error', e);
+            }
+        }
+
+        async function loadScripts() {
+            try {
+                const res = await dpAPI('scripts');
+                scripts.value = res.items || [];
+            } catch(e) {
+                console.error('loadScripts error', e);
             }
         }
 
@@ -2128,7 +2139,7 @@ onMounted(() => {
             showCleanupDialog, cleanupReport, cleanupBusy, cleanupReasons, applyCleanup, restorePanels, runWizard,
             showAddPanel, editPanelData, panelForm, panelTab, panelTabPos, panelError, createPanel, editPanel, openPanelForm, deletePanel, deleteCurrentPanel, movePanel, showAbout, toggleField,
             showIconPicker, iconTarget, iconSearch, iconCategory, iconCategorySearch, iconPage, iconCategories, filteredIconCategories, filteredIcons, totalPages, paginatedIcons, openIconPicker, selectIcon, iconPicked,
-            objects, iconProperties, infoProperties, widgetProperties, bgProperties, extraProperties, methodCache, loadObjects, loadIconProperties, loadInfoProperties, loadWidgetProperties, loadBgProperties, widgetBgStyle,
+            objects, iconProperties, infoProperties, widgetProperties, bgProperties, extraProperties, scripts, methodCache, loadObjects, loadScripts, loadIconProperties, loadInfoProperties, loadWidgetProperties, loadBgProperties, widgetBgStyle,
             isAdmin, toggleEditMode, wsConnected, wsTooltip, wsStatus, wsPulse, wsBytesSent, wsBytesReceived, wsRev, user, userMenuOpen, sidebarMini, toggleSidebar, expandedGroups, childPanels, toggleGroup, forceRefresh, formatBytes,
             showNotifications, notifications, unreadCount, checkNotifications, markNotificationsRead,
             chatOpen, chatMessages, chatText, chatLoading, loadChat, sendChat, toggleChat, formatTime,
