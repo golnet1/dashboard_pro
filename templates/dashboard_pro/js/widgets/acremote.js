@@ -82,15 +82,9 @@ const AcRemoteWidget = {
             if (this.widget.color) s.backgroundColor = this.widget.color;
             return s;
         },
-        codeMap() {
-            try { return JSON.parse(this.widget.codes || '{}'); } catch (e) { return {}; }
-        },
         modeName() {
             if (!this.mode) return this.t('rc_auto');
             return this.t('rc_' + this.mode);
-        },
-        fanName() {
-            return this.t(['rc_fan_auto', 'rc_fan_low', 'rc_fan_med', 'rc_fan_high', 'rc_fan_max'][this.fan]);
         }
     },
     methods: {
@@ -99,10 +93,6 @@ const AcRemoteWidget = {
                 const d = await dpAPI('getProperty?' + new URLSearchParams({ object: this.widget.object_alive, property: this.widget.property_alive }));
                 this.isAlive = !d.error && String(d.value) !== '0';
             } catch (e) { /* keep current state on transient error */ }
-        },
-        codeFor(k) {
-            const v = this.codeMap[k];
-            return v !== undefined && v !== null && v !== '' ? String(v) : k;
         },
         async send(code) {
             try {

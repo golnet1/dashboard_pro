@@ -1,6 +1,6 @@
 const EmptyWidget = {
     props: ['widget'],
-    defaults: { icon: 'fas fa-square', height: 60 },
+    defaults: { height: 60 },
     template: `<div class="widget-v-card" :style="cardStyle" style="display:flex;align-items:center;justify-content:center;min-height:60px"><span v-if="widget.label" style="color:rgba(255,255,255,.3);font-size:.8rem">{{ widget.label }}</span></div>`,
     computed: {
         cardStyle() {

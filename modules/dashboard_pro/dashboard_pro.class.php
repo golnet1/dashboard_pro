@@ -43,7 +43,6 @@ class dashboard_pro extends module
 
     function run()
     {
-        global $session;
         $out = array();
         if ($this->action == 'admin') {
             $this->admin($out);
@@ -1646,27 +1645,6 @@ class dashboard_pro extends module
             'theme' => 'light',
             'language' => 'ru'
         );
-    }
-
-    function sendNotification($text, $icon = 'info', $color = '#2196F3')
-    {
-        $source = gg('site_title');
-        if (!$source) {
-            $source = LANG_DASHBOARD_PRO_ALICE;
-        }
-        return postToWebSocket("DASHBOARD_PRO", array(
-            'COMMAND' => 'ViewNotify',
-            'NOTIFY' => array('text' => $text, 'icon' => $icon, 'color' => $color, 'source' => $source)
-        ), "PostEvent");
-    }
-
-    function updateWidget($widget_id, $data)
-    {
-        return postToWebSocket("DASHBOARD_PRO", array(
-            'COMMAND' => 'UpdateWidget',
-            'WIDGET_ID' => $widget_id,
-            'DATA' => $data
-        ), "PostEvent");
     }
 
     function widgetDefaults()

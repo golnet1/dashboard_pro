@@ -77,8 +77,7 @@ const WeatherWidget = {
                         humidity: j.main.humidity,
                         wind: Math.round(j.wind.speed * 10) / 10,
                         description: j.weather[0].description,
-                        icon: j.weather[0].icon,
-                        city: j.name
+                        icon: j.weather[0].icon
                     };
                 }
             } catch(e) {}

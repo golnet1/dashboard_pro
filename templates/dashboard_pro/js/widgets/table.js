@@ -26,24 +26,9 @@ const TableWidget = {
         ],
         main: [
             { key: 'url', label: 'field_url_json', type: 'text', placeholder: 'https://api.example.com/data' },
-            { key: 'query', label: 'field_query', type: 'textarea', rows: 5, placeholder: 'ph_sql_jsonpath' },
-        ],
-        columns: [
-            { key: 'info', label: 'field_info_data', type: 'text' },
-            { key: 'data_name', label: 'field_column_name', type: 'text' },
-            { key: 'align', label: 'field_align', type: 'select', options: [
-                { value: 'start', title: 'Left' },
-                { value: 'center', title: 'Center' },
-                { value: 'end', title: 'Right' },
-            ]},
-            { key: 'width', label: 'field_width', type: 'text' },
-            { key: 'sortable', label: 'field_sortable', type: 'checkbox' },
-            { key: 'separator', label: 'field_separator', type: 'checkbox' },
-            { key: 'data_type', label: 'field_data_type', type: 'select', options: [] },
-            { key: 'color_column', label: 'field_color_column', type: 'text' },
         ],
     },
-    defaults: { icon: 'fas fa-table', icon_type: 'icon', url: '', query: '', refresh: 60, columns: '[]', height: 200 },
+    defaults: { icon: 'fas fa-table', icon_type: 'icon', url: '', columns: '[]', height: 200 },
     template: `
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header">

@@ -11,7 +11,6 @@ const SendTextWidget = {
             { key: 'object', label: 'field_object', type: 'object', row: 'obj_prop' },
             { key: 'property', label: 'field_property', type: 'property', row: 'obj_prop' },
             { key: 'url', label: 'field_url_with_text', type: 'text', placeholder: '/command.php?qry=<text>' },
-            { key: 'autosend', label: 'field_autosend', type: 'checkbox' },
         ],
         advanced: [
             { key: 'bg_mode', label: 'field_bg_mode', type: 'select', row: 'bg_row', options: [{value:'default',label:'opt_default'},{value:'image',label:'opt_image'},{value:'color',label:'opt_custom_color'},{value:'property',label:'opt_color_property'}] },
@@ -24,7 +23,7 @@ const SendTextWidget = {
             { key: 'alive_timeout', label: 'field_alive_timeout', type: 'number', step: 1 },
         ],
     },
-    defaults: { icon: 'fas fa-paper-plane', icon_type: 'icon', url: '', autosend: false, height: 110 },
+    defaults: { icon: 'fas fa-paper-plane', icon_type: 'icon', url: '', height: 110 },
     template: `
         <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled }" :style="cardStyle">
             <div class="widget-v-card__header">

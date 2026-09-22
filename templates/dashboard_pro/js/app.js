@@ -448,7 +448,7 @@ function loadScript(src, version) {
             widgetList.value = [...widgetDefs.value].sort((a, b) => (a.priority || 0) - (b.priority || 0));
             for (const w of widgets.items) {
                 if (!w.FILE) continue;
-                await loadScript(w.FILE, 63);
+                await loadScript(w.FILE, 64);
             }
             widgetDefs.value.forEach(d => registerWidgetComponent(d.type));
         }
@@ -518,7 +518,7 @@ function loadScript(src, version) {
                 level_min: 0, level_max: 100, level_step: 1,
                 prepend_icon: '', append_icon: '',
                 panel: '', timeout: 0, url: '',
-                minValue: 0, maxValue: 100, doughnut: false,
+                minValue: 0, maxValue: 100,
                 colors: JSON.stringify([{color:'#a9d70b'},{color:'#f9c802'},{color:'#ff0000'}]),
                 striped: false, color_progress: 'primary',
                 viewTime: true, viewDate: true, sizeTime: 48, sizeDate: 16,
@@ -669,16 +669,6 @@ function loadScript(src, version) {
             widgetConfirm.value = null;
         }
 
-        function moveGroupChild(child, dir) {
-            const parent = editWidgetParent.value || editWidgetForm.value;
-            if (!parent || !Array.isArray(parent.children)) return;
-            const idx = parent.children.findIndex(c => c.id === child.id);
-            const ni = idx + dir;
-            if (idx < 0 || ni < 0 || ni >= parent.children.length) return;
-            const [it] = parent.children.splice(idx, 1);
-            parent.children.splice(ni, 0, it);
-        }
-
         const dragChildId = ref(null);
         const dragOverChildId = ref(null);
 
@@ -719,11 +709,6 @@ function loadScript(src, version) {
         function resetChildDrag() {
             dragChildId.value = null;
             dragOverChildId.value = null;
-        }
-
-        function addGroupChild(type) {
-            groupAddTarget.value = editWidgetForm.value;
-            addWidget(type);
         }
 
         function copyWidget(idx) {
@@ -1103,13 +1088,6 @@ function loadScript(src, version) {
             const s = await dpAPI('settings', { method: 'POST', body: JSON.stringify(settings.value) });
             if (s && !s.error) Object.assign(settings.value, s);
             applySettings();
-        }
-
-        async function loadIconProperties(oid) {
-            if (!oid) oid = panelForm.value.iconObject;
-            if (!oid) { iconProperties.value = []; return; }
-            const res = await dpAPI('properties?object_id=' + oid);
-            iconProperties.value = res.items || [];
         }
 
         async function openPanelForm(p) {
@@ -1978,14 +1956,6 @@ function loadScript(src, version) {
             }
         }
 
-        async function moveWidgetDef(idx, dir) {
-            const newIdx = idx + dir;
-            if (newIdx < 0 || newIdx >= widgetList.value.length) return;
-            const arr = widgetList.value;
-            [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
-            await saveWidgetDefOrder(arr);
-        }
-
         const dragWidgetDefId = ref(null);
         const dragWidgetDefOverId = ref(null);
 
@@ -2059,8 +2029,8 @@ onMounted(() => {
             widgetTypeComponent, addWidget, getWidgetFields, getWidgetRows, getWidgetTabs, getFieldOptions, fieldVisible,
             getMethodObj, getMethodName, setMethodField, itemLabel,
             editWidgetForm, widgetTab, widgetTabPos, editWidget, saveEditWidget, removeWidget,
-            editWidgetParent, groupAddTarget, addGroupChild, removeGroupChild, moveGroupChild,
-            groupChildrenList, startGroupChildAdd, closeEditor, moveGroupChildOut, confirmOutOfGroup, moveGroupChild, groupChildMouseDown, groupChildMouseMove, groupChildMouseUp, resetChildDrag, dragChildId, dragOverChildId,
+            editWidgetParent, groupAddTarget, removeGroupChild,
+            groupChildrenList, startGroupChildAdd, closeEditor, moveGroupChildOut, confirmOutOfGroup, groupChildMouseDown, groupChildMouseMove, groupChildMouseUp, resetChildDrag, dragChildId, dragOverChildId,
             columnIdx, columnList, setColumns, addColumn, removeColumn, moveColumnUp, moveColumnDown, autoDetectColumns, columnFields,
             draggingWidget, startDrag, onDrag, stopDrag,
             resizingWidget, startResize, onResize, stopResize,
@@ -2075,7 +2045,7 @@ onMounted(() => {
             isAdmin, toggleEditMode, wsConnected, wsTooltip, wsStatus, wsPulse, wsBytesSent, wsBytesReceived, wsRev, user, userMenuOpen, sidebarMini, toggleSidebar, expandedGroups, childPanels, toggleGroup, forceRefresh, formatBytes,
             showNotifications, notifications, unreadCount, checkNotifications, markNotificationsRead,
             chatOpen, chatMessages, chatText, chatLoading, loadChat, sendChat, toggleChat, formatTime,
-            widgetList, moveWidgetDef, exportWidgetZip, deleteWidgetDef, pickWidgetZip,
+            widgetList, exportWidgetZip, deleteWidgetDef, pickWidgetZip,
             widgetDefMouseDown, widgetDefMouseMove, widgetDefMouseUp, dragWidgetDefId, dragWidgetDefOverId,
             t
         };

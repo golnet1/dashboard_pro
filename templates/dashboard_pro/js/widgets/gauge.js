@@ -13,7 +13,6 @@ const GaugeWidget = {
             { key: 'minValue', label: 'field_min', type: 'number', row: 'range' },
             { key: 'maxValue', label: 'field_max', type: 'number', row: 'range' },
             { key: 'round', label: 'field_rounding', type: 'number', placeholder: '0' },
-            { key: 'doughnut', label: 'field_doughnut', type: 'checkbox' },
             { key: 'colors', label: 'field_gradient_colors', type: 'textarea', rows: 2, placeholder: '[{"color":"#a9d70b"},{"color":"#f9c802"},{"color":"#ff0000"}]' },
         ],
         advanced: [
@@ -24,7 +23,7 @@ const GaugeWidget = {
             { key: 'bg_property', label: 'field_bg_property', type: 'property', row: 'bg_row', showIf: { bg_mode: 'property' } },
         ],
     },
-    defaults: { icon: 'fas fa-gauge-high', icon_type: 'icon', minValue: 0, maxValue: 100, round: 0, doughnut: false, height: 180, colors: JSON.stringify([{color:'#a9d70b'},{color:'#f9c802'},{color:'#ff0000'}]) },
+    defaults: { icon: 'fas fa-gauge-high', icon_type: 'icon', minValue: 0, maxValue: 100, round: 0, height: 180, colors: JSON.stringify([{color:'#a9d70b'},{color:'#f9c802'},{color:'#ff0000'}]) },
     template: `
         <div class="widget-v-card" :style="cardStyle" style="display:flex;flex-direction:column;align-items:center;justify-content:center">
             <svg viewBox="0 0 120 120" style="width:80%;max-width:200px;flex:1">

@@ -24,7 +24,7 @@ const ValueWidget = {
             { key: 'pos_info', label: 'field_info_postfix', type: 'text', row: 'info_affix' },
         ],
     },
-    defaults: { icon: 'fas fa-hashtag', icon_type: 'icon', aliasLabels: null, background: false, round: false, height: 90 },
+    defaults: { icon: 'fas fa-hashtag', icon_type: 'icon', aliasLabels: null, height: 90 },
     template: `
         <div class="widget-v-card" :style="cardStyle">
             <div class="widget-v-card__header">

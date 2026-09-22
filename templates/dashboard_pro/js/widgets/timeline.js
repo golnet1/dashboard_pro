@@ -9,7 +9,6 @@ const TimelineWidget = {
             { key: 'icon_property', label: 'field_icon_property', type: 'property', row: 'icon_row', showIf: { icon_type: 'property' } },
             { key: 'icon_url', label: 'field_icon_url', type: 'text', row: 'icon_row', showIf: { icon_type: 'url' } },
             { key: 'object', label: 'field_object', type: 'object', row: 'obj_prop' },
-            { key: 'property', label: 'field_property', type: 'property', row: 'obj_prop' },
             { key: 'url', label: 'field_url_json', type: 'text', placeholder: 'https://api.example.com/events' },
         ],
         advanced: [
