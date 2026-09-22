@@ -211,7 +211,7 @@ const app = createApp({
                 }
             }
             tabs = tabs.filter(tab => {
-                if (tab.key === 'columns' || tab.key === 'widgets') return true;
+                if (tab.key === 'columns' || tab.key === 'widgets' || tab.key === 'graphs') return true;
                 const fields = getWidgetFields(type, tab.fields || tab.key);
                 return fields.length > 0;
             });
@@ -297,6 +297,46 @@ const app = createApp({
         }
         function autoDetectColumns() {
             // Placeholder: will be implemented when table data fetching is ready
+        }
+
+        // ---- Series editing for graph widget ----
+        const seriesIdx = ref(0);
+        const seriesScaleOptions = [{ value: 'left', label: 'opt_scale_left' }, { value: 'right', label: 'opt_scale_right' }, { value: 'none', label: 'opt_scale_none' }, { value: 'last', label: 'opt_scale_last' }];
+        const seriesList = computed(() => {
+            try { return JSON.parse(editWidgetForm.value?.series || '[]'); }
+            catch { return []; }
+        });
+        const seriesProps = ref({});
+
+        function setSeries(arr) {
+            editWidgetForm.value.series = JSON.stringify(arr);
+        }
+
+        function fixtureSeries() {
+            return { key: 's' + Date.now() + '_' + Math.floor(Math.random() * 1000), title: '', object: '', color: '#42a5f5', fill: false, steppedLine: false, scale: 'left', round: 0 };
+        }
+
+        function addSeries() {
+            const arr = seriesList.value;
+            arr.push(fixtureSeries());
+            setSeries(arr);
+            seriesIdx.value = arr.length - 1;
+        }
+        function removeSeries(idx) {
+            const arr = seriesList.value;
+            arr.splice(idx, 1);
+            setSeries(arr);
+            if (seriesIdx.value >= arr.length) seriesIdx.value = Math.max(0, arr.length - 1);
+        }
+        function setSeriesField(idx, key, val) {
+            const arr = seriesList.value;
+            if (arr[idx]) arr[idx][key] = val;
+            setSeries(arr);
+        }
+        async function loadSeriesProps(idx, obj) {
+            if (!obj) { seriesProps.value = { ...seriesProps.value, [idx]: [] }; return; }
+            const res = await dpAPI('properties?object_id=' + encodeURIComponent(obj));
+            seriesProps.value = { ...seriesProps.value, [idx]: res.items || [] };
         }
 
         const columnFields = [
@@ -448,7 +488,7 @@ function loadScript(src, version) {
             widgetList.value = [...widgetDefs.value].sort((a, b) => (a.priority || 0) - (b.priority || 0));
             for (const w of widgets.items) {
                 if (!w.FILE) continue;
-                await loadScript(w.FILE, 64);
+                await loadScript(w.FILE, 65);
             }
             widgetDefs.value.forEach(d => registerWidgetComponent(d.type));
         }
@@ -581,6 +621,7 @@ function loadScript(src, version) {
             const tabs = getWidgetTabs(w.type);
             widgetTab.value = tabs.length ? tabs[0].key : 'main';
             columnIdx.value = 0;
+            seriesIdx.value = 0;
             editWidgetParent.value = parent || null;
             const def = widgetDefs.value.find(d => d.type === w.type);
             editWidgetForm.value = {
@@ -594,6 +635,9 @@ function loadScript(src, version) {
                 pre_info: w.pre_info || w.prefix || '',
                 pos_info: w.pos_info || w.postfix || '',
                 columns: typeof w.columns === 'string' ? w.columns : JSON.stringify(w.columns || []),
+                period: w.period ?? 24,
+                enableZoom: w.enableZoom ?? true,
+                series: typeof w.series === 'string' ? w.series : JSON.stringify(w.series || []),
                 refresh: w.refresh || 60,
             };
             widgetProperties.value = [];
@@ -1065,6 +1109,25 @@ function loadScript(src, version) {
                 const res = await dpAPI('properties?object_id=' + encodeURIComponent(obj));
                 extraProperties.value = { ...extraProperties.value, [key]: res.items || [] };
             });
+        });
+
+        // Series editing watcher: load properties for every series object
+        watch(() => editWidgetForm.value?.series, async (val) => {
+            if (!val) { seriesProps.value = {}; return; }
+            let arr = [];
+            try { arr = JSON.parse(val); } catch { arr = []; }
+            const map = {};
+            for (let i = 0; i < arr.length; i++) {
+                if (arr[i] && arr[i].object) {
+                    try {
+                        const res = await dpAPI('properties?object_id=' + encodeURIComponent(arr[i].object));
+                        map[i] = res.items || [];
+                    } catch(e) { map[i] = []; }
+                } else {
+                    map[i] = [];
+                }
+            }
+            seriesProps.value = map;
         });
 
         function savePanels() {
@@ -2032,6 +2095,7 @@ onMounted(() => {
             editWidgetParent, groupAddTarget, removeGroupChild,
             groupChildrenList, startGroupChildAdd, closeEditor, moveGroupChildOut, confirmOutOfGroup, groupChildMouseDown, groupChildMouseMove, groupChildMouseUp, resetChildDrag, dragChildId, dragOverChildId,
             columnIdx, columnList, setColumns, addColumn, removeColumn, moveColumnUp, moveColumnDown, autoDetectColumns, columnFields,
+            seriesIdx, seriesList, setSeries, addSeries, removeSeries, setSeriesField, seriesProps, loadSeriesProps, seriesScaleOptions,
             draggingWidget, startDrag, onDrag, stopDrag,
             resizingWidget, startResize, onResize, stopResize,
             widgetMenuTarget, widgetPanelSubmenu, widgetGroupSubmenu, widgetConfirm, copyWidget, exportWidget, changeWidgetPanel, selectMoveTarget, confirmMoveWidget, moveWidgetToGroup, confirmMoveToGroup,

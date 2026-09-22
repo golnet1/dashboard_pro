@@ -978,7 +978,7 @@
                                     <button v-for="tab in getWidgetTabs(editWidgetForm.type)" :key="tab.key"
                                         class="v-tab"
                                         :class="{ 'v-tab--active': widgetTab === tab.key }"
-                                        @click="widgetTab = tab.key; if (tab.key === 'columns') columnIdx = 0"
+                                        @click="widgetTab = tab.key; if (tab.key === 'columns') columnIdx = 0; else if (tab.key === 'graphs') seriesIdx = 0"
                                         role="tab">{{ t(tab.label) }}</button>
                                 </div>
                             </div>
@@ -1112,6 +1112,94 @@
                                             </div>
                                             <div v-else style="flex:1;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.35);font-size:.9rem">
                                                 {{ t('no_columns') }}
+                                            </div>
+                                        </div>
+                                        </template>
+
+                                        <template v-else-if="tab.key === 'graphs'">
+                                        <div style="display:flex;gap:12px;min-height:220px">
+                                            <div style="flex:0 0 auto;display:flex;flex-direction:column;border-right:1px solid rgba(255,255,255,.12);padding-right:8px">
+                                                <button type="button" class="v-btn v-btn--is-elevated v-btn--fab v-btn--has-bg v-btn--round v-size--x-small my-2" @click="addSeries" :title="t('add_series')"><i class="fas fa-plus"></i></button>
+                                                <div v-for="(s, si) in seriesList" :key="s.key"
+                                                     class="column-tab"
+                                                     :class="{ 'column-tab--active': seriesIdx === si }"
+                                                     @click="seriesIdx = si"
+                                                     style="white-space:nowrap;font-size:.85rem;color:rgba(255,255,255,.7);transition:background .15s;display:flex;align-items:center;gap:6px;padding-right:6px"
+                                                     :style="seriesIdx === si ? 'background:rgba(255,255,255,.1);color:#fff' : ''">
+                                                    <span style="overflow:hidden;text-overflow:ellipsis;max-width:160px">{{ s.title || t('series') + (si + 1) }}</span>
+                                                    <button type="button" class="v-btn v-btn--icon v-btn--round v-size--x-small" style="color:rgba(255,255,255,.6)" :title="t('delete_series')" @click.stop="removeSeries(si)"><i class="fas fa-minus"></i></button>
+                                                </div>
+                                            </div>
+                                            <div style="flex:1;min-width:0" v-if="seriesList.length && seriesList[seriesIdx]">
+                                                <div class="v-input v-text-field">
+                                                    <div class="v-input__control">
+                                                        <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': seriesList[seriesIdx].title }">{{ t('field_title') }}</label><input :value="seriesList[seriesIdx].title" @input="setSeriesField(seriesIdx, 'title', $event.target.value)"></div>
+                                                        <div class="v-input__details"><div class="v-messages"></div></div>
+                                                    </div>
+                                                </div>
+                                                <div class="d-flex gap-2" style="align-items:flex-start">
+                                                    <div class="v-input v-text-field v-select" style="flex:1">
+                                                        <div class="v-input__control">
+                                                            <div class="v-input__slot"><label class="v-label v-label--active">{{ t('field_object') }}</label>
+                                                                <select :value="seriesList[seriesIdx].object" @change="setSeriesField(seriesIdx, 'object', $event.target.value)">
+                                                                    <option value="" :selected="!seriesList[seriesIdx].object" style="background:#1e1e1e;color:#fff">{{ t('select_default') }}</option>
+                                                                    <option v-for="o in objects" :key="o.ID" :value="o.TITLE" :selected="o.TITLE === seriesList[seriesIdx].object" style="background:#1e1e1e;color:#fff">{{ itemLabel(o) }}</option>
+                                                                </select>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="v-input v-text-field v-select" style="flex:1">
+                                                        <div class="v-input__control">
+                                                            <div class="v-input__slot"><label class="v-label v-label--active">{{ t('field_property') }}</label>
+                                                                <select :value="seriesList[seriesIdx].property" @change="setSeriesField(seriesIdx, 'property', $event.target.value)">
+                                                                    <option value="" :selected="!seriesList[seriesIdx].property" style="background:#1e1e1e;color:#fff">{{ t('select_default') }}</option>
+                                                                    <option v-for="prop in (seriesProps[seriesIdx] || [])" :key="prop.ID" :value="prop.TITLE" :selected="prop.TITLE === seriesList[seriesIdx].property" style="background:#1e1e1e;color:#fff">{{ itemLabel(prop) }}</option>
+                                                                </select>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <button class="icon-btn" @click="setSeriesField(seriesIdx, 'object', ''); setSeriesField(seriesIdx, 'property', '')" :title="t('clear')" style="margin-top:16px;flex-shrink:0"><i class="fas fa-backspace"></i></button>
+                                                </div>
+                                                <div class="d-flex gap-2" style="align-items:center;margin-top:4px">
+                                                    <div class="v-input v-text-field" style="flex:1">
+                                                        <div class="v-input__control">
+                                                            <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': seriesList[seriesIdx].color }">{{ t('field_color') }}</label><input :value="seriesList[seriesIdx].color" @input="setSeriesField(seriesIdx, 'color', $event.target.value)"></div>
+                                                            <div class="v-input__details"><div class="v-messages"></div></div>
+                                                        </div>
+                                                    </div>
+                                                    <input type="color" :value="seriesList[seriesIdx].color" @input="setSeriesField(seriesIdx, 'color', $event.target.value)" style="width:40px;height:38px;margin-top:16px;padding:2px;background:transparent;border:1px solid rgba(255,255,255,.2);border-radius:4px;cursor:pointer">
+                                                </div>
+                                                <div class="v-input v-input--selection-controls v-input--switch" :class="{ 'input--is-checked': seriesList[seriesIdx].fill }">
+                                                    <div class="v-input__control">
+                                                        <div class="v-input__slot v-input__slot--switch">
+                                                            <div class="v-input--switch__track" @click.stop="setSeriesField(seriesIdx, 'fill', !seriesList[seriesIdx].fill)"><div class="v-input--switch__thumb"></div></div>
+                                                            <span class="v-label">{{ t('field_fill') }}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="v-input v-input--selection-controls v-input--switch" :class="{ 'input--is-checked': seriesList[seriesIdx].steppedLine }">
+                                                    <div class="v-input__control">
+                                                        <div class="v-input__slot v-input__slot--switch">
+                                                            <div class="v-input--switch__track" @click.stop="setSeriesField(seriesIdx, 'steppedLine', !seriesList[seriesIdx].steppedLine)"><div class="v-input--switch__thumb"></div></div>
+                                                            <span class="v-label">{{ t('field_stepped_line') }}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="v-input v-text-field v-select">
+                                                    <div class="v-input__control">
+                                                        <div class="v-input__slot"><label class="v-label v-label--active">{{ t('field_scale') }}</label>
+                                                            <select :value="seriesList[seriesIdx].scale" @change="setSeriesField(seriesIdx, 'scale', $event.target.value)">
+                                                                <option v-for="opt in seriesScaleOptions" :key="opt.value" :value="opt.value" :selected="opt.value === seriesList[seriesIdx].scale" style="background:#1e1e1e;color:#fff">{{ t(opt.label) }}</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="py-0">
+                                                    <dp-slider :model-value="Number(seriesList[seriesIdx].round) || 0" :min="0" :max="3" :step="1" :label="t('field_round_scale')" @update:model-value="setSeriesField(seriesIdx, 'round', $event)"></dp-slider>
+                                                </div>
+                                            </div>
+                                            <div v-else style="flex:1;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.35);font-size:.9rem">
+                                                {{ t('no_series') }}
                                             </div>
                                         </div>
                                         </template>
@@ -1599,6 +1687,6 @@
     <script src="js/auth.js?v=9"></script>
     <script src="js/sidebar.js?v=10"></script>
 <script src="js/widget-config.js?v=11"></script>
-<script src="js/app.js?v=122"></script>
+<script src="js/app.js?v=123"></script>
 </body>
 </html>

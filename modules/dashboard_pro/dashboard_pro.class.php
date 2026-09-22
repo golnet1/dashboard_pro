@@ -432,6 +432,28 @@ class dashboard_pro extends module
             return ['success' => true];
         }
 
+        if ($params['request'][0] == 'history') {
+            $varname = $params['object'] ?? '';
+            $property = $params['property'] ?? '';
+            if ($varname && $property) $varname .= '.' . $property;
+            if (!$varname) return ['error' => 'object required'];
+            $hours = isset($params['hours']) ? (float)$params['hours'] : ((float)($params['days'] ?? 1)) * 24;
+            $id = getHistoryValueId($varname);
+            if (!$id) return ['data' => array()];
+            $table_name = (defined('SEPARATE_HISTORY_STORAGE') && SEPARATE_HISTORY_STORAGE == 1) ? createHistoryTable($id) : 'phistory';
+            $start_time = time() - $hours * 3600;
+            $rows = SQLSelect("SELECT VALUE, ADDED FROM $table_name WHERE VALUE_ID='" . (int)$id . "' AND ADDED>=('" . date('Y-m-d H:i:s', $start_time) . "') ORDER BY ADDED, ID");
+            $data = array();
+            if (is_array($rows)) {
+                foreach ($rows as $row) {
+                    if (!isset($row['ADDED'])) continue;
+                    $ts = is_numeric($row['ADDED']) ? (int)$row['ADDED'] : strtotime($row['ADDED']);
+                    $data[] = array('timestamp' => $ts, 'value' => (float)$row['VALUE'], 'time' => $row['ADDED']);
+                }
+            }
+            return ['data' => $data];
+        }
+
         if ($params['request'][0] == 'objects') {
             $objects = SQLSelect("SELECT ID, TITLE, DESCRIPTION FROM objects ORDER BY TITLE");
             return ['items' => $objects];
