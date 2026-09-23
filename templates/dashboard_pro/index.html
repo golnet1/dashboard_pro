@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Pro</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/app.css?v=45">
+    <link rel="stylesheet" href="css/app.css?v=52">
     <script src="js/lib/vue.global.prod.js"></script>
 </head>
 <body>
@@ -62,6 +62,19 @@
                     <span class="app-bar__title">{{ showSettingsPanel ? t('settings') : (showWidgetEditorPanel ? t('widget_editor') : (currentPanel?.title || t('home_panel'))) }}</span>
                     <div class="app-bar__spacer"></div>
                     <div class="app-bar__actions">
+                        <div v-if="headerStatusSectionOn" class="app-bar__status">
+                            <template v-for="it in headerStatusList" :key="it.key">
+                                <div class="app-bar__status-item" :title="it.title">
+                                    <img v-if="it.imgOk" :src="it.img" class="app-bar__status-icon" :alt="it.title">
+                                    <i v-else :class="it.faIcon || 'fas fa-circle'" class="app-bar__status-icon" :title="it.title" :style="'color:' + (it.color || 'rgba(255,255,255,.6)')"></i>
+                                </div>
+                            </template>
+                            <button v-if="isAdmin && editMode" class="app-bar__status-add" @click="openHeaderStatusEditor" :title="t('add_header_status')"><i class="fas fa-circle-plus"></i></button>
+                        </div>
+                        <div class="app-bar__clock" v-if="settings.showHeaderClock !== false">
+                            <span class="app-bar__clock-time">{{ headerTime }}</span>
+                            <span class="app-bar__clock-date">{{ headerDate }}</span>
+                        </div>
                         <button @click="forceRefresh" :title="wsTooltip" :class="{ 'ws-online': wsConnected, 'ws-offline': !wsConnected, 'ws-pulse': wsPulse }">
                             <i class="fas fa-satellite-dish"></i>
                         </button>
@@ -346,6 +359,28 @@
                                             <div class="v-list-item__content py-0">
                                                 <div class="v-list-item__title">{{ t('compact_header') }}</div>
                                                 <div class="v-list-item__subtitle">{{ t('compact_header_desc') }}</div>
+                                            </div>
+                                        </div>
+                                        <div class="v-list-item theme--dark">
+                                            <div class="v-list-item__action">
+                                                <div class="v-input theme--dark v-input--selection-controls v-input--switch" :class="{ 'input--is-checked': settings.showHeaderClock }">
+                                                    <div class="v-input__control"><div class="v-input__slot v-input__slot--switch"><div class="v-input--switch__track" @click.stop="settings.showHeaderClock = !settings.showHeaderClock; savePanels()"><div class="v-input--switch__thumb"></div></div></div></div>
+                                                </div>
+                                            </div>
+                                            <div class="v-list-item__content py-0">
+                                                <div class="v-list-item__title">{{ t('show_header_clock') }}</div>
+                                                <div class="v-list-item__subtitle">{{ t('show_header_clock_desc') }}</div>
+                                            </div>
+                                        </div>
+                                        <div class="v-list-item theme--dark">
+                                            <div class="v-list-item__action">
+                                                <div class="v-input theme--dark v-input--selection-controls v-input--switch" :class="{ 'input--is-checked': settings.showHeaderStatus }">
+                                                    <div class="v-input__control"><div class="v-input__slot v-input__slot--switch"><div class="v-input--switch__track" @click.stop="settings.showHeaderStatus = !settings.showHeaderStatus; savePanels()"><div class="v-input--switch__thumb"></div></div></div></div>
+                                                </div>
+                                            </div>
+                                            <div class="v-list-item__content py-0">
+                                                <div class="v-list-item__title">{{ t('show_header_status') }}</div>
+                                                <div class="v-list-item__subtitle">{{ t('show_header_status_desc') }}</div>
                                             </div>
                                         </div>
                                         <div class="v-list-item theme--dark">
@@ -689,6 +724,138 @@
                             <i :class="def.icon"></i>
                             <div><div>{{ t('widget_' + def.type) }}</div><div style="font-size:.8rem;color:var(--text-secondary)">{{ t('widget_' + def.type + '_desc') }}</div></div>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== Header Status Editor Modal ===== -->
+        <div id="hs-edit" class="v-dialog__content v-dialog__content--active" v-if="showHeaderStatusEditor" style="z-index:202">
+            <div class="v-dialog v-dialog--active v-dialog--persistent v-dialog--scrollable" style="width:600px" tabindex="0">
+                <div class="v-card v-sheet theme--dark" style="background-color:rgba(48,48,48,var(--dialog-alpha,1));border-color:#303030;display:flex;flex-direction:column;max-height:70vh;overflow:hidden">
+                    <div class="v-card__title" style="flex-shrink:0">
+                        <span class="headline_m">{{ hsEditIdx >= 0 ? t('edit_header_status') : t('add_header_status') }}</span>
+                    </div>
+                    <hr role="separator" class="v-divider theme--dark" style="flex-shrink:0">
+                    <div class="v-card__text pa-4" style="overflow-y:auto;flex:1">
+                        <div v-if="headerStatusItems.length" class="hs-item-list">
+                            <div v-for="(it, idx) in headerStatusItems" :key="idx" class="hs-item-row">
+                                <img v-if="it.icon_type === 'img'" :src="'/img/icons/status/' + (it.icon || 'lock') + '_32_green.png'" class="hs-item-icon">
+                                <i v-else :class="it.icon || 'fas fa-circle'" class="hs-item-icon" :style="'color:' + (it.color || '#22c55e')"></i>
+                                <span class="hs-item-label">{{ it.source === 'object' ? (it.object + '.' + (it.property || 'status')) : (it.source === 'scenario' ? it.script : '') }}</span>
+                                <button class="icon-btn" @click="editHeaderStatusItem(idx)" :title="t('edit')"><i class="fas fa-pen"></i></button>
+                                <button class="icon-btn" @click="removeHeaderStatusItem(idx)" :title="t('delete_widget')"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </div>
+                        <div v-if="headerStatusMaxReached" class="hs-limit">{{ t('header_status_limit') }}</div>
+                        <div v-else>
+                            <div class="d-flex gap-2" style="align-items:flex-start">
+                                <div class="v-input v-text-field v-select" style="flex:1;min-width:0">
+                                    <div class="v-input__control">
+                                        <div class="v-input__slot"><label class="v-label v-label--active">{{ t('icon_type') }}</label>
+                                            <select v-model="hsForm.icon_type">
+                                                <option value="img" style="background:#1e1e1e;color:#fff">Image</option>
+                                                <option value="icon" style="background:#1e1e1e;color:#fff">Icon</option>
+                                            </select>
+                                            <div class="v-input__append-inner"><i class="fas fa-caret-down"></i></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div v-if="hsForm.icon_type === 'img'" class="v-input v-text-field v-select" style="flex:1;min-width:0">
+                                    <div class="v-input__control">
+                                        <div class="v-input__slot"><label class="v-label v-label--active">{{ t('header_status_image') }}</label>
+                                            <select v-model="hsForm.icon">
+                                                <option v-for="im in headerStatusImages" :key="im" :value="im" style="background:#1e1e1e;color:#fff">{{ im }}</option>
+                                            </select>
+                                            <div class="v-input__append-inner"><i class="fas fa-caret-down"></i></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div v-else class="d-flex gap-2" style="align-items:flex-start;flex:1;min-width:0">
+                                    <div class="v-input v-text-field" style="flex:1;min-width:0">
+                                        <div class="v-input__control">
+                                            <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': hsForm.icon }">{{ t('icon') }}</label><input v-model="hsForm.icon"></div>
+                                            <div class="v-input__details"><div class="v-messages"></div></div>
+                                        </div>
+                                    </div>
+                                    <button class="icon-btn" :title="t('pick_icon')" @click="openIconPicker('hs')" style="margin-top:16px;flex-shrink:0"><i :class="hsForm.icon || 'fas fa-folder'"></i></button>
+                                    <button class="icon-btn" @click="hsForm.icon=''" :title="t('clear')" style="margin-top:16px;flex-shrink:0"><i class="fas fa-backspace"></i></button>
+                                </div>
+                            </div>
+                            <div class="v-input v-text-field">
+                                <div class="v-input__control">
+                                    <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': hsForm.tooltip }">{{ t('hs_tooltip') }}</label><input v-model="hsForm.tooltip" :placeholder="t('hs_tooltip_placeholder')"></div>
+                                    <div class="v-input__details"><div class="v-messages"></div></div>
+                                </div>
+                            </div>
+                            <div class="v-input v-text-field v-select">
+                                <div class="v-input__control">
+                                    <div class="v-input__slot"><label class="v-label v-label--active">{{ t('header_status_source') }}</label>
+                                        <select v-model="hsForm.source">
+                                            <option value="object" style="background:#1e1e1e;color:#fff">{{ t('hs_object') }}</option>
+                                            <option value="scenario" style="background:#1e1e1e;color:#fff">{{ t('hs_scenario') }}</option>
+                                        </select>
+                                        <div class="v-input__append-inner"><i class="fas fa-caret-down"></i></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <template v-if="hsForm.source === 'object'">
+                                <div class="d-flex gap-2" style="align-items:flex-start">
+                                    <div class="v-input v-text-field v-select" style="flex:1;min-width:0">
+                                        <div class="v-input__control">
+                                            <div class="v-input__slot"><label class="v-label v-label--active">{{ t('hs_object') }}</label>
+                                                <select v-model="hsForm.object" @change="loadHsProperties">
+                                                    <option value="" style="background:#1e1e1e;color:#fff">{{ t('select_default') }}</option>
+                                                    <option v-for="o in objects" :key="o.ID" :value="o.TITLE" style="background:#1e1e1e;color:#fff">{{ itemLabel(o) }}</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="v-input v-text-field v-select" style="flex:1;min-width:0">
+                                        <div class="v-input__control">
+                                            <div class="v-input__slot"><label class="v-label v-label--active">{{ t('hs_property') }}</label>
+                                                <select v-model="hsForm.property">
+                                                    <option value="" style="background:#1e1e1e;color:#fff">{{ t('select_default') }}</option>
+                                                    <option v-for="prop in hsProperties" :key="prop.ID" :value="prop.TITLE" style="background:#1e1e1e;color:#fff">{{ itemLabel(prop) }}</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button class="icon-btn" @click="clearHsObject" :title="t('clear')" style="margin-top:16px;flex-shrink:0"><i class="fas fa-backspace"></i></button>
+                                </div>
+                            </template>
+                            <div v-else class="v-input v-text-field v-select">
+                                <div class="v-input__control">
+                                    <div class="v-input__slot"><label class="v-label v-label--active">{{ t('hs_scenario') }}</label>
+                                        <select v-model="hsForm.script">
+                                            <option value="" style="background:#1e1e1e;color:#fff">{{ t('select_default') }}</option>
+                                            <option v-for="s in scripts" :key="s.ID" :value="s.TITLE" style="background:#1e1e1e;color:#fff">{{ s.TITLE }}{{ s.DESCRIPTION ? ' - ' + s.DESCRIPTION : '' }}</option>
+                                        </select>
+                                        <div class="v-input__append-inner"><i class="fas fa-caret-down"></i></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="d-flex gap-2" style="align-items:flex-start">
+                                <div class="v-input v-text-field" style="flex:1">
+                                    <div class="v-input__control">
+                                        <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': hsForm.color }">{{ t('header_status_color') }}</label><input v-model="hsForm.color"></div>
+                                        <div class="v-input__details"><div class="v-messages"></div></div>
+                                    </div>
+                                </div>
+                                <input type="color" v-model="hsForm.color" style="width:40px;height:38px;margin-top:16px;padding:2px;background:transparent;border:1px solid rgba(255,255,255,.2);border-radius:4px;cursor:pointer">
+                            </div>
+                            <div class="v-input v-text-field">
+                                <div class="v-input__control">
+                                    <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': hsForm.map }">{{ t('hs_map') }}</label><textarea v-model="hsForm.map" rows="3" style="resize:vertical;min-height:60px;background:transparent;border:none;color:#fff;outline:none;font-size:16px;line-height:20px;padding:8px 0 4px;width:100%" :placeholder="t('hs_map_placeholder')"></textarea></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <hr class="v-divider theme--dark">
+                    <div class="v-card__actions">
+                        <div class="spacer"></div>
+                        <button type="button" class="v-btn v-btn--text theme--dark v-size--default primary--text text--darken-1" @click="showHeaderStatusEditor = false"><span class="v-btn__content">{{ t('cancel') }}</span></button>
+                        <button type="button" v-if="!headerStatusMaxReached" class="v-btn v-btn--text theme--dark v-size--default primary--text text--darken-1" @click="saveHeaderStatusItem"><span class="v-btn__content">{{ t('save') }}</span></button>
                     </div>
                 </div>
             </div>
@@ -1687,12 +1854,15 @@
                 <div class="modal-body" style="text-align:center;padding:2rem 1.5rem">
                     <i class="fas fa-chart-line" style="font-size:3rem;color:var(--primary);margin-bottom:1rem"></i>
                     <h3 style="margin-bottom:.3rem">Dashboard Pro</h3>
-                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 1.0</p>
+                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 1.03</p>
                     <p style="color:var(--text-secondary);font-size:.8rem">{{ t('app_desc') }}</p>
                     <div class="about-links" style="margin-top:1rem;font-size:.85rem;color:var(--text-secondary);line-height:1.8">
                         <div>{{ t('about_telegram') }}: <a href="https://t.me/+9ZFQaxs_Ukw4NmMy" target="_blank" rel="noopener">Telegram</a></div>
                         <div>{{ t('about_github') }}: <a href="https://github.com/golnet1/dashboard_pro" target="_blank" rel="noopener">Github</a></div>
-                        <div>{{ t('about_donate') }}:<br>Yandex: <a href="https://yoomoney.ru/to/4100130728468" target="_blank" rel="noopener">4100130728468</a></div>
+                        <div>{{ t('about_connect_addon') }}: <a href="https://connect.smartliving.ru/addons/category6/314.html" target="_blank" rel="noopener">Connect</a></div>
+                        <hr style="margin:.5rem 0;border:none;border-top:1px solid rgba(255,255,255,.18)">
+                        <div>{{ t('about_donate') }}:<br>Yandex: <a href="https://yoomoney.ru/to/4100130728468" target="_blank" rel="noopener">4100130728468</a><br>{{ t('about_connect') }} <a href="https://connect.smartliving.ru/tasks/934.html" target="_blank" rel="noopener">Connect</a></div>
+                        <hr style="margin:.5rem 0;border:none;border-top:1px solid rgba(255,255,255,.18)">
                         <div>{{ t('about_author') }}: <a href="https://t.me/golnet96" target="_blank" rel="noopener">{{ t('about_author_name') }}</a></div>
                     </div>
                 </div>
@@ -1707,6 +1877,6 @@
     <script src="js/auth.js?v=9"></script>
     <script src="js/sidebar.js?v=10"></script>
 <script src="js/widget-config.js?v=11"></script>
-<script src="js/app.js?v=133"></script>
+<script src="js/app.js?v=146"></script>
 </body>
 </html>

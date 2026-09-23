@@ -158,7 +158,224 @@ const app = createApp({
         const wsStatus = ref(null);
         const wsRev = reactive({});
         const bgColorMap = reactive({});
-        const settings = ref({ appTitle: '', theme: 'light', defaultPanel: '', debug: false, font: 'Roboto', hideMenu: false, hideChat: false, menuBg: '', panelBg: '', usePanelImage: true, useHeaderImage: false, cardsOpacity: 44, menuOpacity: 16, dialogOpacity: 12, primaryColor: '#1976d2', lightThemeColor: '#ffffff', darkThemeColor: '#303030', iconSize: 0, titleSize: 0, subtitleSize: 0, widgetSize: 0, grid: false, noOverlap: false, gridStep: 10 });
+        const settings = ref({ appTitle: '', theme: 'light', defaultPanel: '', debug: false, font: 'Roboto', hideMenu: false, hideChat: false, menuBg: '', panelBg: '', usePanelImage: true, useHeaderImage: false, cardsOpacity: 44, menuOpacity: 16, dialogOpacity: 12, primaryColor: '#1976d2', lightThemeColor: '#ffffff', darkThemeColor: '#303030', iconSize: 0, titleSize: 0, subtitleSize: 0, widgetSize: 0, grid: false, noOverlap: false, gridStep: 10, compactHeader: false, showHeaderClock: true, showHeaderStatus: true, headerStatusItems: [] });
+
+        const headerNow = ref(new Date());
+        const headerTime = computed(() => headerNow.value.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+        const headerDate = computed(() => headerNow.value.toLocaleDateString([], { year: 'numeric', month: '2-digit', day: '2-digit' }));
+
+        const HEADER_STATUS_BUILTIN = [
+            { key: 'Security', icon: 'lock' },
+            { key: 'System', icon: 'system' },
+            { key: 'Communication', icon: 'network' }
+        ];
+        const HEADER_STATUS_IMAGES = ['lock', 'system', 'network', 'health', 'megad'];
+        const hsStateColors = { green: '#4caf50', yellow: '#ffc107', red: '#f44336', blue: '#03a9f4', gray: '#9e9e9e' };
+        const hsStateImages = { green: true, yellow: true, red: true };
+        function hsStateFromTitle(title) {
+            const s = String(title || '').toLowerCase().replace('ё', 'е');
+            if (s.includes('green') || s.includes('зел')) return 'green';
+            if (s.includes('yellow') || s.includes('желт')) return 'yellow';
+            if (s.includes('red') || s.includes('красн')) return 'red';
+            if (s.includes('blue') || s.includes('син')) return 'blue';
+            if (s.includes('gray') || s.includes('grey') || s.includes('сер') || s.includes('neutral')) return 'gray';
+            return null;
+        }
+        const hdrStatusStore = reactive({});
+
+        const headerStatusItems = computed(() => settings.value.headerStatusItems || []);
+        const headerStatusSectionOn = computed(() => settings.value.showHeaderStatus !== false);
+        const headerStatusMaxReached = computed(() => (settings.value.headerStatusItems || []).length >= 7);
+
+        function hsParseStatus(value) {
+            if (value === null || value === undefined || value === '') return null;
+            if (typeof value === 'object') return value;
+            try { return JSON.parse(value); } catch (e) { return null; }
+        }
+
+        function hsMapArr(item) {
+            try { return JSON.parse(item && item.map || '[]'); } catch (e) { return []; }
+        }
+
+        function hsMatchColor(map, value) {
+            if (!Array.isArray(map) || !map.length) return null;
+            const v = parseFloat(value);
+            if (isNaN(v)) return null;
+            for (const e of map) {
+                const lo = parseFloat(e.status);
+                const hi = (e.status2 !== undefined && e.status2 !== '') ? parseFloat(e.status2) : NaN;
+                if (isNaN(hi) ? (v === lo) : (v >= lo && v <= hi)) return e;
+            }
+            return null;
+        }
+
+        function hsVariantFromHex(hex) {
+            const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || '').trim());
+            if (!m || m[1] === 'ffffff') return 'green';
+            const n = parseInt(m[1], 16);
+            const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+            if (r > 150 && g > 150 && b < 140) return 'yellow';
+            if (r > 150 && g < 130 && b < 150) return 'red';
+            return 'green';
+        }
+
+        const headerStatusList = computed(() => {
+            const list = [];
+            HEADER_STATUS_BUILTIN.forEach((b) => {
+                const st = hdrStatusStore['b_' + b.key];
+                const raw = st && st.text != null ? String(st.text) : '';
+                const state = hsStateFromTitle(raw);
+                const color = state ? hsStateColors[state] : null;
+                const imgOk = !!color && !!hsStateImages[state];
+                list.push({ key: 'b_' + b.key, color: color || null, text: t('hs_builtin_' + b.key.toLowerCase()), title: t('hs_builtin_' + b.key.toLowerCase()), builtin: true, imgOk: imgOk, img: (imgOk ? '/img/icons/status/' + b.icon + '_32_' + state + '.png' : ''), faIcon: null });
+            });
+            (settings.value.headerStatusItems || []).forEach((it, idx) => {
+                const st = hdrStatusStore['c_' + idx];
+                const val = st && st.value != null ? st.value : '';
+                const match = hsMatchColor(hsMapArr(it), val);
+                const color = (match && match.color) || it.color || null;
+                const text = (match && match.title) ? match.title : (val === '' ? '' : String(val));
+                if (it.icon_type === 'img' && it.icon) {
+                    const variant = color ? hsVariantFromHex(color) : 'green';
+                    list.push({ key: 'c_' + idx, color: null, text: text, title: it.tooltip ? it.tooltip : text, builtin: false, editable: true, imgOk: true, img: '/img/icons/status/' + it.icon + '_32_' + variant + '.png' });
+                } else {
+                    list.push({ key: 'c_' + idx, color: color || 'rgba(255,255,255,.6)', text: text, title: it.tooltip ? it.tooltip : text, builtin: false, editable: true, imgOk: false, faIcon: it.icon || 'fas fa-circle' });
+                }
+            });
+            return list;
+        });
+
+        async function refreshHeaderStatus() {
+            if (!authenticated.value || headerStatusSectionOn.value === false) return;
+            HEADER_STATUS_BUILTIN.forEach(async (b) => {
+                try {
+                    let raw = '';
+                    let res = await dpHttp('getProperty?' + new URLSearchParams({ object: b.key, property: 'stateTitle' }));
+                    raw = res && res.value != null ? res.value : '';
+                    if (raw === '') {
+                        res = await dpHttp('getProperty?' + new URLSearchParams({ object: b.key, property: 'status' }));
+                        raw = res && res.value != null ? res.value : '';
+                    }
+                    if (typeof raw === 'object') {
+                        const parsed = hsParseStatus(raw);
+                        raw = parsed && parsed.text != null ? parsed.text : (parsed && parsed.stateDetails != null ? parsed.stateDetails : '');
+                    }
+                    hdrStatusStore['b_' + b.key] = { text: String(raw) };
+                } catch (e) { }
+            });
+            (settings.value.headerStatusItems || []).forEach(async (it, idx) => {
+                try {
+                    let value = null;
+                    if (it.source === 'scenario') {
+                        if (!it.script) return;
+                        const res = await dpHttp('scriptRun?' + new URLSearchParams({ script: it.script }));
+                        value = (res && res.result !== undefined) ? res.result : (res && res.value);
+                    } else {
+                        if (!it.object) return;
+                        const res = await dpHttp('getProperty?' + new URLSearchParams({ object: it.object, property: it.property || 'status' }));
+                        value = res && res.value;
+                        if (typeof value === 'object') {
+                            const parsed = hsParseStatus(value);
+                            value = parsed && parsed.value != null ? parsed.value : (parsed && parsed.stateDetails != null ? parsed.stateDetails : value);
+                        }
+                    }
+                    hdrStatusStore['c_' + idx] = { value: value };
+                } catch (e) { }
+            });
+        }
+
+        function wsApplyHeaderStatus(keyLower, value) {
+            const bi = HEADER_STATUS_BUILTIN.find(b => (b.key + '.statetitle') === keyLower);
+            if (bi) { hdrStatusStore['b_' + bi.key] = { text: value == null ? '' : String(value) }; return; }
+            (settings.value.headerStatusItems || []).forEach((it, idx) => {
+                if (it.source === 'object' && it.object &&
+                    (it.object + '.' + (it.property || 'status')).toLowerCase() === keyLower) {
+                    hdrStatusStore['c_' + idx] = { value: value };
+                }
+            });
+        }
+
+        const showHeaderStatusEditor = ref(false);
+        const hsEditIdx = ref(-1);
+        const hsProperties = ref([]);
+        const hsForm = reactive({ icon_type: 'img', icon: 'lock', source: 'object', object: '', property: '', tooltip: '', script: '', color: '#22c55e', map: '[{"status":"0","color":"#ef4444"},{"status":"1","color":"#22c55e"}]' });
+
+        function hsDefaultForm() {
+            hsForm.icon_type = 'img'; hsForm.icon = 'lock'; hsForm.source = 'object';
+            hsForm.object = ''; hsForm.property = ''; hsForm.tooltip = ''; hsForm.script = '';
+            hsForm.color = '#22c55e';
+            hsForm.map = '[{"status":"0","color":"#ef4444"},{"status":"1","color":"#22c55e"}]';
+            hsProperties.value = [];
+        }
+
+        async function loadHsProperties() {
+            const oid = hsForm.object;
+            if (!oid) { hsProperties.value = []; return; }
+            const res = await dpAPI('properties?object_id=' + encodeURIComponent(oid));
+            hsProperties.value = res.items || [];
+        }
+
+        function clearHsObject() {
+            hsForm.object = ''; hsForm.property = ''; hsProperties.value = [];
+        }
+
+        function hsEnsureFaIcon() {
+            if (hsForm.icon_type !== 'icon') return;
+            const cur = hsForm.icon || '';
+            const isFa = cur.trim().split(/\s+/)[0].toLowerCase().startsWith('fa');
+            if (!isFa) {
+                hsForm.icon = (iconCategories && iconCategories[0] && iconCategories[0].icons && iconCategories[0].icons[0]) || 'fas fa-star';
+                iconSearch.value = ''; iconCategorySearch.value = '';
+                iconCategory.value = 'all'; iconPage.value = 1;
+            }
+        }
+
+        watch(() => hsForm.icon_type, (val) => { if (val === 'icon') hsEnsureFaIcon(); });
+
+        function openHeaderStatusEditor() {
+            hsDefaultForm(); hsEditIdx.value = -1; showHeaderStatusEditor.value = true;
+            hsEnsureFaIcon();
+            if (!objects.value.length) loadObjects();
+            if (!scripts.value.length) loadScripts();
+        }
+
+        function editHeaderStatusItem(idx) {
+            const items = settings.value.headerStatusItems || [];
+            const it = items[idx]; if (!it) return;
+            hsForm.icon_type = it.icon_type || 'img'; hsForm.icon = it.icon || 'lock';
+            hsForm.source = it.source || 'object'; hsForm.object = it.object || '';
+            hsForm.property = it.property || ''; hsForm.tooltip = it.tooltip || ''; hsForm.script = it.script || '';
+            hsForm.color = it.color || '#22c55e'; hsForm.map = it.map || hsForm.map;
+            hsEditIdx.value = idx;
+            showHeaderStatusEditor.value = true;
+            hsEnsureFaIcon();
+            loadHsProperties();
+            if (!objects.value.length) loadObjects();
+            if (!scripts.value.length) loadScripts();
+        }
+
+        function saveHeaderStatusItem() {
+            if (hsForm.source === 'object' && !hsForm.object) return;
+            if (hsForm.source === 'scenario' && !hsForm.script) return;
+            const item = { icon_type: hsForm.icon_type, icon: hsForm.icon, source: hsForm.source, object: hsForm.object, property: hsForm.property, tooltip: hsForm.tooltip, script: hsForm.script, color: hsForm.color, map: hsForm.map };
+            const items = (settings.value.headerStatusItems || []).slice();
+            if (hsEditIdx.value >= 0 && items[hsEditIdx.value]) items[hsEditIdx.value] = item;
+            else items.push(item);
+            settings.value.headerStatusItems = items;
+            savePanels();
+            wsSubscribeProperties();
+            refreshHeaderStatus();
+            showHeaderStatusEditor.value = false;
+        }
+
+        function removeHeaderStatusItem(idx) {
+            const items = (settings.value.headerStatusItems || []).slice();
+            items.splice(idx, 1);
+            settings.value.headerStatusItems = items;
+            savePanels();
+            wsSubscribeProperties();
+            refreshHeaderStatus();
+        }
 
         const filteredDefs = computed(() =>
             widgetSearch.value
@@ -1455,12 +1672,15 @@ function loadScript(src, version) {
 
         function openIconPicker(target) {
             iconTarget.value = target;
+            if (target === 'hs') hsEnsureFaIcon();
             showIconPicker.value = true;
         }
 
         function selectIcon(ic) {
             if (iconTarget.value === 'panel' && panelForm.value) {
                 panelForm.value.icon = ic;
+            } else if (iconTarget.value === 'hs') {
+                hsForm.icon = ic;
             } else if (editWidgetForm.value) {
                 editWidgetForm.value[iconTarget.value] = ic;
             }
@@ -1470,6 +1690,9 @@ function loadScript(src, version) {
         function iconPicked(ic) {
             if (iconTarget.value === 'panel' && panelForm.value) {
                 return panelForm.value.icon === ic;
+            }
+            if (iconTarget.value === 'hs') {
+                return hsForm.icon === ic;
             }
             return editWidgetForm.value && editWidgetForm.value[iconTarget.value] === ic;
         }
@@ -1841,6 +2064,10 @@ function loadScript(src, version) {
             (currentPanel.value?.widgets || []).forEach(w => {
                 wsWidgetPropKeys(w).forEach(k => props.add(k));
             });
+            HEADER_STATUS_BUILTIN.forEach(b => props.add((b.key + '.stateTitle').toLowerCase()));
+            (settings.value.headerStatusItems || []).forEach(it => {
+                if (it.source === 'object' && it.object) props.add((it.object + '.' + (it.property || 'status')).toLowerCase());
+            });
             return Array.from(props);
         }
 
@@ -1924,6 +2151,7 @@ function loadScript(src, version) {
                                 if (!u || !u.PROPERTY) return;
                                 const key = String(u.PROPERTY).toLowerCase();
                                 window.__dpWsCache[key] = { seeded: true, value: u.VALUE };
+                                wsApplyHeaderStatus(key, u.VALUE);
                                 if (window.__dpWsLive) wsRefreshWidgets(key);
                             });
                         }
@@ -2157,12 +2385,17 @@ onMounted(() => {
             document.addEventListener('click', handleClickOutside);
             loadTranslations();
             initAuth();
+            setInterval(() => headerNow.value = new Date(), 1000);
+            setInterval(() => refreshHeaderStatus(), 5000);
+            setTimeout(refreshHeaderStatus, 800);
             setInterval(() => { if (!wsConnected.value) checkNotifications(); }, 10000);
             initWebSocket();
         });
 
         return {
             authenticated, authChecking, login, password, loginError, loginLoading, doLogin, doLogout, testAPI: Auth.testAPI,
+            headerTime, headerDate, headerStatusSectionOn, headerStatusList, headerStatusItems, headerStatusMaxReached,
+            showHeaderStatusEditor, hsForm, hsProperties, hsEditIdx, openHeaderStatusEditor, loadHsProperties, clearHsObject, editHeaderStatusItem, saveHeaderStatusItem, removeHeaderStatusItem, hsMapArr, headerStatusImages: HEADER_STATUS_IMAGES,
             panels, currentPanel, selectPanel, selectHomePanel, loading, editMode,
             showAddWidget, widgetSearch, filteredDefs, plusTooltip, addPlusButton,
             widgetTypeComponent, addWidget, getWidgetFields, getWidgetRows, getWidgetTabs, getFieldOptions, fieldVisible,

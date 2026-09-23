@@ -33,6 +33,24 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .user-menu__item--danger { color: #ef4444; }
 .user-menu__item--danger i { color: #ef4444; }
 .app-bar__actions { display: flex; align-items: center; gap: 2px; }
+.app-bar__actions .app-bar__clock { display: flex; flex-direction: column; align-items: center; line-height: 1.15; margin: 0 10px 0 0; padding: 0 10px; white-space: nowrap; }
+.app-bar__actions .app-bar__clock-time { font-size: 1.05rem; font-weight: 600; color: rgba(255,255,255,.95); font-variant-numeric: tabular-nums; }
+.app-bar__actions .app-bar__clock-date { font-size: .72rem; color: rgba(255,255,255,.6); font-variant-numeric: tabular-nums; }
+.app-bar__status { display: flex; align-items: center; gap: 12px; margin: 0 0 0 4px; padding: 0 10px; white-space: nowrap; }
+.app-bar__status, .app-bar__clock { position: relative; }
+.app-bar__status::after, .app-bar__clock::after { content: ''; position: absolute; right: 0; top: 50%; transform: translateY(-50%); width: 1px; height: 20px; background: rgba(255,255,255,.18); }
+.app-bar__status .app-bar__status-item { display: inline-flex; align-items: center; gap: 5px; }
+.app-bar__status .app-bar__status-icon { width: 20px; height: 20px; object-fit: contain; font-size: .95rem; line-height: 1; }
+.app-bar__status .app-bar__status-text { font-size: .78rem; color: rgba(255,255,255,.8); line-height: 1.1; }
+.app-bar__status .app-bar__status-add { background: none; border: none; color: rgba(255,255,255,.7); font-size: 1rem; padding: .3rem .4rem; cursor: pointer; border-radius: 6px; }
+.app-bar__status .app-bar__status-add:hover { background: rgba(255,255,255,.15); color: #fff; }
+.btn { padding: .6rem 1.2rem; background: rgba(255,255,255,.12); color: #fff; border: none; border-radius: 8px; cursor: pointer; font-size: .85rem; }
+.btn:hover { background: rgba(255,255,255,.2); }
+.hs-item-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.hs-item-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid rgba(255,255,255,.12); border-radius: 8px; }
+.hs-item-icon { width: 20px; height: 20px; object-fit: contain; flex-shrink: 0; }
+.hs-item-label { flex: 1; font-size: .85rem; color: rgba(255,255,255,.85); overflow: hidden; text-overflow: ellipsis; }
+.hs-limit { color: #ffc107; font-size: .85rem; padding: 8px 0; }
 .app-bar__actions button { background: none; border: none; color: rgba(255,255,255,.85); font-size: 1rem; padding: .5rem .6rem; cursor: pointer; border-radius: 6px; }
 .app-bar__actions button:hover { background: rgba(255,255,255,.15); color: #fff; }
 .app-bar__actions button.active { background: rgba(255,255,255,.2); color: #fff; }
@@ -564,10 +582,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .modal-lg { max-width:700px !important; }
 
 /* Dark scrollbar - global fallback (lowest priority) */
-#widget-edit, #panel-edit { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.15) transparent; }
-#widget-edit::-webkit-scrollbar, #panel-edit::-webkit-scrollbar { width: 6px; }
-#widget-edit::-webkit-scrollbar-track, #panel-edit::-webkit-scrollbar-track { background: transparent; }
-#widget-edit::-webkit-scrollbar-thumb, #panel-edit::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 3px; }
+#widget-edit, #panel-edit, #hs-edit { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.15) transparent; }
+#widget-edit::-webkit-scrollbar, #panel-edit::-webkit-scrollbar, #hs-edit::-webkit-scrollbar { width: 6px; }
+#widget-edit::-webkit-scrollbar-track, #panel-edit::-webkit-scrollbar-track, #hs-edit::-webkit-scrollbar-track { background: transparent; }
+#widget-edit::-webkit-scrollbar-thumb, #panel-edit::-webkit-scrollbar-thumb, #hs-edit::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 3px; }
 
 /* Dark scrollbar for dialogs - highest priority */
 .v-dialog--scrollable.v-dialog--active .v-card,
