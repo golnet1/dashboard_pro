@@ -88,13 +88,13 @@ class dashboard_pro extends module
         if (!$session) {
             $session = new session("prj");
         }
-        if (empty($session->data['SITE_USERNAME']) && empty($session->data['AUTHORIZED'])) {
+        if (empty($session->data['DP_PRO_USERNAME']) && empty($session->data['DP_PRO_LOGGED_OUT'])) {
             $rememberUser = $this->restoreRememberedUser();
             if ($rememberUser) {
-                $session->data['SITE_USERNAME'] = $rememberUser['USERNAME'];
-                $session->data['SITE_USER_ID'] = $rememberUser['ID'];
-                $session->data['SITE_USER_ACCESS'] = $rememberUser['IS_ADMIN'] ? 'admin' : 'user';
-                $session->data['SPA_LOGGED_OUT'] = false;
+                $session->data['DP_PRO_USERNAME'] = $rememberUser['USERNAME'];
+                $session->data['DP_PRO_USER_ID'] = $rememberUser['ID'];
+                $session->data['DP_PRO_USER_ACCESS'] = $rememberUser['IS_ADMIN'] ? 'admin' : 'user';
+                $session->data['DP_PRO_LOGGED_OUT'] = false;
                 $session->save();
             }
         }
@@ -102,41 +102,33 @@ class dashboard_pro extends module
             return ['status' => 'ok', 'time' => time(), 'session' => $session ? 'active' : 'none'];
         }
         if ($params['request'][0] == 'checkAuth') {
-            if ($session && !empty($session->data['SITE_USERNAME'])) {
-                $is_admin = ($session->data['SITE_USER_ACCESS'] ?? '') === 'admin';
-                $user = SQLSelectOne("SELECT * FROM users WHERE USERNAME LIKE '" . DBSafe($session->data['SITE_USERNAME']) . "'");
+            if ($session && !empty($session->data['DP_PRO_USERNAME']) && empty($session->data['DP_PRO_LOGGED_OUT'])) {
+                $is_admin = ($session->data['DP_PRO_USER_ACCESS'] ?? '') === 'admin';
+                $user = SQLSelectOne("SELECT * FROM users WHERE USERNAME LIKE '" . DBSafe($session->data['DP_PRO_USERNAME']) . "'");
                 return [
                     'authenticated' => true,
-                    'username' => $session->data['SITE_USERNAME'],
-                    'name' => $user['NAME'] ?? $session->data['SITE_USERNAME'],
+                    'username' => $session->data['DP_PRO_USERNAME'],
+                    'name' => $user['NAME'] ?? $session->data['DP_PRO_USERNAME'],
                     'avatar' => $user['AVATAR'] ? '/cms/avatars/' . $user['AVATAR'] : '',
                     'is_admin' => $is_admin
                 ];
             }
-            if ($session && !empty($session->data['AUTHORIZED']) && empty($session->data['SPA_LOGGED_OUT'])) {
-                $user = SQLSelectOne("SELECT * FROM users WHERE USERNAME LIKE '" . DBSafe($session->data['USER_NAME'] ?? '') . "'");
-                return [
-                    'authenticated' => true,
-                    'username' => $session->data['USER_NAME'] ?? '',
-                    'name' => $user['NAME'] ?? ($session->data['USER_NAME'] ?? ''),
-                    'avatar' => $user['AVATAR'] ? '/cms/avatars/' . $user['AVATAR'] : '',
-                    'is_admin' => true
-                ];
-            }
-            $rememberUser = $this->restoreRememberedUser();
-            if ($rememberUser && $session) {
-                $session->data['SITE_USERNAME'] = $rememberUser['USERNAME'];
-                $session->data['SITE_USER_ID'] = $rememberUser['ID'];
-                $session->data['SITE_USER_ACCESS'] = $rememberUser['IS_ADMIN'] ? 'admin' : 'user';
-                $session->data['SPA_LOGGED_OUT'] = false;
-                $session->save();
-                return [
-                    'authenticated' => true,
-                    'username' => $rememberUser['USERNAME'],
-                    'name' => $rememberUser['NAME'] ?? $rememberUser['USERNAME'],
-                    'avatar' => $rememberUser['AVATAR'] ? '/cms/avatars/' . $rememberUser['AVATAR'] : '',
-                    'is_admin' => (bool)$rememberUser['IS_ADMIN']
-                ];
+            if ($session && empty($session->data['DP_PRO_LOGGED_OUT'])) {
+                $rememberUser = $this->restoreRememberedUser();
+                if ($rememberUser) {
+                    $session->data['DP_PRO_USERNAME'] = $rememberUser['USERNAME'];
+                    $session->data['DP_PRO_USER_ID'] = $rememberUser['ID'];
+                    $session->data['DP_PRO_USER_ACCESS'] = $rememberUser['IS_ADMIN'] ? 'admin' : 'user';
+                    $session->data['DP_PRO_LOGGED_OUT'] = false;
+                    $session->save();
+                    return [
+                        'authenticated' => true,
+                        'username' => $rememberUser['USERNAME'],
+                        'name' => $rememberUser['NAME'] ?? $rememberUser['USERNAME'],
+                        'avatar' => $rememberUser['AVATAR'] ? '/cms/avatars/' . $rememberUser['AVATAR'] : '',
+                        'is_admin' => (bool)$rememberUser['IS_ADMIN']
+                    ];
+                }
             }
             return ['authenticated' => false];
         }
@@ -152,10 +144,10 @@ class dashboard_pro extends module
             $user = SQLSelectOne("SELECT * FROM users WHERE USERNAME LIKE '" . DBSafe($username) . "'");
             if ($user && ($user['PASSWORD'] == '' || hash('sha512', $password) == $user['PASSWORD'])) {
                 if ($session) {
-                    $session->data['SITE_USERNAME'] = $user['USERNAME'];
-                    $session->data['SITE_USER_ID'] = $user['ID'];
-                    $session->data['SITE_USER_ACCESS'] = $user['IS_ADMIN'] ? 'admin' : 'user';
-                    $session->data['SPA_LOGGED_OUT'] = false;
+                    $session->data['DP_PRO_USERNAME'] = $user['USERNAME'];
+                    $session->data['DP_PRO_USER_ID'] = $user['ID'];
+                    $session->data['DP_PRO_USER_ACCESS'] = $user['IS_ADMIN'] ? 'admin' : 'user';
+                    $session->data['DP_PRO_LOGGED_OUT'] = false;
                     $session->save();
                     $this->issueRememberToken($user['USERNAME']);
                 }
@@ -172,10 +164,10 @@ class dashboard_pro extends module
 
         if ($params['request'][0] == 'logout') {
             if ($session) {
-                unset($session->data['SITE_USERNAME']);
-                unset($session->data['SITE_USER_ID']);
-                unset($session->data['SITE_USER_ACCESS']);
-                $session->data['SPA_LOGGED_OUT'] = true;
+                unset($session->data['DP_PRO_USERNAME']);
+                unset($session->data['DP_PRO_USER_ID']);
+                unset($session->data['DP_PRO_USER_ACCESS']);
+                $session->data['DP_PRO_LOGGED_OUT'] = true;
                 $session->save();
             }
             $this->clearRememberToken();
@@ -211,11 +203,8 @@ class dashboard_pro extends module
                 $text = trim($input['message'] ?? '');
                 if ($text === '') return ['error' => 'Message is empty'];
                 $member_id = 0;
-                if ($session && !empty($session->data['SITE_USERNAME'])) {
-                    $u = SQLSelectOne("SELECT * FROM users WHERE USERNAME LIKE '" . DBSafe($session->data['SITE_USERNAME']) . "'");
-                    if ($u['ID']) $member_id = (int)$u['ID'];
-                } elseif ($session && !empty($session->data['AUTHORIZED'])) {
-                    $u = SQLSelectOne("SELECT * FROM users WHERE USERNAME LIKE '" . DBSafe($session->data['USER_NAME'] ?? '') . "'");
+                if ($session && !empty($session->data['DP_PRO_USERNAME'])) {
+                    $u = SQLSelectOne("SELECT * FROM users WHERE USERNAME LIKE '" . DBSafe($session->data['DP_PRO_USERNAME']) . "'");
                     if ($u['ID']) $member_id = (int)$u['ID'];
                 }
                 $before = SQLSelectOne("SELECT MAX(ID) as mid FROM shouts");
@@ -839,11 +828,8 @@ class dashboard_pro extends module
         if (!$session) {
             $session = new session("prj");
         }
-        if (!empty($session->data['SITE_USERNAME'])) {
-            return $session->data['SITE_USERNAME'];
-        }
-        if (!empty($session->data['AUTHORIZED']) && empty($session->data['SPA_LOGGED_OUT'])) {
-            return $session->data['USER_NAME'] ?? '';
+        if (!empty($session->data['DP_PRO_USERNAME']) && empty($session->data['DP_PRO_LOGGED_OUT'])) {
+            return $session->data['DP_PRO_USERNAME'];
         }
         return '';
     }
@@ -1818,7 +1804,7 @@ class dashboard_pro extends module
             `CREATED` int(10) unsigned NOT NULL DEFAULT '0',
             PRIMARY KEY (`ID`),
             UNIQUE KEY `TOKEN` (`TOKEN`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        ) DEFAULT CHARSET=utf8mb4");
         $rememberTableReady = true;
     }
 
