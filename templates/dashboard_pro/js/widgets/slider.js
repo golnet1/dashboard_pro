@@ -13,6 +13,7 @@ const SliderWidget = {
             { key: 'min', label: 'field_min', type: 'number', row: 'range' },
             { key: 'max', label: 'field_max', type: 'number', row: 'range' },
             { key: 'step', label: 'field_step', type: 'number', step: 'any', row: 'range' },
+            { key: 'unit', label: 'field_unit', type: 'text', placeholder: 'ph_percent' },
             { key: 'prepend_icon', label: 'field_prepend_icon', type: 'icon_picker', placeholder: 'ph_fa_icon', row: 'icons' },
             { key: 'append_icon', label: 'field_append_icon', type: 'icon_picker', placeholder: 'ph_fa_icon', row: 'icons' },
         ],
@@ -27,19 +28,17 @@ const SliderWidget = {
             { key: 'alive_timeout', label: 'field_alive_timeout', type: 'number', step: 1 },
         ],
     },
-    defaults: { icon: 'fas fa-sliders-h', icon_type: 'icon', property: 'level', min: 0, max: 100, step: 1, prepend_icon: '', append_icon: '', height: 100 },
+    defaults: { icon: 'fas fa-sliders-h', icon_type: 'icon', property: 'level', min: 0, max: 100, step: 1, unit: '', prepend_icon: '', append_icon: '', height: 100 },
     template: `
         <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled }" :style="cardStyle">
             <div class="widget-v-card__header">
                 <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon"></i>
-                <div class="widget-v-card__title">{{ widget.title || t('widget_slider') }}</div>
-                <div class="widget-v-card__spacer"></div>
-                <div class="widget-v-card__value-text" style="font-size:1rem;font-weight:600">{{ currentValue }}<span v-if="widget.unit" style="font-size:.75rem;opacity:.6;margin-left:2px">{{ widget.unit }}</span></div>
+                <div class="widget-v-card__title">{{ widget.title || t('widget_slider') }}: <span style="font-size:1rem;font-weight:600;color:var(--on-theme-high)">{{ currentValue }}<span v-if="widget.unit" style="margin-left:4px">{{ widget.unit }}</span></span></div>
             </div>
             <div class="widget-v-card__body" style="padding:0 12px 12px">
-                <div class="v-slider theme--dark" style="width:100%">
+                <div class="v-slider theme--dark" style="width:100%;margin-top:8px">
                     <i v-if="widget.prepend_icon" :class="widget.prepend_icon" style="font-size:.85rem;color:rgba(255,255,255,.5);margin-right:4px;cursor:pointer" @click="down"></i>
-                    <input type="range" class="v-slider__input" :min="min" :max="max" :step="step" v-model.number="currentValue" @input="onInput" @change="onChange" :disabled="loading || aliveDisabled">
+                    <input type="range" class="v-slider__input" :min="min" :max="max" :step="step" v-model.number="currentValue" @change="onChange" :disabled="loading">
                     <div class="v-slider__track"><div class="v-slider__track-fill" :style="{width: fillPercent + '%'}"></div></div>
                     <div class="v-slider__thumb-container" :style="{left: fillPercent + '%'}"><div class="v-slider__thumb"></div></div>
                     <i v-if="widget.append_icon" :class="widget.append_icon" style="font-size:.85rem;color:rgba(255,255,255,.5);margin-left:4px;cursor:pointer" @click="up"></i>
@@ -98,8 +97,6 @@ const SliderWidget = {
                     this.currentValue = Number(d.value);
                 }
             } catch (e) { /* silent */ }
-        },
-        onInput() {
         },
         async onChange() {
             if (this.loading) return;

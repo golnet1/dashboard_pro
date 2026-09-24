@@ -269,7 +269,11 @@ class dashboard_pro extends module
             if (!$last_shout && $session && !empty($session->data['DASHBOARD_PRO_LAST_SHOUT'])) {
                 $last_shout = (int)$session->data['DASHBOARD_PRO_LAST_SHOUT'];
             }
-            $shouts = SQLSelect("SELECT ID, MESSAGE, ADDED FROM shouts WHERE MEMBER_ID=0 AND ID > $last_shout ORDER BY ADDED DESC LIMIT 20");
+            $shout_where = "MEMBER_ID=0 AND ID > $last_shout";
+            $shouts = SQLSelect("SELECT ID, MESSAGE, ADDED FROM shouts WHERE $shout_where ORDER BY ADDED DESC LIMIT 20");
+            $notif_total = SQLSelectOne("SELECT COUNT(*) as CNT FROM module_notifications WHERE IS_READ=0");
+            $shout_total = SQLSelectOne("SELECT COUNT(*) as CNT FROM shouts WHERE $shout_where");
+            $unread_total = (int)($notif_total['CNT'] ?? 0) + (int)($shout_total['CNT'] ?? 0);
             $computer_name = gg('site_title');
             if (!$computer_name) {
                 $computer_name = LANG_DASHBOARD_PRO_ALICE;
@@ -287,8 +291,7 @@ class dashboard_pro extends module
             usort($items, function($a, $b) {
                 return strcmp($b['ADDED'] ?? '', $a['ADDED'] ?? '');
             });
-            $count = count($items);
-            return ['count' => $count, 'items' => $items];
+            return ['count' => $unread_total, 'items' => $items];
         }
 
         if ($params['request'][0] == 'auditWidgets') {
@@ -1708,12 +1711,13 @@ class dashboard_pro extends module
             array('group', 'fas fa-layer-group', 'Group', 'Widget group'),
             array('map', 'fas fa-map-marker-alt', 'Map', 'Map with marker'),
             array('calendar', 'fas fa-calendar-alt', 'Calendar', 'Calendar'),
-            array('colorslider', 'fas fa-palette', 'Color (sliders)', 'Color with RGB sliders'),
+            array('colorslider', 'fas fa-palette', 'Color slider', 'Color with hue slider'),
             array('empty', 'fas fa-square', 'Empty', 'Empty separator'),
             array('keypad', 'fas fa-th', 'Keypad', 'Numeric keypad'),
             array('roominfo', 'fas fa-home', 'Room info', 'Room indicators'),
             array('slideshow', 'fas fa-images', 'Slideshow', 'Image slideshow'),
             array('sliderbuttons', 'fas fa-plus-minus', 'Slider with buttons', 'Slider with +/- buttons'),
+            array('gradient-slider', 'fas fa-fill-drip', 'Gradient slider', 'Slider with gradient scale'),
             array('thermostat', 'fas fa-thermometer-half', 'Thermostat', 'Temperature control'),
             array('trend', 'fas fa-chart-line', 'Trend', 'Value trend'),
             array('tvremote', 'fas fa-tv', 'TV remote', 'TV remote control'),

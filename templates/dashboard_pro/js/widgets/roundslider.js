@@ -29,19 +29,19 @@ const RoundSliderWidget = {
     defaults: { icon: 'fas fa-circle', icon_type: 'icon', min: 0, max: 100, step: 1, unit: '%', height: 170 },
     template: `
         <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled }" :style="cardStyle">
-            <div class="widget-v-card__header">
-                <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon"></i>
-                <div class="widget-v-card__title">{{ widget.title || t('widget_roundslider') }}</div>
-            </div>
-            <div class="widget-v-card__body" style="display:flex;align-items:center;justify-content:center;flex:1;padding:8px;overflow:hidden;position:relative">
-                <canvas ref="canvas" style="width:100%;height:100%;cursor:pointer" @mousedown="startDrag" @mousemove="onDrag" @mouseup="endDrag" @mouseleave="endDrag"></canvas>
-                <div style="position:absolute;font-size:1.2rem;font-weight:500;color:rgba(255,255,255,.87);pointer-events:none">{{ displayValue }}{{ widget.unit || '' }}</div>
+            <div class="widget-v-card__body" style="display:flex;align-items:center;justify-content:center;flex:1;padding:0;overflow:hidden;position:relative">
+                <canvas ref="canvas" style="display:block;cursor:pointer" @mousedown="startDrag" @mousemove="onDrag" @mouseup="endDrag" @mouseleave="endDrag"></canvas>
+                <i v-if="widget.icon" :class="widget.icon" style="position:absolute;top:4px;left:8px;font-size:1rem;color:rgba(255,255,255,.6);pointer-events:none"></i>
+                <div style="position:absolute;display:flex;flex-direction:column;align-items:center;pointer-events:none">
+                    <div style="font-size:1.2rem;font-weight:500;color:rgba(255,255,255,.87)">{{ displayValue }}<span v-if="widget.unit" style="margin-left:4px">{{ widget.unit }}</span></div>
+                    <div v-if="widget.title" style="margin-top:4px;font-size:1.2rem;font-weight:500;color:rgba(255,255,255,.6);white-space:nowrap">{{ widget.title }}</div>
+                </div>
             </div>
         </div>`,
     data() { return { currentValue: null, dragging: false, timer: null, isAlive: true, availTimer: null }; },
     computed: {
         aliveDisabled() {
-            return this.widget.object_alive && this.widget.property_alive && this.isAlive === false;
+            return !!(this.widget.object_alive && this.widget.property_alive && this.isAlive === false);
         },
         cardStyle() {
             const s = {};
@@ -58,11 +58,18 @@ const RoundSliderWidget = {
         pct() {
             if (this.currentValue === null) return 0;
             return ((this.currentValue - this.min) / (this.max - this.min)) * 100;
-        }
+        },
+        gapAngle() { return 0.4; },
+        trackStart() { return Math.PI / 2 + this.gapAngle / 2; },
+        trackSweep() { return Math.PI * 2 - this.gapAngle; }
     },
     mounted() {
         this.load();
         this.$nextTick(() => this.draw());
+        if (typeof ResizeObserver !== 'undefined') {
+            this._resizeObserver = new ResizeObserver(() => this.draw());
+            this._resizeObserver.observe(this.$el);
+        }
         const obj = this.widget.object_value || this.widget.object;
         if (obj && !window.__dpWsLive) this.timer = setInterval(() => this.load(), 5000);
         if (this.widget.object_alive && this.widget.property_alive) {
@@ -70,7 +77,11 @@ const RoundSliderWidget = {
             this.availTimer = setInterval(() => this.checkAlive(), (this.widget.alive_timeout || 3) * 1000);
         }
     },
-    beforeUnmount() { if (this.timer) clearInterval(this.timer); if (this.availTimer) clearInterval(this.availTimer); },
+    beforeUnmount() {
+        if (this.timer) clearInterval(this.timer);
+        if (this.availTimer) clearInterval(this.availTimer);
+        if (this._resizeObserver) this._resizeObserver.disconnect();
+    },
     methods: {
         async checkAlive() {
             try {
@@ -91,28 +102,31 @@ const RoundSliderWidget = {
             const canvas = this.$refs.canvas;
             if (!canvas) return;
             const rect = this.$el.getBoundingClientRect();
-            const size = Math.min(rect.width - 24, rect.height - 80);
+            const size = Math.max(20, Math.min(rect.width, rect.height) - 10);
             canvas.width = size * 2;
             canvas.height = size * 2;
+            canvas.style.width = size + 'px';
+            canvas.style.height = size + 'px';
             const ctx = canvas.getContext('2d');
             const cx = canvas.width / 2, cy = canvas.height / 2, r = cx - 12;
             const pct = this.pct;
 
+            const startAngle = this.trackStart;
+            const sweep = this.trackSweep;
+
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             ctx.beginPath();
-            ctx.arc(cx, cy, r, 0, Math.PI * 2);
+            ctx.arc(cx, cy, r, startAngle, startAngle + sweep);
             ctx.strokeStyle = 'rgba(255,255,255,.1)';
             ctx.lineWidth = 12;
             ctx.stroke();
 
-            const startAngle = -Math.PI / 2;
-            const endAngle = startAngle + (pct / 100) * Math.PI * 2;
+            const endAngle = startAngle + (pct / 100) * sweep;
             ctx.beginPath();
             ctx.arc(cx, cy, r, startAngle, endAngle);
             ctx.strokeStyle = 'rgba(66,165,245,.8)';
             ctx.lineWidth = 12;
-            ctx.lineCap = 'round';
             ctx.stroke();
 
             const ha = endAngle;
@@ -127,7 +141,7 @@ const RoundSliderWidget = {
             const rect = canvas.getBoundingClientRect();
             const cx2 = rect.left + rect.width / 2, cy2 = rect.top + rect.height / 2;
             const dx = e.clientX - cx2, dy = e.clientY - cy2;
-            let a = Math.atan2(dy, dx) + Math.PI / 2;
+            let a = Math.atan2(dy, dx);
             if (a < 0) a += Math.PI * 2;
             return a;
         },
@@ -135,7 +149,9 @@ const RoundSliderWidget = {
         onDrag(e) {
             if (!this.dragging) return;
             const a = this.getAngle(e);
-            const pct = Math.max(0, Math.min(100, (a / (Math.PI * 2)) * 100));
+            let rel = a - this.trackStart;
+            if (rel < 0) rel += Math.PI * 2;
+            const pct = Math.max(0, Math.min(100, (rel / this.trackSweep) * 100));
             const val = this.min + (pct / 100) * (this.max - this.min);
             const stepped = Math.round(val / this.step) * this.step;
             this.currentValue = Math.max(this.min, Math.min(this.max, stepped));

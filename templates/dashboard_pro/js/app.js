@@ -138,7 +138,7 @@ const app = createApp({
         const iconCategory = ref('all');
         const iconCategorySearch = ref('');
         const iconPage = ref(1);
-        const iconPageSize = 24;
+        const iconPageSize = 63;
         const panelForm = ref({ title: '', iconType: 'icon', icon: 'fas fa-folder', iconObject: '', iconProperty: '', image: '', hideNav: false, hideHome: false, panelType: 'group', parentGroup: 'root', dropdownNav: false, openOnClick: false, infoObject: '', infoProperty: '', infoPrefix: '', infoPostfix: '', background: false, circle: false, iconColor: 'default', showImageNav: false, individualSettings: false, showImageBg: false, bgSize: 'cover', verticalCompact: false });
         const objects = ref([]);
         const scripts = ref([]);
@@ -377,11 +377,15 @@ const app = createApp({
             refreshHeaderStatus();
         }
 
-        const filteredDefs = computed(() =>
-            widgetSearch.value
-                ? widgetDefs.value.filter(d => (d.title || '').toLowerCase().includes(widgetSearch.value.toLowerCase()))
-                : widgetDefs.value
-        );
+        const filteredDefs = computed(() => {
+            const q = widgetSearch.value.trim().toLowerCase();
+            if (!q) return widgetDefs.value;
+            return widgetDefs.value.filter(d => {
+                const haystack = [t('widget_' + d.type), d.title, t('widget_' + d.type + '_desc'), d.type]
+                    .map(s => String(s || '').toLowerCase());
+                return haystack.some(s => s.includes(q));
+            });
+        });
 
         
         function getWidgetFields(type, tab) {
@@ -442,7 +446,7 @@ const app = createApp({
                 }
             }
             tabs = tabs.filter(tab => {
-                if (tab.key === 'columns' || tab.key === 'widgets' || tab.key === 'graphs') return true;
+                if (tab.key === 'columns' || tab.key === 'widgets' || tab.key === 'graphs' || tab.key === 'colors') return true;
                 const fields = getWidgetFields(type, tab.fields || tab.key);
                 return fields.length > 0;
             });
@@ -742,7 +746,7 @@ function loadScript(src, version) {
             widgetList.value = [...widgetDefs.value].sort((a, b) => (a.priority || 0) - (b.priority || 0));
             for (const w of widgets.items) {
                 if (!w.FILE) continue;
-                await loadScript(w.FILE, 67);
+                await loadScript(w.FILE, 87);
             }
             widgetDefs.value.forEach(d => registerWidgetComponent(d.type));
         }
@@ -892,7 +896,7 @@ function loadScript(src, version) {
             editWidgetForm.value = {
                 ...w,
                 children: Array.isArray(w.children) ? w.children.map(c => ({ ...c })) : [],
-                title: w.title || def?.title || w.type,
+                title: w.title || '',
                 icon_type: w.icon_type || w.iconType || 'icon',
                 icon_object: w.icon_object || w.iconObject || '',
                 icon_property: w.icon_property || w.iconProperty || '',
@@ -1240,6 +1244,51 @@ function loadScript(src, version) {
             } else {
                 savePanels();
             }
+        }
+
+        const grDragState = ref(-1);
+        function grParse() {
+            let arr = [];
+            try {
+                const raw = editWidgetForm.value && editWidgetForm.value.colors;
+                const parsed = raw && typeof raw === 'string' ? JSON.parse(raw) : raw;
+                if (Array.isArray(parsed)) arr = parsed.map(c => c && c.color).filter(c => typeof c === 'string');
+            } catch (e) { arr = []; }
+            if (arr.length < 2) arr = ['#a855f7', '#3b82f6', '#22c55e', '#facc15', '#ef4444'];
+            return arr;
+        }
+        function grWrite(arr) {
+            editWidgetForm.value.colors = JSON.stringify(arr.map(color => ({ color: String(color || '').trim() })));
+        }
+        function grColors() { return grParse().map(color => ({ color })); }
+        function grPreview() { return { background: 'linear-gradient(90deg,' + grParse().join(',') + ')' }; }
+        function grAdd() {
+            const arr = grParse();
+            arr.push('#22c55e');
+            grWrite(arr);
+        }
+        function grRemove(i) {
+            const arr = grParse();
+            if (arr.length <= 2) return;
+            arr.splice(i, 1);
+            grWrite(arr);
+        }
+        function grSet(i, v) {
+            const arr = grParse();
+            if (arr[i] === undefined) return;
+            let val = String(v || '').trim();
+            if (/^[0-9a-fA-F]{6}$/.test(val)) val = '#' + val;
+            arr[i] = val;
+            grWrite(arr);
+        }
+        function grDrop(i) {
+            const from = grDragState.value;
+            if (from < 0 || from === i) { grDragState.value = -1; return; }
+            const arr = grParse();
+            const [it] = arr.splice(from, 1);
+            arr.splice(i, 0, it);
+            grWrite(arr);
+            grDragState.value = -1;
         }
 
         function startDrag(e, w) {
@@ -2401,6 +2450,7 @@ onMounted(() => {
             widgetTypeComponent, addWidget, getWidgetFields, getWidgetRows, getWidgetTabs, getFieldOptions, fieldVisible,
             getMethodObj, getMethodName, setMethodField, itemLabel,
             editWidgetForm, editWidgetIsNew, widgetTab, widgetTabPos, editWidget, saveEditWidget, removeWidget,
+            grDragState, grColors, grPreview, grAdd, grRemove, grSet, grDrop,
             editWidgetParent, groupAddTarget, removeGroupChild,
             groupChildrenList, startGroupChildAdd, closeEditor, moveGroupChildOut, confirmOutOfGroup, groupChildMouseDown, groupChildMouseMove, groupChildMouseUp, resetChildDrag, dragChildId, dragOverChildId,
             columnIdx, columnList, setColumns, addColumn, removeColumn, moveColumnUp, moveColumnDown, autoDetectColumns, columnFields, columnFieldVisible, getColumnFieldRows,

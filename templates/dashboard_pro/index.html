@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Pro</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/app.css?v=53">
+    <link rel="stylesheet" href="css/app.css?v=55">
     <script src="js/lib/vue.global.prod.js"></script>
 </head>
 <body>
@@ -1377,6 +1377,33 @@
                                         </div>
                                         </template>
 
+                                        <template v-else-if="tab.key === 'colors'">
+                                        <div class="pb-0 col" style="color:rgba(255,255,255,.7);font-size:.9rem">{{ t('field_gradient_scale') }}</div>
+                                        <div class="pb-0 my-3 col" style="height:34px;border-radius:6px;border:1px solid rgba(255,255,255,.12)" :style="grPreview()"></div>
+                                        <div class="d-flex gap-1" style="align-items:center;margin-top:4px">
+                                            <button type="button" class="v-btn v-btn--is-elevated v-btn--fab v-btn--has-bg v-btn--round v-size--x-small" @click="grAdd" :title="t('add_color')"><i class="fas fa-plus"></i></button>
+                                            <span style="color:rgba(255,255,255,.45);font-size:.8rem">{{ grColors().length }}</span>
+                                        </div>
+                                        <div class="widget-group-list" style="margin-top:8px">
+                                            <div v-for="(c, i) in grColors()" :key="i"
+                                                 class="widget-group-list__item"
+                                                 draggable="true"
+                                                 @dragstart="grDragState = i"
+                                                 @dragover.prevent
+                                                 @drop="grDrop(i)"
+                                                 style="display:flex;align-items:center;gap:10px;cursor:grab;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:6px 10px">
+                                                <i class="fas fa-bars" style="cursor:grab;color:rgba(255,255,255,.5)"></i>
+                                                <div class="v-input v-text-field" style="flex:1;min-width:0">
+                                                    <div class="v-input__control">
+                                                        <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': c.color }">{{ t('field_color') }}</label><input :value="c.color" @input="grSet(i, $event.target.value)"></div>
+                                                    </div>
+                                                </div>
+                                                <input type="color" :value="c.color" @input="grSet(i, $event.target.value)" style="width:36px;height:34px;padding:2px;background:transparent;border:1px solid rgba(255,255,255,.2);border-radius:4px;cursor:pointer">
+                                                <button type="button" class="v-btn v-btn--is-elevated v-btn--fab v-btn--has-bg v-btn--round v-size--x-small" :title="t('remove_color')" :disabled="grColors().length <= 2" @click="grRemove(i)"><i class="fas fa-minus"></i></button>
+                                            </div>
+                                        </div>
+                                        </template>
+
                                         <template v-else>
                                         <template v-for="(row, ri) in getWidgetRows(editWidgetForm.type, tab.fields || tab.key)" :key="ri">
                                             <div :class="row.row ? 'd-flex gap-2' : ''" :style="row.row ? 'align-items:flex-start' : ''">
@@ -1496,7 +1523,7 @@
                                                                         <div class="v-input__details"><div class="v-messages"></div></div>
                                                                     </div>
                                                                 </div>
-                                                                 <button class="icon-btn" :title="t('pick_icon')" @click="openIconPicker(field.key)" style="margin-top:16px;flex-shrink:0"><i :class="editWidgetForm[field.key] || 'fas fa-folder'"></i></button>
+                                                                 <button class="icon-btn" :title="t('pick_icon')" @click="openIconPicker(field.key)" style="margin-top:16px;flex-shrink:0"><i :class="editWidgetForm[field.key] || field.fallback || 'fas fa-folder'"></i></button>
                                                                 <button class="icon-btn" @click="editWidgetForm[field.key]=''" :title="t('clear')" style="margin-top:16px;flex-shrink:0"><i class="fas fa-backspace"></i></button>
                                                             </div>
                                                         </template>
@@ -1854,7 +1881,7 @@
                 <div class="modal-body" style="text-align:center;padding:2rem 1.5rem">
                     <i class="fas fa-chart-line" style="font-size:3rem;color:var(--primary);margin-bottom:1rem"></i>
                     <h3 style="margin-bottom:.3rem">Dashboard Pro</h3>
-                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 1.04</p>
+                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 1.05</p>
                     <p style="color:var(--text-secondary);font-size:.8rem">{{ t('app_desc') }}</p>
                     <div class="about-links" style="margin-top:1rem;font-size:.85rem;color:var(--text-secondary);line-height:1.8">
                         <div>{{ t('about_telegram') }}: <a href="https://t.me/+9ZFQaxs_Ukw4NmMy" target="_blank" rel="noopener">Telegram</a></div>
@@ -1877,6 +1904,6 @@
     <script src="js/auth.js?v=9"></script>
     <script src="js/sidebar.js?v=10"></script>
 <script src="js/widget-config.js?v=11"></script>
-<script src="js/app.js?v=147"></script>
+<script src="js/app.js?v=166"></script>
 </body>
 </html>

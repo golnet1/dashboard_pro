@@ -14,6 +14,9 @@ const SliderButtonsWidget = {
             { key: 'max', label: 'field_max', type: 'number', default: 100, row: 'range' },
             { key: 'step', label: 'field_step', type: 'number', default: 1, row: 'range' },
             { key: 'unit', label: 'field_unit', type: 'text', placeholder: 'ph_percent' },
+            { key: 'prepend_icon', label: 'field_prepend_icon', type: 'icon_picker', placeholder: 'ph_fa_icon', row: 'icons', fallback: 'fas fa-minus' },
+            { key: 'append_icon', label: 'field_append_icon', type: 'icon_picker', placeholder: 'ph_fa_icon', row: 'icons', fallback: 'fas fa-plus' },
+            { key: 'round', label: 'field_round', type: 'checkbox', default: false },
         ],
         advanced: [
             { key: 'bg_mode', label: 'field_bg_mode', type: 'select', row: 'bg_row', options: [{value:'default',label:'opt_default'},{value:'image',label:'opt_image'},{value:'color',label:'opt_custom_color'},{value:'property',label:'opt_color_property'}] },
@@ -26,20 +29,18 @@ const SliderButtonsWidget = {
             { key: 'alive_timeout', label: 'field_alive_timeout', type: 'number', step: 1 },
         ],
     },
-    defaults: { icon: 'fas fa-plus-minus', icon_type: 'icon', property: 'level', min: 0, max: 100, step: 1, unit: '', height: 130 },
+    defaults: { icon: 'fas fa-plus-minus', icon_type: 'icon', property: 'level', min: 0, max: 100, step: 1, unit: '', round: false, prepend_icon: '', append_icon: '', height: 130 },
     template: `
         <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled }" :style="cardStyle" style="display:flex;flex-direction:column">
             <div class="widget-v-card__header">
                 <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon"></i>
-                <div class="widget-v-card__title">{{ widget.title || t('widget_slider') }}</div>
-                <div class="widget-v-card__spacer"></div>
-                <span style="font-size:.85rem;font-weight:500;color:rgba(255,255,255,.87)">{{ displayValue }}</span>
+                <div class="widget-v-card__title">{{ widget.title || t('widget_sliderbuttons') }}</div>
             </div>
-            <div class="widget-v-card__body" style="padding:8px 12px 12px;display:flex;flex-direction:column;gap:8px">
-                <input type="range" :min="widget.min || 0" :max="widget.max || 100" :step="widget.step || 1" v-model.number="value" @input="onChange" :disabled="aliveDisabled" style="width:100%;accent-color:var(--primary)">
-                <div style="display:flex;gap:8px">
-                    <button @click="stepDown" :disabled="aliveDisabled" style="flex:1;padding:6px;border:1px solid rgba(255,255,255,.15);border-radius:6px;background:rgba(255,255,255,.05);color:rgba(255,255,255,.8);cursor:pointer;font-size:1.1rem">−</button>
-                    <button @click="stepUp" :disabled="aliveDisabled" style="flex:1;padding:6px;border:1px solid rgba(255,255,255,.15);border-radius:6px;background:rgba(255,255,255,.05);color:rgba(255,255,255,.8);cursor:pointer;font-size:1.1rem">+</button>
+            <div class="widget-v-card__body" style="padding:8px 12px 12px;display:flex;flex-direction:column">
+                <div style="display:flex;align-items:center;gap:10px;flex:1">
+                    <button type="button" @click="stepDown" :disabled="aliveDisabled" :style="btnStyle" aria-label="-"><i v-if="widget.prepend_icon" :class="widget.prepend_icon"></i><template v-else>−</template></button>
+                    <span style="flex:1;text-align:center;font-size:1.05rem;font-weight:600;color:var(--on-theme-high);white-space:nowrap">{{ value }} <span v-if="widget.unit" style="margin-left:4px">{{ widget.unit }}</span></span>
+                    <button type="button" @click="stepUp" :disabled="aliveDisabled" :style="btnStyle" aria-label="+"><i v-if="widget.append_icon" :class="widget.append_icon"></i><template v-else>+</template></button>
                 </div>
             </div>
         </div>`,
@@ -48,16 +49,16 @@ const SliderButtonsWidget = {
     },
     computed: {
         aliveDisabled() {
-            return this.widget.object_alive && this.widget.property_alive && this.isAlive === false;
+            return !!(this.widget.object_alive && this.widget.property_alive && this.isAlive === false);
         },
         cardStyle() {
             const s = {};
             if (this.widget.color) s.backgroundColor = this.widget.color;
             return s;
         },
-        displayValue() {
-            const v = this.value;
-            return this.widget.unit ? v + this.widget.unit : v;
+        btnStyle() {
+            const base = 'width:44px;height:44px;flex-shrink:0;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:rgba(255,255,255,.9);cursor:pointer;font-size:1.15rem;display:flex;align-items:center;justify-content:center;outline:none;';
+            return this.widget.round ? base + 'border-radius:50%;' : base + 'border-radius:6px;';
         }
     },
     mounted() {
@@ -95,12 +96,14 @@ const SliderButtonsWidget = {
             this.loading = false;
         },
         stepDown() {
+            if (this.aliveDisabled) return;
             const step = this.widget.step || 1;
             const min = this.widget.min || 0;
             this.value = Math.max(min, this.value - step);
             this.onChange();
         },
         stepUp() {
+            if (this.aliveDisabled) return;
             const step = this.widget.step || 1;
             const max = this.widget.max || 100;
             this.value = Math.min(max, this.value + step);
