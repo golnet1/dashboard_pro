@@ -141,8 +141,8 @@ const GraphWidget = {
 
             const leftCount = list.filter(s => s.side === 'left').length;
             const rightCount = list.filter(s => s.side === 'right').length;
-            const padL = 52 + 18 * Math.max(0, leftCount - 1);
-            const padR = 56 + 18 * Math.max(0, rightCount - 1);
+            const padL = leftCount ? 52 + 18 * Math.max(0, leftCount - 1) : 6;
+            const padR = rightCount ? 56 + 18 * Math.max(0, rightCount - 1) : 6;
             const padT = 30, padB = hasTime ? 18 : 8;
             const pw = w - padL - padR, ph = h - padT - padB;
             if (pw <= 0 || ph <= 0) return;

@@ -746,7 +746,7 @@ function loadScript(src, version) {
             widgetList.value = [...widgetDefs.value].sort((a, b) => (a.priority || 0) - (b.priority || 0));
             for (const w of widgets.items) {
                 if (!w.FILE) continue;
-                await loadScript(w.FILE, 87);
+                await loadScript(w.FILE, 89);
             }
             widgetDefs.value.forEach(d => registerWidgetComponent(d.type));
         }
@@ -1217,6 +1217,7 @@ function loadScript(src, version) {
             if (!editWidgetForm.value) return;
             const hadParent = !!editWidgetParent.value;
             const parentTab = editParentTab.value;
+            const wid = editWidgetForm.value.id;
             const mode = editWidgetForm.value.bg_mode || (editWidgetForm.value.color ? 'color' : 'default');
             if (mode !== 'color') editWidgetForm.value.color = '';
             if (mode !== 'image') editWidgetForm.value.bg_image = '';
@@ -1234,6 +1235,7 @@ function loadScript(src, version) {
                 const idx = currentPanel.value.widgets.findIndex(w => w.id === editWidgetForm.value.id);
                 if (idx >= 0) currentPanel.value.widgets[idx] = { ...editWidgetForm.value };
             }
+            if (wid !== undefined && wid !== null) wsRev[wid] = (wsRev[wid] || 0) + 1;
             editWidgetForm.value = null;
             editWidgetParent.value = null;
             editWidgetIsNew.value = false;
