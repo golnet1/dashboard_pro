@@ -139,10 +139,13 @@ const GraphWidget = {
             const hasTime = isFinite(t0) && isFinite(t1) && t1 > t0;
             const span = hasTime ? t1 - t0 : 0;
 
-            const leftCount = list.filter(s => s.side === 'left').length;
-            const rightCount = list.filter(s => s.side === 'right').length;
-            const padL = leftCount ? 52 + 18 * Math.max(0, leftCount - 1) : 6;
-            const padR = rightCount ? 56 + 18 * Math.max(0, rightCount - 1) : 6;
+            const leftSpecs = list.filter(s => s.side === 'left');
+            const rightSpecs = list.filter(s => s.side === 'right');
+            const leftCount = leftSpecs.length;
+            const rightCount = rightSpecs.length;
+            ctx.font = '11px sans-serif';
+            const padL = leftCount ? 18 + 15 * Math.max(0, leftCount - 1) + this.sideLabelWidth(ctx, leftSpecs) : 6;
+            const padR = rightCount ? 18 + 15 * Math.max(0, rightCount - 1) + this.sideLabelWidth(ctx, rightSpecs) : 6;
             const padT = 30, padB = hasTime ? 18 : 8;
             const pw = w - padL - padR, ph = h - padT - padB;
             if (pw <= 0 || ph <= 0) return;
@@ -294,6 +297,18 @@ const GraphWidget = {
             const out = [];
             for (let i = Math.floor(min / step2); i <= Math.ceil(max / step2); i++) out.push(Number((i * step2).toFixed(10)));
             return out;
+        },
+        sideLabelWidth(ctx, specs) {
+            let maxW = 0;
+            specs.forEach(s => {
+                if (s.range <= 0 || !isFinite(s.range)) return;
+                const ticks = this.niceTicks(s.min, s.max, 5).filter(t => t >= s.min && t <= s.max);
+                ticks.forEach(t => {
+                    const w = ctx.measureText(this.fmtY(t)).width;
+                    if (w > maxW) maxW = w;
+                });
+            });
+            return maxW;
         },
         fmtY(v) {
             if (Math.abs(v - Math.round(v)) < 1e-9) return String(Math.round(v));
