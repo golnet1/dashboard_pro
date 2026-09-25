@@ -909,13 +909,18 @@ function loadScript(src, version) {
             currentPanel.value.widgets.push(w);
             showAddWidget.value = false;
             editWidgetIsNew.value = true;
+            const awTabs = getWidgetTabs(type);
+            const awDef = awTabs.find(t => t.key === 'main') || awTabs[0];
+            widgetTab.value = awDef ? awDef.key : 'main';
             editWidgetForm.value = w;
+            nextTick(updateWidgetTabSlider);
         }
 
         async function editWidget(w, parent) {
             if (parent) editParentTab.value = widgetTab.value;
             const tabs = getWidgetTabs(w.type);
-            widgetTab.value = tabs.length ? tabs[0].key : 'main';
+            const eDef = tabs.find(t => t.key === 'main') || tabs[0];
+            widgetTab.value = eDef ? eDef.key : 'main';
             columnIdx.value = 0;
             seriesIdx.value = 0;
             editWidgetParent.value = parent || null;
@@ -1249,10 +1254,14 @@ if (f.key) {
             const hadParent = !!editWidgetParent.value;
             const parentTab = editParentTab.value;
             const wid = editWidgetForm.value.id;
-            const mode = editWidgetForm.value.bg_mode || (editWidgetForm.value.color ? 'color' : 'default');
-            if (mode !== 'color') editWidgetForm.value.color = '';
-            if (mode !== 'image') editWidgetForm.value.bg_image = '';
-            if (mode !== 'property') { editWidgetForm.value.bg_object = ''; editWidgetForm.value.bg_property = ''; }
+            const btnTabs = getWidgetTabs(editWidgetForm.value.type);
+            const hasBgMode = btnTabs.some(tab => getWidgetFields(editWidgetForm.value.type, tab.fields || tab.key).some(f => f.key === 'bg_mode'));
+            if (hasBgMode) {
+                const mode = editWidgetForm.value.bg_mode || (editWidgetForm.value.color ? 'color' : 'default');
+                if (mode !== 'color') editWidgetForm.value.color = '';
+                if (mode !== 'image') editWidgetForm.value.bg_image = '';
+                if (mode !== 'property') { editWidgetForm.value.bg_object = ''; editWidgetForm.value.bg_property = ''; }
+            }
             let parent = editWidgetParent.value;
             if (parent && !Array.isArray(parent.children)) {
                 const orig = (currentPanel.value.widgets || []).find(w => w.id === parent.id);

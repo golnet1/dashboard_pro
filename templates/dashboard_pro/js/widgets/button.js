@@ -13,7 +13,7 @@ const ButtonWidget = {
             { key: 'object_alive', label: 'field_alive_flag', type: 'object', row: 'alive_row' },
             { key: 'property_alive', label: 'field_alive_property', type: 'property', row: 'alive_row' },
             { key: 'alive_timeout', label: 'field_alive_timeout', type: 'number', step: 1 },
-            { key: 'color', label: 'field_color', type: 'color' },
+            { key: 'color', label: 'field_color', type: 'color', default: '#1565c0' },
         ],
     },
     defaults: { icon: 'fas fa-play', button_type: 'script', script: '', method: '', panel: '', param: '', color: '#1565c0', height: 90 },
