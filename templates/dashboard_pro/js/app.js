@@ -940,9 +940,12 @@ function loadScript(src, version) {
             if (def && def.fields) {
                 for (const fields of Object.values(def.fields)) {
                     for (const f of fields) {
-                        if (f.key && !(f.key in editWidgetForm.value)) {
+if (f.key) {
+                        const cur = editWidgetForm.value[f.key];
+                        if (cur === undefined || cur === null || cur === '') {
                             editWidgetForm.value[f.key] = (f.default !== undefined) ? f.default : '';
                         }
+                    }
                     }
                 }
             }

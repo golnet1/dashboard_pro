@@ -1472,7 +1472,7 @@
                                                                 <div class="v-input__control">
                                                                     <div class="v-input__slot"><label class="v-label v-label--active">{{ t(field.label) }}</label>
                                                                          <select v-model="editWidgetForm[field.key]">
-                                                                             <option v-if="field.key !== 'icon_type'" value="" style="background:#1e1e1e;color:#fff">{{ field.placeholder || t('select_default') }}</option>
+                                                                             <option v-if="field.key !== 'icon_type' && field.default === undefined" value="" style="background:#1e1e1e;color:#fff">{{ field.placeholder || t('select_default') }}</option>
                                                                              <option v-for="opt in field.options" :key="opt.value" :value="opt.value" style="background:#1e1e1e;color:#fff">{{ t(opt.label) }}</option>
                                                                         </select>
                                                                         <div class="v-input__append-inner"><i class="fas fa-caret-down"></i></div>
@@ -1943,6 +1943,6 @@
     <script src="js/auth.js?v=9"></script>
     <script src="js/sidebar.js?v=10"></script>
 <script src="js/widget-config.js?v=11"></script>
-<script src="js/app.js?v=172"></script>
+<script src="js/app.js?v=173"></script>
 </body>
 </html>
