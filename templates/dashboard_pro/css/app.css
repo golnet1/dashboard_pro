@@ -529,6 +529,45 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .widget-v-card--disabled .widget-v-card__header .widget-menu { pointer-events:auto; font-size:.9rem; }
 .widget-v-card__locked-icon { margin-left:auto; font-size:1rem; color:var(--on-theme-dim); padding-right:8px; flex-shrink:0; align-self:center; }
 
+/* Button widget (mboard style) */
+.widget-v-card--button { padding:0; background:#1565c0; }
+.widget-v-card--button .dp-button--cover { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; height:100%; padding:0; background:rgba(255,255,255,.12); border:none; outline:none; cursor:pointer; color:#fff; font-family:inherit; transition:filter .15s; }
+.widget-v-card--button .dp-button--cover:hover { filter:brightness(1.15); }
+.widget-v-card--button .dp-button--cover:active { filter:brightness(.92); }
+.widget-v-card--button .dp-button__icon { font-size:2.2rem; flex-shrink:0; }
+.widget-v-card--button .dp-button__title { font-size:1.35rem; font-weight:600; line-height:1.25; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.widget-v-card--button .dp-button--cover:disabled { opacity:.4; cursor:not-allowed; }
+.widget-v-card--button .dp-button--dead-overlay { position:absolute; inset:0; background:rgba(255,0,0,.45); z-index:1; pointer-events:auto; }
+
+/* Progress bar striped */
+.v-progress-linear--striped .v-progress-linear__determinate { background-image:linear-gradient(135deg, rgba(255,255,255,.25) 25%, transparent 25%, transparent 50%, rgba(255,255,255,.25) 50%, rgba(255,255,255,.25) 75%, transparent 75%, transparent) !important; background-size:40px 40px !important; background-repeat:repeat !important; animation:v-progress-linear-stripes 1s linear infinite; }
+@keyframes v-progress-linear-stripes { 0% { background-position:0 0; } 100% { background-position:40px 0; } }
+
+/* Date/time picker widgets */
+.dp-picker-field { display:flex; align-items:center; gap:8px; padding:9px 10px; border:1px solid rgba(255,255,255,.18); border-radius:6px; background:rgba(255,255,255,.06); color:var(--on-theme-high); font-size:.9rem; cursor:pointer; user-select:none; }
+.dp-picker-field--empty { color:var(--on-theme-dim); }
+.dp-picker-field:hover { border-color:rgba(255,255,255,.35); }
+.dp-picker-popup { z-index:5000; background:var(--theme-bg,#2c2c2c); border:1px solid var(--border); border-radius:8px; box-shadow:0 8px 30px rgba(0,0,0,.45); color:var(--on-theme-high); overflow:hidden; }
+.dp-picker-popup__nav { border:none; background:none; cursor:pointer; font-size:1rem; color:var(--on-theme-mid); padding:4px 8px; border-radius:4px; line-height:1; }
+.dp-picker-popup__nav:hover { background:rgba(255,255,255,.1); }
+.dp-picker-popup__title { font-size:.85rem; font-weight:500; color:var(--on-theme-high); }
+.dp-picker-popup__link { border:none; background:none; cursor:pointer; font-size:.8rem; color:rgba(255,255,255,.7); padding:4px 6px; border-radius:4px; }
+.dp-picker-popup__link:hover { background:rgba(255,255,255,.08); }
+.dp-picker-popup__cell { padding:4px 0; border-radius:4px; cursor:pointer; color:var(--on-theme-mid); }
+.dp-picker-popup__cell:hover { background:rgba(255,255,255,.1); }
+.dp-picker-popup__cell--empty { cursor:default; }
+.dp-picker-popup__cell--today { font-weight:600; color:var(--primary); border:1px solid var(--primary); }
+.dp-picker-popup__cell--selected { background:var(--primary); color:#fff !important; font-weight:600; }
+.dp-picker-wheel { flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:2px; padding:2px; border:1px solid rgba(255,255,255,.12); border-radius:6px; }
+.dp-picker-wheel__item { padding:5px 0; text-align:center; cursor:pointer; color:var(--on-theme-mid); border-radius:4px; font-size:.85rem; font-family:monospace; }
+.dp-picker-wheel__item:hover { background:rgba(255,255,255,.08); }
+.dp-select-popup { padding:4px; display:flex; flex-direction:column; max-height:300px; overflow-y:auto; }
+.dp-select-popup__item { display:flex; align-items:center; gap:8px; padding:8px 10px; cursor:pointer; border-radius:4px; color:var(--on-theme-high); font-size:.85rem; }
+.dp-select-popup__item:hover { background:rgba(255,255,255,.1); }
+.dp-select-popup__item--selected { background:rgba(var(--primary-rgb, 25,118,210), .18); }
+.dp-select-popup__empty { padding:10px; text-align:center; color:var(--on-theme-dim); font-size:.8rem; }
+.dp-picker-wheel__item--active { background:var(--primary); color:#fff !important; font-weight:600; }
+
 /* Vuetify-style slider (dp-slider) like mboard_pro */
 .v-input__slider { display:flex; flex-direction:column; flex:1 1 auto; max-width:100%; padding-top:16px; }
 .v-input__slider .v-input__control { flex:1 1 auto; display:flex; flex-direction:column; }

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Pro</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/app.css?v=55">
+    <link rel="stylesheet" href="css/app.css?v=60">
     <script src="js/lib/vue.global.prod.js"></script>
 </head>
 <body>
@@ -722,7 +722,7 @@
                     <div class="widget-def-list">
                         <div v-for="def in filteredDefs" :key="def.type" class="widget-def-item" @click="addWidget(def.type)">
                             <i :class="def.icon"></i>
-                            <div><div>{{ t('widget_' + def.type) }}</div><div style="font-size:.8rem;color:var(--text-secondary)">{{ t('widget_' + def.type + '_desc') }}</div></div>
+                            <div><div>{{ t('widget_' + def.type) }}</div><div v-if="t('widget_' + def.type + '_desc') !== ('widget_' + def.type + '_desc')" style="font-size:.8rem;color:var(--text-secondary)">{{ t('widget_' + def.type + '_desc') }}</div></div>
                         </div>
                     </div>
                 </div>
@@ -1377,6 +1377,32 @@
                                         </div>
                                         </template>
 
+                                        <template v-else-if="tab.key === 'items'">
+                                        <div class="d-flex gap-1 ma-1" style="align-items:center">
+                                            <button type="button" class="v-btn v-btn--is-elevated v-btn--fab v-btn--has-bg v-btn--round v-size--x-small" @click="addSelectItem" :title="t('add_item')"><i class="fas fa-plus"></i></button>
+                                            <span v-if="selectItems.length" style="color:rgba(255,255,255,.55);font-size:.8rem;margin-left:4px">{{ selectItems.length }} {{ t('units_items') }}</span>
+                                        </div>
+                                        <div v-if="selectItems.length" class="widget-group-list">
+                                            <div v-for="(item, ii) in selectItems" :key="item.key || ii" class="widget-group-list__item" style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start;cursor:default">
+                                                <div class="v-input v-text-field" style="flex:1 1 80px;min-width:80px">
+                                                    <div class="v-input__control">
+                                                        <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': item.state }">{{ t('option_status') }}</label><input :value="item.state" @input="setSelectItemField(ii, 'state', $event.target.value)"></div>
+                                                    </div>
+                                                </div>
+                                                <div class="v-input v-text-field" style="flex:2 1 140px;min-width:120px">
+                                                    <div class="v-input__control">
+                                                        <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': item.title }">{{ t('option_info') }}</label><input :value="item.title" @input="setSelectItemField(ii, 'title', $event.target.value)"></div>
+                                                    </div>
+                                                </div>
+                                                <button class="icon-btn" :title="t('pick_icon')" @click="openIconPicker('si:' + ii)" style="flex-shrink:0"><i :class="item.icon || 'fas fa-folder'"></i></button>
+                                                <button type="button" class="v-btn v-btn--icon v-btn--round theme--dark v-size--default" style="flex-shrink:0" :title="t('delete')" @click="removeSelectItem(ii)"><i class="fas fa-minus"></i></button>
+                                            </div>
+                                        </div>
+                                        <div v-else style="padding:20px;text-align:center;color:rgba(255,255,255,.45);font-size:.9rem">
+                                            {{ t('widget_options_empty') }}
+                                        </div>
+                                        </template>
+
                                         <template v-else-if="tab.key === 'colors'">
                                         <div class="pb-0 col" style="color:rgba(255,255,255,.7);font-size:.9rem">{{ t('field_gradient_scale') }}</div>
                                         <div class="pb-0 my-3 col" style="height:34px;border-radius:6px;border:1px solid rgba(255,255,255,.12)" :style="grPreview()"></div>
@@ -1462,6 +1488,19 @@
                                                                             <option value="" style="background:#1e1e1e;color:#fff">{{ t('select_default') }}</option>
                                                                             <option v-for="o in objects" :key="o.ID" :value="o.TITLE" style="background:#1e1e1e;color:#fff">{{ itemLabel(o) }}</option>
                                                                         </select>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </template>
+                                                        <template v-else-if="field.type === 'panel_select'">
+                                                            <div class="v-input v-text-field v-select" style="flex:1">
+                                                                <div class="v-input__control">
+                                                                    <div class="v-input__slot"><label class="v-label v-label--active">{{ t(field.label) }}</label>
+                                                                         <select v-model="editWidgetForm[field.key]">
+                                                                             <option value="" style="background:#1e1e1e;color:#fff">{{ field.placeholder || t('select_panel') }}</option>
+                                                                             <option v-for="p in panels.filter(p2 => p2.panelType !== 'group')" :key="p.name" :value="p.name" style="background:#1e1e1e;color:#fff">{{ p.title || p.name }}</option>
+                                                                        </select>
+                                                                        <div class="v-input__append-inner"><i class="fas fa-caret-down"></i></div>
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -1881,7 +1920,7 @@
                 <div class="modal-body" style="text-align:center;padding:2rem 1.5rem">
                     <i class="fas fa-chart-line" style="font-size:3rem;color:var(--primary);margin-bottom:1rem"></i>
                     <h3 style="margin-bottom:.3rem">Dashboard Pro</h3>
-                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 1.06</p>
+                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 1.07</p>
                     <p style="color:var(--text-secondary);font-size:.8rem">{{ t('app_desc') }}</p>
                     <div class="about-links" style="margin-top:1rem;font-size:.85rem;color:var(--text-secondary);line-height:1.8">
                         <div>{{ t('about_telegram') }}: <a href="https://t.me/+9ZFQaxs_Ukw4NmMy" target="_blank" rel="noopener">Telegram</a></div>
@@ -1904,6 +1943,6 @@
     <script src="js/auth.js?v=9"></script>
     <script src="js/sidebar.js?v=10"></script>
 <script src="js/widget-config.js?v=11"></script>
-<script src="js/app.js?v=168"></script>
+<script src="js/app.js?v=172"></script>
 </body>
 </html>

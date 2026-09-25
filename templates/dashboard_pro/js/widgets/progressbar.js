@@ -14,7 +14,7 @@ const ProgressBarWidget = {
             { key: 'level_max', label: 'field_max', type: 'number', row: 'range' },
             { key: 'striped', label: 'field_striped', type: 'checkbox' },
             { key: 'rounded', label: 'field_rounded', type: 'checkbox' },
-            { key: 'color_progress', label: 'field_progress_color', type: 'text', default: 'primary', placeholder: 'ph_color_value' },
+            { key: 'color_progress', label: 'field_progress_color', type: 'color', default: 'primary', placeholder: 'ph_color_value' },
         ],
         advanced: [
             { key: 'bg_mode', label: 'field_bg_mode', type: 'select', row: 'bg_row', options: [{value:'default',label:'opt_default'},{value:'image',label:'opt_image'},{value:'color',label:'opt_custom_color'},{value:'property',label:'opt_color_property'}] },

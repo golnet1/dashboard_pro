@@ -381,7 +381,7 @@ const app = createApp({
             const q = widgetSearch.value.trim().toLowerCase();
             if (!q) return widgetDefs.value;
             return widgetDefs.value.filter(d => {
-                const haystack = [t('widget_' + d.type), d.title, t('widget_' + d.type + '_desc'), d.type]
+                const haystack = [t('widget_' + d.type), d.title, (t('widget_' + d.type + '_desc') !== 'widget_' + d.type + '_desc' ? t('widget_' + d.type + '_desc') : ''), d.type]
                     .map(s => String(s || '').toLowerCase());
                 return haystack.some(s => s.includes(q));
             });
@@ -446,7 +446,7 @@ const app = createApp({
                 }
             }
             tabs = tabs.filter(tab => {
-                if (tab.key === 'columns' || tab.key === 'widgets' || tab.key === 'graphs' || tab.key === 'colors') return true;
+                if (tab.key === 'columns' || tab.key === 'widgets' || tab.key === 'graphs' || tab.key === 'colors' || tab.key === 'items') return true;
                 const fields = getWidgetFields(type, tab.fields || tab.key);
                 return fields.length > 0;
             });
@@ -460,7 +460,8 @@ const app = createApp({
         function fieldVisible(field) {
             if (!field.showIf || !editWidgetForm.value) return true;
             const [depKey, depVal] = Object.entries(field.showIf)[0];
-            return editWidgetForm.value[depKey] === depVal;
+            const val = editWidgetForm.value[depKey];
+            return Array.isArray(depVal) ? depVal.includes(val) : val === depVal;
         }
 
         function getFieldOptions(field) {
@@ -581,6 +582,33 @@ const app = createApp({
             if (!obj) { seriesProps.value = { ...seriesProps.value, [idx]: [] }; return; }
             const res = await dpAPI('properties?object_id=' + encodeURIComponent(obj));
             seriesProps.value = { ...seriesProps.value, [idx]: res.items || [] };
+        }
+
+        // ---- Select widget items editing ----
+        const selectItems = computed(() => {
+            try { return JSON.parse(editWidgetForm.value?.items || '[]'); }
+            catch { return []; }
+        });
+        function setSelectItems(arr) {
+            editWidgetForm.value.items = JSON.stringify(arr);
+        }
+        function fixtureSelectItem() {
+            return { key: 's' + Date.now() + '_' + Math.floor(Math.random() * 1000), state: '', title: '', icon: '' };
+        }
+        function addSelectItem() {
+            const arr = selectItems.value;
+            arr.push(fixtureSelectItem());
+            setSelectItems(arr);
+        }
+        function removeSelectItem(idx) {
+            const arr = selectItems.value;
+            arr.splice(idx, 1);
+            setSelectItems(arr);
+        }
+        function setSelectItemField(idx, key, val) {
+            const arr = selectItems.value;
+            if (arr[idx]) arr[idx][key] = val;
+            setSelectItems(arr);
         }
 
         const columnFields = [
@@ -746,7 +774,7 @@ function loadScript(src, version) {
             widgetList.value = [...widgetDefs.value].sort((a, b) => (a.priority || 0) - (b.priority || 0));
             for (const w of widgets.items) {
                 if (!w.FILE) continue;
-                await loadScript(w.FILE, 91);
+                await loadScript(w.FILE, 103);
             }
             widgetDefs.value.forEach(d => registerWidgetComponent(d.type));
         }
@@ -1732,6 +1760,9 @@ function loadScript(src, version) {
                 panelForm.value.icon = ic;
             } else if (iconTarget.value === 'hs') {
                 hsForm.icon = ic;
+            } else if (typeof iconTarget.value === 'string' && iconTarget.value.startsWith('si:')) {
+                const idx = parseInt(iconTarget.value.slice(3), 10);
+                setSelectItemField(idx, 'icon', ic);
             } else if (editWidgetForm.value) {
                 editWidgetForm.value[iconTarget.value] = ic;
             }
@@ -1744,6 +1775,11 @@ function loadScript(src, version) {
             }
             if (iconTarget.value === 'hs') {
                 return hsForm.icon === ic;
+            }
+            if (typeof iconTarget.value === 'string' && iconTarget.value.startsWith('si:')) {
+                const idx = parseInt(iconTarget.value.slice(3), 10);
+                const arr = selectItems.value;
+                return arr[idx] && arr[idx].icon === ic;
             }
             return editWidgetForm.value && editWidgetForm.value[iconTarget.value] === ic;
         }
@@ -2457,6 +2493,7 @@ onMounted(() => {
             groupChildrenList, startGroupChildAdd, closeEditor, moveGroupChildOut, confirmOutOfGroup, groupChildMouseDown, groupChildMouseMove, groupChildMouseUp, resetChildDrag, dragChildId, dragOverChildId,
             columnIdx, columnList, setColumns, addColumn, removeColumn, moveColumnUp, moveColumnDown, autoDetectColumns, columnFields, columnFieldVisible, getColumnFieldRows,
             seriesIdx, seriesList, setSeries, addSeries, removeSeries, setSeriesField, seriesProps, loadSeriesProps, seriesScaleOptions,
+            selectItems, addSelectItem, removeSelectItem, setSelectItemField,
             draggingWidget, startDrag, onDrag, stopDrag,
             resizingWidget, startResize, onResize, stopResize,
             widgetMenuTarget, widgetPanelSubmenu, widgetGroupSubmenu, widgetConfirm, copyWidget, exportWidget, changeWidgetPanel, selectMoveTarget, confirmMoveWidget, moveWidgetToGroup, confirmMoveToGroup,

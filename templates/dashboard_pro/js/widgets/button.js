@@ -3,45 +3,27 @@ const ButtonWidget = {
     fields: {
         params: [
             { key: 'title', label: 'field_title', type: 'text' },
-            { key: 'icon_type', label: 'field_icon_type', type: 'select', row: 'icon_row', options: [{value:'icon',label:'opt_icon'},{value:'property',label:'opt_property'},{value:'url',label:'opt_url'}] },
-            { key: 'icon', label: 'field_icon', type: 'icon_picker', row: 'icon_row', showIf: { icon_type: 'icon' } },
-            { key: 'icon_object', label: 'field_icon_object', type: 'object', row: 'icon_row', showIf: { icon_type: 'property' } },
-            { key: 'icon_property', label: 'field_icon_property', type: 'property', row: 'icon_row', showIf: { icon_type: 'property' } },
-            { key: 'icon_url', label: 'field_icon_url', type: 'text', row: 'icon_row', showIf: { icon_type: 'url' } },
-            { key: 'object', label: 'field_object', type: 'object', row: 'obj_prop' },
-            { key: 'property', label: 'field_property', type: 'property', row: 'obj_prop' },
-            { key: 'buttonText', label: 'field_button_text', type: 'text', default: 'default_execute' },
-            { key: 'value', label: 'field_value', type: 'text', default: '1' },
-            { key: 'method', label: 'field_method', type: 'text', placeholder: 'method_name' },
-            { key: 'command', label: 'field_command', type: 'text', placeholder: 'ph_command_optional' },
-            { key: 'hold', label: 'field_hold', type: 'number', default: 1 },
-        ],
-        advanced: [
-            { key: 'bg_mode', label: 'field_bg_mode', type: 'select', row: 'bg_row', options: [{value:'default',label:'opt_default'},{value:'image',label:'opt_image'},{value:'color',label:'opt_custom_color'},{value:'property',label:'opt_color_property'}] },
-            { key: 'color', label: 'field_color', type: 'color', row: 'bg_row', showIf: { bg_mode: 'color' } },
-            { key: 'bg_image', label: 'field_image_url', type: 'text', row: 'bg_row', showIf: { bg_mode: 'image' } },
-            { key: 'bg_object', label: 'field_bg_object', type: 'object', row: 'bg_row', showIf: { bg_mode: 'property' } },
-            { key: 'bg_property', label: 'field_bg_property', type: 'property', row: 'bg_row', showIf: { bg_mode: 'property' } },
+            { key: 'icon', label: 'field_icon', type: 'icon_picker' },
+            { key: 'button_type', label: 'field_button_type', type: 'select', default: 'script', options: [{value:'script',label:'opt_script'},{value:'method',label:'opt_method'},{value:'panel',label:'opt_panel'}] },
+            { key: 'method_obj', label: 'field_method_object', type: 'method_object', parent: 'method', showIf: { button_type: 'method' }, row: 'm_row' },
+            { key: 'method', label: 'field_method', type: 'method', parent: 'method', showIf: { button_type: 'method' }, row: 'm_row' },
+            { key: 'script', label: 'field_script', type: 'script', showIf: { button_type: 'script' } },
+            { key: 'param', label: 'field_param', type: 'text', showIf: { button_type: ['script', 'method'] } },
+            { key: 'panel', label: 'field_panel', type: 'panel_select', showIf: { button_type: 'panel' } },
             { key: 'object_alive', label: 'field_alive_flag', type: 'object', row: 'alive_row' },
             { key: 'property_alive', label: 'field_alive_property', type: 'property', row: 'alive_row' },
             { key: 'alive_timeout', label: 'field_alive_timeout', type: 'number', step: 1 },
+            { key: 'color', label: 'field_color', type: 'color' },
         ],
     },
-    defaults: { icon: 'fas fa-play', icon_type: 'icon', buttonText: 'default_execute', hold: 1, value: '1', command: '', method: '', height: 90 },
+    defaults: { icon: 'fas fa-play', button_type: 'script', script: '', method: '', panel: '', param: '', color: '#1565c0', height: 90 },
     template: `
-        <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled }" :style="cardStyle">
-            <div class="widget-v-card__header">
-                <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon"></i>
-                <div class="widget-v-card__title">{{ widget.title || t('widget_button') }}</div>
-            </div>
-            <div class="widget-v-card__body" style="display:flex;align-items:center;justify-content:center;flex:1;padding:8px">
-                <button class="v-btn v-btn--is-elevated v-btn--has-bg theme--dark" style="min-width:120px" :class="{ 'v-btn--loading': loading }" @click="execute" :disabled="loading || aliveDisabled">
-                    <span class="v-btn__content">
-                        <i v-if="widget.icon" :class="widget.icon" style="margin-right:6px"></i>
-                        {{ loading ? '...' : (widget.buttonText || t('default_execute')) }}
-                    </span>
-                </button>
-            </div>
+        <div class="widget-v-card widget-v-card--button" :style="cardStyle">
+            <button type="button" class="dp-button dp-button--cover" @click="execute">
+                <i v-if="widget.icon" :class="widget.icon" class="dp-button__icon"></i>
+                <span v-if="widget.title" class="dp-button__title">{{ widget.title }}</span>
+            </button>
+            <div v-if="aliveDisabled" class="dp-button--dead-overlay"></div>
         </div>`,
     data() { return { loading: false, isAlive: true, availTimer: null }; },
     mounted() {
@@ -69,14 +51,29 @@ const ButtonWidget = {
             } catch (e) { /* keep current state on transient error */ }
         },
         async execute() {
-            if (this.loading) return;
+            if (this.loading || this.aliveDisabled) return;
             this.loading = true;
             try {
-                if (this.widget.method) {
-                    const m = this.widget.method;
-                    const p = m.includes('/') ? m.split('/') : [m, ''];
+                if (this.widget.button_type === 'panel' && this.widget.panel) {
+                    const vm = window.__dp_vm;
+                    if (vm && vm.panels) {
+                        const p = vm.panels.find(p => p.name === this.widget.panel);
+                        if (p && vm.selectPanel) vm.selectPanel(p);
+                    }
+                } else if (this.widget.button_type === 'script' && this.widget.script) {
+                    if (this.widget.param) {
+                        await dpAPI('scriptRun?' + new URLSearchParams({ script: this.widget.script, param: this.widget.param }));
+                    } else {
+                        await dpAPI('scriptRun?' + new URLSearchParams({ script: this.widget.script }));
+                    }
+                } else if (this.widget.button_type === 'method' && this.widget.method) {
+                    const p = this.widget.method.split('/');
+                    const base = 'method/' + p[0] + (p[1] ? '/' + p[1] : '');
+                    await dpAPI(base + (this.widget.param ? '?param=' + encodeURIComponent(this.widget.param) : ''));
+                } else if (this.widget.method) {
+                    const p = this.widget.method.split('/');
                     await dpAPI('method/' + p[0] + (p[1] ? '/' + p[1] : ''));
-                } else if (this.widget.object && this.widget.value !== undefined) {
+                } else if (this.widget.object && this.widget.value !== undefined && this.widget.value !== null && this.widget.value !== '') {
                     const params = { object: this.widget.object, value: this.widget.value };
                     if (this.widget.property) params.property = this.widget.property;
                     await dpAPI('setProperty?' + new URLSearchParams(params));

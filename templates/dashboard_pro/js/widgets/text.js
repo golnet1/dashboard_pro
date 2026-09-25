@@ -12,6 +12,12 @@ const TextWidget = {
             { key: 'property', label: 'field_property', type: 'property', row: 'obj_prop' },
             { key: 'help', type: 'info', text: 'help_text_object_or_static' },
             { key: 'text', label: 'field_static_text', type: 'textarea', rows: 3 },
+            { key: 'font', label: 'field_font', type: 'select', options: [{value:'sans-serif',label:'opt_font_sans'},{value:'serif',label:'opt_font_serif'},{value:'monospace',label:'opt_font_mono'}], default: 'sans-serif' },
+            { key: 'fontSize', label: 'field_font_size', type: 'number', default: 14 },
+            { key: 'fbold', label: 'field_font_bold', type: 'checkbox', default: false },
+            { key: 'fitalic', label: 'field_font_italic', type: 'checkbox', default: false },
+            { key: 'funderline', label: 'field_font_underline', type: 'checkbox', default: false },
+            { key: 'fstrike', label: 'field_font_strike', type: 'checkbox', default: false },
         ],
         advanced: [
             { key: 'bg_mode', label: 'field_bg_mode', type: 'select', row: 'bg_row', options: [{value:'default',label:'opt_default'},{value:'image',label:'opt_image'},{value:'color',label:'opt_custom_color'},{value:'property',label:'opt_color_property'}] },
@@ -21,15 +27,15 @@ const TextWidget = {
             { key: 'bg_property', label: 'field_bg_property', type: 'property', row: 'bg_row', showIf: { bg_mode: 'property' } },
         ],
     },
-    defaults: { icon: 'fas fa-font', icon_type: 'icon', text: '', height: 100 },
+    defaults: { icon: 'fas fa-font', icon_type: 'icon', text: '', height: 100, font: 'sans-serif', fontSize: 14, fbold: false, fitalic: false, funderline: false, fstrike: false },
     template: `
         <div class="widget-v-card" :style="cardStyle">
-            <div class="widget-v-card__header">
+            <div class="widget-v-card__header" v-if="widget.title || widget.icon">
                 <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon"></i>
-                <div class="widget-v-card__title">{{ widget.title || t('widget_text') }}</div>
+                <div class="widget-v-card__title">{{ widget.title }}</div>
             </div>
             <div class="widget-v-card__body" style="padding:8px 12px;flex:1;display:flex;align-items:center">
-                <div style="font-size:.95rem;line-height:1.5;color:rgba(255,255,255,.87)">{{ displayText }}</div>
+                <div :style="textStyle">{{ displayText }}</div>
             </div>
         </div>`,
     data() {
@@ -48,6 +54,17 @@ const TextWidget = {
         displayText() {
             if (this.value === null) return this.widget.text || this.widget.subtitle || '—';
             return this.value;
+        },
+        textStyle() {
+            return {
+                fontSize: (this.widget.fontSize || 14) + 'px',
+                lineHeight: 1.5,
+                fontFamily: this.widget.font || 'sans-serif',
+                color: 'rgba(255,255,255,.87)',
+                fontWeight: this.widget.fbold ? 700 : 400,
+                fontStyle: this.widget.fitalic ? 'italic' : 'normal',
+                textDecoration: [this.widget.funderline ? 'underline' : '', this.widget.fstrike ? 'line-through' : ''].filter(Boolean).join(' ') || 'none'
+            };
         },
         cardStyle() {
             const s = {};
