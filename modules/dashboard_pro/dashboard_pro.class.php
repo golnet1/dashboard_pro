@@ -468,8 +468,35 @@ class dashboard_pro extends module
 
         if ($params['request'][0] == 'widgets') {
             $this->ensureWidgetsTable();
-            $widgets = SQLSelect("SELECT TYPE, ICON, TITLE, DESCRIPTION, PRIORITY, FILE FROM dashboard_widgets ORDER BY PRIORITY, ID");
+            $widgets = SQLSelect("SELECT TYPE, ICON, TITLE, DESCRIPTION, PRIORITY, FILE, ENABLED FROM dashboard_widgets ORDER BY PRIORITY, ID");
             return ['items' => $widgets];
+        }
+
+        if ($params['request'][0] == 'widgetSetEnabled') {
+            $this->ensureWidgetsTable();
+            $method = $_SERVER['REQUEST_METHOD'];
+            if ($method != 'POST') return ['error' => 'POST required'];
+
+            $input = $this->bodyInput();
+            if (!is_array($input)) $input = array();
+            $type = trim($input['type'] ?? '');
+            if ($type === '') return ['error' => 'type is required'];
+            if (!preg_match('/^[a-z0-9_\-]{1,40}$/i', $type)) return ['error' => 'invalid widget type'];
+
+            $w = SQLSelectOne("SELECT ID, TYPE FROM dashboard_widgets WHERE TYPE LIKE '" . DBSafe($type) . "'");
+            if (!$w) return ['error' => 'widget "' . $type . '" not found'];
+
+            $enabled = ((int)($input['enabled'] ?? 1)) ? 1 : 0;
+            if (!$enabled) {
+                $usage = $this->countWidgetUsage($type);
+                if ($usage > 0) {
+                    return ['error' => 'widget_in_use', 'type' => $type, 'count' => $usage];
+                }
+            }
+
+            SQLExec("UPDATE dashboard_widgets SET ENABLED=$enabled WHERE ID=" . (int)$w['ID']);
+
+            return ['success' => true, 'type' => $type, 'enabled' => $enabled];
         }
 
         if ($params['request'][0] == 'widgetInstall') {
@@ -595,7 +622,8 @@ class dashboard_pro extends module
                 'TITLE' => $title,
                 'DESCRIPTION' => $description,
                 'PRIORITY' => $priority,
-                'FILE' => 'js/widgets/' . $type . '.js'
+                'FILE' => 'js/widgets/' . $type . '.js',
+                'ENABLED' => 1
             );
             SQLInsert('dashboard_widgets', $rec);
 
@@ -1738,18 +1766,24 @@ class dashboard_pro extends module
                 DESCRIPTION varchar(255) NOT NULL DEFAULT '',
                 PRIORITY int(10) NOT NULL DEFAULT '0',
                 FILE varchar(255) NOT NULL DEFAULT '',
+                ENABLED int(10) NOT NULL DEFAULT '1',
                 PRIMARY KEY (ID)
             )");
         }
         $fields = SQLGetFields('dashboard_widgets');
         $hasFile = false;
+        $hasEnabled = false;
         if (is_array($fields)) {
             foreach ($fields as $f) {
                 if ($f['Field'] == 'FILE') $hasFile = true;
+                if ($f['Field'] == 'ENABLED') $hasEnabled = true;
             }
         }
         if (!$hasFile) {
             SQLExec("ALTER TABLE dashboard_widgets ADD FILE varchar(255) NOT NULL DEFAULT ''");
+        }
+        if (!$hasEnabled) {
+            SQLExec("ALTER TABLE dashboard_widgets ADD ENABLED int(10) NOT NULL DEFAULT '1'");
         }
         $cnt = SQLSelectOne("SELECT COUNT(*) as CNT FROM dashboard_widgets");
         if (!$cnt || $cnt['CNT'] == 0) {
@@ -1868,6 +1902,7 @@ dashboard_widgets: TITLE varchar(255) NOT NULL DEFAULT ''
 dashboard_widgets: DESCRIPTION varchar(255) NOT NULL DEFAULT ''
 dashboard_widgets: PRIORITY int(10) NOT NULL DEFAULT '0'
 dashboard_widgets: FILE varchar(255) NOT NULL DEFAULT ''
+dashboard_widgets: ENABLED int(10) NOT NULL DEFAULT '1'
 
 EOD;
         parent::dbInstall($data);

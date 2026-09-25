@@ -70,6 +70,10 @@ $frontend = array(
     'widget_editor_bad_zip' => 'Please select a file in ZIP format',
     'widget_editor_in_use' => 'Widget is in use in widgets on dashboards. Delete them first. Instances found',
     'widget_editor_exists' => 'A widget of this type is already installed',
+    'widget_editor_enable' => 'Enable',
+    'widget_editor_disable' => 'Disable',
+    'widget_editor_enable_confirm' => 'Enable widget',
+    'widget_editor_disable_confirm' => 'Disable widget',
     'about' => 'About',
     'logout' => 'Logout',
 

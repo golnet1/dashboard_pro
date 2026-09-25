@@ -687,6 +687,10 @@ a.user-menu__item { text-decoration: none; color: inherit; }
 body.widget-dragging, body.widget-dragging * { cursor: grabbing !important; }
 .widget-editor__item { display:flex; align-items:center; gap:12px; background:rgba(var(--theme-bg-rgb), var(--card-alpha,1)); border:1px solid var(--border); border-radius:8px; padding:8px 12px; transition:border-color .15s, background .15s; cursor:move; }
 .widget-editor__item:hover { border-color:rgba(var(--theme-bg-rgb), .4); }
+.widget-editor__item--disabled { border:2px solid #f44336 !important; }
+.widget-editor__item--disabled .widget-editor__item-icon { color:#f44336; }
+.widget-editor__item--disabled .widget-editor__item-title { color:#f44336; text-decoration:line-through; }
+.widget-editor__item--disabled .widget-editor__item-type { color:rgba(244,67,54,.8); }
 .widget-editor__item--dragging { opacity:.45; }
 .widget-editor__item--drop-target { border-color:var(--primary); background:rgba(var(--primary-rgb, 25,118,210), .12); }
 .widget-editor__item-icon { font-size:1.3rem; color:var(--primary); width:26px; text-align:center; flex-shrink:0; }

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Pro</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/app.css?v=61">
+    <link rel="stylesheet" href="css/app.css?v=66">
     <script src="js/lib/vue.global.prod.js"></script>
 </head>
 <body>
@@ -589,7 +589,7 @@
                                     </button>
                                 </div>
                                 <div class="widget-editor__list" v-if="widgetList.length">
-                                    <div v-for="(w, i) in widgetList" :key="w.type" class="widget-editor__item" :data-id="w.type" :class="{ 'widget-editor__item--dragging': dragWidgetDefId === w.type, 'widget-editor__item--drop-target': dragWidgetDefOverId === w.type }" @mousedown="widgetDefMouseDown($event, w)">
+                                    <div v-for="(w, i) in widgetList" :key="w.type" class="widget-editor__item" :data-id="w.type" :class="{ 'widget-editor__item--dragging': dragWidgetDefId === w.type, 'widget-editor__item--drop-target': dragWidgetDefOverId === w.type, 'widget-editor__item--disabled': w.enabled === 0 }" @mousedown="widgetDefMouseDown($event, w)">
                                         <i :class="w.icon || 'fas fa-puzzle-piece'" class="widget-editor__item-icon"></i>
                                         <div class="widget-editor__item-info">
                                             <div class="widget-editor__item-title">{{ t('widget_' + w.type) }}</div>
@@ -597,6 +597,9 @@
                                         </div>
                                         <button type="button" class="widget-editor__btn" @click="exportWidgetZip(w)" :title="t('widget_editor_export_desc')" draggable="false">
                                             <i class="fas fa-file-export"></i> {{ t('widget_editor_export') }}
+                                        </button>
+                                        <button type="button" class="widget-editor__btn" :title="t(w.enabled === 0 ? 'widget_editor_enable_confirm' : 'widget_editor_disable_confirm')" @click="setWidgetEnabled(w, w.enabled === 0)" draggable="false">
+                                            <i class="fas" :class="w.enabled === 0 ? 'fa-toggle-on' : 'fa-toggle-off'"></i> {{ w.enabled === 0 ? t('widget_editor_enable') : t('widget_editor_disable') }}
                                         </button>
                                         <button type="button" class="widget-editor__btn widget-editor__btn--danger" @click="deleteWidgetDef(w)" draggable="false">
                                             <i class="fas fa-trash"></i> {{ t('widget_editor_delete') }}
@@ -1135,7 +1138,7 @@
         <div id="widget-edit" class="v-dialog__content v-dialog__content--active" v-if="editWidgetForm" style="z-index:202">
             <div class="v-dialog v-dialog--active v-dialog--persistent v-dialog--scrollable" style="width:700px" tabindex="0">
                 <div class="v-card v-sheet theme--dark" style="background-color:rgba(48,48,48,var(--dialog-alpha,1));border-color:#303030;display:flex;flex-direction:column;max-height:70vh;overflow:hidden">
-                    <div class="v-card__title" style="flex-shrink:0">
+                    <div class="v-card__title" style="flex-shrink:0;display:flex;align-items:center;gap:12px">
                         <span class="headline_m">{{ editWidgetForm.title ? t('edit_widget') + editWidgetForm.title : t('new_widget') }}</span>
                     </div>
                     <hr role="separator" class="v-divider theme--dark" style="flex-shrink:0">
@@ -1923,7 +1926,7 @@
                 <div class="modal-body" style="text-align:center;padding:2rem 1.5rem">
                     <i class="fas fa-chart-line" style="font-size:3rem;color:var(--primary);margin-bottom:1rem"></i>
                     <h3 style="margin-bottom:.3rem">Dashboard Pro</h3>
-                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 1.09</p>
+                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 1.10</p>
                     <p style="color:var(--text-secondary);font-size:.8rem">{{ t('app_desc') }}</p>
                     <div class="about-links" style="margin-top:1rem;font-size:.85rem;color:var(--text-secondary);line-height:1.8">
                         <div>{{ t('about_telegram') }}: <a href="https://t.me/+9ZFQaxs_Ukw4NmMy" target="_blank" rel="noopener">Telegram</a></div>
@@ -1946,6 +1949,6 @@
     <script src="js/auth.js?v=9"></script>
     <script src="js/sidebar.js?v=10"></script>
 <script src="js/widget-config.js?v=11"></script>
-<script src="js/app.js?v=177"></script>
+<script src="js/app.js?v=180"></script>
 </body>
 </html>

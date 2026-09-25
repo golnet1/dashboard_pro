@@ -70,6 +70,10 @@ $frontend = array(
     'widget_editor_bad_zip' => 'Выберите файл в формате ZIP',
     'widget_editor_in_use' => 'Виджет используется в виджетах на дашбордах. Сначала удалите их. Найдено экземпляров',
     'widget_editor_exists' => 'Виджет такого типа уже установлен',
+    'widget_editor_enable' => 'Включить',
+    'widget_editor_disable' => 'Отключить',
+    'widget_editor_enable_confirm' => 'Включить виджет',
+    'widget_editor_disable_confirm' => 'Отключить виджет',
     'about' => 'О программе',
     'logout' => 'Выход',
 

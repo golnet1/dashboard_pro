@@ -379,8 +379,9 @@ const app = createApp({
 
         const filteredDefs = computed(() => {
             const q = widgetSearch.value.trim().toLowerCase();
-            if (!q) return widgetDefs.value;
-            return widgetDefs.value.filter(d => {
+            const list = widgetDefs.value.filter(d => d.enabled !== 0);
+            if (!q) return list;
+            return list.filter(d => {
                 const haystack = [t('widget_' + d.type), d.title, (t('widget_' + d.type + '_desc') !== 'widget_' + d.type + '_desc' ? t('widget_' + d.type + '_desc') : ''), d.type]
                     .map(s => String(s || '').toLowerCase());
                 return haystack.some(s => s.includes(q));
@@ -769,7 +770,7 @@ function loadScript(src, version) {
             const widgets = await dpAPI('widgets');
             if (!widgets || !widgets.items) return;
             widgetDefs.value = widgets.items.map(w => ({
-                type: w.TYPE, icon: w.ICON, title: w.TITLE, desc: w.DESCRIPTION, file: w.FILE, priority: w.PRIORITY
+                type: w.TYPE, icon: w.ICON, title: w.TITLE, desc: w.DESCRIPTION, file: w.FILE, priority: w.PRIORITY, enabled: (w.ENABLED === null || w.ENABLED === undefined || w.ENABLED === '' ? 1 : (parseInt(w.ENABLED, 10) === 0 ? 0 : 1))
             }));
             widgetList.value = [...widgetDefs.value].sort((a, b) => (a.priority || 0) - (b.priority || 0));
             for (const w of widgets.items) {
@@ -2404,6 +2405,29 @@ if (f.key) {
             input.click();
         }
 
+        async function setWidgetEnabled(w, enabled) {
+            if (enabled === false) {
+                if (!confirm(t('widget_editor_disable_confirm') + ' «' + (w.title || w.type) + '»?')) return;
+            } else {
+                if (!confirm(t('widget_editor_enable_confirm') + ' «' + (w.title || w.type) + '»?')) return;
+            }
+            try {
+                const res = await dpAPI('widgetSetEnabled', { method: 'POST', body: JSON.stringify({ type: w.type, enabled: enabled ? 1 : 0 }) });
+                if (res.error) {
+                    if (res.error === 'widget_in_use') {
+                        alert(t('widget_editor_in_use') + ': ' + res.count);
+                    } else {
+                        alert(t('error_label') + ' ' + res.error);
+                    }
+                    return;
+                }
+                w.enabled = enabled ? 1 : 0;
+                await loadWidgetDefs();
+            } catch (e) {
+                alert(t('error_label') + (e.message || e));
+            }
+        }
+
         async function deleteWidgetDef(w) {
             if (!confirm(t('widget_editor_delete_confirm') + ' «' + (w.title || w.type) + '»?')) return;
             try {
@@ -2519,7 +2543,7 @@ onMounted(() => {
             isAdmin, toggleEditMode, wsConnected, wsTooltip, wsStatus, wsPulse, wsBytesSent, wsBytesReceived, wsRev, user, userMenuOpen, sidebarMini, toggleSidebar, expandedGroups, childPanels, toggleGroup, forceRefresh, formatBytes,
             showNotifications, notifications, unreadCount, checkNotifications, markNotificationsRead,
             chatOpen, chatMessages, chatText, chatLoading, loadChat, sendChat, toggleChat, formatTime,
-            widgetList, exportWidgetZip, deleteWidgetDef, pickWidgetZip,
+            widgetList, exportWidgetZip, setWidgetEnabled, deleteWidgetDef, pickWidgetZip,
             widgetDefMouseDown, widgetDefMouseMove, widgetDefMouseUp, dragWidgetDefId, dragWidgetDefOverId,
             t
         };
