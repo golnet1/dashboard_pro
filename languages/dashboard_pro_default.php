@@ -45,6 +45,7 @@ $frontend = array(
     'show_sidebar' => 'Show sidebar',
     'hide_sidebar' => 'Hide sidebar',
     'settings' => 'Settings',
+    'help' => 'Help',
     'home_panel' => 'Home panel',
     'notifications' => 'Notifications',
     'mark_read' => 'Mark as read',

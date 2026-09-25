@@ -32,6 +32,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .user-menu__item i { width: 18px; text-align: center; color: var(--text-secondary); font-size: .9rem; }
 .user-menu__item--danger { color: #ef4444; }
 .user-menu__item--danger i { color: #ef4444; }
+a.user-menu__item { text-decoration: none; color: inherit; }
 .app-bar__actions { display: flex; align-items: center; gap: 2px; }
 .app-bar__actions .app-bar__clock { display: flex; flex-direction: column; align-items: center; line-height: 1.15; margin: 0 10px 0 0; padding: 0 10px; white-space: nowrap; }
 .app-bar__actions .app-bar__clock-time { font-size: 1.05rem; font-weight: 600; color: rgba(255,255,255,.95); font-variant-numeric: tabular-nums; }

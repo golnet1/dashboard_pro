@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Частые вопросы — Dashboard Pro Справка</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="css/help.css">
+</head>
+<body>
+<header class="help-header">
+    <i class="fas fa-book" style="font-size:1.4rem"></i>
+    <h1>Dashboard Pro <span class="subtitle">— справка и документация</span></h1>
+    <a href="../index.html"><i class="fas fa-external-link-alt"></i> Открыть панель</a>
+</header>
+<div class="help-layout">
+    <aside class="help-side">
+        <div class="help-side__title">Разделы справки</div>
+        <nav>
+            <a href="index.html"><i class="fas fa-home"></i> Обзор</a>
+            <a href="panels.html"><i class="fas fa-th-large"></i> Панели</a>
+            <a href="widgets.html"><i class="fas fa-puzzle-piece"></i> Виджеты</a>
+            <a href="editor.html"><i class="fas fa-edit"></i> Редактор виджетов</a>
+            <a href="settings.html"><i class="fas fa-cog"></i> Настройки</a>
+            <a href="users.html"><i class="fas fa-users"></i> Пользователи и права</a>
+            <a href="faq.html" class="active"><i class="fas fa-question-circle"></i> Частые вопросы</a>
+        </nav>
+    </aside>
+    <main class="help-main">
+        <h2>Частые вопросы</h2>
+        <p class="lead">Ответы на типовые вопросы и решения частых проблем.</p>
+
+        <div class="help-card">
+            <h3>Панель пустая — не появляются виджеты</h3>
+            <p>Запустите мастер «Wizard» в разделе <b>Настройки → Инструменты</b> — он создаст стартовый набор панелей и виджетов. Либо добавьте панель и виджеты вручную в режиме редактирования.</p>
+        </div>
+
+        <div class="help-card">
+            <h3>Нет доступа к настройкам и редактированию</h3>
+            <p>Режимы редактирования, настройки и редактор виджетов доступны только администраторам. Проверьте, что вход выполнен под учётной записью с правами администратора Majordomo.</p>
+        </div>
+
+        <div class="help-card">
+            <h3>Виджет не реагирует на команду</h3>
+            <ul>
+                <li>Проверьте, что указан корректный объект и метод (команда) в настройках виджета.</li>
+                <li>Проверьте, что объект существует в Majordomo и пользователь имеет права на его изменение.</li>
+                <li>Убедитесь, что виджет не перекрыт другим элементом (проверьте позицию и размер).</li>
+            </ul>
+        </div>
+
+        <div class="help-card">
+            <h3>Значения на виджетах не обновляются</h3>
+            <p>Панель обновляет значения в реальном времени через веб‑сокеты. Проверьте статус соединения в шапке (значок веб‑сокета) и настройку отображаемого свойства. Если соединение разорвано — перезагрузите страницу.</p>
+        </div>
+
+        <div class="help-card">
+            <h3>Система работает медленно</h3>
+            <ul>
+                <li>Слишком много активных виджетов с частым обновлением.</li>
+                <li>Большое количество графиков на одной панели.</li>
+                <li>Проверьте объём трафика веб‑сокетов в статистике (Настройки → Статистика).</li>
+            </ul>
+        </div>
+
+        <div class="help-card">
+            <h3>Хочу перенести панель на другой сервер</h3>
+            <p>Воспользуйтесь экспортом: <b>Настройки → Экспорт</b> — будет создан файл с панелями и настройками. На новом сервере установите модуль и выполните <b>Импорт</b>.</p>
+        </div>
+
+        <div class="help-card">
+            <h3>Как убрать виджет, который не нужен</h3>
+            <p>Включите режим редактирования, выберите виджет и нажмите «Удалить». Для массового удаления можно удалить всю панель — её виджеты удалятся вместе с ней.</p>
+        </div>
+
+        <div class="help-card">
+            <h3>Виджет не виден в списке добавления</h3>
+            <p>Тип виджета может быть отключён в <b>Редакторе виджетов</b> (меню пользователя → «Редактор виджетов»). Включите его там.</p>
+        </div>
+
+        <div class="help-card">
+            <h3>Окошко настроек виджета открывается пустым</h3>
+            <p>Эта проблема устранена в версии 1.08. Убедитесь, что у вас установлена актуальная версия модуля.</p>
+        </div>
+
+        <div class="help-card">
+            <h3>Как обновить модуль</h3>
+            <p>Скачайте актуальную версию с <a href="https://github.com/golnet1/dashboard_pro" target="_blank" rel="noopener">GitHub</a> и замените файлы модуля, затем очистите кэш браузера (обновление, Ctrl+F5 / Cmd+Shift+R).</p>
+        </div>
+    </main>
+</div>
+<footer class="help-footer">Dashboard Pro · Справка модуля · <a href="https://github.com/golnet1/dashboard_pro" target="_blank" rel="noopener">GitHub</a> · <a href="https://t.me/golnet96" target="_blank" rel="noopener">Автор</a></footer>
+</body>
+</html>

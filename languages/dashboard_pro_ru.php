@@ -45,6 +45,7 @@ $frontend = array(
     'show_sidebar' => 'Показать панель',
     'hide_sidebar' => 'Скрыть панель',
     'settings' => 'Настройки',
+    'help' => 'Помощь',
     'home_panel' => 'Начальная панель',
     'notifications' => 'Уведомления',
     'mark_read' => 'Пометить как прочитанное',

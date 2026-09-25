@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Настройки — Dashboard Pro Справка</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="css/help.css">
+</head>
+<body>
+<header class="help-header">
+    <i class="fas fa-book" style="font-size:1.4rem"></i>
+    <h1>Dashboard Pro <span class="subtitle">— справка и документация</span></h1>
+    <a href="../index.html"><i class="fas fa-external-link-alt"></i> Открыть панель</a>
+</header>
+<div class="help-layout">
+    <aside class="help-side">
+        <div class="help-side__title">Разделы справки</div>
+        <nav>
+            <a href="index.html"><i class="fas fa-home"></i> Обзор</a>
+            <a href="panels.html"><i class="fas fa-th-large"></i> Панели</a>
+            <a href="widgets.html"><i class="fas fa-puzzle-piece"></i> Виджеты</a>
+            <a href="editor.html"><i class="fas fa-edit"></i> Редактор виджетов</a>
+            <a href="settings.html" class="active"><i class="fas fa-cog"></i> Настройки</a>
+            <a href="users.html"><i class="fas fa-users"></i> Пользователи и права</a>
+            <a href="faq.html"><i class="fas fa-question-circle"></i> Частые вопросы</a>
+        </nav>
+    </aside>
+    <main class="help-main">
+        <h2>Настройки</h2>
+        <p class="lead">Раздел доступен администраторам (меню пользователя → «Настройки»). Все изменения сохраняются автоматически при изменении параметра.</p>
+
+        <div class="help-card">
+            <h3>Основное</h3>
+            <table>
+                <tr><th>Параметр</th><th>Описание</th></tr>
+                <tr><td>Название приложения</td><td>Заголовок панели в шапке и боковом меню (по умолчанию «Dashboard Pro»).</td></tr>
+                <tr><td>Основная панель</td><td>Панель, открываемая при запуске и по клику на логотип.</td></tr>
+            </table>
+        </div>
+
+        <div class="help-card">
+            <h3>Виджеты (размеры)</h3>
+            <table>
+                <tr><th>Параметр</th><th>Описание</th></tr>
+                <tr><td>Размер иконки</td><td>Размер иконок на виджетах (слайдер).</td></tr>
+                <tr><td>Размер шрифта заголовка</td><td>Крупность заголовка виджета.</td></tr>
+                <tr><td>Размер шрифта подзаголовка</td><td>Крупность подписи/значения под заголовком.</td></tr>
+                <tr><td>Размер виджета</td><td>Базовый размер карточки виджета.</td></tr>
+            </table>
+            <p class="help-note">Слайдеры имеют положительные и отрицательные значения: положительные увеличивают размер, отрицательные уменьшают.</p>
+        </div>
+
+        <div class="help-card">
+            <h3>Внешний вид и шапка</h3>
+            <table>
+                <tr><th>Параметр</th><th>Описание</th></tr>
+                <tr><td>Шрифт интерфейса</td><td>Шрифт панели: Roboto, Ubuntu, Arial, Helvetica, Tahoma, Verdana.</td></tr>
+                <tr><td>Скрыть меню</td><td>Не показывать боковое меню.</td></tr>
+                <tr><td>Скрыть кнопку чата</td><td>Убрать кнопку чата Majordomo из шапки.</td></tr>
+                <tr><td>Компактная шапка</td><td>Уменьшить высоту верхней панели.</td></tr>
+                <tr><td>Часы в шапке</td><td>Показывать дату/время в шапке.</td></tr>
+                <tr><td>Статус в шапке</td><td>Показывать статус соединения (WS) в шапке.</td></tr>
+                <tr><td>Система / Отладка</td><td>Вывод отладочной информации в консоль.</td></tr>
+                <tr><td>ID сессии</td><td>Служебный идентификатор сессии веб‑сокета.</td></tr>
+            </table>
+        </div>
+
+        <div class="help-card">
+            <h3>Фон и цвета</h3>
+            <table>
+                <tr><th>Параметр</th><th>Описание</th></tr>
+                <tr><td>Цвет меню</td><td>Цвет фона бокового меню (HEX или слово, например red).</td></tr>
+                <tr><td>Цвет панели</td><td>Цвет фона области панелей.</td></tr>
+                <tr><td>Изображение панели</td><td>Фоновое изображение области панелей (URL).</td></tr>
+                <tr><td>Изображение шапки</td><td>Фоновое изображение верхней панели (URL).</td></tr>
+                <tr><td>Прозрачность карточек</td><td>Прозрачность карточек виджетов (0–100).</td></tr>
+                <tr><td>Прозрачность меню</td><td>Прозрачность бокового меню (0–100).</td></tr>
+                <tr><td>Прозрачность диалогов</td><td>Прозрачность модальных окон и панелей настроек.</td></tr>
+                <tr><td>Основной цвет</td><td>Акцентный цвет интерфейса (шапка, выделения) — выбор из палитры.</td></tr>
+                <tr><td>Цвет светлой темы</td><td>Основной цвет в светлой теме.</td></tr>
+                <tr><td>Цвет тёмной темы</td><td>Основной цвет в тёмной теме.</td></tr>
+            </table>
+        </div>
+
+        <div class="help-card">
+            <h3>Расположение (сетка)</h3>
+            <table>
+                <tr><th>Параметр</th><th>Описание</th></tr>
+                <tr><td>Показывать сетку</td><td>Отображение сетки привязки в режиме редактирования.</td></tr>
+                <tr><td>Запрет пересечения</td><td>Включить/выключить проверку пересечения виджетов при перемещении.</td></tr>
+                <tr><td>Шаг сетки</td><td>Размер шага привязки при перемещении виджетов.</td></tr>
+            </table>
+        </div>
+
+        <div class="help-card">
+            <h3>Инструменты</h3>
+            <table>
+                <tr><th>Кнопка</th><th>Описание</th></tr>
+                <tr><td>Wizard</td><td>Мастер: автоматически создаёт стартовый набор панелей и виджетов.</td></tr>
+                <tr><td>Очистка</td><td>Удаление «осиротевших» записей виджетов, не связанных с панелями.</td></tr>
+                <tr><td>Сброс</td><td>Полный сброс панелей и настроек (требует подтверждения).</td></tr>
+            </table>
+            <p class="help-note">Кнопка «Сброс» удаляет все панели и настройки — используйте только при необходимости, предварительно сделав экспорт.</p>
+        </div>
+
+        <div class="help-card">
+            <h3>Экспорт / импорт</h3>
+            <ul>
+                <li><b>Экспорт</b> — выгрузка текущих панелей и настроек в файл (JSON) для резервной копии.</li>
+                <li><b>Импорт</b> — восстановление панелей из файла, созданного экспортом.</li>
+            </ul>
+        </div>
+
+        <div class="help-card">
+            <h3>Статистика</h3>
+            <p>Число панелей (до 100), общее число виджетов (до 10000) и объём трафика веб‑сокетов (отправка/приём).</p>
+        </div>
+    </main>
+</div>
+<footer class="help-footer">Dashboard Pro · Справка модуля · <a href="https://github.com/golnet1/dashboard_pro" target="_blank" rel="noopener">GitHub</a></footer>
+</body>
+</html>

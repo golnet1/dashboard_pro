@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Панели — Dashboard Pro Справка</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="css/help.css">
+</head>
+<body>
+<header class="help-header">
+    <i class="fas fa-book" style="font-size:1.4rem"></i>
+    <h1>Dashboard Pro <span class="subtitle">— справка и документация</span></h1>
+    <a href="../index.html"><i class="fas fa-external-link-alt"></i> Открыть панель</a>
+</header>
+<div class="help-layout">
+    <aside class="help-side">
+        <div class="help-side__title">Разделы справки</div>
+        <nav>
+            <a href="index.html"><i class="fas fa-home"></i> Обзор</a>
+            <a href="panels.html" class="active"><i class="fas fa-th-large"></i> Панели</a>
+            <a href="widgets.html"><i class="fas fa-puzzle-piece"></i> Виджеты</a>
+            <a href="editor.html"><i class="fas fa-edit"></i> Редактор виджетов</a>
+            <a href="settings.html"><i class="fas fa-cog"></i> Настройки</a>
+            <a href="users.html"><i class="fas fa-users"></i> Пользователи и права</a>
+            <a href="faq.html"><i class="fas fa-question-circle"></i> Частые вопросы</a>
+        </nav>
+    </aside>
+    <main class="help-main">
+        <h2>Панели</h2>
+        <p class="lead">Панели — это экраны панели управления. Каждая панель содержит виджеты и отображается в боковом меню.</p>
+
+        <div class="help-card">
+            <h3>Добавление панели</h3>
+            <ol>
+                <li>Включите режим редактирования (кнопка-карандаш внизу бокового меню).</li>
+                <li>В нижней части меню нажмите «Добавить панель».</li>
+                <li>Укажите название панели (оно появится в меню и заголовке).</li>
+                <li>Панель будет добавлена, и вы сможете размещать на ней виджеты.</li>
+            </ol>
+        </div>
+
+        <div class="help-card">
+            <h3>Типы панелей</h3>
+            <table>
+                <tr><th>Тип</th><th>Описание</th></tr>
+                <tr><td>Обычная панель</td><td>Стандартный экран с виджетами.</td></tr>
+                <tr><td>Группа</td><td>Объединяет несколько панелей в выпадающий список. Группа сама по себе не содержит виджетов — в неё помещаются панели-дочерние элементы.</td></tr>
+            </table>
+            <p class="help-note">Чтобы сделать панель частью группы, откройте свойства панели и выберите родительскую группу. В боковом меню такие панели появляются внутри раскрывающегося пункта группы.</p>
+        </div>
+
+        <div class="help-card">
+            <h3>Основная панель</h3>
+            <p>Панель, которая открывается при запуске. Задаётся в <b>Настройки</b> → <b>Основная панель</b> (выбор из списка) либо нажатием на логотип в боковом меню — он возвращает к основной панели.</p>
+        </div>
+
+        <div class="help-card">
+            <h3>Управление панелями</h3>
+            <ul>
+                <li><b>Переименование:</b> в свойствах панели (иконка шестерёнки рядом с названием).</li>
+                <li><b>Изменение порядка:</b> в окне редактирования панели при помощи кнопок перемещения вверх/вниз.</li>
+                <li><b>Удаление:</b> в свойствах панели — удаление удалит и все её виджеты.</li>
+                <li><b>Дублирование:</b> кнопка копирования создаёт точную копию панели со всеми виджетами.</li>
+            </ul>
+        </div>
+
+        <div class="help-card">
+            <h3>Структура бокового меню</h3>
+            <ul>
+                <li>Логотип (вверху) — переход к основной панели.</li>
+                <li>Список панелей — переход между экранами.</li>
+                <li>Группы — раскрываются по нажатию, внутри них дочерние панели.</li>
+                <li>Кнопка редактирования (внизу) — включает/выключает режим редактирования.</li>
+            </ul>
+        </div>
+
+        <div class="help-card">
+            <h3>Лимиты</h3>
+            <p>Поддерживается до <code>100</code> панелей, до <code>10000</code> виджетов суммарно.</p>
+        </div>
+    </main>
+</div>
+<footer class="help-footer">Dashboard Pro · Справка модуля · <a href="https://github.com/golnet1/dashboard_pro" target="_blank" rel="noopener">GitHub</a></footer>
+</body>
+</html>

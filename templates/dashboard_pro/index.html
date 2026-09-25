@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Pro</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/app.css?v=60">
+    <link rel="stylesheet" href="css/app.css?v=61">
     <script src="js/lib/vue.global.prod.js"></script>
 </head>
 <body>
@@ -140,6 +140,9 @@
 								<div class="user-menu__item" v-if="isAdmin" @click="userMenuOpen = false; showWidgetEditorPanel = true; showSettingsPanel = false">
                                     <i class="fas fa-puzzle-piece"></i> {{ t('widget_editor') }}
                                 </div>
+                                <a class="user-menu__item" v-if="isAdmin" href="help/index.html" target="_blank" rel="noopener" @click="userMenuOpen = false">
+                                    <i class="fas fa-question-circle"></i> {{ t('help') }}
+                                </a>
                                 <div class="user-menu__item" @click="userMenuOpen = false; showAbout = true">
                                     <i class="fas fa-info-circle"></i> {{ t('about') }}
                                 </div>
@@ -1920,7 +1923,7 @@
                 <div class="modal-body" style="text-align:center;padding:2rem 1.5rem">
                     <i class="fas fa-chart-line" style="font-size:3rem;color:var(--primary);margin-bottom:1rem"></i>
                     <h3 style="margin-bottom:.3rem">Dashboard Pro</h3>
-                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 1.08</p>
+                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 1.09</p>
                     <p style="color:var(--text-secondary);font-size:.8rem">{{ t('app_desc') }}</p>
                     <div class="about-links" style="margin-top:1rem;font-size:.85rem;color:var(--text-secondary);line-height:1.8">
                         <div>{{ t('about_telegram') }}: <a href="https://t.me/+9ZFQaxs_Ukw4NmMy" target="_blank" rel="noopener">Telegram</a></div>
