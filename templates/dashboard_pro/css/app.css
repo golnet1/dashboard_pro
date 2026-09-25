@@ -168,6 +168,7 @@ a.user-menu__item { text-decoration: none; color: inherit; }
 .widget--abs { position: absolute; cursor: default; transition: none; z-index: 1; touch-action: none; }
 .widget--abs:hover { z-index: 5; box-shadow: none; }
 .edit-mode .widget--abs { cursor: move; }
+.edit-mode .widget--abs iframe { pointer-events: none; }
 .edit-mode .widget--abs.widget--dragging { z-index: 10; cursor: grabbing; box-shadow: none; }
 .widget--abs.widget--resizing { z-index: 10; user-select: none; }
 .widget-resize-handle { position: absolute; bottom: 0; right: 0; width: 18px; height: 18px; cursor: nwse-resize; z-index: 3; }
