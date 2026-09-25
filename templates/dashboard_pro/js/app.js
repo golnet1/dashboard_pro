@@ -45,6 +45,15 @@ const WS_OBJECT_FIELDS = [
     ['icon_object', 'icon_property']
 ];
 
+        const INTERFACE_FONT_STACKS = {
+            Roboto: '"Roboto", Arial, sans-serif',
+            Ubuntu: '"Ubuntu", Arial, sans-serif',
+            Arial: 'Arial, "Arimo", sans-serif',
+            Helvetica: '"Helvetica Neue", "Open Sans", Arial, sans-serif',
+            Tahoma: 'Tahoma, Arial, sans-serif',
+            Verdana: 'Verdana, Arial, sans-serif'
+        };
+
 function wsWidgetPropKeys(w) {
     const keys = new Set();
     if (!w) return keys;
@@ -148,7 +157,11 @@ const app = createApp({
         const bgProperties = ref([]);
         const extraProperties = ref({});
         const methodCache = reactive({});
-        const user = ref({ username: '', name: '', avatar: '', is_admin: false });
+        const user = ref({ username: '', name: '', avatar: '', is_admin: false, sessionID: '' });
+        function getSessionCookie() {
+            const match = document.cookie.match(/(?:^|;\s*)prj=([^;]+)/);
+            return match ? decodeURIComponent(match[1]) : '';
+        }
         const userMenuOpen = ref(false);
         const isAdmin = ref(false);
         const wsConnected = ref(false);
@@ -729,7 +742,7 @@ const app = createApp({
         async function initAuth() {
             await Auth.checkAuth(async (res) => {
                 authenticated.value = true;
-                user.value = { username: res.username, name: res.name || res.username, avatar: res.avatar || '', is_admin: res.is_admin || false };
+                user.value = { username: res.username, name: res.name || res.username, avatar: res.avatar || '', is_admin: res.is_admin || false, sessionID: res.sessionID || getSessionCookie() };
                 isAdmin.value = user.value.is_admin;
                 if (!isAdmin.value) editMode.value = false;
                 await loadData();
@@ -740,7 +753,7 @@ const app = createApp({
         async function doLogin() {
             await Auth.doLogin(async (res) => {
                 authenticated.value = true;
-                user.value = { username: res.username, name: res.name || res.username, avatar: res.avatar || '', is_admin: res.is_admin || false };
+                user.value = { username: res.username, name: res.name || res.username, avatar: res.avatar || '', is_admin: res.is_admin || false, sessionID: res.sessionID || getSessionCookie() };
                 isAdmin.value = user.value.is_admin;
                 if (!isAdmin.value) editMode.value = false;
                 await loadData();
@@ -752,7 +765,7 @@ const app = createApp({
             Auth.doLogout();
             panels.value = [];
             currentPanel.value = null;
-            user.value = { username: '', name: '', avatar: '', is_admin: false };
+            user.value = { username: '', name: '', avatar: '', is_admin: false, sessionID: '' };
             userMenuOpen.value = false;
         }
 
@@ -1823,8 +1836,14 @@ if (f.key) {
             // theme
             root.classList.toggle('dark', isDark);
 
-            // font
-            root.style.fontFamily = s.font || '';
+            const fontFamily = String(s.font || '').trim();
+            const interfaceFont = fontFamily ? (INTERFACE_FONT_STACKS[fontFamily] || fontFamily + ', sans-serif') : '';
+            root.style.fontFamily = interfaceFont;
+            document.body.style.fontFamily = interfaceFont;
+            if (app) {
+                app.style.fontFamily = interfaceFont;
+                app.classList.toggle('compact-header', !!s.compactHeader);
+            }
 
             // hide menu
             if (sidebar) sidebar.style.display = s.hideMenu ? 'none' : '';
@@ -2534,7 +2553,7 @@ onMounted(() => {
             resizingWidget, startResize, onResize, stopResize,
             widgetMenuTarget, widgetPanelSubmenu, widgetGroupSubmenu, widgetConfirm, copyWidget, exportWidget, changeWidgetPanel, selectMoveTarget, confirmMoveWidget, moveWidgetToGroup, confirmMoveToGroup,
             showChangeObject, changeObjectGroups, openChangeObject, saveChangeObject, widgetHasChangeObjects,
-            showSettingsPanel, showWidgetEditorPanel, settings, savePanels, commitChanges, hasUnsavedChanges, toggleTheme, cleanupOrphanWidgets, resetAll,
+            showSettingsPanel, showWidgetEditorPanel, settings, savePanels, saveSettingsNow, commitChanges, hasUnsavedChanges, toggleTheme, cleanupOrphanWidgets, resetAll,
             showExportDialog, exportMode, exportSelectedPanel, exportUsers, exportSelectedUser, loadExportUsers, doExport, doImport,
             showCleanupDialog, cleanupReport, cleanupBusy, cleanupReasons, applyCleanup, restorePanels, runWizard,
             showAddPanel, editPanelData, panelForm, panelTab, panelTabPos, panelError, createPanel, editPanel, openPanelForm, deletePanel, deleteCurrentPanel, movePanel, showAbout, toggleField,

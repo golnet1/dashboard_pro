@@ -5,7 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Pro</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/app.css?v=66">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Ubuntu">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Arimo:400,600,700">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700">
+    <link rel="stylesheet" href="css/app.css?v=74">
     <script src="js/lib/vue.global.prod.js"></script>
 </head>
 <body>
@@ -226,8 +232,8 @@
                                                 <div class="v-input v-input--hide-details theme--dark v-text-field v-select">
                                                     <div class="v-input__control">
                                                         <div class="v-input__slot">
-                                                            <div class="v-select__slot">
-                                                                <label class="v-label theme--dark" style="left:0;right:auto;position:absolute">{{ t('default_panel') }}</label>
+                                                             <div class="v-select__slot">
+                                                                 <label class="v-label theme--dark" style="left:0;right:auto;position:absolute">{{ t('default_panel') }}</label>
                                                                  <select v-model="settings.defaultPanel" @change="savePanels()" style="background:transparent;border:none;color:#fff;outline:none;width:100%;padding:18px 0 4px;font-size:16px">
                                                                     <option value="" style="background:#1e1e1e;color:#fff">{{ t('home') }}</option>
                                                                     <option v-for="p in panels" :key="p.name" :value="p.name" style="background:#1e1e1e;color:#fff">{{ p.title }}</option>
@@ -256,7 +262,7 @@
                                         </div>
                                         <div class="v-list-item theme--dark">
                                             <div class="v-list-item__content py-0">
-                                                <div class="v-list-item__subtitle">{{ t('session_id') }}{{ settings.sessionID || '—' }}</div>
+                                                 <div class="v-list-item__subtitle">{{ t('session_id') }}{{ user.sessionID || '—' }}</div>
                                             </div>
                                         </div>
                                     </div>
@@ -315,17 +321,17 @@
                                                 <div class="v-input v-input--is-label-active v-input--is-dirty theme--dark v-text-field v-select">
                                                     <div class="v-input__control">
                                                         <div class="v-input__slot">
-                                                            <div class="v-select__slot">
-                                                                <label class="v-label v-label--active theme--dark" style="left:0;right:auto;position:absolute">{{ t('interface_font') }}</label>
-                                                                 <select v-model="settings.font" @change="savePanels()" style="background:transparent;border:none;color:#fff;outline:none;width:100%;padding:18px 0 4px;font-size:16px">
-                                                                    <option value="Roboto" style="background:#1e1e1e;color:#fff">Roboto</option>
-                                                                    <option value="Ubuntu" style="background:#1e1e1e;color:#fff">Ubuntu</option>
-                                                                    <option value="Arial" style="background:#1e1e1e;color:#fff">Arial</option>
-                                                                    <option value="Helvetica" style="background:#1e1e1e;color:#fff">Helvetica</option>
-                                                                    <option value="Tahoma" style="background:#1e1e1e;color:#fff">Tahoma</option>
-                                                                    <option value="Verdana" style="background:#1e1e1e;color:#fff">Verdana</option>
-                                                                </select>
-                                                            </div>
+                                                             <div class="v-select__slot">
+                                                                 <label class="v-label v-label--active theme--dark" style="left:0;right:auto;position:absolute">{{ t('interface_font') }}</label>
+                                                                 <select v-model="settings.font" @change="saveSettingsNow()" style="background:transparent;border:none;color:#fff;outline:none;width:100%;padding:18px 0 4px;font-size:16px">
+                                                                     <option value="Roboto" style="background:#1e1e1e;color:#fff">Roboto</option>
+                                                                     <option value="Ubuntu" style="background:#1e1e1e;color:#fff">Ubuntu</option>
+                                                                     <option value="Arial" style="background:#1e1e1e;color:#fff">Arial</option>
+                                                                     <option value="Helvetica" style="background:#1e1e1e;color:#fff">Helvetica</option>
+                                                                     <option value="Tahoma" style="background:#1e1e1e;color:#fff">Tahoma</option>
+                                                                     <option value="Verdana" style="background:#1e1e1e;color:#fff">Verdana</option>
+                                                                 </select>
+                                                             </div>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -356,7 +362,7 @@
                                         <div class="v-list-item theme--dark">
                                             <div class="v-list-item__action">
                                                 <div class="v-input theme--dark v-input--selection-controls v-input--switch" :class="{ 'input--is-checked': settings.compactHeader }">
-                                                    <div class="v-input__control"><div class="v-input__slot v-input__slot--switch"><div class="v-input--switch__track" @click.stop="settings.compactHeader = !settings.compactHeader; savePanels()"><div class="v-input--switch__thumb"></div></div></div></div>
+                                                    <div class="v-input__control"><div class="v-input__slot v-input__slot--switch"><div class="v-input--switch__track" @click.stop="settings.compactHeader = !settings.compactHeader; saveSettingsNow()"><div class="v-input--switch__thumb"></div></div></div></div>
                                                 </div>
                                             </div>
                                             <div class="v-list-item__content py-0">
@@ -392,7 +398,7 @@
                                                     <div class="v-input__control">
                                                         <div class="v-input__slot">
                                                             <div class="v-text-field__slot">
-                                                                <label class="v-label theme--dark" style="left:0;right:auto;position:absolute">{{ t('menu_bg') }}</label>
+                                                                <label class="v-label theme--dark" :class="{ 'v-label--active': settings.menuBg }" style="left:0;right:auto;position:absolute">{{ t('menu_bg') }}</label>
                                                                  <input v-model="settings.menuBg" @change="savePanels()" style="background:transparent;border:none;color:#fff;outline:none;width:100%;padding:18px 0 4px;font-size:16px">
                                                             </div>
                                                         </div>
@@ -407,7 +413,7 @@
                                                     <div class="v-input__control">
                                                         <div class="v-input__slot">
                                                             <div class="v-text-field__slot">
-                                                                <label class="v-label theme--dark" style="left:0;right:auto;position:absolute">{{ t('panel_bg') }}</label>
+                                                                <label class="v-label theme--dark" :class="{ 'v-label--active': settings.panelBg }" style="left:0;right:auto;position:absolute">{{ t('panel_bg') }}</label>
                                                                  <input v-model="settings.panelBg" @change="savePanels()" style="background:transparent;border:none;color:#fff;outline:none;width:100%;padding:18px 0 4px;font-size:16px">
                                                             </div>
                                                         </div>
@@ -518,7 +524,7 @@
                                                     <div class="v-input__control">
                                                         <div class="v-input__slot">
                                                             <div class="v-text-field__slot">
-                                                                <label class="v-label theme--dark" style="left:0;right:auto;position:absolute">{{ t('field_grid_step') }}</label>
+                                                                <label class="v-label theme--dark" :class="{ 'v-label--active': settings.gridStep !== undefined && settings.gridStep !== null && settings.gridStep !== '' }" style="left:0;right:auto;position:absolute">{{ t('field_grid_step') }}</label>
                                                                  <input type="number" v-model.number="settings.gridStep" @change="savePanels()" min="1" style="background:transparent;border:none;color:#fff;outline:none;width:100%;padding:18px 0 4px;font-size:16px">
                                                             </div>
                                                         </div>
@@ -1926,7 +1932,7 @@
                 <div class="modal-body" style="text-align:center;padding:2rem 1.5rem">
                     <i class="fas fa-chart-line" style="font-size:3rem;color:var(--primary);margin-bottom:1rem"></i>
                     <h3 style="margin-bottom:.3rem">Dashboard Pro</h3>
-                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 1.10</p>
+                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 1.11</p>
                     <p style="color:var(--text-secondary);font-size:.8rem">{{ t('app_desc') }}</p>
                     <div class="about-links" style="margin-top:1rem;font-size:.85rem;color:var(--text-secondary);line-height:1.8">
                         <div>{{ t('about_telegram') }}: <a href="https://t.me/+9ZFQaxs_Ukw4NmMy" target="_blank" rel="noopener">Telegram</a></div>
@@ -1949,6 +1955,6 @@
     <script src="js/auth.js?v=9"></script>
     <script src="js/sidebar.js?v=10"></script>
 <script src="js/widget-config.js?v=11"></script>
-<script src="js/app.js?v=180"></script>
+<script src="js/app.js?v=187"></script>
 </body>
 </html>

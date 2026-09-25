@@ -110,7 +110,8 @@ class dashboard_pro extends module
                     'username' => $session->data['DP_PRO_USERNAME'],
                     'name' => $user['NAME'] ?? $session->data['DP_PRO_USERNAME'],
                     'avatar' => $user['AVATAR'] ? '/cms/avatars/' . $user['AVATAR'] : '',
-                    'is_admin' => $is_admin
+                    'is_admin' => $is_admin,
+                    'sessionID' => session_id() ?: (defined('SESSION_ID') ? SESSION_ID : '')
                 ];
             }
             if ($session && empty($session->data['DP_PRO_LOGGED_OUT'])) {
@@ -126,7 +127,8 @@ class dashboard_pro extends module
                         'username' => $rememberUser['USERNAME'],
                         'name' => $rememberUser['NAME'] ?? $rememberUser['USERNAME'],
                         'avatar' => $rememberUser['AVATAR'] ? '/cms/avatars/' . $rememberUser['AVATAR'] : '',
-                        'is_admin' => (bool)$rememberUser['IS_ADMIN']
+                        'is_admin' => (bool)$rememberUser['IS_ADMIN'],
+                        'sessionID' => session_id() ?: (defined('SESSION_ID') ? SESSION_ID : '')
                     ];
                 }
             }
@@ -156,7 +158,8 @@ class dashboard_pro extends module
                     'username' => $user['USERNAME'],
                     'name' => $user['NAME'] ?? $user['USERNAME'],
                     'avatar' => $user['AVATAR'] ? '/cms/avatars/' . $user['AVATAR'] : '',
-                    'is_admin' => (bool)$user['IS_ADMIN']
+                    'is_admin' => (bool)$user['IS_ADMIN'],
+                    'sessionID' => session_id() ?: (defined('SESSION_ID') ? SESSION_ID : '')
                 ];
             }
             return ['error' => LANG_DASHBOARD_PRO_LOGIN_INVALID];
