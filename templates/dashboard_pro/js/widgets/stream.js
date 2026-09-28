@@ -72,8 +72,16 @@ const StreamWidget = {
                     <input type="datetime-local" v-model="histFrom" style="width:100%;background:#1e1e1e;color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:4px;padding:4px 6px;margin-bottom:6px">
                     <label class="v-label" style="font-size:.7rem">{{ t('stream_history_to') }}</label>
                     <input type="datetime-local" v-model="histTo" style="width:100%;background:#1e1e1e;color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:4px;padding:4px 6px;margin-bottom:8px">
-                    <button type="button" class="v-btn v-btn--is-elevated v-btn--has-bg v-size--small primary" style="width:100%;color:#fff" @click="playHistory" :disabled="!histFrom || !histTo">{{ t('stream_history_play') }}</button>
+                    <button type="button" class="v-btn v-btn--is-elevated v-btn--has-bg v-size--small primary" style="width:100%;color:#fff" @click="playHistory" :disabled="!histFrom || !histTo || histBusy">{{ histBusy ? '…' : t('stream_history_play') }}</button>
                     <button v-if="histPlaying" type="button" class="v-btn v-btn--is-elevated v-btn--text v-size--small" style="width:100%;margin-top:6px;color:rgba(255,255,255,.6)" @click="stopHistory">{{ t('stream_history_live') }}</button>
+                </div>
+            </div>
+            <div v-if="histNoRec" style="position:absolute;top:0;left:0;right:0;bottom:0;z-index:4;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.62);padding:12px;text-align:center">
+                <div>
+                    <i class="fas fa-folder-open" style="font-size:1.6rem;display:block;margin-bottom:8px"></i>
+                    <span style="font-size:.85rem;color:#fff">{{ t('stream_history_norec') }}</span>
+                    <div style="font-size:.7rem;color:rgba(255,255,255,.65);margin-top:6px">{{ t('stream_history_norec_hint') }}</div>
+                    <button type="button" class="v-btn v-btn--is-elevated v-btn--text v-size--small" style="margin-top:10px;background:rgba(20,20,20,.6);color:#fff" @click="startHistPlayOverride">{{ t('stream_history_norec_anyway') }}</button>
                 </div>
             </div>
         <div v-if="ptzEnabled && !histPlaying && videoHover" class="stream-ptz" style="position:absolute;right:8px;bottom:8px;z-index:5;display:flex;flex-direction:column;align-items:flex-end;gap:4px">
@@ -98,7 +106,7 @@ const StreamWidget = {
             </div>
         </div>`,
     data() {
-        return { hls: null, videoError: false, videoPlaying: false, videoHover: false, started: false, objValue: null, valueTimer: null, resolvedRtsp: null, clientId: null, _bridge: null, prevBridge: null, _onUnload: null, _onVis: null, _onFs: null, dbgTimer: null, histOpen: false, histPlaying: false, histFrom: '', histTo: '', histBaseMs: 0, histProgMs: 0, histScrub: 0, histDragging: false, histDragTimer: null, fsActive: false, fsTick: 0, speed: 1, hfsTimer: null, ptzMoving: false, ptzHoldTimer: null, ptzProfile: '', onvifProfiles: [], ptzPresets: [], ptzPresetsLoaded: false };
+        return { hls: null, videoError: false, videoPlaying: false, videoHover: false, started: false, objValue: null, valueTimer: null, resolvedRtsp: null, clientId: null, _bridge: null, prevBridge: null, _onUnload: null, _onVis: null, _onFs: null, dbgTimer: null, histOpen: false, histPlaying: false, histNoRec: false, histBusy: false, histFrom: '', histTo: '', histBaseMs: 0, histProgMs: 0, histScrub: 0, histDragging: false, histDragTimer: null, fsActive: false, fsTick: 0, speed: 1, hfsTimer: null, ptzMoving: false, ptzHoldTimer: null, ptzProfile: '', onvifProfiles: [], ptzPresets: [], ptzPresetsLoaded: false };
     },
     watch: {
         videoUrl() { this.$nextTick(() => this.setup()); },
@@ -231,6 +239,19 @@ const StreamWidget = {
                 return p(d.getMonth() + 1) + '.' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
             };
             return f(curMs) + ' / ' + f(toMs);
+        },
+        liveProbeUrl() {
+            const t = this.sourceType;
+            if (t === 'onvif') return this.resolvedRtsp ? String(this.resolvedRtsp) : '';
+            if (t === 'go2rtc') return '';
+            let url = this.widget.url ? String(this.widget.url) : '';
+            if (this.objValue !== null && this.objValue !== undefined) {
+                if (String(url).includes('{value}')) url = String(url).replace(/\{value\}/g, this.objValue);
+                else if (!url.trim()) url = this.objValue;
+            }
+            url = url.trim();
+            if (/^(rtsp|rtsps):\/\//i.test(url)) return url;
+            return '';
         }
     },
     methods: {
@@ -497,28 +518,55 @@ const StreamWidget = {
             const p = n => String(n).padStart(2, '0');
             return '' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + 'T' + p(d.getHours()) + p(d.getMinutes()) + p(d.getSeconds()) + 'Z';
         },
-        playHistory() {
+        async playHistory() {
             if (!this.historyUrl) return;
             this.started = true;
-            this.histPlaying = true;
             this.histOpen = false;
             const fromMs = Date.parse(this.histFrom);
             const toMs = Date.parse(this.histTo);
-            if (isNaN(fromMs) || isNaN(toMs) || toMs <= fromMs) {
-                this.histPlaying = false;
-                return;
-            }
+            if (isNaN(fromMs) || isNaN(toMs) || toMs <= fromMs) return;
             this.histBaseMs = fromMs;
             this.histProgMs = 0;
             this.histScrub = 0;
             this.histDragging = false;
-            this.dpDbg('hist_play from=' + fromMs + ' to=' + toMs + ' url=' + this.historyUrl().slice(0, 200));
+            this.histNoRec = false;
+            const pb = this.historyUrl();
+            this.dpDbg('hist_play from=' + fromMs + ' to=' + toMs + ' url=' + pb.slice(0, 200));
+            const live = this.liveProbeUrl;
+            if (!live || !/^(rtsp|rtsps):\/\//i.test(live) || !/^(rtsp|rtsps):\/\//i.test(pb)) {
+                return this.startHistPlay();
+            }
+            this.histBusy = true;
+            try {
+                const d = await dpAPI('onvif_histcheck', { method: 'POST', body: JSON.stringify({ live: live, playback: pb }) });
+                if (d && !d.error && d.same) {
+                    this.histBusy = false;
+                    this.histNoRec = true;
+                    this.dpDbg('hist_no_record playback==live');
+                    return;
+                }
+            } catch (e) {
+                this.dpDbg('hist_check_net ' + String(e && e.message || e).slice(0, 160));
+            }
+            this.histBusy = false;
+            this.startHistPlay();
+        },
+        startHistPlay() {
+            this.histBusy = false;
+            this.histNoRec = false;
+            this.histPlaying = true;
+        },
+        startHistPlayOverride() {
+            this.histNoRec = false;
+            this.startHistPlay();
         },
         stopHistory() {
             this.dpDbg('hist_stop');
             this.killBridge();
             this.histPlaying = false;
             this.histOpen = false;
+            this.histNoRec = false;
+            this.histBusy = false;
             this.histBaseMs = 0;
             this.histProgMs = 0;
             this.histScrub = 0;

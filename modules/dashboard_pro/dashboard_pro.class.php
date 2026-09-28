@@ -381,6 +381,31 @@ class dashboard_pro extends module
             return ['success' => true];
         }
 
+        if ($params['request'][0] == 'onvif_histcheck') {
+            $login = $this->getUserLogin();
+            if (!$login) {
+                $this->httpJson(401, array('error' => LANG_DASHBOARD_PRO_LOGIN_REQUIRED));
+            }
+            set_time_limit(40);
+            $input = $this->bodyInput();
+            if (!is_array($input)) $input = array();
+            $p = array_merge($params, $input);
+            $live = trim((string)($p['live'] ?? ''));
+            $playback = trim((string)($p['playback'] ?? ''));
+            if (!preg_match('#^(rtsp|rtsps|http|https)://#i', $live) || !preg_match('#^(rtsp|rtsps|http|https)://#i', $playback)) {
+                return ['error' => 'Invalid RTSP URLs'];
+            }
+            $lp = $this->histProbeRtsp($live);
+            $pp = $this->histProbeRtsp($playback);
+            if ($lp === null || $pp === null) {
+                @file_put_contents(ROOT . 'cms/cached/hls_debug.log', date('H:i:s') . ' histcheck probe failed live=' . ($lp === null ? 'no' : 'ok') . ' pb=' . ($pp === null ? 'no' : 'ok') . "\n", FILE_APPEND);
+                return ['error' => 'ffprobe unavailable or probe failed'];
+            }
+            $same = $this->histProbeSame($lp, $pp);
+            @file_put_contents(ROOT . 'cms/cached/hls_debug.log', date('H:i:s') . ' histcheck same=' . ($same ? '1' : '0') . ' live=' . $lp['codec'] . '@' . $lp['width'] . 'x' . $lp['height'] . ' pb=' . $pp['codec'] . '@' . $pp['width'] . 'x' . $pp['height'] . ' afps=' . $lp['afps'] . '/' . $pp['afps'] . ' start=' . $lp['start'] . '/' . $pp['start'] . ' dur=' . $lp['dur'] . '/' . $pp['dur'] . "\n", FILE_APPEND);
+            return ['same' => $same, 'live' => $lp, 'playback' => $pp];
+        }
+
         if ($params['request'][0] == 'hls_dbg') {
             $login = $this->getUserLogin();
             if (!$login) {
@@ -1171,6 +1196,53 @@ class dashboard_pro extends module
         if ($pid <= 0) return false;
         $out = trim((string)@shell_exec('kill -0 ' . $pid . ' 2>/dev/null && echo alive'));
         return $out === 'alive';
+    }
+
+    function histProbeRtsp($url)
+    {
+        $ffprobe = trim((string)@shell_exec('command -v ffprobe'));
+        if ($ffprobe == '') return null;
+        $cmd = 'timeout 8 ' . escapeshellcmd($ffprobe) . ' -v error -of json -show_format -show_streams -rw_timeout 4000000 -rtsp_transport tcp ' . escapeshellarg($url) . ' 2>&1';
+        $out = @shell_exec($cmd);
+        if ($out === null || trim((string)$out) === '') return null;
+        $d = @json_decode($out, true);
+        if (!is_array($d)) return null;
+        $fmt = isset($d['format']) && is_array($d['format']) ? $d['format'] : array();
+        $vs = null;
+        foreach ((array)($d['streams'] ?? array()) as $s) {
+            if (is_array($s) && ($s['codec_type'] ?? '') === 'video') {
+                $vs = $s;
+                break;
+            }
+        }
+        if (!is_array($vs)) return null;
+        $title = '';
+        if (isset($fmt['tags']['title'])) $title = (string)$fmt['tags']['title'];
+        return array(
+            'codec' => (string)($vs['codec_name'] ?? ''),
+            'width' => (int)($vs['width'] ?? 0),
+            'height' => (int)($vs['height'] ?? 0),
+            'afps' => (string)($vs['avg_frame_rate'] ?? ''),
+            'start' => (string)($fmt['start_time'] ?? ''),
+            'dur' => (string)($fmt['duration'] ?? ''),
+            'title' => $title
+        );
+    }
+
+    function histProbeSame($a, $b)
+    {
+        if (!is_array($a) || !is_array($b)) return false;
+        if ($a['codec'] !== $b['codec']) return false;
+        if ($a['width'] !== $b['width'] || $a['height'] !== $b['height']) return false;
+        if ($a['afps'] !== '' && $b['afps'] !== '' && $a['afps'] !== $b['afps']) return false;
+        $da = (string)$a['dur'];
+        $db = (string)$b['dur'];
+        if (($da === '') !== ($db === '')) return false;
+        if ($da !== '' && $db !== '' && $da !== $db) return false;
+        $sa = (float)$a['start'];
+        $sb = (float)$b['start'];
+        if (abs($sa - $sb) > 0.5) return false;
+        return true;
     }
 
     function ensureHlsProcess($src, $dir, $view = 'full', $res = '', $fps = '')
