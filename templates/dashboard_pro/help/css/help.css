@@ -5,6 +5,18 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .help-header h1 { font-size: 1.15rem; font-weight: 600; }
 .help-header .subtitle { font-size: .85rem; opacity: .9; font-weight: 400; }
 .help-header a { color: #fff; text-decoration: none; margin-left: auto; font-size: .85rem; }
+.help-search { position: relative; margin-left: auto; width: 300px; max-width: 40%; }
+.help-search__icon { position: absolute; left: .65rem; top: 50%; transform: translateY(-50%); color: rgba(255,255,255,.7); font-size: .85rem; pointer-events: none; }
+.help-search input { width: 100%; padding: .45rem .8rem .45rem 2rem; border-radius: 6px; border: 1px solid rgba(255,255,255,.25); background: rgba(255,255,255,.12); color: #fff; font-size: .85rem; outline: none; }
+.help-search input::placeholder { color: rgba(255,255,255,.75); }
+.help-search input:focus { border-color: #fff; background: rgba(255,255,255,.18); }
+.help-search + a { margin-left: 0; }
+.help-search__res { display: none; position: absolute; top: calc(100% + 6px); right: 0; z-index: 100; width: 360px; max-width: 80vw; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.5); max-height: 380px; overflow-y: auto; }
+.help-search__item { display: block; padding: .6rem .75rem; color: var(--text); text-decoration: none; border-bottom: 1px solid var(--border); }
+.help-search__item:hover, .help-search__item:focus { background: rgba(25,118,210,.18); color: #fff; }
+.help-search__item b { display: block; color: var(--accent); font-weight: 600; margin-bottom: .15rem; }
+.help-search__item span { font-size: .78rem; color: var(--text-secondary); display: block; line-height: 1.4; }
+.help-search__none { padding: .6rem .75rem; font-size: .85rem; color: var(--text-secondary); }
 .help-layout { display: flex; min-height: calc(100vh - 62px); }
 .help-side { width: 240px; min-width: 240px; background: var(--panel); border-right: 1px solid var(--border); padding: 1rem 0; }
 .help-side__title { font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; color: var(--text-secondary); padding: .5rem 1.25rem .75rem; }
@@ -12,6 +24,17 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .help-side nav a:hover { background: rgba(255,255,255,.05); color: var(--text); }
 .help-side nav a.active { background: rgba(25,118,210,.18); color: var(--accent); border-left-color: var(--accent); }
 .help-side nav a .fa { width: 18px; margin-right: .5rem; text-align: center; }
+.help-side__sub { display: none; padding: .15rem 0 .35rem; border-left: 3px solid rgba(25,118,210,.35); margin-left: 1.25rem; }
+.help-side__sub--open { display: block; }
+.help-side__toggle { cursor: pointer; }
+.help-side__toggle::after { content: "▾"; display: inline-block; margin-left: .35rem; font-size: .65rem; opacity: .6; transition: transform .15s; }
+.help-side__toggle[aria-expanded="true"]::after { transform: rotate(180deg); }
+.help-side__sub a { padding: .3rem 1.25rem .3rem .9rem; font-size: .82rem; color: var(--text-secondary); text-decoration: none; display: block; border-left: none; }
+.help-side__sub a:hover { color: var(--accent); }
+.help-side__sub a.active { color: var(--accent); font-weight: 600; background: rgba(25,118,210,.1); }
+.help-breadcrumb { margin-bottom: .75rem; font-size: .85rem; }
+.help-breadcrumb a { color: var(--text-secondary); text-decoration: none; }
+.help-breadcrumb a:hover { color: var(--accent); }
 .help-main { flex: 1; padding: 1.5rem 2rem; max-width: 960px; }
 .help-main h2 { font-size: 1.35rem; font-weight: 600; margin-bottom: .25rem; color: var(--accent); }
 .help-main .lead { color: var(--text-secondary); font-size: .95rem; margin-bottom: 1.5rem; }
@@ -24,6 +47,14 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .help-card code { background: rgba(0,0,0,.35); border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; font-size: .85em; font-family: 'Cascadia Code', Consolas, monospace; color: var(--accent); }
 .help-card .badge { display: inline-block; background: rgba(25,118,210,.25); color: var(--accent); border-radius: 4px; padding: 2px 8px; font-size: .75rem; margin-right: 6px; }
 .help-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; }
+.help-tile { display: block; background: rgba(25,118,210,.12); border: 1px solid var(--border); color: var(--text); text-decoration: none; padding: .65rem .9rem; border-radius: 8px; font-size: .9rem; transition: all .12s; }
+.help-tile:hover { background: rgba(25,118,210,.22); color: var(--accent); border-color: var(--accent); }
+.help-card .help-card__head { display: flex; align-items: center; gap: .7rem; margin-bottom: .6rem; }
+.help-card .help-card__head h3 { margin-bottom: 0; }
+.help-card .help-top { margin-left: auto; font-size: .75rem; color: var(--text-secondary); text-decoration: none; white-space: nowrap; }
+.help-card .help-top:hover { color: var(--accent); }
+.help-card h4 { font-size: .92rem; font-weight: 600; color: var(--accent); margin: 1rem 0 .4rem; }
+.help-card h4 + table { margin-top: .2rem; }
 .help-note { border-left: 3px solid var(--primary); background: rgba(25,118,210,.08); padding: .7rem 1rem; border-radius: 0 8px 8px 0; font-size: .88rem; color: #cfcfcf; margin: .8rem 0; }
 kbd { background: rgba(0,0,0,.4); border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 4px; padding: 1px 6px; font-family: Consolas, monospace; font-size: .85em; }
 .help-card table { width: 100%; border-collapse: collapse; font-size: .88rem; margin: .5rem 0; }

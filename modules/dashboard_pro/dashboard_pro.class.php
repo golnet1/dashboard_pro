@@ -311,7 +311,15 @@ class dashboard_pro extends module
             if (!in_array($view, array('full', 'cam1', 'cam2'), true)) {
                 $view = 'full';
             }
-            $key = substr(preg_replace('/[^a-f0-9]/', '', sha1($src . '|' . $view . '|v3')), 0, 16);
+            $res = $params['res'] ?? '';
+            if (!in_array($res, array('', '720', '480', '360'), true)) {
+                $res = '';
+            }
+            $fps = $params['fps'] ?? '';
+            if (!in_array($fps, array('', '15', '10', '5'), true)) {
+                $fps = '';
+            }
+            $key = substr(preg_replace('/[^a-f0-9]/', '', sha1($src . '|' . $view . '|' . $res . '|' . $fps . '|v4')), 0, 16);
             $root = ROOT . 'cms/cached/hls_bridge';
             $dir = $root . '/' . $key;
             if (!is_dir($dir)) {
@@ -321,7 +329,7 @@ class dashboard_pro extends module
                 if (!preg_match('#^(rtsp|rtsps|http|https)://#i', $src)) {
                     $this->httpJson(400, array('error' => 'Invalid source'));
                 }
-                $this->ensureHlsProcess($src, $dir, $view);
+                $this->ensureHlsProcess($src, $dir, $view, $res, $fps);
                 $this->cleanupOldHls($root);
                 $content = @file_get_contents($dir . '/index.m3u8');
                 header('Content-Type: application/vnd.apple.mpegurl');
@@ -329,8 +337,8 @@ class dashboard_pro extends module
                     echo "#EXTM3U\n";
                     exit;
                 }
-                $content = preg_replace_callback('/^(seg_[0-9]+\.ts)$/m', function ($m) use ($src, $view) {
-                    return '?src=' . rawurlencode($src) . '&file=' . $m[1] . '&view=' . $view;
+                $content = preg_replace_callback('/^(seg_[0-9]+\.ts)$/m', function ($m) use ($src, $view, $res, $fps) {
+                    return '?src=' . rawurlencode($src) . '&file=' . $m[1] . '&view=' . $view . '&res=' . $res . '&fps=' . $fps;
                 }, $content);
                 echo $content;
                 exit;
@@ -1001,32 +1009,52 @@ class dashboard_pro extends module
         return $out === 'alive';
     }
 
-    function ensureHlsProcess($src, $dir, $view = 'full')
+    function ensureHlsProcess($src, $dir, $view = 'full', $res = '', $fps = '')
     {
-        if (is_file($dir . '/index.m3u8') && $this->hlsProcessAlive($dir)) return;
+        $pl = $dir . '/index.m3u8';
+        if (is_file($pl) && $this->hlsProcessAlive($dir)) {
+            if (time() - @filemtime($pl) <= 4) return;
+            $this->killHlsDir($dir);
+            usleep(300000);
+        }
         $ffmpeg = trim((string)@shell_exec('command -v ffmpeg'));
         if ($ffmpeg == '') return;
         $errLog = $dir . '/ffmpeg.log';
         $transport = (strpos($src, 'rtsp') === 0) ? ' -rtsp_transport tcp' : '';
         $vf = '';
         if ($view === 'cam1') {
-            $vf = ' -vf "crop=if(gt(iw\,ih)\,iw/2\,iw):if(gt(iw\,ih)\,ih\,ih/2):0:0"';
+            $vf = 'crop=if(gt(iw\,ih)\,iw/2\,iw):if(gt(iw\,ih)\,ih\,ih/2):0:0';
         } elseif ($view === 'cam2') {
-            $vf = ' -vf "crop=if(gt(iw\,ih)\,iw/2\,iw):if(gt(iw\,ih)\,ih\,ih/2):if(gt(iw\,ih)\,iw/2\,0):if(gt(iw\,ih)\,0\,ih/2)"';
+            $vf = 'crop=if(gt(iw\,ih)\,iw/2\,iw):if(gt(iw\,ih)\,ih\,ih/2):if(gt(iw\,ih)\,iw/2\,0):if(gt(iw\,ih)\,0\,ih/2)';
         }
-        $cmd = 'nohup ' . escapeshellcmd($ffmpeg) . ' -hide_banner -loglevel error' . $transport . ' -fflags nobuffer -flags low_delay -i ' . escapeshellarg($src) . $vf . ' -map 0:v:0 -map 0:a:0? -c:v libx264 -preset veryfast -tune zerolatency -crf 23 -g 30 -keyint_min 30 -sc_threshold 0 -force_key_frames "expr:gte(t,n_forced*2)" -c:a aac -b:a 128k -f hls -hls_time 2 -hls_list_size 6 -hls_flags delete_segments+omit_endlist -hls_segment_filename ' . escapeshellarg($dir . '/seg_%04d.ts') . ' ' . escapeshellarg($dir . '/index.m3u8') . ' > ' . escapeshellarg($errLog) . ' 2>&1 & echo $!';
+        if ($res == '720' || $res == '480' || $res == '360') {
+            $vf = ($vf === '' ? '' : $vf . ',') . 'scale=-2:' . $res;
+        }
+        if ($fps == '15' || $fps == '10' || $fps == '5') {
+            $vf = ($vf === '' ? '' : $vf . ',') . 'fps=' . $fps;
+        }
+        $vf = ($vf === '') ? '' : ' -vf "' . $vf . '"';
+        $inner = escapeshellcmd($ffmpeg) . ' -hide_banner -loglevel error' . $transport . ' -fflags nobuffer -flags low_delay -analyzeduration 1000000 -probesize 1000000 -i ' . escapeshellarg($src) . $vf . ' -map 0:v:0 -map 0:a:0? -c:v libx264 -preset veryfast -tune zerolatency -crf 23 -g 30 -keyint_min 30 -sc_threshold 0 -force_key_frames "expr:gte(t,n_forced*2)" -c:a aac -b:a 128k -f hls -hls_time 2 -hls_list_size 6 -hls_flags delete_segments+omit_endlist -hls_segment_filename ' . escapeshellarg($dir . '/seg_%04d.ts') . ' ' . escapeshellarg($dir . '/index.m3u8') . ' > ' . escapeshellarg($errLog) . ' 2>&1';
+        $loop = 'while true; do ' . $inner . '; sleep 2; done';
+        $cmd = 'nohup sh -c ' . escapeshellarg($loop) . ' & echo $!';
         $pid = trim((string)@shell_exec($cmd));
         if ($pid != '') {
             @file_put_contents($dir . '/run.pid', $pid);
         }
         for ($i = 0; $i < 100; $i++) {
-            $pl = @file_get_contents($dir . '/index.m3u8');
-            if ($pl !== false && strpos($pl, '#EXTINF') !== false) break;
+            $l = @file_get_contents($pl);
+            if ($l !== false && strpos($l, '#EXTINF') !== false) break;
             usleep(150000);
         }
         if (!$this->hlsProcessAlive($dir)) {
             @unlink($dir . '/run.pid');
         }
+    }
+
+    function killHlsDir($dir)
+    {
+        @shell_exec('pkill -f ' . escapeshellarg('/hls_bridge/' . basename($dir) . '/') . ' 2>/dev/null');
+        @unlink($dir . '/run.pid');
     }
 
     function cleanupOldHls($root)
@@ -1037,11 +1065,7 @@ class dashboard_pro extends module
         foreach (glob($root . '/*') as $d) {
             if (!is_dir($d) || basename($d) == '') continue;
             if (time() - @filemtime($d) > 21600) {
-                $pidFile = $d . '/run.pid';
-                if (is_file($pidFile)) {
-                    $pid = (int)trim((string)@file_get_contents($pidFile));
-                    if ($pid > 0) @shell_exec('kill ' . $pid . ' 2>/dev/null');
-                }
+                $this->killHlsDir($d);
                 @exec('rm -rf ' . escapeshellarg($d) . ' 2>&1');
             }
         }

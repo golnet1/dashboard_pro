@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Чат — Dashboard Pro Справка</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="../css/help.css">
+</head>
+<body>
+<header class="help-header">
+    <i class="fas fa-book" style="font-size:1.4rem"></i>
+    <h1>Dashboard Pro <span class="subtitle">— справка и документация</span></h1>
+    <a href="../../index.html"><i class="fas fa-external-link-alt"></i> Открыть панель</a>
+</header>
+<div class="help-layout">
+    <aside class="help-side">
+        <div class="help-side__title">Разделы справки</div>
+        <nav>
+            <a href="../index.html"><i class="fas fa-home"></i> Обзор</a>
+            <a href="../panels.html"><i class="fas fa-th-large"></i> Панели</a>
+            <a href="../widgets.html" class="help-side__toggle" aria-expanded="false"><i class="fas fa-puzzle-piece"></i> Виджеты</a><div class="help-side__sub">
+                <a href="analogclock.html">Аналоговые часы</a>
+                <a href="video.html">Видео</a>
+                <a href="select.html">Выбор</a>
+                <a href="timepicker.html">Выбор времени</a>
+                <a href="datepicker.html">Выбор даты</a>
+                <a href="graph.html">График</a>
+                <a href="group.html">Группа</a>
+                <a href="dimmer.html">Диммер</a>
+                <a href="value.html">Значение</a>
+                <a href="image.html">Изображение</a>
+                <a href="gauge.html">Индикатор</a>
+                <a href="iframe.html">iFrame</a>
+                <a href="calendar.html">Календарь</a>
+                <a href="map.html">Карта</a>
+                <a href="keypad.html">Клавиатура</a>
+                <a href="button.html">Кнопка</a>
+                <a href="roundslider.html">Круглый слайдер</a>
+                <a href="unknown.html">Неизвестный</a>
+                <a href="sendtext.html">Отправка текста</a>
+                <a href="weather.html">Погода</a>
+                <a href="roominfo.html">Помещение</a>
+                <a href="stream.html">Потоковое видео</a>
+                <a href="progressbar.html">Прогресс-бар</a>
+                <a href="acremote.html">Пульт кондиционера</a>
+                <a href="musicremote.html">Пульт музыки</a>
+                <a href="tvremote.html">Пульт ТВ</a>
+                <a href="empty.html">Пустой</a>
+                <a href="rgb.html">RGB</a>
+                <a href="relay.html">Реле</a>
+                <a href="slideshow.html">Слайд-шоу</a>
+                <a href="slider.html">Слайдер</a>
+                <a href="gradient-slider.html">Слайдер с градиентом</a>
+                <a href="sliderbuttons.html">Слайдер с кнопками</a>
+                <a href="colorslider.html">Слайдер цвета</a>
+                <a href="panellink.html">Ссылка на панель</a>
+                <a href="status.html">Статус</a>
+                <a href="table.html">Таблица</a>
+                <a href="timeline.html">Таймлайн</a>
+                <a href="text.html">Текст</a>
+                <a href="thermostat.html">Термостат</a>
+                <a href="test.html">Тест</a>
+                <a href="trend.html">Тренд</a>
+                <a href="clock.html">Часы</a>
+                <a href="chat.html" class="active">Чат</a>
+</div>
+            <a href="../editor.html"><i class="fas fa-edit"></i> Редактор виджетов</a>
+            <a href="../settings.html"><i class="fas fa-cog"></i> Настройки</a>
+            <a href="../users.html"><i class="fas fa-users"></i> Пользователи и права</a>
+            <a href="../faq.html"><i class="fas fa-question-circle"></i> Частые вопросы</a>
+        </nav>
+    </aside>
+    <main class="help-main" id="top">
+        <p class="help-breadcrumb"><a href="../widgets.html"><i class="fas fa-arrow-left"></i> Виджеты</a></p>
+        <h2>Чат</h2>
+        <div class="help-card" id="chat">
+            <div class="help-card__head"><h3>Чат</h3><span class="badge">chat</span><a class="help-top" href="../widgets.html">↑ к списку виджетов</a></div>
+            <p>Общий чат пользователей панели.</p>
+            <h4>Как работает</h4>
+            <p>Показывает сообщения чата Majordomo, отправку с поля внизу, аватары и картинки. Сообщения приходят в реальном времени.</p>
+            <h4>Основные настройки</h4>
+            <table>
+                <tr><th>Настройка</th><th>Описание</th></tr>
+                <tr><td>Скрыть название</td><td>Убрать заголовок и кнопку обновления.</td></tr>
+                <tr><td>Скрыть отправку</td><td>Убрать поле ввода сообщений.</td></tr>
+                <tr><td>Показывать, кто пишет и кто отвечает</td><td>Подпись автора над сообщением.</td></tr>
+                <tr><td>Размер изображения (px)</td><td>Максимальный размер вложенных картинок.</td></tr>
+            </table>
+        </div>
+    </main>
+</div>
+<footer class="help-footer">Dashboard Pro · Справка модуля · <a href="https://github.com/golnet1/dashboard_pro" target="_blank" rel="noopener">GitHub</a></footer>
+<script>
+(function () {
+    function closeAll() {
+        document.querySelectorAll('.help-side__sub--open').forEach(function (el) { el.classList.remove('help-side__sub--open'); });
+        document.querySelectorAll('.help-side__toggle').forEach(function (t) { t.setAttribute('aria-expanded', 'false'); });
+    }
+    document.querySelectorAll('.help-side__toggle').forEach(function (toggle) {
+        toggle.addEventListener('click', function (e) {
+            var sub = toggle.nextElementSibling;
+            var wasOpen = sub && sub.classList.contains('help-side__sub--open');
+            closeAll();
+            if (sub && !wasOpen) {
+                sub.classList.add('help-side__sub--open');
+                toggle.setAttribute('aria-expanded', 'true');
+                e.preventDefault();
+            }
+        });
+    });
+    document.querySelectorAll('.help-side nav a').forEach(function (a) {
+        if (!a.classList.contains('help-side__toggle')) a.addEventListener('click', closeAll);
+    });
+})();
+</script>
+<script src="../js/help-search.js"></script>
+</body>
+</html>
+
+
+

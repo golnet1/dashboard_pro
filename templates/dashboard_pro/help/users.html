@@ -19,7 +19,52 @@
         <nav>
             <a href="index.html"><i class="fas fa-home"></i> Обзор</a>
             <a href="panels.html"><i class="fas fa-th-large"></i> Панели</a>
-            <a href="widgets.html"><i class="fas fa-puzzle-piece"></i> Виджеты</a>
+            <a href="widgets.html" class="help-side__toggle" aria-expanded="false"><i class="fas fa-puzzle-piece"></i> Виджеты</a><div class="help-side__sub">
+                <a href="widgets/analogclock.html">Аналоговые часы</a>
+                <a href="widgets/video.html">Видео</a>
+                <a href="widgets/select.html">Выбор</a>
+                <a href="widgets/timepicker.html">Выбор времени</a>
+                <a href="widgets/datepicker.html">Выбор даты</a>
+                <a href="widgets/graph.html">График</a>
+                <a href="widgets/group.html">Группа</a>
+                <a href="widgets/dimmer.html">Диммер</a>
+                <a href="widgets/value.html">Значение</a>
+                <a href="widgets/image.html">Изображение</a>
+                <a href="widgets/gauge.html">Индикатор</a>
+                <a href="widgets/iframe.html">iFrame</a>
+                <a href="widgets/calendar.html">Календарь</a>
+                <a href="widgets/map.html">Карта</a>
+                <a href="widgets/keypad.html">Клавиатура</a>
+                <a href="widgets/button.html">Кнопка</a>
+                <a href="widgets/roundslider.html">Круглый слайдер</a>
+                <a href="widgets/unknown.html">Неизвестный</a>
+                <a href="widgets/sendtext.html">Отправка текста</a>
+                <a href="widgets/weather.html">Погода</a>
+                <a href="widgets/roominfo.html">Помещение</a>
+                <a href="widgets/stream.html">Потоковое видео</a>
+                <a href="widgets/progressbar.html">Прогресс-бар</a>
+                <a href="widgets/acremote.html">Пульт кондиционера</a>
+                <a href="widgets/musicremote.html">Пульт музыки</a>
+                <a href="widgets/tvremote.html">Пульт ТВ</a>
+                <a href="widgets/empty.html">Пустой</a>
+                <a href="widgets/rgb.html">RGB</a>
+                <a href="widgets/relay.html">Реле</a>
+                <a href="widgets/slideshow.html">Слайд-шоу</a>
+                <a href="widgets/slider.html">Слайдер</a>
+                <a href="widgets/gradient-slider.html">Слайдер с градиентом</a>
+                <a href="widgets/sliderbuttons.html">Слайдер с кнопками</a>
+                <a href="widgets/colorslider.html">Слайдер цвета</a>
+                <a href="widgets/panellink.html">Ссылка на панель</a>
+                <a href="widgets/status.html">Статус</a>
+                <a href="widgets/table.html">Таблица</a>
+                <a href="widgets/timeline.html">Таймлайн</a>
+                <a href="widgets/text.html">Текст</a>
+                <a href="widgets/thermostat.html">Термостат</a>
+                <a href="widgets/test.html">Тест</a>
+                <a href="widgets/trend.html">Тренд</a>
+                <a href="widgets/clock.html">Часы</a>
+                <a href="widgets/chat.html">Чат</a>
+</div>
             <a href="editor.html"><i class="fas fa-edit"></i> Редактор виджетов</a>
             <a href="settings.html"><i class="fas fa-cog"></i> Настройки</a>
             <a href="users.html" class="active"><i class="fas fa-users"></i> Пользователи и права</a>
@@ -66,5 +111,32 @@
     </main>
 </div>
 <footer class="help-footer">Dashboard Pro · Справка модуля · <a href="https://github.com/golnet1/dashboard_pro" target="_blank" rel="noopener">GitHub</a></footer>
+<script>
+(function () {
+    function closeAll() {
+        document.querySelectorAll('.help-side__sub--open').forEach(function (el) { el.classList.remove('help-side__sub--open'); });
+        document.querySelectorAll('.help-side__toggle').forEach(function (t) { t.setAttribute('aria-expanded', 'false'); });
+    }
+    document.querySelectorAll('.help-side__toggle').forEach(function (toggle) {
+        toggle.addEventListener('click', function (e) {
+            var sub = toggle.nextElementSibling;
+            var wasOpen = sub && sub.classList.contains('help-side__sub--open');
+            closeAll();
+            if (sub && !wasOpen) {
+                sub.classList.add('help-side__sub--open');
+                toggle.setAttribute('aria-expanded', 'true');
+                e.preventDefault();
+            }
+        });
+    });
+    document.querySelectorAll('.help-side nav a').forEach(function (a) {
+        if (!a.classList.contains('help-side__toggle')) a.addEventListener('click', closeAll);
+    });
+})();
+</script>
+<script src="js/help-search.js"></script>
 </body>
 </html>
+
+
+

@@ -22,10 +22,12 @@ const StreamWidget = {
             { key: 'nocontrols', label: 'field_video_nocontrols', type: 'checkbox', default: false },
         ],
         advanced: [
+            { key: 'quality', label: 'field_stream_quality', type: 'select', default: '', options: [{value:'',label:'field_stream_quality_orig'},{value:'720',label:'field_stream_quality_720'},{value:'480',label:'field_stream_quality_480'},{value:'360',label:'field_stream_quality_360'}] },
+            { key: 'fps_limit', label: 'field_stream_fps', type: 'select', default: '', options: [{value:'',label:'field_stream_fps_auto'},{value:'15',label:'field_stream_fps_15'},{value:'10',label:'field_stream_fps_10'},{value:'5',label:'field_stream_fps_5'}] },
             { key: 'color', label: 'field_color', type: 'color' },
         ],
     },
-    defaults: { icon: 'fas fa-satellite-dish', source_type: 'url', url: '', object: '', property: '', host: '', camera: '', onvif_url: '', onvif_login: '', onvif_password: '', onvif_view: 'full', autoplay: false, muted: true, nocontrols: false, height: 200 },
+    defaults: { icon: 'fas fa-satellite-dish', source_type: 'url', url: '', object: '', property: '', host: '', camera: '', onvif_url: '', onvif_login: '', onvif_password: '', onvif_view: 'full', quality: '', fps_limit: '', autoplay: false, muted: true, nocontrols: false, height: 200 },
     template: `
         <div class="widget-v-card" :style="cardStyle" style="padding:0;overflow:hidden">
             <video v-if="videoUrl" ref="player"
@@ -105,8 +107,14 @@ const StreamWidget = {
             return /\.m3u8(\?|#|$)/i.test(url) || /application\/x-mpegURL/i.test(url) || url.includes('hls_bridge');
         },
         bridgeUrl(src, view) {
+            const w = (this && this.widget) || {};
             const v = (view === 'cam1' || view === 'cam2') ? view : 'full';
-            return '/api.php/module/dashboard_pro/hls_bridge?src=' + encodeURIComponent(src) + '&view=' + v;
+            let url = '/api.php/module/dashboard_pro/hls_bridge?src=' + encodeURIComponent(src) + '&view=' + v;
+            const q = ['720', '480', '360'].indexOf(String(w.quality || '')) >= 0 ? String(w.quality) : '';
+            const f = ['15', '10', '5'].indexOf(String(w.fps_limit || '')) >= 0 ? String(w.fps_limit) : '';
+            if (q) url += '&res=' + q;
+            if (f) url += '&fps=' + f;
+            return url;
         },
         async loadObjValue() {
             let obj = this.widget.object_value || this.widget.object;
@@ -161,7 +169,15 @@ const StreamWidget = {
                 });
                 this.hls.on(window.Hls.Events.MANIFEST_PARSED, () => this.tryPlay());
                 this.hls.on(window.Hls.Events.ERROR, (ev, data) => {
-                    if (data && data.fatal) this.videoError = true;
+                    if (!data || !data.fatal) return;
+                    this.videoError = true;
+                    if (this.hls) {
+                        if (data.type === 'networkError') {
+                            this.hls.startLoad();
+                        } else if (data.type === 'mediaError') {
+                            this.hls.recoverMediaError();
+                        }
+                    }
                 });
                 this.hls.loadSource(url);
                 this.hls.attachMedia(v);

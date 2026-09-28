@@ -903,7 +903,7 @@ function loadScript(src, version) {
             widgetList.value = [...widgetDefs.value].sort((a, b) => (a.priority || 0) - (b.priority || 0));
             for (const w of widgets.items) {
                 if (!w.FILE) continue;
-                await loadScript(w.FILE, 143);
+                await loadScript(w.FILE, 144);
             }
             widgetDefs.value.forEach(d => registerWidgetComponent(d.type));
         }
@@ -1044,6 +1044,10 @@ function loadScript(src, version) {
             widgetTab.value = awDef ? awDef.key : 'main';
             editWidgetForm.value = w;
             nextTick(updateWidgetTabSlider);
+        }
+
+        function openWidgetHelp(type) {
+            window.open('help/widgets/' + type + '.html', '_blank', 'noopener');
         }
 
         async function editWidget(w, parent) {
@@ -2682,7 +2686,7 @@ onMounted(() => {
             showHeaderStatusEditor, hsForm, hsProperties, hsEditIdx, openHeaderStatusEditor, loadHsProperties, clearHsObject, editHeaderStatusItem, saveHeaderStatusItem, removeHeaderStatusItem, hsMapArr, headerStatusImages: HEADER_STATUS_IMAGES,
             panels, currentPanel, selectPanel, selectHomePanel, loading, editMode,
             showAddWidget, widgetSearch, filteredDefs, plusTooltip, addPlusButton,
-            widgetTypeComponent, addWidget, getWidgetFields, getWidgetRows, getWidgetTabs, getFieldOptions, fieldVisible, g2rCameraOptions, loadGo2rtcCameras,
+            widgetTypeComponent, addWidget, openWidgetHelp, getWidgetFields, getWidgetRows, getWidgetTabs, getFieldOptions, fieldVisible, g2rCameraOptions, loadGo2rtcCameras,
             getMethodObj, getMethodName, setMethodField, itemLabel,
             editWidgetForm, editWidgetIsNew, widgetTab, widgetTabPos, editWidget, saveEditWidget, removeWidget,
             grDragState, grColors, grPreview, grAdd, grRemove, grSet, grDrop,
