@@ -1,5 +1,9 @@
 const SliderWidget = {
     props: ['widget'],
+    tabs: [
+        { key: 'main', label: 'tab_main', fields: 'params' },
+        { key: 'advanced', label: 'tab_advanced', fields: 'advanced' },
+    ],
     fields: {
         params: [
             { key: 'title', label: 'field_title', type: 'text' },

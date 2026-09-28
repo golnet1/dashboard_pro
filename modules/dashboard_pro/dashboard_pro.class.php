@@ -200,34 +200,46 @@ class dashboard_pro extends module
         }
 
         if ($params['request'][0] == 'chat') {
+            $login = $this->getUserLogin();
+            if (!$login) {
+                return ['error' => LANG_DASHBOARD_PRO_LOGIN_REQUIRED];
+            }
             $method = $_SERVER['REQUEST_METHOD'];
             if ($method == 'POST') {
                 $input = $this->bodyInput();
                 $text = trim($input['message'] ?? '');
                 if ($text === '') return ['error' => 'Message is empty'];
-                $member_id = 0;
-                if ($session && !empty($session->data['DP_PRO_USERNAME'])) {
-                    $u = SQLSelectOne("SELECT * FROM users WHERE USERNAME LIKE '" . DBSafe($session->data['DP_PRO_USERNAME']) . "'");
-                    if ($u['ID']) $member_id = (int)$u['ID'];
+                $u = SQLSelectOne("SELECT ID, NAME, AVATAR FROM users WHERE USERNAME LIKE '" . DBSafe($login) . "'");
+                $member_id = $u ? (int)$u['ID'] : 0;
+                if ($member_id <= 0) {
+                    return ['error' => LANG_DASHBOARD_PRO_LOGIN_INVALID];
                 }
-                $before = SQLSelectOne("SELECT MAX(ID) as mid FROM shouts");
-                $before_id = (int)$before['mid'];
                 say($text, 0, $member_id, 'dashboard_pro');
-                $response = SQLSelectOne("SELECT * FROM shouts WHERE MEMBER_ID=0 AND MESSAGE!='" . DBSafe($text) . "' AND ID > $before_id ORDER BY ID ASC LIMIT 1");
-                if ($response['ID']) {
-                    $notif = array(
-                        'MODULE_NAME' => LANG_DASHBOARD_PRO_CHAT,
-                        'MESSAGE' => $response['MESSAGE'],
-                        'TYPE' => 'info',
-                        'IS_READ' => 0,
-                        'ADDED' => date('Y-m-d H:i:s')
-                    );
-                    SQLInsert('module_notifications', $notif);
-                }
-                return ['success' => true];
+                return [
+                    'success' => true,
+                    'member_id' => $member_id,
+                    'username' => $login,
+                    'name' => $u['NAME'] ?? $login,
+                    'avatar' => !empty($u['AVATAR']) ? '/cms/avatars/' . $u['AVATAR'] : ''
+                ];
             }
             $items = SQLSelect("SELECT s.*, u.NAME as USER_NAME, u.AVATAR as USER_AVATAR FROM shouts s LEFT JOIN users u ON s.MEMBER_ID=u.ID WHERE s.ROOM_ID=0 ORDER BY s.ADDED DESC, s.ID DESC LIMIT 50");
-            return ['items' => $items];
+            $system_name = gg('site_title');
+            if (!$system_name) $system_name = LANG_DASHBOARD_PRO_ALICE;
+            foreach ($items as &$item) {
+                $item['AUTHOR_NAME'] = ((int)$item['MEMBER_ID'] > 0) ? ($item['USER_NAME'] ?? '') : $system_name;
+            }
+            unset($item);
+            $me = SQLSelectOne("SELECT ID FROM users WHERE USERNAME LIKE '" . DBSafe($login) . "'");
+            return [
+                'items' => $items,
+                'me' => [
+                    'id' => $me ? (int)$me['ID'] : 0,
+                    'username' => $login,
+                    'name' => $me ? ($me['NAME'] ?? $login) : $login,
+                    'avatar' => ($me && !empty($me['AVATAR'])) ? '/cms/avatars/' . $me['AVATAR'] : ''
+                ]
+            ];
         }
 
         if ($params['request'][0] == 'notifications') {
@@ -1705,7 +1717,8 @@ class dashboard_pro extends module
     {
         return array(
             'theme' => 'light',
-            'language' => 'ru'
+            'language' => 'ru',
+            'notifAvatar' => ''
         );
     }
 
@@ -1735,7 +1748,6 @@ class dashboard_pro extends module
             array('timepicker', 'fas fa-clock', 'Time picker', 'Time picker'),
             array('roundslider', 'fas fa-circle', 'Round slider', 'Round slider'),
             array('graph', 'fas fa-chart-line', 'Graph', 'Value graph'),
-            array('bargraph', 'fas fa-chart-bar', 'Bar graph', 'Bar chart'),
             array('weather', 'fas fa-cloud-sun', 'Weather', 'Weather forecast'),
             array('table', 'fas fa-table', 'Table', 'Data table'),
             array('timeline', 'fas fa-stream', 'Timeline', 'Event timeline'),
@@ -1754,6 +1766,7 @@ class dashboard_pro extends module
             array('tvremote', 'fas fa-tv', 'TV remote', 'TV remote control'),
             array('musicremote', 'fas fa-music', 'Music remote', 'Music center remote control'),
             array('acremote', 'fas fa-snowflake', 'AC remote', 'Air conditioner remote control'),
+            array('chat', 'fas fa-comments', 'Chat', 'Chat widget (SAY history)'),
         );
     }
 

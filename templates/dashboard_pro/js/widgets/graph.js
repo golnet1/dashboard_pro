@@ -13,7 +13,8 @@ const GraphWidget = {
             { key: 'icon_property', label: 'field_icon_property', type: 'property', row: 'icon_row', showIf: { icon_type: 'property' } },
             { key: 'icon_url', label: 'field_icon_url', type: 'text', row: 'icon_row', showIf: { icon_type: 'url' } },
             { key: 'period', label: 'field_period', type: 'number', default: 24 },
-            { key: 'enableZoom', label: 'field_enable_zoom', type: 'checkbox', default: true },
+            { key: 'chart_type', label: 'field_chart_type', type: 'select', row: 'chart_row', default: 'line', options: [{value:'line',label:'opt_chart_line'},{value:'bar',label:'opt_chart_bar'}] },
+            { key: 'enableZoom', label: 'field_enable_zoom', type: 'checkbox', row: 'chart_row', default: true },
             { key: 'bg_mode', label: 'field_bg_mode', type: 'select', row: 'bg_row', options: [{value:'default',label:'opt_default'},{value:'image',label:'opt_image'},{value:'color',label:'opt_custom_color'},{value:'property',label:'opt_color_property'}] },
             { key: 'color', label: 'field_color', type: 'color', row: 'bg_row', showIf: { bg_mode: 'color' } },
             { key: 'bg_image', label: 'field_image_url', type: 'text', row: 'bg_row', showIf: { bg_mode: 'image' } },
@@ -22,7 +23,7 @@ const GraphWidget = {
         ],
         graphs: [],
     },
-    defaults: { icon: 'fas fa-chart-line', icon_type: 'icon', period: 24, enableZoom: true, height: 180, series: '[]' },
+    defaults: { icon: 'fas fa-chart-line', icon_type: 'icon', period: 24, chart_type: 'line', enableZoom: true, height: 180, series: '[]' },
     template: `
         <div class="widget-v-card" :style="cardStyle">
             <canvas ref="canvas" class="graph-canvas" style="width:100%;height:100%"
@@ -37,6 +38,7 @@ const GraphWidget = {
         zoomRange: null, dragStart: null
     }; },
     computed: {
+        chartType() { return this.widget.chart_type === 'bar' ? 'bar' : 'line'; },
         cardStyle() {
             const s = {};
             if (this.widget.color) s.backgroundColor = this.widget.color;
@@ -133,7 +135,7 @@ const GraphWidget = {
                 });
                 if (!vals.length) return;
                 const min = Math.min(...vals), max = Math.max(...vals);
-                list.push({ si, spec, color: spec.color || '#42a5f5', min, max, range: Math.max(1e-9, max - min), side: spec.scale === 'right' ? 'right' : 'left' });
+                list.push({ si, spec, color: spec.color || '#42a5f5', min, max, range: Math.max(1e-9, max - min), side: spec.scale === 'right' ? 'right' : (spec.scale === 'last' ? (list.length ? list[list.length - 1].side : 'left') : 'left') });
             });
             if (!list.length) { this.drawEmpty(ctx, w, h); return; }
             const hasTime = isFinite(t0) && isFinite(t1) && t1 > t0;
@@ -182,19 +184,12 @@ const GraphWidget = {
                 });
             };
 
+            const geo = { padL, padR, padT, padB, pw, ph, w, h, hasTime, span, t0 };
+            this.drawSideAxes(ctx, list, geo);
+
             const drawSeries = (s, si) => {
                 const pts = this.seriesPoints[s.si];
                 const coords = plot(s, pts);
-                const idx = list.filter((e, k) => k < si && e.side === s.side).length;
-                this.gridL = padL;
-                this.gridR = w - padR;
-                if (s.side === 'left') {
-                    const lx = padL - 6 - idx * 15;
-                    this.drawAxisLabels(ctx, lx, h, padT, padB, s);
-                } else {
-                    const lx = w - padR + 6 + idx * 15;
-                    this.drawAxisLabels(ctx, lx, h, padT, padB, s, true);
-                }
                 if (coords.length < 2) { if (coords.length) this.drawDot(ctx, coords[0], s.color); return; }
 
                 if (s.spec.fill) {
@@ -221,7 +216,64 @@ const GraphWidget = {
                 ctx.stroke();
             };
 
-            list.forEach(drawSeries);
+            if (this.chartType === 'bar') this.drawBars(ctx, list, geo);
+            else list.forEach(drawSeries);
+        },
+        drawSideAxes(ctx, list, geo) {
+            const { padL, padR, padT, padB, w, h } = geo;
+            this.gridL = padL;
+            this.gridR = w - padR;
+            const counts = { left: 0, right: 0 };
+            list.forEach(s => {
+                const idx = counts[s.side] || 0;
+                counts[s.side] = idx + 1;
+                if (s.side === 'left') this.drawAxisLabels(ctx, padL - 6 - idx * 15, h, padT, padB, s);
+                else this.drawAxisLabels(ctx, w - padR + 6 + idx * 15, h, padT, padB, s, true);
+            });
+        },
+        drawBars(ctx, list, g) {
+            const { padL, padB, pw, ph, w, h, hasTime, span, t0 } = g;
+            const base = h - padB;
+            const n = list.length;
+            const ptsPer = list.map(s => (this.zoomRange ? this.slicePoints(this.seriesPoints[s.si] || []) : (this.seriesPoints[s.si] || [])));
+            const slot = Math.max(1, this.medianStep(ptsPer));
+            const slotPx = hasTime ? Math.max(2, (slot / span) * pw) : Math.max(4, pw / Math.max(1, Math.max(...ptsPer.map(p => p.length))));
+            const barW = Math.max(1, (slotPx * 0.8) / n);
+            list.forEach((s, k) => {
+                const pts = ptsPer[k];
+                pts.forEach((p, i) => {
+                    const v = parseFloat(p.value);
+                    if (isNaN(v)) return;
+                    const ts = parseInt(p.timestamp);
+                    let x;
+                    if (hasTime && !isNaN(ts)) x = padL + ((ts - t0) / span) * pw - (barW * n) / 2 + barW * k;
+                    else x = padL + (i * pw) / Math.max(1, pts.length) + barW * k;
+                    const y = base - ((v - s.min) / s.range) * ph;
+                    const bh = base - y;
+                    if (bh <= 0) return;
+                    ctx.fillStyle = s.color;
+                    const r = s.spec.round ? Math.min(barW / 2, 2 * Number(s.spec.round)) : 0;
+                    if (r > 0.5 && ctx.roundRect) {
+                        ctx.beginPath();
+                        ctx.roundRect(x, y, barW, bh, [r, r, 0, 0]);
+                        ctx.fill();
+                    } else {
+                        ctx.fillRect(x, y, Math.max(1, barW), bh);
+                    }
+                });
+            });
+        },
+        medianStep(ptsArr) {
+            const steps = [];
+            ptsArr.forEach(pts => {
+                for (let i = 1; i < pts.length; i++) {
+                    const d = parseInt(pts[i].timestamp) - parseInt(pts[i - 1].timestamp);
+                    if (d > 0) steps.push(d);
+                }
+            });
+            if (!steps.length) return 0;
+            steps.sort((a, b) => a - b);
+            return steps[Math.floor(steps.length / 2)];
         },
         drawAxisLabels(ctx, x, h, padT, padB, s, right) {
             const yTop = padT, yBot = h - padB;

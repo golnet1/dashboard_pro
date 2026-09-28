@@ -1,5 +1,8 @@
 const ButtonWidget = {
     props: ['widget'],
+    tabs: [
+        { key: 'main', label: 'tab_main', fields: 'params' },
+    ],
     fields: {
         params: [
             { key: 'title', label: 'field_title', type: 'text' },

@@ -1,7 +1,7 @@
 const GradientSliderWidget = {
     props: ['widget'],
     tabs: [
-        { key: 'params', label: 'tab_params' },
+        { key: 'main', label: 'tab_main', fields: 'params' },
         { key: 'colors', label: 'tab_colors' },
         { key: 'advanced', label: 'tab_advanced' }
     ],

@@ -11,7 +11,8 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Ubuntu">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Arimo:400,600,700">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700">
-    <link rel="stylesheet" href="css/app.css?v=75">
+    <link rel="stylesheet" href="css/app.css?v=79">
+    <link rel="stylesheet" href="css/leaflet.css?v=1">
     <script src="js/lib/vue.global.prod.js"></script>
 </head>
 <body>
@@ -99,7 +100,7 @@
                                     <template v-for="n in notifications" :key="n.ID">
                                         <div class="notif-dropdown__item notif-dropdown__msg-item">
                                             <div class="notif-dropdown__avatar">
-                                                <img src="/cms/avatars/Alice.jpg">
+                                                <img :src="notifAvatarUrl()" @error="notifAvatarFallback($event)">
                                             </div>
                                             <div class="notif-dropdown__body">
                                                 <div class="notif-dropdown__title">{{ n.MESSAGE }}</div>
@@ -357,6 +358,21 @@
                                             <div class="v-list-item__content py-0">
                                                 <div class="v-list-item__title">{{ t('hide_chat_btn') }}</div>
                                                 <div class="v-list-item__subtitle">{{ t('hide_chat_btn_desc') }}</div>
+                                            </div>
+                                        </div>
+                                        <div class="v-list-item theme--dark">
+                                            <div class="v-list-item__content">
+                                                <div class="v-input theme--dark v-text-field">
+                                                    <div class="v-input__control">
+                                                        <div class="v-input__slot">
+                                                            <div class="v-text-field__slot">
+                                                                <label class="v-label theme--dark" :class="{ 'v-label--active': settings.notifAvatar }" style="left:0;right:auto;position:absolute">{{ t('notif_avatar') }}</label>
+                                                                <input v-model="settings.notifAvatar" @change="saveSettingsNow()" :placeholder="t('notif_avatar_placeholder')" style="background:transparent;border:none;color:#fff;outline:none;width:100%;padding:18px 0 4px;font-size:16px">
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="v-text-field__details"><div class="v-messages theme--dark"><div class="v-messages__wrapper"><div class="v-messages__message">{{ t('notif_avatar_desc') }}</div></div></div></div>
+                                                </div>
                                             </div>
                                         </div>
                                         <div class="v-list-item theme--dark">
@@ -1301,6 +1317,49 @@
                                         </div>
                                         </template>
 
+                                        <template v-else-if="tab.key === 'slides'">
+                                        <p style="color:var(--on-theme-mid);font-size:.8rem;margin:0 0 8px">{{ t('slides_hint') }}</p>
+                                        <div style="display:flex;gap:12px;min-height:220px">
+                                            <div style="flex:0 0 auto;display:flex;flex-direction:column;border-right:1px solid var(--border);padding-right:8px">
+                                                <button type="button" class="v-btn v-btn--is-elevated v-btn--fab v-btn--has-bg v-btn--round v-size--x-small my-2" @click="addSlide" :title="t('add_slide')"><i class="fas fa-plus"></i></button>
+                                                <div v-for="(s, si) in slidesList" :key="s.key || si"
+                                                     class="column-tab"
+                                                     :class="{ 'column-tab--active': slidesIdx === si }"
+                                                     @click="slidesIdx = si"
+                                                     style="white-space:nowrap;font-size:.85rem;color:var(--on-theme-mid);transition:background .15s;display:flex;align-items:center;gap:6px;padding-right:6px"
+                                                     :style="slidesIdx === si ? 'background:rgba(127,127,127,.2);color:var(--on-theme)' : ''">
+                                                    <span style="overflow:hidden;text-overflow:ellipsis;max-width:120px">{{ s.title || s.src || t('slide') + (si + 1) }}</span>
+                                                    <button type="button" class="v-btn v-btn--icon v-btn--round" style="color:var(--on-theme);min-width:22px;width:22px;height:22px;padding:0;display:inline-flex;align-items:center;justify-content:center;overflow:visible" :title="t('move_up')" @click.stop="moveSlide(si, -1)"><svg viewBox="0 0 24 24" width="11" height="11" style="display:block;pointer-events:none"><path fill="#1e293b" d="M12 3.5l7.5 8h-4.6v9h-5.8v-9H4.5z"/></svg></button>
+                                                    <button type="button" class="v-btn v-btn--icon v-btn--round" style="color:var(--on-theme);min-width:22px;width:22px;height:22px;padding:0;display:inline-flex;align-items:center;justify-content:center;overflow:visible" :title="t('move_down')" @click.stop="moveSlide(si, 1)"><svg viewBox="0 0 24 24" width="11" height="11" style="display:block;pointer-events:none"><path fill="#1e293b" d="M12 20.5l-7.5-8h4.6v-9h5.8v9h4.6z"/></svg></button>
+                                                    <button type="button" class="v-btn v-btn--icon v-btn--round" style="color:#c62828;min-width:22px;width:22px;height:22px;padding:0;display:inline-flex;align-items:center;justify-content:center;overflow:visible" :title="t('delete_slide')" @click.stop="removeSlide(si)"><svg viewBox="0 0 24 24" width="11" height="11" style="display:block;pointer-events:none"><path fill="currentColor" d="M5.3 2.3L12 9l6.7-6.7 1.4 1.4L13.4 10.4 20.1 17l-1.4 1.4L12 11.8l-6.7 6.6-1.4-1.4 6.7-6.6L3.9 3.7z"/></svg></button>
+                                                </div>
+                                            </div>
+                                            <div style="flex:1;min-width:0" v-if="slidesList.length && slidesList[slidesIdx]">
+                                                <div class="v-input v-text-field">
+                                                    <div class="v-input__control">
+                                                        <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': slidesList[slidesIdx].title }">{{ t('field_slide_title') }}</label><input :value="slidesList[slidesIdx].title" @input="setSlideField(slidesIdx, 'title', $event.target.value)"></div>
+                                                        <div class="v-input__details"><div class="v-messages"></div></div>
+                                                    </div>
+                                                </div>
+                                                <div class="v-input v-text-field">
+                                                    <div class="v-input__control">
+                                                        <div class="v-input__slot"><label class="v-label v-label--active">{{ t('field_slide_url') }}</label><input :value="slidesList[slidesIdx].src" @input="setSlideField(slidesIdx, 'src', $event.target.value)"></div>
+                                                        <div class="v-input__details"><div class="v-messages"></div></div>
+                                                    </div>
+                                                </div>
+                                                <div class="d-flex gap-2" style="margin-top:10px;align-items:center">
+                                                    <button type="button" class="v-btn v-btn--is-elevated v-btn--text v-size--small" style="color:var(--on-theme)" @click="moveSlide(slidesIdx, -1)">{{ t('move_up') }}</button>
+                                                    <button type="button" class="v-btn v-btn--is-elevated v-btn--text v-size--small" style="color:var(--on-theme)" @click="moveSlide(slidesIdx, 1)">{{ t('move_down') }}</button>
+                                                    <div style="flex:1"></div>
+                                                    <button type="button" class="v-btn v-btn--is-elevated v-btn--outlined v-size--small" style="color:#ef4444;border-color:rgba(239,68,68,.5)" @click="removeSlide(slidesIdx)">{{ t('delete_slide') }}</button>
+                                                </div>
+                                            </div>
+                                            <div v-else style="flex:1;display:flex;align-items:center;justify-content:center;color:var(--on-theme-mid);font-size:.9rem">
+                                                {{ t('no_slides') }}
+                                            </div>
+                                        </div>
+                                        </template>
+
                                         <template v-else-if="tab.key === 'graphs'">
                                         <div style="display:flex;gap:12px;min-height:220px">
                                             <div style="flex:0 0 auto;display:flex;flex-direction:column;border-right:1px solid rgba(255,255,255,.12);padding-right:8px">
@@ -1386,6 +1445,91 @@
                                             <div v-else style="flex:1;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.35);font-size:.9rem">
                                                 {{ t('no_series') }}
                                             </div>
+                                        </div>
+                                        </template>
+
+                                        <template v-else-if="tab.key === 'statuses'">
+                                        <div class="d-flex gap-1 ma-1" style="align-items:center">
+                                            <button type="button" class="v-btn v-btn--is-elevated v-btn--fab v-btn--has-bg v-btn--round v-size--x-small" @click="addStatusItem" :title="t('add_item')"><i class="fas fa-plus"></i></button>
+                                            <span v-if="statusItems.length" style="color:rgba(255,255,255,.55);font-size:.8rem;margin-left:4px">{{ statusItems.length }} {{ t('units_items') }}</span>
+                                        </div>
+                                        <div v-if="statusItems.length" class="widget-group-list" style="margin-top:8px">
+                                            <div v-for="(item, si) in statusItems" :key="item.key || si" class="widget-group-list__item" style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start;cursor:default">
+                                                <div class="v-input v-text-field" style="flex:1 1 80px;min-width:80px">
+                                                    <div class="v-input__control">
+                                                        <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': item.status }">{{ t('option_status') }}</label><input :value="item.status" @input="setStatusItemField(si, 'status', $event.target.value)"></div>
+                                                    </div>
+                                                </div>
+                                                <div class="v-input v-text-field" style="flex:1 1 80px;min-width:80px">
+                                                    <div class="v-input__control">
+                                                        <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': item.status2 }">{{ t('field_status_to') }}</label><input :value="item.status2" @input="setStatusItemField(si, 'status2', $event.target.value)"></div>
+                                                    </div>
+                                                </div>
+                                                <div class="v-input v-text-field" style="flex:2 1 140px;min-width:120px">
+                                                    <div class="v-input__control">
+                                                        <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': item.title }">{{ t('option_info') }}</label><input :value="item.title" @input="setStatusItemField(si, 'title', $event.target.value)"></div>
+                                                    </div>
+                                                </div>
+                                                <button class="icon-btn" :title="t('pick_icon')" @click="openIconPicker('st:' + si)" style="flex-shrink:0"><i :class="item.icon || 'fas fa-folder'"></i></button>
+                                                <input type="color" :value="item.color || '#ffffff'" @input="setStatusItemField(si, 'color', $event.target.value)" style="width:36px;height:34px;padding:2px;background:transparent;border:1px solid rgba(255,255,255,.2);border-radius:4px;cursor:pointer;flex-shrink:0">
+                                                <div class="v-input v-text-field v-select" style="flex:1 1 120px;min-width:110px">
+                                                    <div class="v-input__control">
+                                                        <div class="v-input__slot"><label class="v-label v-label--active">{{ t('field_action') }}</label>
+                                                            <select :value="item.exec_type || 'empty'" @change="setStatusItemField(si, 'exec_type', $event.target.value)">
+                                                                <option value="empty" style="background:#1e1e1e;color:#fff">{{ t('opt_none') }}</option>
+                                                                <option value="method" style="background:#1e1e1e;color:#fff">{{ t('opt_method') }}</option>
+                                                                <option value="script" style="background:#1e1e1e;color:#fff">{{ t('opt_script') }}</option>
+                                                            </select>
+                                                            <div class="v-input__append-inner"><i class="fas fa-caret-down"></i></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <template v-if="item.exec_type === 'method'">
+                                                    <div class="v-input v-text-field v-select" style="flex:1 1 140px;min-width:120px">
+                                                        <div class="v-input__control">
+                                                            <div class="v-input__slot"><label class="v-label v-label--active">{{ t('field_method_object') }}</label>
+                                                                <select :value="stMethodObj(item)" @change="setStatusMethod(si, $event.target.value, true)">
+                                                                    <option value="" style="background:#1e1e1e;color:#fff">{{ t('select_default') }}</option>
+                                                                    <option v-for="o in objects" :key="o.ID" :value="o.TITLE" style="background:#1e1e1e;color:#fff">{{ itemLabel(o) }}</option>
+                                                                </select>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="v-input v-text-field v-select" style="flex:1 1 140px;min-width:120px">
+                                                        <div class="v-input__control">
+                                                            <div class="v-input__slot"><label class="v-label v-label--active">{{ t('field_method') }}</label>
+                                                                <select :value="(item.method || '').split('/')[1] || ''" @change="setStatusMethod(si, $event.target.value, false)">
+                                                                    <option value="" style="background:#1e1e1e;color:#fff">{{ t('select_default') }}</option>
+                                                                    <option v-for="m in stMethods(si)" :key="m.ID" :value="m.TITLE" style="background:#1e1e1e;color:#fff">{{ itemLabel(m) }}</option>
+                                                                </select>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                                <div v-else-if="item.exec_type === 'script'" class="v-input v-text-field v-select" style="flex:1 1 160px;min-width:140px">
+                                                    <div class="v-input__control">
+                                                        <div class="v-input__slot"><label class="v-label v-label--active">{{ t('field_script') }}</label>
+                                                            <select :value="item.script" @change="setStatusItemField(si, 'script', $event.target.value)">
+                                                                <option value="" style="background:#1e1e1e;color:#fff">{{ t('select_default') }}</option>
+                                                                <option v-for="s in scripts" :key="s.ID" :value="s.TITLE" style="background:#1e1e1e;color:#fff">{{ s.TITLE }}{{ s.DESCRIPTION ? ' - ' + s.DESCRIPTION : '' }}</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div v-if="item.exec_type === 'method' || item.exec_type === 'script'" class="v-input v-text-field" style="flex:1 1 110px;min-width:100px">
+                                                    <div class="v-input__control">
+                                                        <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': item.exec_param }">{{ t('field_param') }}</label><input :value="item.exec_param" @input="setStatusItemField(si, 'exec_param', $event.target.value)"></div>
+                                                    </div>
+                                                </div>
+                                                <div class="d-flex gap-1" style="flex-shrink:0">
+                                                    <button class="icon-btn" :title="t('move_up')" @click="moveStatusItem(si, -1)" :disabled="si === 0"><i class="fas fa-arrow-up"></i></button>
+                                                    <button class="icon-btn" :title="t('move_down')" @click="moveStatusItem(si, 1)" :disabled="si === statusItems.length - 1"><i class="fas fa-arrow-down"></i></button>
+                                                    <button type="button" class="v-btn v-btn--icon v-btn--round theme--dark v-size--default" :title="t('delete')" @click="removeStatusItem(si)"><i class="fas fa-minus"></i></button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div v-else style="padding:20px;text-align:center;color:rgba(255,255,255,.45);font-size:.9rem">
+                                            {{ t('widget_options_empty') }}
                                         </div>
                                         </template>
 
@@ -1932,7 +2076,7 @@
                 <div class="modal-body" style="text-align:center;padding:2rem 1.5rem">
                     <i class="fas fa-chart-line" style="font-size:3rem;color:var(--primary);margin-bottom:1rem"></i>
                     <h3 style="margin-bottom:.3rem">Dashboard Pro</h3>
-                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 1.11</p>
+                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 1.12</p>
                     <p style="color:var(--text-secondary);font-size:.8rem">{{ t('app_desc') }}</p>
                     <div class="about-links" style="margin-top:1rem;font-size:.85rem;color:var(--text-secondary);line-height:1.8">
                         <div>{{ t('about_telegram') }}: <a href="https://t.me/+9ZFQaxs_Ukw4NmMy" target="_blank" rel="noopener">Telegram</a></div>
@@ -1955,6 +2099,7 @@
     <script src="js/auth.js?v=9"></script>
     <script src="js/sidebar.js?v=10"></script>
 <script src="js/widget-config.js?v=11"></script>
-<script src="js/app.js?v=192"></script>
+<script src="js/lib/leaflet.js?v=1"></script>
+<script src="js/app.js?v=208"></script>
 </body>
 </html>

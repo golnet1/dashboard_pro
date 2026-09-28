@@ -1,5 +1,9 @@
 const KeypadWidget = {
     props: ['widget'],
+    tabs: [
+        { key: 'main', label: 'tab_main', fields: 'params' },
+        { key: 'advanced', label: 'tab_advanced', fields: 'advanced' },
+    ],
     fields: {
         params: [
             { key: 'title', label: 'field_title', type: 'text' },
@@ -22,22 +26,25 @@ const KeypadWidget = {
             { key: 'alive_timeout', label: 'field_alive_timeout', type: 'number', step: 1 },
         ],
     },
-    defaults: { icon: 'fas fa-th', icon_type: 'icon', property: 'value', height: 210 },
+    defaults: { icon: 'fas fa-th', icon_type: 'icon', property: 'value', height: 240 },
     template: `
         <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled }" :style="cardStyle" style="display:flex;flex-direction:column">
             <div class="widget-v-card__header">
                 <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon"></i>
                 <div class="widget-v-card__title">{{ widget.title || t('widget_keypad') }}</div>
             </div>
-            <div class="widget-v-card__body" style="padding:8px 12px 12px;display:flex;flex-direction:column;gap:6px">
-                <div style="text-align:center;font-size:1.8rem;font-weight:300;color:rgba(255,255,255,.87);padding:4px 0;min-height:2.5rem;font-family:monospace">{{ display }}</div>
-                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px">
-                    <button v-for="k in keys" :key="k" @click="press(k)" :disabled="aliveDisabled" style="padding:8px;border:1px solid rgba(255,255,255,.15);border-radius:6px;background:rgba(255,255,255,.05);color:rgba(255,255,255,.8);font-size:1rem;cursor:pointer;text-align:center" :style="k === 'OK' ? 'background:var(--primary);color:#fff;border-color:var(--primary)' : (k === 'C' ? 'background:rgba(239,68,68,.2);color:#ef4444;border-color:rgba(239,68,68,.3)' : '')">{{ k }}</button>
+            <div class="widget-v-card__body" style="padding:8px 12px 10px;display:flex;flex-direction:column;gap:6px;flex:1;min-height:0">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-shrink:0">
+                    <div style="font-size:1.5rem;font-weight:300;color:rgba(255,255,255,.87);line-height:1.2;min-height:1.9rem;font-family:monospace;overflow:hidden">{{ display }}</div>
+                    <div style="font-size:.7rem;color:rgba(255,255,255,.6);text-align:right;flex-shrink:0;overflow:hidden">{{ status }}</div>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;flex:1;min-height:0;grid-auto-rows:minmax(0,1fr)">
+                    <button v-for="k in keys" :key="k" @click="press(k)" :disabled="aliveDisabled || sending" style="padding:4px 6px;border:1px solid rgba(255,255,255,.15);border-radius:6px;background:rgba(255,255,255,.05);color:rgba(255,255,255,.8);font-size:.95rem;cursor:pointer;text-align:center;min-height:0;overflow:hidden" :style="k === 'OK' ? 'background:var(--primary);color:#fff;border-color:var(--primary)' : (k === 'C' ? 'background:rgba(239,68,68,.2);color:#ef4444;border-color:rgba(239,68,68,.3)' : '')">{{ k }}</button>
                 </div>
             </div>
         </div>`,
     data() {
-        return { display: '', isAlive: true, availTimer: null };
+        return { display: '', isAlive: true, availTimer: null, status: '', sending: false };
     },
     mounted() {
         if (this.widget.object_alive && this.widget.property_alive) {
@@ -55,7 +62,8 @@ const KeypadWidget = {
             if (this.widget.color) s.backgroundColor = this.widget.color;
             return s;
         },
-        keys() { return ['1','2','3','4','5','6','7','8','9','C','0','OK']; }
+        keys() { return ['1','2','3','4','5','6','7','8','9','C','0','OK']; },
+        hasTarget() { return !!(this.widget.object && this.widget.property); }
     },
     methods: {
         async checkAlive() {
@@ -64,15 +72,27 @@ const KeypadWidget = {
                 this.isAlive = !d.error && String(d.value) !== '0';
             } catch (e) { /* keep current state on transient error */ }
         },
-        press(k) {
-            if (k === 'C') { this.display = ''; return; }
-            if (k === 'OK') {
-                if (this.widget.object && this.display) {
-                    dpAPI('setProperty?' + new URLSearchParams({ object: this.widget.object, property: this.widget.property || 'value', value: this.display }));
-                }
-                return;
+        async press(k) {
+            if (k === 'C') { this.display = ''; this.status = ''; return; }
+            if (k === 'OK') { await this.send(); return; }
+            if (this.display.length < 16) this.display += k;
+        },
+        async send() {
+            if (this.sending) return;
+            if (!this.display) { this.status = this.t('keypad_empty'); return; }
+            if (!this.hasTarget) { this.status = this.t('keypad_no_object'); return; }
+            this.sending = true;
+            this.status = '';
+            const value = this.display;
+            try {
+                const d = await dpAPI('setProperty?' + new URLSearchParams({ object: this.widget.object, property: this.widget.property, value }));
+                if (d && d.error) throw new Error(d.error);
+                this.display = '';
+                this.status = this.t('rc_ok');
+            } catch (e) {
+                this.status = this.t('error') + (e && e.message ? e.message : '');
             }
-            if (this.display.length < 10) this.display += k;
+            this.sending = false;
         }
     }
 };

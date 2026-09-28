@@ -460,7 +460,7 @@ const app = createApp({
                 }
             }
             tabs = tabs.filter(tab => {
-                if (tab.key === 'columns' || tab.key === 'widgets' || tab.key === 'graphs' || tab.key === 'colors' || tab.key === 'items') return true;
+                if (tab.key === 'columns' || tab.key === 'widgets' || tab.key === 'graphs' || tab.key === 'colors' || tab.key === 'items' || tab.key === 'slides' || tab.key === 'statuses') return true;
                 const fields = getWidgetFields(type, tab.fields || tab.key);
                 return fields.length > 0;
             });
@@ -598,6 +598,42 @@ const app = createApp({
             seriesProps.value = { ...seriesProps.value, [idx]: res.items || [] };
         }
 
+        // ---- Slide list editing for slideshow widget ----
+        const slidesIdx = ref(0);
+        const slidesList = computed(() => {
+            try { const p = JSON.parse(editWidgetForm.value?.slides || '[]'); return Array.isArray(p) ? p : []; }
+            catch { return []; }
+        });
+        function setSlides(arr) {
+            editWidgetForm.value.slides = JSON.stringify(arr);
+        }
+        function addSlide() {
+            const arr = slidesList.value;
+            arr.push({ key: 'i' + Date.now() + '_' + Math.floor(Math.random() * 1000), title: '', src: '' });
+            setSlides(arr);
+            slidesIdx.value = arr.length - 1;
+        }
+        function removeSlide(idx) {
+            const arr = slidesList.value;
+            arr.splice(idx, 1);
+            setSlides(arr);
+            if (slidesIdx.value >= arr.length) slidesIdx.value = Math.max(0, arr.length - 1);
+        }
+        function setSlideField(idx, key, val) {
+            const arr = slidesList.value;
+            if (arr[idx]) arr[idx][key] = val;
+            setSlides(arr);
+        }
+        function moveSlide(idx, dir) {
+            const arr = slidesList.value;
+            const to = idx + dir;
+            if (idx < 0 || idx >= arr.length || to < 0 || to >= arr.length) return;
+            const cur = slidesIdx.value;
+            arr.splice(to, 0, arr.splice(idx, 1)[0]);
+            setSlides(arr);
+            slidesIdx.value = cur === idx ? to : (cur === to ? idx : cur);
+        }
+
         // ---- Select widget items editing ----
         const selectItems = computed(() => {
             try { return JSON.parse(editWidgetForm.value?.items || '[]'); }
@@ -623,6 +659,54 @@ const app = createApp({
             const arr = selectItems.value;
             if (arr[idx]) arr[idx][key] = val;
             setSelectItems(arr);
+        }
+
+        // ---- Status widget statuses editing ----
+        const statusItems = computed(() => {
+            const raw = editWidgetForm.value?.statuses;
+            const arr = typeof raw === 'string' ? (() => { try { return JSON.parse(raw || '[]'); } catch { return []; } })() : raw;
+            return Array.isArray(arr) ? arr : [];
+        });
+        function setStatusItems(arr) {
+            editWidgetForm.value.statuses = JSON.stringify(arr);
+        }
+        function fixtureStatusItem() {
+            return { key: 'st' + Date.now() + '_' + Math.floor(Math.random() * 1000), status: '', status2: '', title: '', icon: '', color: '#ffffff', exec_type: 'empty', method: '', script: '', exec_param: '' };
+        }
+        function addStatusItem() {
+            const arr = statusItems.value;
+            arr.push(fixtureStatusItem());
+            setStatusItems(arr);
+        }
+        function removeStatusItem(idx) {
+            const arr = statusItems.value;
+            arr.splice(idx, 1);
+            setStatusItems(arr);
+        }
+        function setStatusItemField(idx, key, val) {
+            const arr = statusItems.value;
+            if (arr[idx]) arr[idx][key] = val;
+            setStatusItems(arr);
+        }
+        function moveStatusItem(idx, dir) {
+            const arr = statusItems.value;
+            const to = idx + dir;
+            if (to < 0 || to >= arr.length) return;
+            const [it] = arr.splice(idx, 1);
+            arr.splice(to, 0, it);
+            setStatusItems(arr);
+        }
+        function stMethodObj(item) { return item && item.method ? String(item.method).split('/')[0] : ''; }
+        function stMethods(idx) {
+            const obj = stMethodObj(statusItems.value[idx]);
+            if (obj && !methodCache[obj]) loadObjectMethods(obj);
+            return methodCache[obj] || [];
+        }
+        function setStatusMethod(idx, partVal, isObj) {
+            const cur = statusItems.value[idx]?.method || '';
+            const obj = isObj ? partVal : stMethodObj({ method: cur });
+            const mth = isObj ? (String(cur).split('/')[1] || '') : partVal;
+            setStatusItemField(idx, 'method', obj && mth ? obj + '/' + mth : (obj || mth));
         }
 
         const columnFields = [
@@ -788,7 +872,7 @@ function loadScript(src, version) {
             widgetList.value = [...widgetDefs.value].sort((a, b) => (a.priority || 0) - (b.priority || 0));
             for (const w of widgets.items) {
                 if (!w.FILE) continue;
-                await loadScript(w.FILE, 108);
+                await loadScript(w.FILE, 135);
             }
             widgetDefs.value.forEach(d => registerWidgetComponent(d.type));
         }
@@ -937,6 +1021,7 @@ function loadScript(src, version) {
             widgetTab.value = eDef ? eDef.key : 'main';
             columnIdx.value = 0;
             seriesIdx.value = 0;
+            slidesIdx.value = 0;
             editWidgetParent.value = parent || null;
             editWidgetIsNew.value = false;
             const def = widgetDefs.value.find(d => d.type === w.type);
@@ -1789,6 +1874,9 @@ if (f.key) {
             } else if (typeof iconTarget.value === 'string' && iconTarget.value.startsWith('si:')) {
                 const idx = parseInt(iconTarget.value.slice(3), 10);
                 setSelectItemField(idx, 'icon', ic);
+            } else if (typeof iconTarget.value === 'string' && iconTarget.value.startsWith('st:')) {
+                const idx = parseInt(iconTarget.value.slice(3), 10);
+                setStatusItemField(idx, 'icon', ic);
             } else if (editWidgetForm.value) {
                 editWidgetForm.value[iconTarget.value] = ic;
             }
@@ -1805,6 +1893,11 @@ if (f.key) {
             if (typeof iconTarget.value === 'string' && iconTarget.value.startsWith('si:')) {
                 const idx = parseInt(iconTarget.value.slice(3), 10);
                 const arr = selectItems.value;
+                return arr[idx] && arr[idx].icon === ic;
+            }
+            if (typeof iconTarget.value === 'string' && iconTarget.value.startsWith('st:')) {
+                const idx = parseInt(iconTarget.value.slice(3), 10);
+                const arr = statusItems.value;
                 return arr[idx] && arr[idx].icon === ic;
             }
             return editWidgetForm.value && editWidgetForm.value[iconTarget.value] === ic;
@@ -2154,6 +2247,22 @@ if (f.key) {
             unreadCount.value = 0;
             notifications.value = [];
             showNotifications.value = false;
+        }
+
+        function notifAvatarUrl() {
+            const v = String((settings.value && settings.value.notifAvatar) || '').trim();
+            if (!v) return '/cms/avatars/user.png';
+            if (v.indexOf('data:') === 0) return v;
+            if (v.charAt(0) === '/' || /^(https?:)?\/\//i.test(v)) return v;
+            return '/cms/avatars/' + v;
+        }
+
+        function notifAvatarFallback(ev) {
+            const el = ev && ev.target;
+            if (!el) return;
+            if (el.dataset.fallbackApplied) return;
+            el.dataset.fallbackApplied = '1';
+            el.src = '/cms/avatars/user.png';
         }
 
         function handleClickOutside(e) {
@@ -2548,7 +2657,9 @@ onMounted(() => {
             groupChildrenList, startGroupChildAdd, closeEditor, moveGroupChildOut, confirmOutOfGroup, groupChildMouseDown, groupChildMouseMove, groupChildMouseUp, resetChildDrag, dragChildId, dragOverChildId,
             columnIdx, columnList, setColumns, addColumn, removeColumn, moveColumnUp, moveColumnDown, autoDetectColumns, columnFields, columnFieldVisible, getColumnFieldRows,
             seriesIdx, seriesList, setSeries, addSeries, removeSeries, setSeriesField, seriesProps, loadSeriesProps, seriesScaleOptions,
+    slidesIdx, slidesList, addSlide, removeSlide, setSlideField, moveSlide,
             selectItems, addSelectItem, removeSelectItem, setSelectItemField,
+            statusItems, addStatusItem, removeStatusItem, setStatusItemField, moveStatusItem, stMethodObj, stMethods, setStatusMethod,
             draggingWidget, startDrag, onDrag, stopDrag,
             resizingWidget, startResize, onResize, stopResize,
             widgetMenuTarget, widgetPanelSubmenu, widgetGroupSubmenu, widgetConfirm, copyWidget, exportWidget, changeWidgetPanel, selectMoveTarget, confirmMoveWidget, moveWidgetToGroup, confirmMoveToGroup,
@@ -2558,9 +2669,9 @@ onMounted(() => {
             showCleanupDialog, cleanupReport, cleanupBusy, cleanupReasons, applyCleanup, restorePanels, runWizard,
             showAddPanel, editPanelData, panelForm, panelTab, panelTabPos, panelError, createPanel, editPanel, openPanelForm, deletePanel, deleteCurrentPanel, movePanel, showAbout, toggleField,
             showIconPicker, iconTarget, iconSearch, iconCategory, iconCategorySearch, iconPage, iconCategories, filteredIconCategories, filteredIcons, totalPages, paginatedIcons, openIconPicker, selectIcon, iconPicked,
-            objects, iconProperties, infoProperties, widgetProperties, bgProperties, extraProperties, scripts, methodCache, loadObjects, loadScripts, loadIconProperties, loadInfoProperties, loadWidgetProperties, loadBgProperties, widgetBgStyle,
+            objects, iconProperties, infoProperties, widgetProperties, bgProperties, extraProperties, scripts, methodCache, loadObjects, loadScripts, loadIconProperties, loadInfoProperties, loadWidgetProperties, loadBgProperties, loadObjectMethods, widgetBgStyle,
             isAdmin, toggleEditMode, wsConnected, wsTooltip, wsStatus, wsPulse, wsBytesSent, wsBytesReceived, wsRev, user, userMenuOpen, sidebarMini, toggleSidebar, expandedGroups, childPanels, toggleGroup, forceRefresh, formatBytes,
-            showNotifications, notifications, unreadCount, checkNotifications, markNotificationsRead,
+            showNotifications, notifications, unreadCount, checkNotifications, markNotificationsRead, notifAvatarUrl, notifAvatarFallback,
             chatOpen, chatMessages, chatText, chatLoading, loadChat, sendChat, toggleChat, formatTime,
             widgetList, exportWidgetZip, setWidgetEnabled, deleteWidgetDef, pickWidgetZip,
             widgetDefMouseDown, widgetDefMouseMove, widgetDefMouseUp, dragWidgetDefId, dragWidgetDefOverId,

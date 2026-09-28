@@ -1,7 +1,7 @@
 const SelectWidget = {
     props: ['widget'],
     tabs: [
-        { key: 'params', label: 'tab_params' },
+        { key: 'main', label: 'tab_main', fields: 'params' },
         { key: 'items', label: 'tab_items' },
         { key: 'advanced', label: 'tab_advanced' },
     ],

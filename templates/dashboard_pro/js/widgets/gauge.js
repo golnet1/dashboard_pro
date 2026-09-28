@@ -1,5 +1,9 @@
 const GaugeWidget = {
     props: ['widget'],
+    tabs: [
+        { key: 'main', label: 'tab_main', fields: 'params' },
+        { key: 'advanced', label: 'tab_advanced', fields: 'advanced' },
+    ],
     fields: {
         params: [
             { key: 'title', label: 'field_title', type: 'text' },
@@ -31,10 +35,10 @@ const GaugeWidget = {
                 <circle cx="60" cy="60" r="50" fill="none" :stroke="gaugeColor" stroke-width="10" stroke-linecap="round"
                     :stroke-dasharray="circumference" :stroke-dashoffset="dashOffset"
                     transform="rotate(-90, 60, 60)" style="transition: stroke-dashoffset .5s"/>
-                <text x="60" y="55" text-anchor="middle" fill="rgba(255,255,255,.87)" font-size="14" font-weight="700">{{ displayValue }}</text>
-                <text x="60" y="72" text-anchor="middle" fill="rgba(255,255,255,.5)" font-size="6" v-if="widget.unit">{{ widget.unit }}</text>
+                <text x="60" :y="valueY" text-anchor="middle" fill="rgba(255,255,255,.87)" font-size="14" font-weight="700">{{ displayValue }}</text>
+                <text x="60" :y="unitY" text-anchor="middle" fill="rgba(255,255,255,.5)" font-size="6" v-if="widget.unit">{{ widget.unit }}</text>
+                <text x="60" y="78" text-anchor="middle" fill="rgba(255,255,255,.6)" font-size="7" v-if="hasTitle">{{ widget.title }}</text>
             </svg>
-            <div v-if="widget.title" style="font-size:.8rem;color:rgba(255,255,255,.6);margin-top:2px;text-align:center">{{ widget.title }}</div>
         </div>`,
     data() {
         return { value: null, timer: null, circumference: 2 * Math.PI * 50 };
@@ -48,6 +52,16 @@ const GaugeWidget = {
         if (this.timer) clearInterval(this.timer);
     },
     computed: {
+        hasTitle() {
+            return !!this.widget.title;
+        },
+        valueY() {
+            if (this.hasTitle) return this.widget.unit ? 48 : 52;
+            return this.widget.unit ? 56 : 64;
+        },
+        unitY() {
+            return this.hasTitle ? 62 : 72;
+        },
         displayValue() {
             if (this.value === null) return '—';
             const r = this.widget.round != null ? Number(this.widget.round) : 0;

@@ -165,7 +165,7 @@ a.user-menu__item { text-decoration: none; color: inherit; }
 .content { flex: 1; overflow-y: auto; padding: 1.5rem; }
 .widgets-canvas { position: relative; min-height: 500px; }
 .widget { background: transparent; }
-.widget--abs { position: absolute; cursor: default; transition: none; z-index: 1; touch-action: none; }
+.widget--abs { position: absolute; cursor: default; transition: none; z-index: 1; touch-action: manipulation; }
 .widget--abs:hover { z-index: 5; box-shadow: none; }
 .edit-mode .widget--abs { cursor: move; }
 .edit-mode .widget--abs iframe { pointer-events: none; }
@@ -758,3 +758,35 @@ body.widget-dragging, body.widget-dragging * { cursor: grabbing !important; }
 .cleanup-badge--soft { background:rgba(255,193,7,.14); color:#ffd54f; border-color:rgba(255,193,7,.4); }
 .cleanup-msg { padding:10px 14px; border-radius:8px; margin-bottom:12px; font-size:.85rem; background:rgba(255,193,7,.12); color:#ffd54f; border:1px solid rgba(255,193,7,.35); }
 .cleanup-msg > div { margin:2px 0; }
+
+/* Map widget */
+.dp-map__head { position:relative; z-index:2; flex-shrink:0; }
+.dp-map__body { position:relative; z-index:0; flex:1 1 auto; min-height:0; padding:0 !important; overflow:hidden; display:block; }
+.dp-map__box { position:absolute; top:0; left:0; right:0; bottom:0; overflow:hidden; z-index:0; isolation:isolate; background:#111; }
+.dp-map__canvas { position:absolute; top:0; left:0; right:0; bottom:0; width:100%; height:100%; background:#111; outline:none; }
+.dp-map__msg { position:absolute; top:0; left:0; right:0; bottom:0; z-index:3; display:flex; align-items:center; justify-content:center; padding:8px; text-align:center; font-size:.85rem; color:rgba(255,255,255,.5); }
+.dp-map__coord { position:absolute; left:6px; right:6px; bottom:6px; z-index:2; text-align:center; font-size:.7rem; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,.9); pointer-events:none; }
+.dp-map__box .leaflet-container { background:#111; font:inherit; }
+.dp-map__box .leaflet-pane,
+.dp-map__box .leaflet-top,
+.dp-map__box .leaflet-bottom { z-index:1; }
+.dp-map__box .leaflet-control { z-index:2; margin:4px; }
+.dp-map__box .leaflet-control-attribution { display:block; background:rgba(0,0,0,.55); color:rgba(255,255,255,.65); font-size:.6rem; padding:1px 4px; border-radius:0 3px 0 0; }
+.dp-map__box .leaflet-control-attribution a { color:rgba(255,255,255,.8); }
+.dp-map__badge { position:absolute; top:4px; left:4px; right:4px; z-index:4; padding:3px 6px; border-radius:4px; background:rgba(180,30,30,.85); color:#fff; font-size:.7rem; text-align:center; pointer-events:none; }
+
+/* ---- slideshow widget ---- */
+    .dp-slides { position:relative; overflow:hidden; background-position:center; background-size:cover; background-repeat:no-repeat; }
+.dp-slides__img { position:absolute; inset:0; width:100%; height:100%; transition:opacity .5s ease; pointer-events:none; }
+    .dp-slides__center { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:1.6rem; color:var(--on-theme-mid); pointer-events:none; }
+.dp-slides__title { position:absolute; top:8px; left:12px; right:12px; font-size:1.15rem; font-weight:500; color:#fff; text-shadow:0 1px 4px rgba(0,0,0,.85); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; pointer-events:none; }
+.dp-slides__arrow { position:absolute; top:50%; transform:translateY(-50%); width:30px; height:30px; border:none; border-radius:50%; background:rgba(0,0,0,.35); color:#fff; font-size:.85rem; cursor:pointer; opacity:0; transition:opacity .2s; display:flex; align-items:center; justify-content:center; }
+.dp-slides__arrow--on { opacity:1; }
+.dp-slides__arrow:hover { background:rgba(0,0,0,.6); }
+.dp-slides__arrow--prev { left:8px; }
+.dp-slides__arrow--next { right:8px; }
+.dp-slides__dots { position:absolute; left:0; right:0; bottom:8px; display:flex; justify-content:center; gap:6px; }
+.dp-slides__dot { width:8px; height:8px; border-radius:50%; background:rgba(255,255,255,.35); cursor:pointer; transition:background .2s, transform .2s; }
+.dp-slides__dot--active { background:#fff; transform:scale(1.25); }
+.dp-slides__dead { position:absolute; inset:0; background:rgba(239,68,68,.45); pointer-events:none; }
+    .dp-slides__empty { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--on-theme-dim); font-size:.8rem; }
