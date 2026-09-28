@@ -77,8 +77,11 @@ const StreamWidget = {
                 </div>
             </div>
         <div v-if="ptzEnabled && !histPlaying && videoHover" class="stream-ptz" style="position:absolute;right:8px;bottom:8px;z-index:5;display:flex;flex-direction:column;align-items:flex-end;gap:4px">
-                <div v-if="ptzPresets.length" style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;max-width:220px">
-                    <button v-for="p in ptzPresets" :key="p.token" type="button" class="v-btn v-btn--is-elevated v-btn--text v-size--x-small" style="min-width:0;padding:0 8px;background:rgba(20,20,20,.6);color:#fff;font-size:.72rem" :title="p.name" @click.stop.prevent="gotoPreset(p)">{{ p.name || p.token }}</button>
+                <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;align-items:center;max-width:220px">
+                    <template v-if="ptzPresets.length">
+                        <button v-for="p in ptzPresets" :key="p.token" type="button" class="v-btn v-btn--is-elevated v-btn--text v-size--x-small" style="min-width:0;padding:0 8px;background:rgba(20,20,20,.6);color:#fff;font-size:.72rem" :title="p.name" @click.stop.prevent="gotoPreset(p)">{{ p.name || p.token }}</button>
+                    </template>
+                    <span v-else style="font-size:.68rem;color:rgba(255,255,255,.75);background:rgba(20,20,20,.6);border-radius:4px;padding:2px 6px">{{ t('ptz_no_presets') }}</span>
                     <button type="button" class="v-btn v-btn--is-elevated v-btn--text v-size--small" style="min-width:30px;padding:0 6px;background:rgba(20,20,20,.6);color:#fff" :title="t('ptz_refresh')" @click.stop.prevent="loadPtzPresets"><i class="fas fa-rotate"></i></button>
                 </div>
                 <div class="stream-ptz-grid" style="display:grid;grid-template-columns:repeat(3,34px);grid-template-rows:repeat(3,34px);grid-gap:4px;background:rgba(20,20,20,.6);border-radius:8px;padding:6px">
@@ -95,13 +98,14 @@ const StreamWidget = {
             </div>
         </div>`,
     data() {
-        return { hls: null, videoError: false, videoPlaying: false, videoHover: false, started: false, objValue: null, valueTimer: null, resolvedRtsp: null, clientId: null, _bridge: null, prevBridge: null, _onUnload: null, _onVis: null, _onFs: null, dbgTimer: null, histOpen: false, histPlaying: false, histFrom: '', histTo: '', histBaseMs: 0, histProgMs: 0, histScrub: 0, histDragging: false, histDragTimer: null, fsActive: false, fsTick: 0, speed: 1, hfsTimer: null, ptzMoving: false, ptzHoldTimer: null, ptzProfile: '', onvifProfiles: [], ptzPresets: [] };
+        return { hls: null, videoError: false, videoPlaying: false, videoHover: false, started: false, objValue: null, valueTimer: null, resolvedRtsp: null, clientId: null, _bridge: null, prevBridge: null, _onUnload: null, _onVis: null, _onFs: null, dbgTimer: null, histOpen: false, histPlaying: false, histFrom: '', histTo: '', histBaseMs: 0, histProgMs: 0, histScrub: 0, histDragging: false, histDragTimer: null, fsActive: false, fsTick: 0, speed: 1, hfsTimer: null, ptzMoving: false, ptzHoldTimer: null, ptzProfile: '', onvifProfiles: [], ptzPresets: [], ptzPresetsLoaded: false };
     },
     watch: {
         videoUrl() { this.$nextTick(() => this.setup()); },
         'widget.source_type'() { this.resolveOnvif(); this.$nextTick(() => this.setup()); },
         'widget.autoplay'() { this.$nextTick(() => this.tryPlay()); },
         'widget.ptz'(v) { if (v) this.$nextTick(() => this.loadPtzPresets()); },
+        videoHover(v) { if (v && this.ptzEnabled && !this.ptzPresetsLoaded) this.$nextTick(() => this.loadPtzPresets()); },
         histPlaying(v) {
             if (v) {
                 this.ensureFsTimer();
@@ -411,7 +415,11 @@ const StreamWidget = {
                 profile: this.ptzProfile
             };
             return dpAPI('onvif_ptz', { method: 'POST', body: JSON.stringify(Object.assign(body, extra || {})) })
-                .catch(() => null);
+                .then(d => {
+                    if (d && d.error) this.dpDbg('ptz_err ' + cmd + ' ' + String(d.error).slice(0, 160));
+                    return d;
+                })
+                .catch(e => { this.dpDbg('ptz_net ' + cmd + ' ' + String(e && e.message || e).slice(0, 160)); return null; });
         },
         ptzSendMove(x, y) { this.ptzApi('move', { x: x, y: y }); },
         ptzSendZoom(z) { this.ptzApi('zoom', { zoom: z }); },
@@ -441,6 +449,7 @@ const StreamWidget = {
         async loadPtzPresets() {
             if (!this.ptzEnabled || !this.ptzProfile) return;
             const d = await this.ptzApi('presets');
+            this.ptzPresetsLoaded = true;
             if (d && !d.error && Array.isArray(d.presets)) this.ptzPresets = d.presets || [];
         },
         gotoPreset(p) {

@@ -437,6 +437,7 @@ $frontend = array(
     'ptz_zoom_in' => 'Приблизить',
     'ptz_zoom_out' => 'Отдалить',
     'ptz_refresh' => 'Обновить пресеты',
+    'ptz_no_presets' => 'Пресеты не найдены',
     'field_chat_image_size' => 'Размер изображения (px)',
     'chat_empty' => 'Нет сообщений',
     'field_hide_icon' => 'Отключить иконку',

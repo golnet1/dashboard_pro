@@ -437,6 +437,7 @@ $frontend = array(
     'ptz_zoom_in' => 'Zoom in',
     'ptz_zoom_out' => 'Zoom out',
     'ptz_refresh' => 'Reload presets',
+    'ptz_no_presets' => 'No presets found',
     'field_chat_image_size' => 'Image size (px)',
     'chat_empty' => 'No messages',
     'field_hide_icon' => 'Hide icon',
