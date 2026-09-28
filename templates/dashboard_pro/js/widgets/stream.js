@@ -16,8 +16,8 @@ const StreamWidget = {
             { key: 'onvif_url', label: 'field_stream_onvif_url', type: 'text', row: 'onvif_row', showIf: { source_type: 'onvif' } },
             { key: 'onvif_login', label: 'field_stream_onvif_login', type: 'text', row: 'onvif_row', showIf: { source_type: 'onvif' } },
             { key: 'onvif_password', label: 'field_stream_onvif_password', type: 'text', row: 'onvif_row', inputType: 'password', showIf: { source_type: 'onvif' } },
+            { key: 'onvif_view', label: 'field_stream_view', type: 'select', row: 'onvif_row', showIf: { source_type: 'onvif' }, default: 'full', options: [{value:'full',label:'field_stream_view_full'},{value:'cam1',label:'field_stream_view_cam1'},{value:'cam2',label:'field_stream_view_cam2'}] },
             { key: 'autoplay', label: 'field_video_autoplay', type: 'checkbox', default: false },
-            { key: 'loop', label: 'field_video_loop', type: 'checkbox', default: false },
             { key: 'muted', label: 'field_video_muted', type: 'checkbox', default: true },
             { key: 'nocontrols', label: 'field_video_nocontrols', type: 'checkbox', default: false },
         ],
@@ -25,11 +25,11 @@ const StreamWidget = {
             { key: 'color', label: 'field_color', type: 'color' },
         ],
     },
-    defaults: { icon: 'fas fa-satellite-dish', source_type: 'url', url: '', object: '', property: '', host: '', camera: '', onvif_url: '', onvif_login: '', onvif_password: '', autoplay: false, muted: true, loop: false, nocontrols: false, height: 200 },
+    defaults: { icon: 'fas fa-satellite-dish', source_type: 'url', url: '', object: '', property: '', host: '', camera: '', onvif_url: '', onvif_login: '', onvif_password: '', onvif_view: 'full', autoplay: false, muted: true, nocontrols: false, height: 200 },
     template: `
         <div class="widget-v-card" :style="cardStyle" style="padding:0;overflow:hidden">
             <video v-if="videoUrl" ref="player"
-                :autoplay="!!widget.autoplay" :muted="!!widget.muted" :loop="!!widget.loop"
+                :autoplay="!!widget.autoplay" :muted="!!widget.muted"
                 :controls="!widget.nocontrols" playsinline preload="metadata"
                 style="width:100%;height:100%;object-fit:contain;background:#000"></video>
             <div v-else class="widget-v-card__body" style="display:flex;align-items:center;justify-content:center;flex:1;color:rgba(255,255,255,.38)">
@@ -75,7 +75,7 @@ const StreamWidget = {
             if (t === 'go2rtc') return this.go2rtcUrl;
             if (t === 'onvif') {
                 if (!this.resolvedRtsp) return '';
-                return this.bridgeUrl(String(this.resolvedRtsp));
+                return this.bridgeUrl(String(this.resolvedRtsp), this.widget.onvif_view || 'full');
             }
             let url = '';
             if (t === 'property') {
@@ -104,8 +104,9 @@ const StreamWidget = {
         isHlsUrl(url) {
             return /\.m3u8(\?|#|$)/i.test(url) || /application\/x-mpegURL/i.test(url) || url.includes('hls_bridge');
         },
-        bridgeUrl(src) {
-            return '/api.php/module/dashboard_pro/hls_bridge?src=' + encodeURIComponent(src);
+        bridgeUrl(src, view) {
+            const v = (view === 'cam1' || view === 'cam2') ? view : 'full';
+            return '/api.php/module/dashboard_pro/hls_bridge?src=' + encodeURIComponent(src) + '&view=' + v;
         },
         async loadObjValue() {
             let obj = this.widget.object_value || this.widget.object;
@@ -145,7 +146,19 @@ const StreamWidget = {
             const hlsUrl = this.isHlsUrl(url);
             const nativeHls = v.canPlayType('application/vnd.apple.mpegurl') ? true : false;
             if (hlsUrl && window.Hls && window.Hls.isSupported() && !nativeHls) {
-                this.hls = new window.Hls();
+                this.hls = new window.Hls({
+                    liveSyncDurationCount: 2,
+                    liveDurationInfinity: true,
+                    maxBufferLength: 4,
+                    backBufferLength: 30,
+                    startPosition: -1,
+                    startFragPrefetch: true,
+                    manifestLoadingTimeOut: 4000,
+                    fragLoadingTimeOut: 4000,
+                    manifestLoadingMaxRetry: 5,
+                    fragLoadingMaxRetry: 5,
+                    levelLoadingMaxRetry: 5
+                });
                 this.hls.on(window.Hls.Events.MANIFEST_PARSED, () => this.tryPlay());
                 this.hls.on(window.Hls.Events.ERROR, (ev, data) => {
                     if (data && data.fatal) this.videoError = true;

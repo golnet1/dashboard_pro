@@ -307,7 +307,11 @@ class dashboard_pro extends module
             if ($file != '') {
                 $file = basename($file);
             }
-            $key = substr(preg_replace('/[^a-f0-9]/', '', sha1($src)), 0, 16);
+            $view = $params['view'] ?? 'full';
+            if (!in_array($view, array('full', 'cam1', 'cam2'), true)) {
+                $view = 'full';
+            }
+            $key = substr(preg_replace('/[^a-f0-9]/', '', sha1($src . '|' . $view . '|v3')), 0, 16);
             $root = ROOT . 'cms/cached/hls_bridge';
             $dir = $root . '/' . $key;
             if (!is_dir($dir)) {
@@ -317,7 +321,7 @@ class dashboard_pro extends module
                 if (!preg_match('#^(rtsp|rtsps|http|https)://#i', $src)) {
                     $this->httpJson(400, array('error' => 'Invalid source'));
                 }
-                $this->ensureHlsProcess($src, $dir);
+                $this->ensureHlsProcess($src, $dir, $view);
                 $this->cleanupOldHls($root);
                 $content = @file_get_contents($dir . '/index.m3u8');
                 header('Content-Type: application/vnd.apple.mpegurl');
@@ -325,8 +329,8 @@ class dashboard_pro extends module
                     echo "#EXTM3U\n";
                     exit;
                 }
-                $content = preg_replace_callback('/^(seg_[0-9]+\.ts)$/m', function ($m) use ($src) {
-                    return '?src=' . rawurlencode($src) . '&file=' . $m[1];
+                $content = preg_replace_callback('/^(seg_[0-9]+\.ts)$/m', function ($m) use ($src, $view) {
+                    return '?src=' . rawurlencode($src) . '&file=' . $m[1] . '&view=' . $view;
                 }, $content);
                 echo $content;
                 exit;
@@ -997,19 +1001,29 @@ class dashboard_pro extends module
         return $out === 'alive';
     }
 
-    function ensureHlsProcess($src, $dir)
+    function ensureHlsProcess($src, $dir, $view = 'full')
     {
         if (is_file($dir . '/index.m3u8') && $this->hlsProcessAlive($dir)) return;
         $ffmpeg = trim((string)@shell_exec('command -v ffmpeg'));
         if ($ffmpeg == '') return;
         $errLog = $dir . '/ffmpeg.log';
         $transport = (strpos($src, 'rtsp') === 0) ? ' -rtsp_transport tcp' : '';
-        $cmd = 'nohup ' . escapeshellcmd($ffmpeg) . ' -hide_banner -loglevel error' . $transport . ' -fflags nobuffer -flags low_delay -i ' . escapeshellarg($src) . ' -map 0:v:0 -map 0:a:0? -c:v libx264 -preset veryfast -tune zerolatency -crf 23 -c:a aac -b:a 128k -f hls -hls_time 2 -hls_list_size 6 -hls_flags delete_segments+append_list -hls_segment_filename ' . escapeshellarg($dir . '/seg_%04d.ts') . ' ' . escapeshellarg($dir . '/index.m3u8') . ' > ' . escapeshellarg($errLog) . ' 2>&1 & echo $!';
+        $vf = '';
+        if ($view === 'cam1') {
+            $vf = ' -vf "crop=if(gt(iw\,ih)\,iw/2\,iw):if(gt(iw\,ih)\,ih\,ih/2):0:0"';
+        } elseif ($view === 'cam2') {
+            $vf = ' -vf "crop=if(gt(iw\,ih)\,iw/2\,iw):if(gt(iw\,ih)\,ih\,ih/2):if(gt(iw\,ih)\,iw/2\,0):if(gt(iw\,ih)\,0\,ih/2)"';
+        }
+        $cmd = 'nohup ' . escapeshellcmd($ffmpeg) . ' -hide_banner -loglevel error' . $transport . ' -fflags nobuffer -flags low_delay -i ' . escapeshellarg($src) . $vf . ' -map 0:v:0 -map 0:a:0? -c:v libx264 -preset veryfast -tune zerolatency -crf 23 -g 30 -keyint_min 30 -sc_threshold 0 -force_key_frames "expr:gte(t,n_forced*2)" -c:a aac -b:a 128k -f hls -hls_time 2 -hls_list_size 6 -hls_flags delete_segments+omit_endlist -hls_segment_filename ' . escapeshellarg($dir . '/seg_%04d.ts') . ' ' . escapeshellarg($dir . '/index.m3u8') . ' > ' . escapeshellarg($errLog) . ' 2>&1 & echo $!';
         $pid = trim((string)@shell_exec($cmd));
         if ($pid != '') {
             @file_put_contents($dir . '/run.pid', $pid);
         }
-        usleep(1500000);
+        for ($i = 0; $i < 100; $i++) {
+            $pl = @file_get_contents($dir . '/index.m3u8');
+            if ($pl !== false && strpos($pl, '#EXTINF') !== false) break;
+            usleep(150000);
+        }
         if (!$this->hlsProcessAlive($dir)) {
             @unlink($dir . '/run.pid');
         }
