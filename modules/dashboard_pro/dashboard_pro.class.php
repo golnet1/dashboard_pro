@@ -297,6 +297,69 @@ class dashboard_pro extends module
             return ['streams' => $streams, 'profiles' => $profiles];
         }
 
+        if ($params['request'][0] == 'hls_dbg') {
+            $login = $this->getUserLogin();
+            if (!$login) {
+                $this->httpJson(401, array('error' => LANG_DASHBOARD_PRO_LOGIN_REQUIRED));
+            }
+            $raw = (string)file_get_contents('php://input');
+            $d = @json_decode($raw, true);
+            $msg = is_array($d) ? trim((string)($d['msg'] ?? '')) : trim($raw);
+            if ($msg == '') $msg = trim((string)($_POST['msg'] ?? ''));
+            if ($msg != '') {
+                @file_put_contents(ROOT . 'cms/cached/hls_debug.log', date('H:i:s') . ' [dbg] ' . substr($msg, 0, 700) . "\n", FILE_APPEND);
+            }
+            $this->httpJson(200, array('ok' => 1));
+        }
+
+        if ($params['request'][0] == 'hls_release') {
+            $login = $this->getUserLogin();
+            if (!$login) {
+                $this->httpJson(401, array('error' => LANG_DASHBOARD_PRO_LOGIN_REQUIRED));
+            }
+            $src = trim($params['src'] ?? '');
+            $view = $params['view'] ?? 'full';
+            if (!in_array($view, array('full', 'cam1', 'cam2'), true)) {
+                $view = 'full';
+            }
+            $res = $params['res'] ?? '';
+            if (!in_array($res, array('', '720', '480', '360'), true)) {
+                $res = '';
+            }
+            $fps = $params['fps'] ?? '';
+            if (!in_array($fps, array('', '15', '10', '5'), true)) {
+                $fps = '';
+            }
+            $kill = isset($params['kill']) && $params['kill'] == '1';
+            $key = substr(preg_replace('/[^a-f0-9]/', '', sha1($src . '|' . $view . '|' . $res . '|' . $fps . '|v4')), 0, 16);
+            $dir = ROOT . 'cms/cached/hls_bridge' . '/' . $key;
+            $tok = preg_replace('/[^a-zA-Z0-9_-]/', '', (string)($params['tok'] ?? ''));
+            if (is_dir($dir)) {
+                if ($kill) {
+                    $this->killHlsDir($dir);
+                    @exec('rm -rf ' . escapeshellarg($dir) . ' 2>&1');
+                } elseif ($tok != '') {
+                    $f = $dir . '/.clients';
+                    $map = array();
+                    $raw = @file_get_contents($f);
+                    if ($raw !== false && $raw != '') {
+                        $dec = @json_decode($raw, true);
+                        if (is_array($dec)) $map = $dec;
+                    }
+                    unset($map[$tok]);
+                    foreach ($map as $k => $ts) {
+                        if (time() - $ts > 90) unset($map[$k]);
+                    }
+                    if (count($map)) {
+                        @file_put_contents($f, json_encode($map), LOCK_EX);
+                    } elseif (is_file($f)) {
+                        @unlink($f);
+                    }
+                }
+            }
+            $this->httpJson(200, array('ok' => 1));
+        }
+
         if ($params['request'][0] == 'hls_bridge') {
             $login = $this->getUserLogin();
             if (!$login) {
@@ -319,6 +382,9 @@ class dashboard_pro extends module
             if (!in_array($fps, array('', '15', '10', '5'), true)) {
                 $fps = '';
             }
+            $tok = preg_replace('/[^a-zA-Z0-9_-]/', '', (string)($params['tok'] ?? ''));
+            if (strlen($tok) > 40) $tok = substr($tok, 0, 40);
+            @file_put_contents(ROOT . 'cms/cached/hls_debug.log', date('H:i:s') . ' ' . ($file == '' ? 'm3u8' : $file) . ' v=' . $view . ' r=' . $res . ' f=' . $fps . ' tok=' . $tok . ' src=' . preg_replace('/[^a-zA-Z0-9_:?&=.\/\-]/', '', substr($src, 0, 200)) . "\n", FILE_APPEND);
             $key = substr(preg_replace('/[^a-f0-9]/', '', sha1($src . '|' . $view . '|' . $res . '|' . $fps . '|v4')), 0, 16);
             $root = ROOT . 'cms/cached/hls_bridge';
             $dir = $root . '/' . $key;
@@ -330,24 +396,38 @@ class dashboard_pro extends module
                     $this->httpJson(400, array('error' => 'Invalid source'));
                 }
                 $this->ensureHlsProcess($src, $dir, $view, $res, $fps);
+                $this->hlsTouch($dir, $tok);
                 $this->cleanupOldHls($root);
                 $content = @file_get_contents($dir . '/index.m3u8');
+                $nf = ($content === false) ? 0 : substr_count($content, '#EXTINF');
+                if ($content === false || $nf < 4) {
+                    for ($i = 0; $i < 60; $i++) {
+                        usleep(150000);
+                        $content = @file_get_contents($dir . '/index.m3u8');
+                        if ($content !== false && substr_count($content, '#EXTINF') >= 4) break;
+                    }
+                }
                 header('Content-Type: application/vnd.apple.mpegurl');
                 if ($content === false || $content === '') {
                     echo "#EXTM3U\n";
+                    @file_put_contents(ROOT . 'cms/cached/hls_debug.log', date('H:i:s') . ' ->200 EMPTY m3u8' . "\n", FILE_APPEND);
                     exit;
                 }
-                $content = preg_replace_callback('/^(seg_[0-9]+\.ts)$/m', function ($m) use ($src, $view, $res, $fps) {
-                    return '?src=' . rawurlencode($src) . '&file=' . $m[1] . '&view=' . $view . '&res=' . $res . '&fps=' . $fps;
+                $content = preg_replace_callback('/^(seg_[0-9]+\.ts)$/m', function ($m) use ($src, $view, $res, $fps, $tok) {
+                    return '?src=' . rawurlencode($src) . '&file=' . $m[1] . '&view=' . $view . '&res=' . $res . '&fps=' . $fps . ($tok != '' ? '&tok=' . $tok : '');
                 }, $content);
                 echo $content;
+                @file_put_contents(ROOT . 'cms/cached/hls_debug.log', date('H:i:s') . ' ->200 m3u8 (' . strlen($content) . "b)\n", FILE_APPEND);
                 exit;
             }
             $path = $dir . '/' . $file;
             if (!is_file($path)) {
+                @file_put_contents(ROOT . 'cms/cached/hls_debug.log', date('H:i:s') . ' ->404 ' . $file . "\n", FILE_APPEND);
                 http_response_code(404);
                 exit;
             }
+            $this->hlsTouch($dir, $tok);
+            @file_put_contents(ROOT . 'cms/cached/hls_debug.log', date('H:i:s') . ' ->200 ' . $file . "\n", FILE_APPEND);
             header('Content-Type: video/mp2t');
             readfile($path);
             exit;
@@ -1013,9 +1093,13 @@ class dashboard_pro extends module
     {
         $pl = $dir . '/index.m3u8';
         if (is_file($pl) && $this->hlsProcessAlive($dir)) {
-            if (time() - @filemtime($pl) <= 4) return;
-            $this->killHlsDir($dir);
-            usleep(300000);
+            return;
+        }
+        if (is_file($pl)) {
+            $done = @file_get_contents($pl);
+            if ($done !== false && strpos($done, '#EXT-X-ENDLIST') !== false) {
+                return;
+            }
         }
         $ffmpeg = trim((string)@shell_exec('command -v ffmpeg'));
         if ($ffmpeg == '') return;
@@ -1034,14 +1118,20 @@ class dashboard_pro extends module
             $vf = ($vf === '' ? '' : $vf . ',') . 'fps=' . $fps;
         }
         $vf = ($vf === '') ? '' : ' -vf "' . $vf . '"';
-        $inner = escapeshellcmd($ffmpeg) . ' -hide_banner -loglevel error' . $transport . ' -fflags nobuffer -flags low_delay -analyzeduration 1000000 -probesize 1000000 -i ' . escapeshellarg($src) . $vf . ' -map 0:v:0 -map 0:a:0? -c:v libx264 -preset veryfast -tune zerolatency -crf 23 -g 30 -keyint_min 30 -sc_threshold 0 -force_key_frames "expr:gte(t,n_forced*2)" -c:a aac -b:a 128k -f hls -hls_time 2 -hls_list_size 6 -hls_flags delete_segments+omit_endlist -hls_segment_filename ' . escapeshellarg($dir . '/seg_%04d.ts') . ' ' . escapeshellarg($dir . '/index.m3u8') . ' > ' . escapeshellarg($errLog) . ' 2>&1';
-        $loop = 'while true; do ' . $inner . '; sleep 2; done';
-        $cmd = 'nohup sh -c ' . escapeshellarg($loop) . ' & echo $!';
+        $isPlayback = (strpos($src, 'playback') !== false);
+        $hlsFlags = $isPlayback ? 'delete_segments' : 'delete_segments+omit_endlist';
+        $inner = escapeshellcmd($ffmpeg) . ' -hide_banner -loglevel error' . $transport . ' -fflags nobuffer -flags low_delay -analyzeduration 1000000 -probesize 1000000 -i ' . escapeshellarg($src) . $vf . ' -map 0:v:0 -map 0:a:0? -c:v libx264 -preset veryfast -tune zerolatency -crf 23 -g 30 -keyint_min 30 -sc_threshold 0 -force_key_frames "expr:gte(t,n_forced*2)" -c:a aac -b:a 128k -f hls -hls_time 2 -hls_flags ' . $hlsFlags . ' -hls_list_size 20 -hls_segment_filename ' . escapeshellarg($dir . '/seg_%04d.ts') . ' ' . escapeshellarg($dir . '/index.m3u8') . ' > ' . escapeshellarg($errLog) . ' 2>&1';
+        if ($isPlayback) {
+            $cmd = 'nohup sh -c ' . escapeshellarg($inner) . ' > /dev/null 2>&1 < /dev/null & echo $!';
+        } else {
+            $loop = 'while true; do ' . $inner . ' & P=$!; while kill -0 $P 2>/dev/null; do sleep 5; [ -n "$(find ' . escapeshellarg($dir . '/.touch') . ' -mmin +1 -print -quit)" ] && { kill $P 2>/dev/null; exit 0; }; done; sleep 2; done';
+            $cmd = 'nohup sh -c ' . escapeshellarg($loop) . ' > /dev/null 2>&1 < /dev/null & echo $!';
+        }
         $pid = trim((string)@shell_exec($cmd));
         if ($pid != '') {
             @file_put_contents($dir . '/run.pid', $pid);
         }
-        for ($i = 0; $i < 100; $i++) {
+        for ($i = 0; $i < 60; $i++) {
             $l = @file_get_contents($pl);
             if ($l !== false && strpos($l, '#EXTINF') !== false) break;
             usleep(150000);
@@ -1053,18 +1143,43 @@ class dashboard_pro extends module
 
     function killHlsDir($dir)
     {
-        @shell_exec('pkill -f ' . escapeshellarg('/hls_bridge/' . basename($dir) . '/') . ' 2>/dev/null');
+        $pat = '/hls_bridge/' . basename($dir) . '/';
+        @shell_exec('pkill -9 -f ' . escapeshellarg($pat) . ' 2>/dev/null');
         @unlink($dir . '/run.pid');
+    }
+
+    function hlsTouch($dir, $tok)
+    {
+        $f = $dir . '/.clients';
+        $map = array();
+        $raw = @file_get_contents($f);
+        if ($raw !== false && $raw != '') {
+            $dec = @json_decode($raw, true);
+            if (is_array($dec)) $map = $dec;
+        }
+        $now = time();
+        if ($tok != '') $map[$tok] = $now;
+        foreach ($map as $k => $ts) {
+            if ($now - $ts > 90) unset($map[$k]);
+        }
+        if (count($map)) {
+            @file_put_contents($f, json_encode($map), LOCK_EX);
+        } elseif (is_file($f)) {
+            @unlink($f);
+        }
+        @touch($dir . '/.touch');
     }
 
     function cleanupOldHls($root)
     {
         static $last = 0;
-        if (time() - $last < 600) return;
+        if (time() - $last < 300) return;
         $last = time();
         foreach (glob($root . '/*') as $d) {
             if (!is_dir($d) || basename($d) == '') continue;
-            if (time() - @filemtime($d) > 21600) {
+            $touch = $d . '/.touch';
+            $idle = is_file($touch) ? time() - @filemtime($touch) : PHP_INT_MAX;
+            if ($idle > 180 || time() - @filemtime($d) > 21600) {
                 $this->killHlsDir($d);
                 @exec('rm -rf ' . escapeshellarg($d) . ' 2>&1');
             }
