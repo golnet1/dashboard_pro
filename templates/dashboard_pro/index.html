@@ -1629,7 +1629,7 @@
                                                                     <div class="v-input__slot"><label class="v-label v-label--active">{{ t(field.label) }}</label>
                                                                          <select v-model="editWidgetForm[field.key]">
                                                                              <option v-if="field.key !== 'icon_type' && field.default === undefined" value="" style="background:#1e1e1e;color:#fff">{{ field.placeholder || t('select_default') }}</option>
-                                                                             <option v-for="opt in field.options" :key="opt.value" :value="opt.value" style="background:#1e1e1e;color:#fff">{{ t(opt.label) }}</option>
+                                                                             <option v-for="opt in (field.go2rtc ? g2rCameraOptions : (field.options || []))" :key="opt.value" :value="opt.value" style="background:#1e1e1e;color:#fff">{{ t(opt.label) }}</option>
                                                                         </select>
                                                                         <div class="v-input__append-inner"><i class="fas fa-caret-down"></i></div>
                                                                     </div>
@@ -1714,7 +1714,7 @@
                                                             <div class="d-flex gap-2" style="align-items:flex-start">
                                                                 <div class="v-input v-text-field" style="flex:1">
                                                                     <div class="v-input__control">
-                                                                        <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm[field.key] }">{{ t(field.label) }}</label><input v-model="editWidgetForm[field.key]"></div>
+                                                                        <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm[field.key] }">{{ t(field.label) }}</label><input :type="field.inputType || 'text'" v-model="editWidgetForm[field.key]"></div>
                                                                         <div class="v-input__details"><div class="v-messages"></div></div>
                                                                     </div>
                                                                 </div>
@@ -1726,7 +1726,7 @@
                                                             <div class="d-flex gap-2">
                                                                 <div class="v-input v-text-field" style="flex:1">
                                                                     <div class="v-input__control">
-                                                                        <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm[field.key] }">{{ t(field.label) }}</label><input v-model="editWidgetForm[field.key]"></div>
+                                                                        <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm[field.key] }">{{ t(field.label) }}</label><input :type="field.inputType || 'text'" v-model="editWidgetForm[field.key]"></div>
                                                                         <div class="v-input__details"><div class="v-messages"></div></div>
                                                                     </div>
                                                                 </div>
@@ -1736,7 +1736,7 @@
                                                         <template v-else>
                                                             <div class="v-input v-text-field">
                                                                 <div class="v-input__control">
-                                                                    <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm[field.key] }">{{ t(field.label) }}</label><input v-model="editWidgetForm[field.key]"></div>
+                                                                    <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': editWidgetForm[field.key] }">{{ t(field.label) }}</label><input :type="field.inputType || 'text'" v-model="editWidgetForm[field.key]"></div>
                                                                     <div class="v-input__details"><div class="v-messages"></div></div>
                                                                 </div>
                                                             </div>
@@ -2076,7 +2076,7 @@
                 <div class="modal-body" style="text-align:center;padding:2rem 1.5rem">
                     <i class="fas fa-chart-line" style="font-size:3rem;color:var(--primary);margin-bottom:1rem"></i>
                     <h3 style="margin-bottom:.3rem">Dashboard Pro</h3>
-                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 1.12</p>
+                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 1.13</p>
                     <p style="color:var(--text-secondary);font-size:.8rem">{{ t('app_desc') }}</p>
                     <div class="about-links" style="margin-top:1rem;font-size:.85rem;color:var(--text-secondary);line-height:1.8">
                         <div>{{ t('about_telegram') }}: <a href="https://t.me/+9ZFQaxs_Ukw4NmMy" target="_blank" rel="noopener">Telegram</a></div>
@@ -2100,6 +2100,7 @@
     <script src="js/sidebar.js?v=10"></script>
 <script src="js/widget-config.js?v=11"></script>
 <script src="js/lib/leaflet.js?v=1"></script>
-<script src="js/app.js?v=208"></script>
+<script src="js/lib/hls.min.js?v=1"></script>
+<script src="js/app.js?v=215"></script>
 </body>
 </html>

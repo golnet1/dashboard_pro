@@ -242,6 +242,105 @@ class dashboard_pro extends module
             ];
         }
 
+        if ($params['request'][0] == 'onvif_rtsp') {
+            $login = $this->getUserLogin();
+            if (!$login) {
+                return ['error' => LANG_DASHBOARD_PRO_LOGIN_REQUIRED];
+            }
+            set_time_limit(30);
+            $service = trim($params['service'] ?? '');
+            $onvif_login = trim($params['login'] ?? '');
+            $onvif_password = (string)($params['password'] ?? '');
+            if (!preg_match('#^https?://#i', $service)) {
+                return ['error' => 'Invalid ONVIF service URL'];
+            }
+            $profiles = array();
+            $streams = array();
+            try {
+                $ponvif_file = ROOT . 'modules/onvif/class.ponvif.php';
+                if (!is_file($ponvif_file)) {
+                    return ['error' => 'ONVIF module not installed'];
+                }
+                include_once($ponvif_file);
+                $o = new Ponvif();
+                $o->setMediaUri($service);
+                $o->setUsername($onvif_login);
+                $o->setPassword($onvif_password);
+                if ($o->initialize()) {
+                    $sources = $o->getSources();
+                    if (is_array($sources) && isset($sources[0]) && is_array($sources[0])) {
+                        $seen = array();
+                        $max_profiles = 6;
+                        foreach ($sources[0] as $src) {
+                            if ($max_profiles-- <= 0) break;
+                            $token = $src['profiletoken'] ?? '';
+                            if ($token == '') continue;
+                            $profiles[] = $token;
+                            try {
+                                $uri = (string)$o->media_GetStreamUri($token);
+                                if ($uri != '' && !isset($seen[$uri])) {
+                                    $seen[$uri] = 1;
+                                    $streams[] = $uri;
+                                }
+                            } catch (Exception $e) { /* skip profile */ }
+                        }
+                    }
+                } else {
+                    return ['error' => 'Could not initialize ONVIF device (check URL/login/password)'];
+                }
+            } catch (Exception $e) {
+                return ['error' => 'ONVIF: ' . $e->getMessage()];
+            }
+            if (empty($streams)) {
+                return ['error' => 'No RTSP streams found on device'];
+            }
+            return ['streams' => $streams, 'profiles' => $profiles];
+        }
+
+        if ($params['request'][0] == 'hls_bridge') {
+            $login = $this->getUserLogin();
+            if (!$login) {
+                $this->httpJson(401, array('error' => LANG_DASHBOARD_PRO_LOGIN_REQUIRED));
+            }
+            $src = trim($params['src'] ?? '');
+            $file = trim($params['file'] ?? '');
+            if ($file != '') {
+                $file = basename($file);
+            }
+            $key = substr(preg_replace('/[^a-f0-9]/', '', sha1($src)), 0, 16);
+            $root = ROOT . 'cms/cached/hls_bridge';
+            $dir = $root . '/' . $key;
+            if (!is_dir($dir)) {
+                @mkdir($dir, 0777, true);
+            }
+            if ($file == '' || $file == 'index.m3u8') {
+                if (!preg_match('#^(rtsp|rtsps|http|https)://#i', $src)) {
+                    $this->httpJson(400, array('error' => 'Invalid source'));
+                }
+                $this->ensureHlsProcess($src, $dir);
+                $this->cleanupOldHls($root);
+                $content = @file_get_contents($dir . '/index.m3u8');
+                header('Content-Type: application/vnd.apple.mpegurl');
+                if ($content === false || $content === '') {
+                    echo "#EXTM3U\n";
+                    exit;
+                }
+                $content = preg_replace_callback('/^(seg_[0-9]+\.ts)$/m', function ($m) use ($src) {
+                    return '?src=' . rawurlencode($src) . '&file=' . $m[1];
+                }, $content);
+                echo $content;
+                exit;
+            }
+            $path = $dir . '/' . $file;
+            if (!is_file($path)) {
+                http_response_code(404);
+                exit;
+            }
+            header('Content-Type: video/mp2t');
+            readfile($path);
+            exit;
+        }
+
         if ($params['request'][0] == 'notifications') {
             $method = $_SERVER['REQUEST_METHOD'];
             if ($method == 'POST') {
@@ -878,6 +977,60 @@ class dashboard_pro extends module
             return $session->data['DP_PRO_USERNAME'];
         }
         return '';
+    }
+
+    function httpJson($code, $arr)
+    {
+        http_response_code($code);
+        header('Content-Type: application/json');
+        echo json_encode($arr);
+        exit;
+    }
+
+    function hlsProcessAlive($dir)
+    {
+        $pidFile = $dir . '/run.pid';
+        if (!is_file($pidFile)) return false;
+        $pid = (int)trim((string)@file_get_contents($pidFile));
+        if ($pid <= 0) return false;
+        $out = trim((string)@shell_exec('kill -0 ' . $pid . ' 2>/dev/null && echo alive'));
+        return $out === 'alive';
+    }
+
+    function ensureHlsProcess($src, $dir)
+    {
+        if (is_file($dir . '/index.m3u8') && $this->hlsProcessAlive($dir)) return;
+        $ffmpeg = trim((string)@shell_exec('command -v ffmpeg'));
+        if ($ffmpeg == '') return;
+        $errLog = $dir . '/ffmpeg.log';
+        $transport = (strpos($src, 'rtsp') === 0) ? ' -rtsp_transport tcp' : '';
+        $cmd = 'nohup ' . escapeshellcmd($ffmpeg) . ' -hide_banner -loglevel error' . $transport . ' -fflags nobuffer -flags low_delay -i ' . escapeshellarg($src) . ' -map 0:v:0 -map 0:a:0? -c:v libx264 -preset veryfast -tune zerolatency -crf 23 -c:a aac -b:a 128k -f hls -hls_time 2 -hls_list_size 6 -hls_flags delete_segments+append_list -hls_segment_filename ' . escapeshellarg($dir . '/seg_%04d.ts') . ' ' . escapeshellarg($dir . '/index.m3u8') . ' > ' . escapeshellarg($errLog) . ' 2>&1 & echo $!';
+        $pid = trim((string)@shell_exec($cmd));
+        if ($pid != '') {
+            @file_put_contents($dir . '/run.pid', $pid);
+        }
+        usleep(1500000);
+        if (!$this->hlsProcessAlive($dir)) {
+            @unlink($dir . '/run.pid');
+        }
+    }
+
+    function cleanupOldHls($root)
+    {
+        static $last = 0;
+        if (time() - $last < 600) return;
+        $last = time();
+        foreach (glob($root . '/*') as $d) {
+            if (!is_dir($d) || basename($d) == '') continue;
+            if (time() - @filemtime($d) > 21600) {
+                $pidFile = $d . '/run.pid';
+                if (is_file($pidFile)) {
+                    $pid = (int)trim((string)@file_get_contents($pidFile));
+                    if ($pid > 0) @shell_exec('kill ' . $pid . ' 2>/dev/null');
+                }
+                @exec('rm -rf ' . escapeshellarg($d) . ' 2>&1');
+            }
+        }
     }
 
     function ensureClassAndObject($login)
@@ -1767,6 +1920,8 @@ class dashboard_pro extends module
             array('musicremote', 'fas fa-music', 'Music remote', 'Music center remote control'),
             array('acremote', 'fas fa-snowflake', 'AC remote', 'Air conditioner remote control'),
             array('chat', 'fas fa-comments', 'Chat', 'Chat widget (SAY history)'),
+            array('video', 'fas fa-video', 'Video', 'Video player (MP4, WebM, OGG, HLS)'),
+            array('stream', 'fas fa-satellite-dish', 'Stream', 'Streaming video (go2rtc, ONVIF, RTSP)'),
         );
     }
 

@@ -492,6 +492,37 @@ const app = createApp({
             return widgetProperties.value;
         }
 
+        const g2rCameraOptions = ref([]);
+        async function loadGo2rtcCameras() {
+            const host = String((editWidgetForm.value || {}).host || '').trim();
+            g2rCameraOptions.value = [];
+            if (!host) return;
+            const base = /^https?:\/\//i.test(host) ? host : 'http://' + host;
+            try {
+                const res = await fetch(base.replace(/\/+$/, '') + '/api/streams');
+                if (!res.ok) return;
+                const data = await res.json();
+                let names = [];
+                if (data && typeof data === 'object' && !Array.isArray(data)) {
+                    names = Object.keys(data).filter(k => data[k] && typeof data[k] === 'object');
+                } else if (Array.isArray(data)) {
+                    names = data.map(d => (d && typeof d === 'object' && d.name) ? String(d.name) : String(d));
+                }
+                g2rCameraOptions.value = names.map(n => ({ value: n, label: n }));
+            } catch (e) { g2rCameraOptions.value = []; }
+        }
+        function hasGo2rtcField() {
+            const f = (editWidgetForm.value || {});
+            const def = widgetDefs.value.find(d => d.type === f.type);
+            if (!def || !def.fields) return false;
+            const all = [];
+            for (const fs of Object.values(def.fields)) all.push(...(fs || []));
+            return all.some(x => x.go2rtc === true);
+        }
+        watch(() => (editWidgetForm.value || {}).host, () => {
+            if (hasGo2rtcField()) loadGo2rtcCameras();
+        });
+
         
         function itemLabel(item) {
             if (!item) return '';
@@ -872,7 +903,7 @@ function loadScript(src, version) {
             widgetList.value = [...widgetDefs.value].sort((a, b) => (a.priority || 0) - (b.priority || 0));
             for (const w of widgets.items) {
                 if (!w.FILE) continue;
-                await loadScript(w.FILE, 135);
+                await loadScript(w.FILE, 140);
             }
             widgetDefs.value.forEach(d => registerWidgetComponent(d.type));
         }
@@ -915,7 +946,7 @@ function loadScript(src, version) {
             loading.value = false;
         }
 
-        function addWidget(type) {
+        async function addWidget(type) {
             const def = widgetDefs.value.find(d => d.type === type);
             const comp = getWidgetComponent(type);
             const rawDefaults = (comp && comp.defaults) || W.fields.defaults[type] || {};
@@ -1007,6 +1038,7 @@ function loadScript(src, version) {
             currentPanel.value.widgets.push(w);
             showAddWidget.value = false;
             editWidgetIsNew.value = true;
+            await loadObjects();
             const awTabs = getWidgetTabs(type);
             const awDef = awTabs.find(t => t.key === 'main') || awTabs[0];
             widgetTab.value = awDef ? awDef.key : 'main';
@@ -1072,6 +1104,7 @@ if (f.key) {
                 if (obj) loadObjectMethods(obj);
             });
             nextTick(updateWidgetTabSlider);
+            if (hasGo2rtcField()) loadGo2rtcCameras();
         }
 
         function removeWidget(idx) {
@@ -2649,7 +2682,7 @@ onMounted(() => {
             showHeaderStatusEditor, hsForm, hsProperties, hsEditIdx, openHeaderStatusEditor, loadHsProperties, clearHsObject, editHeaderStatusItem, saveHeaderStatusItem, removeHeaderStatusItem, hsMapArr, headerStatusImages: HEADER_STATUS_IMAGES,
             panels, currentPanel, selectPanel, selectHomePanel, loading, editMode,
             showAddWidget, widgetSearch, filteredDefs, plusTooltip, addPlusButton,
-            widgetTypeComponent, addWidget, getWidgetFields, getWidgetRows, getWidgetTabs, getFieldOptions, fieldVisible,
+            widgetTypeComponent, addWidget, getWidgetFields, getWidgetRows, getWidgetTabs, getFieldOptions, fieldVisible, g2rCameraOptions, loadGo2rtcCameras,
             getMethodObj, getMethodName, setMethodField, itemLabel,
             editWidgetForm, editWidgetIsNew, widgetTab, widgetTabPos, editWidget, saveEditWidget, removeWidget,
             grDragState, grColors, grPreview, grAdd, grRemove, grSet, grDrop,
