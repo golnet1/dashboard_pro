@@ -20,6 +20,7 @@ const StreamWidget = {
             { key: 'autoplay', label: 'field_video_autoplay', type: 'checkbox', default: false },
             { key: 'muted', label: 'field_video_muted', type: 'checkbox', default: true },
             { key: 'nocontrols', label: 'field_video_nocontrols', type: 'checkbox', default: false },
+            { key: 'ptz', label: 'field_stream_ptz', type: 'checkbox', default: false, showIf: { source_type: 'onvif' } },
         ],
         advanced: [
             { key: 'quality', label: 'field_stream_quality', type: 'select', default: '', options: [{value:'',label:'field_stream_quality_orig'},{value:'720',label:'field_stream_quality_720'},{value:'480',label:'field_stream_quality_480'},{value:'360',label:'field_stream_quality_360'}] },
@@ -31,7 +32,7 @@ const StreamWidget = {
             { key: 'history_fmt', label: 'field_stream_history_fmt', type: 'info', text: 'field_stream_history_fmt', showIf: { history: true } },
         ],
     },
-    defaults: { icon: 'fas fa-satellite-dish', source_type: 'url', url: '', object: '', property: '', host: '', camera: '', onvif_url: '', onvif_login: '', onvif_password: '', onvif_view: 'full', quality: '', fps_limit: '', autoplay: false, muted: true, nocontrols: false, height: 200, history: false, history_url: '' },
+    defaults: { icon: 'fas fa-satellite-dish', source_type: 'url', url: '', object: '', property: '', host: '', camera: '', onvif_url: '', onvif_login: '', onvif_password: '', onvif_view: 'full', quality: '', fps_limit: '', autoplay: false, muted: true, nocontrols: false, ptz: false, height: 200, history: false, history_url: '' },
     template: `
         <div class="widget-v-card" :style="cardStyle" style="padding:0;overflow:hidden;position:relative" @mouseenter="videoHover = true" @mouseleave="videoHover = false">
             <video v-if="videoUrl" ref="player"
@@ -75,14 +76,32 @@ const StreamWidget = {
                     <button v-if="histPlaying" type="button" class="v-btn v-btn--is-elevated v-btn--text v-size--small" style="width:100%;margin-top:6px;color:rgba(255,255,255,.6)" @click="stopHistory">{{ t('stream_history_live') }}</button>
                 </div>
             </div>
+        <div v-if="ptzEnabled && !histPlaying" class="stream-ptz" style="position:absolute;right:8px;bottom:8px;z-index:5;display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+                <div v-if="ptzPresets.length" style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;max-width:220px">
+                    <button v-for="p in ptzPresets" :key="p.token" type="button" class="v-btn v-btn--is-elevated v-btn--text v-size--x-small" style="min-width:0;padding:0 8px;background:rgba(20,20,20,.6);color:#fff;font-size:.72rem" :title="p.name" @click.stop.prevent="gotoPreset(p)">{{ p.name || p.token }}</button>
+                    <button type="button" class="v-btn v-btn--is-elevated v-btn--text v-size--small" style="min-width:30px;padding:0 6px;background:rgba(20,20,20,.6);color:#fff" :title="t('ptz_refresh')" @click.stop.prevent="loadPtzPresets"><i class="fas fa-rotate"></i></button>
+                </div>
+                <div class="stream-ptz-grid" style="display:grid;grid-template-columns:repeat(3,34px);grid-template-rows:repeat(3,34px);grid-gap:4px;background:rgba(20,20,20,.6);border-radius:8px;padding:6px">
+                    <span></span>
+                    <button type="button" class="v-btn v-btn--is-elevated v-btn--text v-size--small stream-ptz-btn" :style="ptzBtnStyle" :title="t('ptz_up')" @mousedown.stop.prevent="ptzStart(0,-1)" @mouseup.stop.prevent="ptzStopHold()" @mouseleave="ptzStopHold()" @touchstart.prevent="ptzStart(0,-1)" @touchend.prevent="ptzStopHold()"><i class="fas fa-arrow-up"></i></button>
+                    <span></span>
+                    <button type="button" class="v-btn v-btn--is-elevated v-btn--text v-size--small stream-ptz-btn" :style="ptzBtnStyle" :title="t('ptz_left')" @mousedown.stop.prevent="ptzStart(-1,0)" @mouseup.stop.prevent="ptzStopHold()" @mouseleave="ptzStopHold()" @touchstart.prevent="ptzStart(-1,0)" @touchend.prevent="ptzStopHold()"><i class="fas fa-arrow-left"></i></button>
+                    <button type="button" class="v-btn v-btn--is-elevated v-btn--text v-size--small stream-ptz-btn" :style="ptzBtnStyle" :title="t('ptz_stop')" @click.stop.prevent="ptzStop()"><i class="fas fa-stop"></i></button>
+                    <button type="button" class="v-btn v-btn--is-elevated v-btn--text v-size--small stream-ptz-btn" :style="ptzBtnStyle" :title="t('ptz_right')" @mousedown.stop.prevent="ptzStart(1,0)" @mouseup.stop.prevent="ptzStopHold()" @mouseleave="ptzStopHold()" @touchstart.prevent="ptzStart(1,0)" @touchend.prevent="ptzStopHold()"><i class="fas fa-arrow-right"></i></button>
+                    <button type="button" class="v-btn v-btn--is-elevated v-btn--text v-size--small stream-ptz-btn" :style="ptzBtnStyle" :title="t('ptz_zoom_out')" @mousedown.stop.prevent="ptzZoomHold(-1)" @mouseup.stop.prevent="ptzStopHold()" @mouseleave="ptzStopHold()" @touchstart.prevent="ptzZoomHold(-1)" @touchend.prevent="ptzStopHold()"><i class="fas fa-magnifying-glass-minus"></i></button>
+                    <button type="button" class="v-btn v-btn--is-elevated v-btn--text v-size--small stream-ptz-btn" :style="ptzBtnStyle" :title="t('ptz_down')" @mousedown.stop.prevent="ptzStart(0,1)" @mouseup.stop.prevent="ptzStopHold()" @mouseleave="ptzStopHold()" @touchstart.prevent="ptzStart(0,1)" @touchend.prevent="ptzStopHold()"><i class="fas fa-arrow-down"></i></button>
+                    <button type="button" class="v-btn v-btn--is-elevated v-btn--text v-size--small stream-ptz-btn" :style="ptzBtnStyle" :title="t('ptz_zoom_in')" @mousedown.stop.prevent="ptzZoomHold(1)" @mouseup.stop.prevent="ptzStopHold()" @mouseleave="ptzStopHold()" @touchstart.prevent="ptzZoomHold(1)" @touchend.prevent="ptzStopHold()"><i class="fas fa-magnifying-glass-plus"></i></button>
+                </div>
+            </div>
         </div>`,
     data() {
-        return { hls: null, videoError: false, videoPlaying: false, videoHover: false, started: false, objValue: null, valueTimer: null, resolvedRtsp: null, clientId: null, _bridge: null, prevBridge: null, _onUnload: null, _onVis: null, _onFs: null, dbgTimer: null, histOpen: false, histPlaying: false, histFrom: '', histTo: '', histBaseMs: 0, histProgMs: 0, histScrub: 0, histDragging: false, histDragTimer: null, fsActive: false, fsTick: 0, speed: 1, hfsTimer: null };
+        return { hls: null, videoError: false, videoPlaying: false, videoHover: false, started: false, objValue: null, valueTimer: null, resolvedRtsp: null, clientId: null, _bridge: null, prevBridge: null, _onUnload: null, _onVis: null, _onFs: null, dbgTimer: null, histOpen: false, histPlaying: false, histFrom: '', histTo: '', histBaseMs: 0, histProgMs: 0, histScrub: 0, histDragging: false, histDragTimer: null, fsActive: false, fsTick: 0, speed: 1, hfsTimer: null, ptzMoving: false, ptzHoldTimer: null, ptzProfile: '', onvifProfiles: [], ptzPresets: [] };
     },
     watch: {
         videoUrl() { this.$nextTick(() => this.setup()); },
         'widget.source_type'() { this.resolveOnvif(); this.$nextTick(() => this.setup()); },
         'widget.autoplay'() { this.$nextTick(() => this.tryPlay()); },
+        'widget.ptz'(v) { if (v) this.$nextTick(() => this.loadPtzPresets()); },
         histPlaying(v) {
             if (v) {
                 this.ensureFsTimer();
@@ -125,6 +144,7 @@ const StreamWidget = {
             if (this._onFs) document.removeEventListener('fullscreenchange', this._onFs);
             this.teardown();
             this.releaseStream();
+            this.ptzStopHold();
         },
     computed: {
         sourceType() {
@@ -135,6 +155,9 @@ const StreamWidget = {
         },
         noControls() {
             return !!(this.widget.nocontrols || this.widget.fullscreen_only);
+        },
+        ptzEnabled() {
+            return this.sourceType === 'onvif' && !!this.widget.ptz;
         },
         go2rtcUrl() {
             const host = String(this.widget.host || '').trim().replace(/\/+$/, '');
@@ -278,7 +301,7 @@ const StreamWidget = {
             } catch (e) { /* silent */ }
         },
         async resolveOnvif() {
-            if (this.sourceType !== 'onvif') { this.resolvedRtsp = null; return; }
+            if (this.sourceType !== 'onvif') { this.resolvedRtsp = null; this.onvifProfiles = []; this.ptzProfile = ''; this.ptzPresets = []; return; }
             const s = this.widget;
             if (!s.onvif_url) { this.resolvedRtsp = null; return; }
             try {
@@ -289,9 +312,14 @@ const StreamWidget = {
                         this.resolvedRtsp = String(d.streams[0]);
                         this.$nextTick(() => this.setup());
                     }
+                    if (Array.isArray(d.profiles) && d.profiles.length) {
+                        this.onvifProfiles = d.profiles;
+                        if (!this.ptzProfile) this.ptzProfile = String(d.profiles[0] || '');
+                    }
                 } else {
                     this.resolvedRtsp = null;
                 }
+                if (this.ptzEnabled) this.$nextTick(() => this.loadPtzPresets());
             } catch (e) { this.resolvedRtsp = null; }
         },
         setup() {
@@ -366,6 +394,57 @@ const StreamWidget = {
                 fetch('/api.php/module/dashboard_pro/hls_release?' + q.toString(), { method: 'POST', keepalive: true }).catch(() => {});
                 this._bridge = null;
             }
+        },
+        ptzBtnStyle() {
+            return 'min-width:0;width:34px;height:34px;padding:0;background:rgba(255,255,255,.12);color:#fff;border-radius:50%;font-size:.75rem';
+        },
+        ptzApi(cmd, extra) {
+            const w = this.widget;
+            if (this.sourceType !== 'onvif' || !w.onvif_url) return Promise.resolve(null);
+            if (!this.ptzProfile) this.ptzProfile = (this.onvifProfiles && this.onvifProfiles[0]) || '';
+            if (!this.ptzProfile) return Promise.resolve(null);
+            const body = {
+                cmd: cmd,
+                service: w.onvif_url,
+                login: w.onvif_login || '',
+                password: w.onvif_password || '',
+                profile: this.ptzProfile
+            };
+            return dpAPI('onvif_ptz', { method: 'POST', body: JSON.stringify(Object.assign(body, extra || {})) })
+                .catch(() => null);
+        },
+        ptzSendMove(x, y) { this.ptzApi('move', { x: x, y: y }); },
+        ptzSendZoom(z) { this.ptzApi('zoom', { zoom: z }); },
+        ptzStart(x, y) {
+            this.ptzStopHold();
+            this.ptzMoving = true;
+            this.ptzSendMove(x, y);
+            this.ptzHoldTimer = setInterval(() => this.ptzSendMove(x, y), 500);
+        },
+        ptzZoomHold(v) {
+            this.ptzStopHold();
+            this.ptzMoving = true;
+            this.ptzSendZoom(v);
+            this.ptzHoldTimer = setInterval(() => this.ptzSendZoom(v), 500);
+        },
+        ptzStopHold() {
+            if (this.ptzHoldTimer) { clearInterval(this.ptzHoldTimer); this.ptzHoldTimer = null; }
+            if (this.ptzMoving) {
+                this.ptzMoving = false;
+                this.ptzApi('stop');
+            }
+        },
+        ptzStop() {
+            this.ptzStopHold();
+            this.ptzApi('stop');
+        },
+        async loadPtzPresets() {
+            if (!this.ptzEnabled || !this.ptzProfile) return;
+            const d = await this.ptzApi('presets');
+            if (d && !d.error && Array.isArray(d.presets)) this.ptzPresets = d.presets || [];
+        },
+        gotoPreset(p) {
+            if (p && p.token) this.ptzApi('preset', { preset: String(p.token), speed: 0.5 });
         },
         stopStream() {
             this.teardown();

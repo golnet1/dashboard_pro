@@ -297,6 +297,90 @@ class dashboard_pro extends module
             return ['streams' => $streams, 'profiles' => $profiles];
         }
 
+        if ($params['request'][0] == 'onvif_ptz') {
+            $login = $this->getUserLogin();
+            if (!$login) {
+                return ['error' => LANG_DASHBOARD_PRO_LOGIN_REQUIRED];
+            }
+            set_time_limit(20);
+            $input = $this->bodyInput();
+            if (!is_array($input)) $input = array();
+            $p = array_merge($params, $input);
+            $service = trim((string)($p['service'] ?? ''));
+            $onvif_login = trim((string)($p['login'] ?? ''));
+            $onvif_password = (string)($p['password'] ?? '');
+            $profile = trim((string)($p['profile'] ?? ''));
+            $cmd = trim((string)($p['cmd'] ?? ''));
+            if (!preg_match('#^https?://#i', $service)) {
+                return ['error' => 'Invalid ONVIF service URL'];
+            }
+            if ($profile == '') {
+                return ['error' => 'ONVIF profile is required'];
+            }
+            $allowed = array('move', 'zoom', 'stop', 'presets', 'preset');
+            if (!in_array($cmd, $allowed, true)) {
+                return ['error' => 'Invalid PTZ command'];
+            }
+            try {
+                $ponvif_file = ROOT . 'modules/onvif/class.ponvif.php';
+                if (!is_file($ponvif_file)) {
+                    return ['error' => 'ONVIF module not installed'];
+                }
+                include_once($ponvif_file);
+                $o = new Ponvif();
+                $o->setMediaUri($service);
+                $o->setUsername($onvif_login);
+                $o->setPassword($onvif_password);
+                if (!$o->initialize()) {
+                    return ['error' => 'Could not initialize ONVIF device (check URL/login/password)'];
+                }
+                if ($cmd == 'move') {
+                    $x = (float)($p['x'] ?? 0);
+                    $y = (float)($p['y'] ?? 0);
+                    $x = max(-1.0, min(1.0, $x));
+                    $y = max(-1.0, min(1.0, $y));
+                    if ($x == 0 && $y == 0) {
+                        $o->ptz_Stop($profile, 'true', 'true');
+                    } else {
+                        $o->ptz_ContinuousMove($profile, $x, $y);
+                    }
+                } elseif ($cmd == 'zoom') {
+                    $z = (float)($p['zoom'] ?? 0);
+                    $z = max(-1.0, min(1.0, $z));
+                    if ($z == 0) {
+                        $o->ptz_Stop($profile, 'true', 'true');
+                    } else {
+                        $o->ptz_ContinuousMoveZoom($profile, $z);
+                    }
+                } elseif ($cmd == 'stop') {
+                    $o->ptz_Stop($profile, 'true', 'true');
+                } elseif ($cmd == 'presets') {
+                    $presets = $o->ptz_GetPresets($profile);
+                    $out = array();
+                    if (is_array($presets)) {
+                        foreach ($presets as $pr) {
+                            $out[] = array(
+                                'token' => (string)($pr['Token'] ?? ''),
+                                'name'  => (string)($pr['Name'] ?? '')
+                            );
+                        }
+                    }
+                    return ['success' => true, 'presets' => $out];
+                } elseif ($cmd == 'preset') {
+                    $token = trim((string)($p['preset'] ?? ''));
+                    $speed = (float)($p['speed'] ?? 0.5);
+                    $speed = max(0.1, min(1.0, $speed));
+                    if ($token == '') {
+                        return ['error' => 'Preset token is required'];
+                    }
+                    $o->ptz_GotoPreset($profile, $token, $speed, $speed, $speed);
+                }
+            } catch (Exception $e) {
+                return ['error' => 'PTZ: ' . $e->getMessage()];
+            }
+            return ['success' => true];
+        }
+
         if ($params['request'][0] == 'hls_dbg') {
             $login = $this->getUserLogin();
             if (!$login) {
