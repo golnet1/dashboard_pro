@@ -20,51 +20,50 @@
             <a href="../index.html"><i class="fas fa-home"></i> Обзор</a>
             <a href="../panels.html"><i class="fas fa-th-large"></i> Панели</a>
             <a href="../widgets.html" class="help-side__toggle" aria-expanded="false"><i class="fas fa-puzzle-piece"></i> Виджеты</a><div class="help-side__sub">
+                <a href="acremote.html">Пульт кондиционера</a>
                 <a href="analogclock.html">Аналоговые часы</a>
-                <a href="video.html">Видео</a>
-                <a href="select.html">Выбор</a>
-                <a href="timepicker.html">Выбор времени</a>
+                <a href="button.html">Кнопка</a>
+                <a href="calendar.html">Календарь</a>
+                <a href="chat.html">Чат</a>
+                <a href="clock.html">Часы</a>
+                <a href="colorslider.html">Слайдер цвета</a>
                 <a href="datepicker.html">Выбор даты</a>
+                <a href="dimmer.html">Диммер</a>
+                <a href="empty.html">Пустой</a>
+                <a href="gauge.html">Индикатор</a>
+                <a href="gradient-slider.html">gradient-slider</a>
                 <a href="graph.html">График</a>
                 <a href="group.html">Группа</a>
-                <a href="dimmer.html">Диммер</a>
-                <a href="value.html">Значение</a>
-                <a href="image.html">Изображение</a>
-                <a href="gauge.html">Индикатор</a>
                 <a href="iframe.html">iFrame</a>
-                <a href="calendar.html">Календарь</a>
-                <a href="map.html">Карта</a>
+                <a href="image.html">Изображение</a>
                 <a href="keypad.html">Клавиатура</a>
-                <a href="button.html">Кнопка</a>
-                <a href="roundslider.html">Круглый слайдер</a>
-                <a href="unknown.html">Неизвестный</a>
-                <a href="sendtext.html">Отправка текста</a>
-                <a href="weather.html">Погода</a>
-                <a href="roominfo.html">Помещение</a>
-                <a href="stream.html">Потоковое видео</a>
-                <a href="progressbar.html">Прогресс-бар</a>
-                <a href="acremote.html">Пульт кондиционера</a>
+                <a href="map.html">Карта</a>
                 <a href="musicremote.html">Пульт музыки</a>
-                <a href="tvremote.html">Пульт ТВ</a>
-                <a href="empty.html">Пустой</a>
-                <a href="rgb.html">RGB</a>
-                <a href="relay.html">Реле</a>
-                <a href="slideshow.html">Слайд-шоу</a>
-                <a href="slider.html">Слайдер</a>
-                <a href="gradient-slider.html">Слайдер с градиентом</a>
-                <a href="sliderbuttons.html">Слайдер с кнопками</a>
-                <a href="colorslider.html">Слайдер цвета</a>
                 <a href="panellink.html">Ссылка на панель</a>
+                <a href="progressbar.html">Прогресс-бар</a>
+                <a href="relay.html">Реле</a>
+                <a href="rgb.html">RGB</a>
+                <a href="roominfo.html">Помещение</a>
+                <a href="roundslider.html">Круглый слайдер</a>
+                <a href="select.html">Выбор</a>
+                <a href="sendtext.html">Отправка текста</a>
+                <a href="slider.html">Слайдер</a>
+                <a href="sliderbuttons.html">Слайдер с кнопками</a>
+                <a href="slideshow.html">Слайд-шоу</a>
                 <a href="status.html">Статус</a>
+                <a href="stream.html">Потоковое видео</a>
                 <a href="table.html" class="active">Таблица</a>
-                <a href="timeline.html">Таймлайн</a>
+                <a href="test.html">Тест</a>
                 <a href="text.html">Текст</a>
                 <a href="thermostat.html">Термостат</a>
-                <a href="test.html">Тест</a>
+                <a href="timeline.html">Таймлайн</a>
+                <a href="timepicker.html">Выбор времени</a>
                 <a href="trend.html">Тренд</a>
-                <a href="clock.html">Часы</a>
-                <a href="chat.html">Чат</a>
-
+                <a href="tvremote.html">Пульт ТВ</a>
+                <a href="unknown.html">Неизвестный</a>
+                <a href="value.html">Значение</a>
+                <a href="video.html">Видео</a>
+                <a href="weather.html">Погода</a>
             </div>
             <a href="../editor.html"><i class="fas fa-edit"></i> Редактор виджетов</a>
             <a href="../builder.html"><i class="fas fa-wand-magic-sparkles"></i> Конструктор</a>
@@ -78,24 +77,37 @@
         <h2>Таблица</h2>
         <div class="help-card" id="table">
             <div class="help-card__head"><h3>Таблица</h3><span class="badge">table</span><a class="help-top" href="../widgets.html">↑ к списку виджетов</a></div>
-            <p>Вывод таблицы данных из SQL-запроса.</p>
-            <h4>Как работает</h4>
-            <p>Выполняет SQL-запрос к базе Majordomo и отображает результат в виде таблицы с настраиваемыми колонками. Поддерживает автообновление и действие по клику (callback).</p>
-            <h4>Основные настройки</h4>
+<p>Вывод таблицы данных из SQL-запроса.</p>
+            <h4>Все поля</h4>
+            <p>Ниже — полный список полей настройки виджета: каждое поле, его ключ в файле виджета, тип и значение по умолчанию. Ключ нужен, если вы правите код виджета вручную или собираете свой виджет в конструкторе.</p>
+            <h5>Основное <span class="badge">main</span></h5>
             <table>
-                <tr><th>Настройка</th><th>Описание</th></tr>
-                <tr><td>SQL запрос</td><td>Запрос, возвращающий данные таблицы.</td></tr>
-                <tr><td>Период обновления (сек)</td><td>Автообновление; 0 — без обновления (кнопка в шапке).</td></tr>
+                <tr><th>Поле</th><th>Тип</th><th>По умолчанию</th><th>Описание</th></tr>
+                <tr><td>Название<br><code>title</code></td><td><code>text</code></td><td>—</td><td>Заголовок карточки. Если пусто, виджет подставляет своё название.</td></tr>
+                <tr><td>Тип иконки<br><code>icon_type</code></td><td><code>select</code></td><td><code>icon</code></td><td>Откуда берётся иконка: из набора Font Awesome, из свойства объекта или по ссылке на картинку. От этой настройки зависит, какие из трёх полей ниже показываются.</td></tr>
+                <tr><td>Иконка<br><code>icon</code></td><td><code>icon_picker</code></td><td><code>fas fa-table</code></td><td>Класс иконки Font Awesome, например <code>fas fa-lightbulb</code>. <span class="help-note-inline">Показывается: пока <b>Тип иконки</b> = <code>icon</code>.</span></td></tr>
+                <tr><td>Объект (иконка)<br><code>icon_object</code></td><td><code>object</code></td><td>—</td><td>Объект, свойство которого даёт иконку. Показывается, когда выбран тип «Свойство». <span class="help-note-inline">Показывается: пока <b>Тип иконки</b> = <code>property</code>.</span></td></tr>
+                <tr><td>Свойство (иконка)<br><code>icon_property</code></td><td><code>property</code></td><td>—</td><td>Свойство объекта, значение которого используется как иконка. <span class="help-note-inline">Показывается: пока <b>Тип иконки</b> = <code>property</code>.</span></td></tr>
+                <tr><td>URL иконки<br><code>icon_url</code></td><td><code>text</code></td><td>—</td><td>Адрес картинки, которая показывается как иконка: <code>https://…</code> либо путь внутри модуля. <span class="help-note-inline">Показывается: пока <b>Тип иконки</b> = <code>url</code>.</span></td></tr>
+                <tr><td>SQL запрос<br><code>query</code></td><td><code>textarea</code></td><td>—</td><td>Запрос к источнику данных: SQL-подобная строка с параметрами, поддерживает подстановку <code>&lt;text&gt;</code> из предыдущего поля.</td></tr>
+                <tr><td>Период обновления (сек)<br><code>timeout</code></td><td><code>number</code></td><td>0</td><td>Как часто обновлять таблицу, в секундах. Пусто — обновлять по событию.</td></tr>
+                <tr><td>Фон виджета<br><code>bg_mode</code></td><td><code>select</code></td><td>—</td><td>Откуда берётся фон карточки: тема виджета, картинка, свой цвет или цвет из свойства объекта.</td></tr>
+                <tr><td>Цвет<br><code>color</code></td><td><code>color</code></td><td>—</td><td>Цвет фона карточки. Применяется, когда выбран режим «Свой цвет». <span class="help-note-inline">Показывается: пока <b>Фон виджета</b> = <code>color</code>.</span></td></tr>
+                <tr><td>URL изображения<br><code>bg_image</code></td><td><code>text</code></td><td>—</td><td>Адрес фоновой картинки. Показывается, когда выбран режим «Картинка». <span class="help-note-inline">Показывается: пока <b>Фон виджета</b> = <code>image</code>.</span></td></tr>
+                <tr><td>Объект (цвет)<br><code>bg_object</code></td><td><code>object</code></td><td>—</td><td>Объект, свойство которого задаёт цвет фона. Показывается, когда выбран режим «Цвет из свойства». <span class="help-note-inline">Показывается: пока <b>Фон виджета</b> = <code>property</code>.</span></td></tr>
+                <tr><td>Свойство (цвет)<br><code>bg_property</code></td><td><code>property</code></td><td>—</td><td>Свойство объекта, значение которого используется как цвет фона. <span class="help-note-inline">Показывается: пока <b>Фон виджета</b> = <code>property</code>.</span></td></tr>
             </table>
-            <h4>Вкладка «Колонки»</h4>
-            <p>Настройка колонок: имя колонки с данными, заголовок, цвет, иконка, префикс/постфикс, типы данных (число, «булево», «чип» с цветом).</p>
-            <h4>Дополнительно</h4>
+            <h5>Колонки <span class="badge">columns</span></h5>
+            <p>В этой вкладке нет обычных полей.</p>
+            <h5>Дополнительно <span class="badge">advanced</span></h5>
             <table>
-                <tr><th>Настройка</th><th>Описание</th></tr>
-                <tr><td>Тип callback</td><td>Действие при обращении к строке: <b>Нет</b>, <b>Свойство</b>, <b>Метод</b>, <b>Сценарий</b>.</td></tr>
-                <tr><td>Объект / Свойство (callback)</td><td>Свойство, в которое записывается значение при выборе строки.</td></tr>
-                <tr><td>Объект (метод) / Метод (callback)</td><td>Метод, вызываемый при выборе строки.</td></tr>
-                <tr><td>Сценарий</td><td>Сценарий, вызываемый при выборе строки.</td></tr>
+                <tr><th>Поле</th><th>Тип</th><th>По умолчанию</th><th>Описание</th></tr>
+                <tr><td>Тип callback<br><code>callback_type</code></td><td><code>select</code></td><td><code>none</code></td><td>Как поступают данные: из свойства объекта или вызовом метода.</td></tr>
+                <tr><td>Объект<br><code>object</code></td><td><code>object</code></td><td>—</td><td>Объект Majordomo, из которого виджет читает значение или в который его записывает. <span class="help-note-inline">Показывается: пока <b>Тип callback</b> = <code>property</code>.</span></td></tr>
+                <tr><td>Свойство<br><code>property</code></td><td><code>property</code></td><td>—</td><td>Свойство объекта, значение которого показывает виджет. Список свойств появляется после выбора объекта; пока объект не выбран, поле остаётся пустым и показывает «по умолчанию». <span class="help-note-inline">Показывается: пока <b>Тип callback</b> = <code>property</code>.</span></td></tr>
+                <tr><td>Объект (метод)<br><code>callback_method_obj</code></td><td><code>method_object</code></td><td>—</td><td>Объект, метод которого опрашивается. В паре с полем «Метод». <span class="help-note-inline">Показывается: пока <b>Тип callback</b> = <code>method</code>; в паре с <code>callback_method</code>.</span></td></tr>
+                <tr><td>Метод<br><code>callback_method</code></td><td><code>method</code></td><td>—</td><td>Метод, возвращающий данные для таблицы. <span class="help-note-inline">Показывается: пока <b>Тип callback</b> = <code>method</code>; в паре с объектом выше.</span></td></tr>
+                <tr><td>Имя сценария<br><code>script</code></td><td><code>script</code></td><td>—</td><td>Имя сценария, который запускает виджет. <span class="help-note-inline">Показывается: пока <b>Тип callback</b> = <code>script</code>.</span></td></tr>
             </table>
         </div>
     </main>
@@ -127,5 +139,3 @@
 <script src="../js/help-search.js"></script>
 </body>
 </html>
-
-

@@ -20,51 +20,50 @@
             <a href="../index.html"><i class="fas fa-home"></i> Обзор</a>
             <a href="../panels.html"><i class="fas fa-th-large"></i> Панели</a>
             <a href="../widgets.html" class="help-side__toggle" aria-expanded="false"><i class="fas fa-puzzle-piece"></i> Виджеты</a><div class="help-side__sub">
+                <a href="acremote.html">Пульт кондиционера</a>
                 <a href="analogclock.html">Аналоговые часы</a>
-                <a href="video.html">Видео</a>
-                <a href="select.html">Выбор</a>
-                <a href="timepicker.html">Выбор времени</a>
+                <a href="button.html">Кнопка</a>
+                <a href="calendar.html">Календарь</a>
+                <a href="chat.html">Чат</a>
+                <a href="clock.html">Часы</a>
+                <a href="colorslider.html">Слайдер цвета</a>
                 <a href="datepicker.html">Выбор даты</a>
+                <a href="dimmer.html">Диммер</a>
+                <a href="empty.html">Пустой</a>
+                <a href="gauge.html">Индикатор</a>
+                <a href="gradient-slider.html">gradient-slider</a>
                 <a href="graph.html">График</a>
                 <a href="group.html">Группа</a>
-                <a href="dimmer.html">Диммер</a>
-                <a href="value.html">Значение</a>
-                <a href="image.html">Изображение</a>
-                <a href="gauge.html">Индикатор</a>
                 <a href="iframe.html">iFrame</a>
-                <a href="calendar.html">Календарь</a>
-                <a href="map.html">Карта</a>
+                <a href="image.html">Изображение</a>
                 <a href="keypad.html">Клавиатура</a>
-                <a href="button.html">Кнопка</a>
-                <a href="roundslider.html">Круглый слайдер</a>
-                <a href="unknown.html">Неизвестный</a>
-                <a href="sendtext.html">Отправка текста</a>
-                <a href="weather.html">Погода</a>
-                <a href="roominfo.html">Помещение</a>
-                <a href="stream.html" class="active">Потоковое видео</a>
-                <a href="progressbar.html">Прогресс-бар</a>
-                <a href="acremote.html">Пульт кондиционера</a>
+                <a href="map.html">Карта</a>
                 <a href="musicremote.html">Пульт музыки</a>
-                <a href="tvremote.html">Пульт ТВ</a>
-                <a href="empty.html">Пустой</a>
-                <a href="rgb.html">RGB</a>
-                <a href="relay.html">Реле</a>
-                <a href="slideshow.html">Слайд-шоу</a>
-                <a href="slider.html">Слайдер</a>
-                <a href="gradient-slider.html">Слайдер с градиентом</a>
-                <a href="sliderbuttons.html">Слайдер с кнопками</a>
-                <a href="colorslider.html">Слайдер цвета</a>
                 <a href="panellink.html">Ссылка на панель</a>
+                <a href="progressbar.html">Прогресс-бар</a>
+                <a href="relay.html">Реле</a>
+                <a href="rgb.html">RGB</a>
+                <a href="roominfo.html">Помещение</a>
+                <a href="roundslider.html">Круглый слайдер</a>
+                <a href="select.html">Выбор</a>
+                <a href="sendtext.html">Отправка текста</a>
+                <a href="slider.html">Слайдер</a>
+                <a href="sliderbuttons.html">Слайдер с кнопками</a>
+                <a href="slideshow.html">Слайд-шоу</a>
                 <a href="status.html">Статус</a>
+                <a href="stream.html" class="active">Потоковое видео</a>
                 <a href="table.html">Таблица</a>
-                <a href="timeline.html">Таймлайн</a>
+                <a href="test.html">Тест</a>
                 <a href="text.html">Текст</a>
                 <a href="thermostat.html">Термостат</a>
-                <a href="test.html">Тест</a>
+                <a href="timeline.html">Таймлайн</a>
+                <a href="timepicker.html">Выбор времени</a>
                 <a href="trend.html">Тренд</a>
-                <a href="clock.html">Часы</a>
-                <a href="chat.html">Чат</a>
-
+                <a href="tvremote.html">Пульт ТВ</a>
+                <a href="unknown.html">Неизвестный</a>
+                <a href="value.html">Значение</a>
+                <a href="video.html">Видео</a>
+                <a href="weather.html">Погода</a>
             </div>
             <a href="../editor.html"><i class="fas fa-edit"></i> Редактор виджетов</a>
             <a href="../builder.html"><i class="fas fa-wand-magic-sparkles"></i> Конструктор</a>
@@ -78,57 +77,39 @@
         <h2>Потоковое видео</h2>
         <div class="help-card" id="stream">
             <div class="help-card__head"><h3>Потоковое видео</h3><span class="badge">stream</span><a class="help-top" href="../widgets.html">↑ к списку виджетов</a></div>
-            <p>Просмотр потокового видео с камер и других источников, включая ONVIF и RTSP.</p>
-            <h4>Как работает</h4>
-            <p>Поток показывается через серверный мост <code>hls_bridge</code> (ffmpeg), который пережимает источник в живой HLS и держит соединение при обрывах камеры. Для go2rtc используется встроенный HLS сервера go2rtc.</p>
-            <ul>
-                <li><b>URL</b> — прямая ссылка: <code>http(s)</code> на HLS (<code>.m3u8</code>), или <code>rtsp://</code> (транскодируется на сервере).</li>
-                <li><b>Свойство</b> — URL потока берётся из значения объекта.</li>
-                <li><b>go2rtc</b> — хост (host:port) и камера из списка go2rtc; подключается напрямую.</li>
-                <li><b>ONVIF</b> — полный поток RTSP камеры через сервис ONVIF: URL сервиса, логин и пароль. Режим «Показ»: <b>Полный экран</b> (весь кадр), <b>Камера 1</b> / <b>Камера 2</b> (одна из половин кадра для панорамных камер).</li>
-            </ul>
-            <h4>Основные настройки</h4>
+<p>Просмотр потокового видео с камер и других источников, включая ONVIF и RTSP.</p>
+            <h4>Все поля</h4>
+            <p>Ниже — полный список полей настройки виджета: каждое поле, его ключ в файле виджета, тип и значение по умолчанию. Ключ нужен, если вы правите код виджета вручную или собираете свой виджет в конструкторе.</p>
+            <h5>Основное <span class="badge">params</span></h5>
             <table>
-                <tr><th>Настройка</th><th>Описание</th></tr>
-                <tr><td>Источник потока</td><td>URL / Свойство / go2rtc / ONVIF.</td></tr>
-                <tr><td>Адрес (http/https/rtsp)</td><td>Адрес потока или ссылка на HLS.</td></tr>
-                <tr><td>Объект / Свойство</td><td>Объект, в чьём свойстве хранится адрес потока.</td></tr>
-                <tr><td>Хост go2rtc</td><td>Адрес go2rtc вида <code>host:port</code>.</td></tr>
-                <tr><td>Камера</td><td>Камера из списка go2rtc (появляется после ввода хоста).</td></tr>
-                <tr><td>ONVIF URL сервиса / Логин / Пароль</td><td>Параметры подключения к камере по ONVIF.</td></tr>
-                <tr><td>Показ</td><td>Полный экран / Камера 1 / Камера 2 (кроп по центру кадра для панорамных камер).</td></tr>
-<tr><td>Управление камерой (PTZ)</td><td>Показать панель управления поворотом/наклоном и зумом камеры по ONVIF (доступно для источника <b>ONVIF</b>). Панель появляется только на живом видео и не затрагивает историю записей.</td></tr>
-<tr><td>Автозапуск</td><td>Начать воспроизведение сразу.</td></tr>
-                <tr><td>Без звука</td><td>Запуск без звука (по умолчанию включено).</td></tr>
-                <tr><td>Без элементов управления</td><td>Скрыть стандартную панель управления: остаются только плавающие кнопки <b>⛶</b> (во весь экран / свернуть до окна) и, если автозапуск выключен, <b>▶ запуск</b> по центру. При автозапуске видео сразу открывается во весь экран (без кнопки ▶). Пуск/пауза, перемотка по времени и скорость доступны в полноэкранном режиме только в истории записей.</td></tr>
-                <tr><td>Автозапуск выключен</td><td>По центру показывается кнопка <b>▶</b>. После запуска она меняется на <b>⏹ стоп</b>: остановка полностью убивает процесс ffmpeg на сервере и очищает временные файлы, повторное нажатие ▶ запускает поток заново.</td></tr>
+                <tr><th>Поле</th><th>Тип</th><th>По умолчанию</th><th>Описание</th></tr>
+                <tr><td>Название<br><code>title</code></td><td><code>text</code></td><td>—</td><td>Заголовок карточки. Если пусто, виджет подставляет своё название.</td></tr>
+                <tr><td>Источник потока<br><code>source_type</code></td><td><code>select</code></td><td><code>url</code></td><td>Откуда виджет берёт картинку или видео.</td></tr>
+                <tr><td>Адрес (http/https/rtsp)<br><code>url</code></td><td><code>text</code></td><td>—</td><td>Прямая ссылка на видеопоток: <code>.m3u8</code> или <code>.mp4</code>. <span class="help-note-inline">Показывается: пока <b>Источник потока</b> = <code>url</code>.</span></td></tr>
+                <tr><td>Объект<br><code>object</code></td><td><code>object</code></td><td>—</td><td>Объект Majordomo, из которого виджет читает значение или в который его записывает. <span class="help-note-inline">Показывается: пока <b>Источник потока</b> = <code>property</code>.</span></td></tr>
+                <tr><td>Свойство<br><code>property</code></td><td><code>property</code></td><td>—</td><td>Свойство объекта, значение которого показывает виджет. Список свойств появляется после выбора объекта; пока объект не выбран, поле остаётся пустым и показывает «по умолчанию». <span class="help-note-inline">Показывается: пока <b>Источник потока</b> = <code>property</code>.</span></td></tr>
+                <tr><td>Хост go2rtc (host:port)<br><code>host</code></td><td><code>text</code></td><td>—</td><td>Адрес сервера go2rtc, например <code>http://192.168.1.10:1984</code>. <span class="help-note-inline">Показывается: пока <b>Источник потока</b> = <code>go2rtc</code>.</span></td></tr>
+                <tr><td>Камера<br><code>camera</code></td><td><code>select</code></td><td>—</td><td>Камера из списка go2rtc. Список появляется после заполнения адреса сервера; при пустом значении показывается «Камеры не найдены». <span class="help-note-inline">Показывается: пока <b>Источник потока</b> = <code>go2rtc</code>.</span></td></tr>
+                <tr><td>ONVIF URL сервиса<br><code>onvif_url</code></td><td><code>text</code></td><td>—</td><td>Адрес ONVIF-устройства: <code>http://host:port/onvif/device_service</code>. <span class="help-note-inline">Показывается: пока <b>Источник потока</b> = <code>onvif</code>.</span></td></tr>
+                <tr><td>Логин<br><code>onvif_login</code></td><td><code>text</code></td><td>—</td><td>Логин ONVIF. <span class="help-note-inline">Показывается: пока <b>Источник потока</b> = <code>onvif</code>.</span></td></tr>
+                <tr><td>Пароль<br><code>onvif_password</code></td><td><code>text</code></td><td>—</td><td>Пароль ONVIF. Хранится в настройках виджета в открытом виде. <span class="help-note-inline">Показывается: пока <b>Источник потока</b> = <code>onvif</code>.</span></td></tr>
+                <tr><td>Показ<br><code>onvif_view</code></td><td><code>select</code></td><td><code>full</code></td><td>Ракурс камеры: полный кадр или один из двух каналов. <span class="help-note-inline">Показывается: пока <b>Источник потока</b> = <code>onvif</code>.</span></td></tr>
+                <tr><td>Автозапуск<br><code>autoplay</code></td><td><code>checkbox</code></td><td>нет</td><td>Запускать воспроизведение сразу, без нажатия.</td></tr>
+                <tr><td>Без звука<br><code>muted</code></td><td><code>checkbox</code></td><td>да</td><td>Без звука.</td></tr>
+                <tr><td>Без элементов управления<br><code>nocontrols</code></td><td><code>checkbox</code></td><td>нет</td><td>Скрыть панель управления плеером.</td></tr>
+                <tr><td>Управление камерой (PTZ)<br><code>ptz</code></td><td><code>checkbox</code></td><td>нет</td><td>Показать панель управления камерой (PTZ). Появляется только для источника ONVIF. <span class="help-note-inline">Показывается: пока <b>Источник потока</b> = <code>onvif</code>.</span></td></tr>
             </table>
-            <h4>Управление камерой (PTZ)</h4>
-            <p>Для источника <b>ONVIF</b> доступна настройка <b>Управление камерой (PTZ)</b> — полупрозрачная панель управления в правом нижнем углу виджета (показывается только на живом видео, в истории записей скрыта):</p>
-            <ul>
-                <li>Крестовина из стрелок — поворот/наклон камеры: движение идёт, пока кнопка удерживается нажатой, и останавливается при отпускании.</li>
-                <li>Кнопки <b>+</b>/<b>−</b> (лупа) — приближение/отдаление (зум) по ONVIF, движение удержанием.</li>
-                <li>Кнопка <b>■</b> (стоп) — немедленная остановка поворота/зума.</li>
-                <li><b>Пресеты</b> — сохранённые позиции камеры (если камера поддерживает): кнопка ⟳ обновляет список, кнопки с именами пресетов вызывают позицию.</li>
-            </ul>
-            <p class="help-note">Команды PTZ идут напрямую на камеру по ONVIF (сервис поворота), через сервер, где установлен модуль. Требуется логин/пароль ONVIF с правом управления камерой.</p>
-            <h4>История (записи с SD)</h4>
-            <p>Включите <b>История</b> и укажите базовый RTSP-адрес записей камеры (типовой путь камеры Hikvision/Dahua и совместимых), например <code>rtsp://IP/ISAPI/streaming/channels/101/playback</code>. На виджете появится кнопка <b>⏱</b>, открывающая окно выбора интервала:</p>
-            <ul>
-                <li><b>С</b> / <b>По</b> — начальное и конечное время записей (локальное время).</li>
-                <li><b>Смотреть</b> — начинает воспроизведение выбранного интервала; к URL добавляется <code>?starttime=…&amp;endtime=…</code> в формате <code>YYYYMMDDTHHMMSSZ</code>.</li>
-                <li><b>Назад к живому видео</b> — возврат к обычному потоку.</li>
-            </ul>
-            <p>Записи транскодируются тем же мостом <code>hls_bridge</code> одноразовой командой ffmpeg до конца выбранного интервала (запись ведёт себя как видео по запросу). Для просмотра нужен доступ камеры по RTSP к пути записей; заметки и формат URL показываются в настройках.</p>
-            <p>Перед запуском виджет проверяет камеру: если поток «записи» неотличим от прямого эфира (камера игнорирует диапазон и всегда отдаёт живое видео, например у некоторых дешёвых камер), воспроизведение не запускается — показывается сообщение <b>«Записанных файлов не обнаружено»</b>. Кнопка <b>«Всё равно показать»</b> запускает поток вручную.</p>
-            <h4>Дополнительно — снижение нагрузки</h4>
-            <p>Настройки применяются при транскодировании через <code>hls_bridge</code> (ONVIF и RTSP через «URL»/«Свойство»).</p>
+            <h5>Дополнительно <span class="badge">advanced</span></h5>
             <table>
-                <tr><th>Настройка</th><th>Описание</th></tr>
-                <tr><td>Качество (разрешение)</td><td>Оригинал / 720p / 480p / 360p — пониженное разрешение снижает нагрузку на процессор сервера.</td></tr>
-                <tr><td>Ограничение кадров/с</td><td>Как в источнике / 15 / 10 / 5 FPS — чем меньше, тем ниже нагрузка.</td></tr>
+                <tr><th>Поле</th><th>Тип</th><th>По умолчанию</th><th>Описание</th></tr>
+                <tr><td>Качество (разрешение)<br><code>quality</code></td><td><code>select</code></td><td>—</td><td>Ширина потока: пусто — исходное качество камеры, иначе поток пережимается сервером.</td></tr>
+                <tr><td>Ограничение кадров/с<br><code>fps_limit</code></td><td><code>select</code></td><td>—</td><td>Ограничение кадров в секунду. Пусто — автоматически.</td></tr>
+                <tr><td>Цвет<br><code>color</code></td><td><code>color</code></td><td>—</td><td>Цвет фона карточки. Применяется, когда выбран режим «Свой цвет».</td></tr>
+                <tr><td>История (записи с SD)<br><code>history</code></td><td><code>checkbox</code></td><td>нет</td><td>Показывать записанное видео, а не только живой поток.</td></tr>
+                <tr><td>—<br><code>history_note</code></td><td><code>info</code></td><td>—</td><td>Указанные адреса и время подставляются в URL типового RTSP-playback камеры (Hikvision/Dahua и совместимые). <span class="help-note-inline">Показывается: пока <b>История (записи с SD)</b> = <code>true</code>.</span></td></tr>
+                <tr><td>Базовый RTSP-адрес записи<br><code>history_url</code></td><td><code>text</code></td><td>—</td><td>Адрес записанного файла. Если поле пустое, модуль ищет файл сам по своей схеме хранения. <span class="help-note-inline">Показывается: пока <b>История (записи с SD)</b> = <code>true</code>.</span></td></tr>
+                <tr><td>—<br><code>history_fmt</code></td><td><code>info</code></td><td>—</td><td>К адресу будет добавлено ?starttime=...&endtime=... в формате YYYYMMDDTHHMMSSZ (локальное время). <span class="help-note-inline">Показывается: пока <b>История (записи с SD)</b> = <code>true</code>.</span></td></tr>
             </table>
-            <p class="help-note">Для межсетевого экрана: мост работает на сервере, где установлен модуль; поток доставляется HLS-сегментами по HTTP.</p>
         </div>
     </main>
 </div>
@@ -159,5 +140,3 @@
 <script src="../js/help-search.js"></script>
 </body>
 </html>
-
-

@@ -116,54 +116,95 @@
                 <tr><td>Объект / Свойство (цвет фона)</td><td>Объект и свойство, значение которого — цвет в формате <code>#RRGGBB</code> (если фон — «Цвет из свойства»). Позволяет менять цвет карточки динамически.</td></tr>
                 <tr><td>Признак доступности + Таймаут (сек)</td><td>Контроль связи с объектом. Объект и свойство, по которому проверяется «живость» устройства (например <code>level</code> или <code>status</code>). Если значение не приходит дольше таймаута — виджет блокируется и показывается приглушённым.</td></tr>
             </table>
-            <p class="help-note">Поля из таблицы ниже (с учётом вкладки «Дополнительно») есть у всех виджетов: далее для каждого типа описаны только специфические настройки.</p>
+            <p class="help-note">Поля из таблицы выше есть у большинства виджетов. Полный список полей каждого виджета — на его отдельной странице: там перечислены <b>все</b> поля, их ключи, типы и значения по умолчанию.</p>
         </div>
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        <div class="help-card">
+            <h3>Управление и регулирование</h3>
+            <p class="help-note-inline">17 виджетов</p>
+            <table>
+                <tr><th>Виджет</th><th>Что делает</th><th>Полей</th></tr>
+                <tr><td><i class="fas fa-lightbulb"></i> <a href="widgets/dimmer.html"><b>Диммер</b></a><br><code>dimmer</code></td><td>Яркость: тумблер вкл/выкл и ползунок уровня.</td><td>34</td></tr>
+                <tr><td><i class="fas fa-thermometer-half"></i> <a href="widgets/thermostat.html"><b>Термостат</b></a><br><code>thermostat</code></td><td>Уставка температуры: тумблер и ползунок.</td><td>30</td></tr>
+                <tr><td><i class="fas fa-toggle-on"></i> <a href="widgets/relay.html"><b>Реле</b></a><br><code>relay</code></td><td>Выключатель с тумблером и подсветкой иконки.</td><td>28</td></tr>
+                <tr><td><i class="fas fa-lightbulb"></i> <a href="widgets/rgb.html"><b>RGB</b></a><br><code>rgb</code></td><td>Управление RGB-подсветкой: тумблер и выбор цвета.</td><td>30</td></tr>
+                <tr><td><i class="fas fa-hand-pointer"></i> <a href="widgets/button.html"><b>Кнопка</b></a><br><code>button</code></td><td>Кнопка с действием: метод, скрипт или переход.</td><td>12</td></tr>
+                <tr><td><i class="fas fa-list"></i> <a href="widgets/select.html"><b>Выбор</b></a><br><code>select</code></td><td>Выбор варианта из выпадающего списка.</td><td>16</td></tr>
+                <tr><td><i class="fas fa-keyboard"></i> <a href="widgets/keypad.html"><b>Клавиатура</b></a><br><code>keypad</code></td><td>Цифровая клавиатура для ввода значений.</td><td>16</td></tr>
+                <tr><td><i class="fas fa-paper-plane"></i> <a href="widgets/sendtext.html"><b>Отправка текста</b></a><br><code>sendtext</code></td><td>Поле ввода текста с отправкой на URL.</td><td>14</td></tr>
+                <tr><td><i class="fas fa-arrow-right-arrow-left"></i> <a href="widgets/panellink.html"><b>Ссылка на панель</b></a><br><code>panellink</code></td><td>Переход на другую панель.</td><td>9</td></tr>
+                <tr><td><i class="fas fa-wind"></i> <a href="widgets/acremote.html"><b>Пульт кондиционера</b></a><br><code>acremote</code></td><td>Пульт кондиционера: режим, температура, вентилятор.</td><td>21</td></tr>
+                <tr><td><i class="fas fa-tv"></i> <a href="widgets/tvremote.html"><b>Пульт ТВ</b></a><br><code>tvremote</code></td><td>Экранный пульт телевизора.</td><td>22</td></tr>
+                <tr><td><i class="fas fa-music"></i> <a href="widgets/musicremote.html"><b>Пульт музыки</b></a><br><code>musicremote</code></td><td>Пульт музыкального центра.</td><td>20</td></tr>
+                <tr><td><i class="fas fa-calendar-day"></i> <a href="widgets/datepicker.html"><b>Выбор даты</b></a><br><code>datepicker</code></td><td>Выбор даты из всплывающего календаря.</td><td>17</td></tr>
+                <tr><td><i class="fas fa-clock"></i> <a href="widgets/timepicker.html"><b>Выбор времени</b></a><br><code>timepicker</code></td><td>Выбор времени.</td><td>17</td></tr>
+            </table>
+        </div>
 
         <div class="help-card">
+            <h3>Показания и шкалы</h3>
+            <p class="help-note-inline">12 виджетов</p>
+            <table>
+                <tr><th>Виджет</th><th>Что делает</th><th>Полей</th></tr>
+                <tr><td><i class="fas fa-gauge-high"></i> <a href="widgets/value.html"><b>Значение</b></a><br><code>value</code></td><td>Крупное число — текущее значение свойства.</td><td>18</td></tr>
+                <tr><td><i class="fas fa-heart-pulse"></i> <a href="widgets/status.html"><b>Статус</b></a><br><code>status</code></td><td>Состояние объекта цветом, иконкой и текстом.</td><td>18</td></tr>
+                <tr><td><i class="fas fa-arrow-trend-up"></i> <a href="widgets/trend.html"><b>Тренд</b></a><br><code>trend</code></td><td>Значение со стрелкой направления изменения.</td><td>15</td></tr>
+                <tr><td><i class="fas fa-gauge-high"></i> <a href="widgets/gauge.html"><b>Индикатор</b></a><br><code>gauge</code></td><td>Круговой индикатор с числом внутри.</td><td>17</td></tr>
+                <tr><td><i class="fas fa-tasks"></i> <a href="widgets/progressbar.html"><b>Прогресс-бар</b></a><br><code>progressbar</code></td><td>Горизонтальная полоса заполнения.</td><td>20</td></tr>
+                <tr><td><i class="fas fa-sliders"></i> <a href="widgets/slider.html"><b>Слайдер</b></a><br><code>slider</code></td><td>Горизонтальный ползунок для числа.</td><td>22</td></tr>
+                <tr><td><i class="fas fa-circle-dot"></i> <a href="widgets/roundslider.html"><b>Круглый слайдер</b></a><br><code>roundslider</code></td><td>Круговой ползунок: значение ставится по окружности.</td><td>20</td></tr>
+                <tr><td><i class="fas fa-fill-drip"></i> <a href="widgets/gradient-slider.html"><b>Слайдер с градиентом</b></a><br><code>gradient-slider</code></td><td>Ползунок с градиентной шкалой.</td><td>19</td></tr>
+                <tr><td><i class="fas fa-palette"></i> <a href="widgets/colorslider.html"><b>Слайдер цвета</b></a><br><code>colorslider</code></td><td>Полоса выбора оттенка для RGB.</td><td>16</td></tr>
+                <tr><td><i class="fas fa-plus-minus"></i> <a href="widgets/sliderbuttons.html"><b>Слайдер с кнопками</b></a><br><code>sliderbuttons</code></td><td>Ползунок с кнопками «−» и «+».</td><td>23</td></tr>
+                <tr><td><i class="fas fa-house-chimney-window"></i> <a href="widgets/roominfo.html"><b>Помещение</b></a><br><code>roominfo</code></td><td>Показатели помещения в виде «чипов».</td><td>13</td></tr>
+                <tr><td><i class="fas fa-cloud-sun"></i> <a href="widgets/weather.html"><b>Погода</b></a><br><code>weather</code></td><td>Погода и прогноз из OpenWeatherMap.</td><td>16</td></tr>
+            </table>
+        </div>
+
+        <div class="help-card">
+            <h3>Графики, таблицы и события</h3>
+            <p class="help-note-inline">6 виджетов</p>
+            <table>
+                <tr><th>Виджет</th><th>Что делает</th><th>Полей</th></tr>
+                <tr><td><i class="fas fa-chart-line"></i> <a href="widgets/graph.html"><b>График</b></a><br><code>graph</code></td><td>История значений из базы за выбранный период.</td><td>14</td></tr>
+                <tr><td><i class="fas fa-table"></i> <a href="widgets/table.html"><b>Таблица</b></a><br><code>table</code></td><td>Таблица данных из SQL-запроса.</td><td>19</td></tr>
+                <tr><td><i class="fas fa-timeline"></i> <a href="widgets/timeline.html"><b>Таймлайн</b></a><br><code>timeline</code></td><td>Лента событий по времени.</td><td>13</td></tr>
+                <tr><td><i class="fas fa-calendar"></i> <a href="widgets/calendar.html"><b>Календарь</b></a><br><code>calendar</code></td><td>Календарь с переключением месяцев.</td><td>11</td></tr>
+                <tr><td><i class="fas fa-clock"></i> <a href="widgets/clock.html"><b>Часы</b></a><br><code>clock</code></td><td>Цифровые часы с датой.</td><td>16</td></tr>
+                <tr><td><i class="fas fa-clock"></i> <a href="widgets/analogclock.html"><b>Аналоговые часы</b></a><br><code>analogclock</code></td><td>Часы со стрелками.</td><td>11</td></tr>
+            </table>
+        </div>
+
+        <div class="help-card">
+            <h3>Изображение, видео и карты</h3>
+            <p class="help-note-inline">6 виджетов</p>
+            <table>
+                <tr><th>Виджет</th><th>Что делает</th><th>Полей</th></tr>
+                <tr><td><i class="fas fa-image"></i> <a href="widgets/image.html"><b>Изображение</b></a><br><code>image</code></td><td>Показ картинки по URL.</td><td>16</td></tr>
+                <tr><td><i class="fas fa-video"></i> <a href="widgets/stream.html"><b>Потоковое видео</b></a><br><code>stream</code></td><td>Потоковое видео: ONVIF, RTSP, go2rtc, HLS.</td><td>22</td></tr>
+                <tr><td><i class="fas fa-film"></i> <a href="widgets/video.html"><b>Видео</b></a><br><code>video</code></td><td>Воспроизведение видеофайла и HLS-потока.</td><td>10</td></tr>
+                <tr><td><i class="fas fa-window-restore"></i> <a href="widgets/iframe.html"><b>iFrame</b></a><br><code>iframe</code></td><td>Встраивание внешней страницы.</td><td>12</td></tr>
+                <tr><td><i class="fas fa-map"></i> <a href="widgets/map.html"><b>Карта</b></a><br><code>map</code></td><td>Карта с меткой по координатам.</td><td>17</td></tr>
+                <tr><td><i class="fas fa-images"></i> <a href="widgets/slideshow.html"><b>Слайд-шоу</b></a><br><code>slideshow</code></td><td>Циклическая смена изображений.</td><td>19</td></tr>
+            </table>
+        </div>
+
+        <div class="help-card">
+            <h3>Оформление, текст и служебные</h3>
+            <p class="help-note-inline">6 виджетов</p>
+            <table>
+                <tr><th>Виджет</th><th>Что делает</th><th>Полей</th></tr>
+                <tr><td><i class="fas fa-layer-group"></i> <a href="widgets/group.html"><b>Группа</b></a><br><code>group</code></td><td>Контейнер для вложенных виджетов.</td><td>18</td></tr>
+                <tr><td><i class="fas fa-font"></i> <a href="widgets/text.html"><b>Текст</b></a><br><code>text</code></td><td>Произвольный текст или значение свойства.</td><td>21</td></tr>
+                <tr><td><i class="fas fa-comments"></i> <a href="widgets/chat.html"><b>Чат</b></a><br><code>chat</code></td><td>Общий чат пользователей панели.</td><td>4</td></tr>
+                <tr><td><i class="fas fa-minus"></i> <a href="widgets/empty.html"><b>Пустой</b></a><br><code>empty</code></td><td>Пустая карточка-разделитель.</td><td>—</td></tr>
+                <tr><td><i class="fas fa-question-circle"></i> <a href="widgets/unknown.html"><b>Неизвестный</b></a><br><code>unknown</code></td><td>Заглушка для неизвестного типа виджета.</td><td>—</td></tr>
+                <tr><td><i class="fas fa-flask"></i> <a href="widgets/test.html"><b>Тест</b></a><br><code>test</code></td><td>Служебный виджет для разработки.</td><td>—</td></tr>
+            </table>
+        </div>
+
+<div class="help-card">
             <h3>Работа с объектами Majordomo</h3>
             <p>Каждый управляющий виджет привязывается к объекту Majordomo: выберите объект и его свойство, а для команд — метод (<code>Объект/Метод</code>). Значения виджетов обновляются в реальном времени через веб-сокеты.</p>
             <ul>

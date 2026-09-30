@@ -738,16 +738,84 @@
         };
     }
 
+    /* the fields every new widget starts with: the name of the module and the whole
+       icon block, written exactly as a ready made widget declares them - the same
+       keys, the same rows, the same conditions and labels taken from the language file */
+    function stdFields() {
+        var out = [
+            { type: 'text', key: 'title', label: 'field_title' },
+            {
+                type: 'select', key: 'icon_type', label: 'field_icon_type', row: 'icon_row',
+                default: 'icon', options: 'icon|opt_icon\nproperty|opt_property\nurl|opt_url'
+            },
+            { type: 'icon_picker', key: 'icon', label: 'field_icon', row: 'icon_row', default: 'fas fa-cube', showIf: { icon_type: 'icon' } },
+            { type: 'object', key: 'icon_object', label: 'field_icon_object', row: 'icon_row', showIf: { icon_type: 'property' } },
+            { type: 'property', key: 'icon_property', label: 'field_icon_property', row: 'icon_row', showIf: { icon_type: 'property' } },
+            { type: 'text', key: 'icon_url', label: 'field_icon_url', row: 'icon_row', showIf: { icon_type: 'url' } }
+        ];
+        return out.map(function (d) {
+            var f = newField(d.type);
+            f.key = d.key;
+            f.label = d.label;
+            f.row = d.row || '';
+            if (d.default) { f.default = d.default; f._hasDefault = true; }
+            if (d.options) f.options = d.options;
+            if (d.showIf) f.showIf = d.showIf;
+            /* the marker tells a fresh widget from a filled one: the fields a widget
+               starts with do not make it a widget the user has already built */
+            f._std = 1;
+            return f;
+        });
+    }
+
+    /* untouched = the field is still the one stdFields() hands out */
+    function isStdField(f) {
+        if (!f || !f._std) return false;
+        var std = null;
+        stdFields().forEach(function (s) { if (s.key === f.key) std = s; });
+        if (!std) return false;
+        return f.type === std.type && f.label === std.label && f.row === std.row &&
+            (f.default || '') === (std.default || '') && (f.options || '') === (std.options || '') &&
+            JSON.stringify(f.showIf || null) === JSON.stringify(std.showIf || null);
+    }
+
+    /* a new widget starts with the two components it cannot do without: the icon of
+       the module and its name bound to the title field. They are ordinary
+       components - they can be moved, restyled or deleted like any other */
+    function stdItems(a) {
+        var ico = newItem('icon');
+        var ttl = newItem('text');
+        ico.icon = 'fas fa-cube';
+        ttl.bind = 'title';
+        var ic = clampPos(a, 0, 0, 40, 40);
+        var tc = clampPos(a, 48, 6, 180, 28);
+        ico.x = ic.x; ico.y = ic.y; ico.w = ic.w; ico.h = ic.h;
+        ttl.x = tc.x; ttl.y = tc.y; ttl.w = tc.w; ttl.h = tc.h;
+        ico._std = 1; ttl._std = 1;
+        return [ico, ttl];
+    }
+
+    /* untouched = the component is still the one stdItems() hands out */
+    function isStdItem(it) {
+        if (!it || !it._std) return false;
+        if (it._t === 'icon') return String(it.icon || '') === 'fas fa-cube' && !String(it.bind || '').trim();
+        if (it._t === 'text') return it.bind === 'title' && !String(it.text || '').trim();
+        return false;
+    }
+
     function newModel(type) {
+        var appearance = {
+            title: '', width: 320, height: 200, pad: 10, gap: 8, radius: 8,
+            bg: '', color: '', align: 'stretch', dir: 'column', showTitle: false,
+            cls: '', html: '', items: [],
+            iconType: 'icon', icon: '', iconObject: '', iconProperty: '', iconUrl: ''
+        };
+        appearance.items = stdItems(appearance);
         return {
             v: 1, type: type || 'new_widget', title: '', icon: 'fas fa-cube', description: '',
-            appearance: {
-                title: '', width: 320, height: 200, pad: 10, gap: 8, radius: 8,
-                bg: '', color: '', align: 'stretch', dir: 'column', showTitle: false,
-                cls: '', html: '', items: []
-            },
+            appearance: appearance,
             settings: {
-                tabs: [{ key: 'main', label: 'tab_main', items: [] }]
+                tabs: [{ key: 'main', label: 'tab_main', items: stdFields() }]
             },
             defaultsExtra: {},
             code: { dataPre: '', data: '', computed: '', methods: '', mounted: '', watch: '', beforeUnmount: '', funcs: [] }
@@ -787,7 +855,11 @@
         }
         clampAll(d.appearance);
         var s = m.settings || {};
-        d.settings.tabs = (Array.isArray(s.tabs) && s.tabs.length ? s.tabs : d.settings.tabs).map(function (tb, i) {
+        /* a widget that comes from a file keeps the fields it was saved with: the
+           standard ones are only what a NEW widget starts with, so a model without
+           tabs of its own gets an empty tab and not the ready made set */
+        var srcTabs = (Array.isArray(s.tabs) && s.tabs.length) ? s.tabs : [{ key: 'main', label: 'tab_main', items: [] }];
+        d.settings.tabs = srcTabs.map(function (tb, i) {
             var o = {
                 key: tb.key || ('tab' + (i + 1)),
                 label: tb.label || ('Tab ' + (i + 1)),
@@ -1031,6 +1103,24 @@
             (sx ? '' : ';width:' + p.w + 'px') + (sy ? '' : ';height:' + p.h + 'px');
     }
 
+    /* the header of the module: the same icon set the settings panel offers, written
+       the way a ready made widget writes it - a class for "icon", a picture for "url"
+       and the current value of the property for "property", so the module always
+       shows what the object reports right now. The title comes along when it is set. */
+    function appearanceHead(a) {
+        var icon = '', t = String(a.iconType || 'icon');
+        if (t === 'icon' && a.icon) {
+            icon = '<i class="dpb-ico ' + esc(a.icon) + '"></i>';
+        } else if (t === 'url' && a.iconUrl) {
+            icon = '<img class="dpb-ico" src="' + esc(a.iconUrl) + '" alt="">';
+        } else if (t === 'property' && a.iconObject && a.iconProperty) {
+            icon = '<i class="dpb-ico" :class="dpbIconCls"></i>';
+        }
+        var title = (a.showTitle && a.title) ? '<div class="dpb-title">' + esc(a.title) + '</div>' : '';
+        if (!icon && !title) return '';
+        return '<div class="dpb-head">' + icon + title + '</div>';
+    }
+
     function appearanceTemplate(m) {
         var a = m.appearance;
         /* widget imported from a ready made file: its own HTML is used as is */
@@ -1042,9 +1132,8 @@
             return '<div class="dpb-item" style="' + anchorCss(a, it, s, p) + '">' + itemHtml(it, false) + '</div>';
         }).join('');
         var parts = [];
-        if (a.showTitle && a.title) {
-            parts.push('<div class="dpb-title" style="font-size:.92rem;font-weight:500;margin-bottom:6px">' + esc(a.title) + '</div>');
-        }
+        var head = appearanceHead(a);
+        if (head) parts.push(head);
         /* the coordinates are the ones set in the editor, so the placed area starts at
            the top left corner and keeps that position whatever box the panel gives
            the widget: only the free space at the right and below changes */
@@ -1101,7 +1190,7 @@
         if (f.step !== '' && f.step !== undefined && f.step !== null) v.step = f.step;
         if (f._hasDefault || (f.default !== '' && f.default !== undefined && f.default !== null)) v.default = f.default;
         /* keep any extra property of a ready made widget field (rows, inputType, value, ...) */
-        var SKIP = { _i: 1, _ord: 1, _sys: 1, type: 1, key: 1, label: 1, options: 1, default: 1, row: 1, hint: 1, min: 1, max: 1, step: 1, text: 1, placeholder: 1, parent: 1, showIf: 1, _hasDefault: 1 };
+        var SKIP = { _i: 1, _ord: 1, _sys: 1, type: 1, key: 1, label: 1, options: 1, default: 1, row: 1, hint: 1, min: 1, max: 1, step: 1, text: 1, placeholder: 1, parent: 1, showIf: 1, _hasDefault: 1, _std: 1 };
         for (var ek in f) {
             if (!Object.prototype.hasOwnProperty.call(f, ek)) continue;
             if (SKIP[ek]) continue;
@@ -2125,6 +2214,14 @@
             }
         });
 
+        /* --- the icon of the module itself: the object and the property are written
+           into the code, so the header follows the value the object reports right now */
+        var mIcon = (String(m.appearance.iconType || '') === 'property' &&
+            m.appearance.iconObject && m.appearance.iconProperty)
+            ? { obj: String(m.appearance.iconObject), prop: String(m.appearance.iconProperty) }
+            : null;
+        function qs(s) { return '\'' + String(s).replace(/\\/g, '\\\\').replace(/'/g, '\\\'') + '\''; }
+
         /* every name the code declares: the actions never overwrite the generated ones */
         var taken = { values: 1, busy: 1 };
         function fname(base) {
@@ -2135,8 +2232,8 @@
         }
 
         /* --- data --- */
-        if (pairs.length || controls.length) data.push('    busy: false,');
-        if (pairs.length || controls.length) data.push('    values: {},');
+        if (pairs.length || controls.length || mIcon) data.push('    busy: false,');
+        if (pairs.length || controls.length || mIcon) data.push('    values: {},');
         controls.forEach(function (c) {
             if (pairs.some(function (p) { return p.prop === c.key; })) return;
             data.push('    ' + c.key + ': null,');
@@ -2154,6 +2251,15 @@
         scripts.forEach(function (f) { acc(f.key); });
         methodFields.forEach(function (f) { acc(f.key); });
 
+        /* --- computed: the class of the icon of the module --- */
+        if (mIcon) {
+            computed.push('    dpbIconCls: function () {');
+            computed.push('        var v = this.values[' + qs(mIcon.prop) + '];');
+            computed.push('        if (!v) return \'\';');
+            /* the property may carry the class alone or together with a colour: take the first word */
+            computed.push('        return String(v).split(/[|,;\\s]/)[0];');
+            computed.push('    },');
+        }
         /* --- methods: read and write every paired property --- */
         pairs.forEach(function (p, pi) {
             var lp = fname(pi ? 'load' + cap(p.prop) : 'load');
@@ -2180,6 +2286,19 @@
             mounted.push('    this.$watch(\'' + p.prop + '\', this.' + lp + ');');
             mounted.push('    this.' + lp + '();');
         });
+
+        /* --- methods: the icon of the module --- */
+        if (mIcon) {
+            methods.push('    loadDpbIcon: function () {');
+            methods.push('        var self = this;');
+            methods.push('        this.busy = true;');
+            methods.push('        return dpAPI(\'getProperty?object=\' + encodeURIComponent(' + qs(mIcon.obj) + ') + \'&property=\' + encodeURIComponent(' + qs(mIcon.prop) + '))');
+            methods.push('            .then(function (r) { if (r && !r.error) self.values[' + qs(mIcon.prop) + '] = r.value; })');
+            methods.push('            .catch(function (e) { console.error(\'[dpb] loadDpbIcon\', e); })');
+            methods.push('            .then(function () { self.busy = false; });');
+            methods.push('    },');
+            mounted.push('    this.loadDpbIcon();');
+        }
 
         /* --- methods: the elements the user can change --- */
         controls.forEach(function (c) {
@@ -2262,7 +2381,7 @@
             }
             cleanup.push('    }');
         }
-        if (!pairs.length && !actions.length && !controls.length && !scripts.length && !methodFields.length) {
+        if (!pairs.length && !actions.length && !controls.length && !scripts.length && !methodFields.length && !mIcon) {
             mounted.push('    // nothing to load yet: the panels are empty');
         }
 
@@ -2474,6 +2593,10 @@
         newModel: newModel,
         newItem: newItem,
         newField: newField,
+        stdFields: stdFields,
+        isStdField: isStdField,
+        stdItems: stdItems,
+        isStdItem: isStdItem,
         normalizeModel: normalizeModel,
         uid: uid,
         build: build,

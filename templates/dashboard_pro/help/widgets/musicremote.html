@@ -20,51 +20,50 @@
             <a href="../index.html"><i class="fas fa-home"></i> Обзор</a>
             <a href="../panels.html"><i class="fas fa-th-large"></i> Панели</a>
             <a href="../widgets.html" class="help-side__toggle" aria-expanded="false"><i class="fas fa-puzzle-piece"></i> Виджеты</a><div class="help-side__sub">
+                <a href="acremote.html">Пульт кондиционера</a>
                 <a href="analogclock.html">Аналоговые часы</a>
-                <a href="video.html">Видео</a>
-                <a href="select.html">Выбор</a>
-                <a href="timepicker.html">Выбор времени</a>
+                <a href="button.html">Кнопка</a>
+                <a href="calendar.html">Календарь</a>
+                <a href="chat.html">Чат</a>
+                <a href="clock.html">Часы</a>
+                <a href="colorslider.html">Слайдер цвета</a>
                 <a href="datepicker.html">Выбор даты</a>
+                <a href="dimmer.html">Диммер</a>
+                <a href="empty.html">Пустой</a>
+                <a href="gauge.html">Индикатор</a>
+                <a href="gradient-slider.html">gradient-slider</a>
                 <a href="graph.html">График</a>
                 <a href="group.html">Группа</a>
-                <a href="dimmer.html">Диммер</a>
-                <a href="value.html">Значение</a>
-                <a href="image.html">Изображение</a>
-                <a href="gauge.html">Индикатор</a>
                 <a href="iframe.html">iFrame</a>
-                <a href="calendar.html">Календарь</a>
-                <a href="map.html">Карта</a>
+                <a href="image.html">Изображение</a>
                 <a href="keypad.html">Клавиатура</a>
-                <a href="button.html">Кнопка</a>
-                <a href="roundslider.html">Круглый слайдер</a>
-                <a href="unknown.html">Неизвестный</a>
-                <a href="sendtext.html">Отправка текста</a>
-                <a href="weather.html">Погода</a>
-                <a href="roominfo.html">Помещение</a>
-                <a href="stream.html">Потоковое видео</a>
-                <a href="progressbar.html">Прогресс-бар</a>
-                <a href="acremote.html">Пульт кондиционера</a>
+                <a href="map.html">Карта</a>
                 <a href="musicremote.html" class="active">Пульт музыки</a>
-                <a href="tvremote.html">Пульт ТВ</a>
-                <a href="empty.html">Пустой</a>
-                <a href="rgb.html">RGB</a>
-                <a href="relay.html">Реле</a>
-                <a href="slideshow.html">Слайд-шоу</a>
-                <a href="slider.html">Слайдер</a>
-                <a href="gradient-slider.html">Слайдер с градиентом</a>
-                <a href="sliderbuttons.html">Слайдер с кнопками</a>
-                <a href="colorslider.html">Слайдер цвета</a>
                 <a href="panellink.html">Ссылка на панель</a>
+                <a href="progressbar.html">Прогресс-бар</a>
+                <a href="relay.html">Реле</a>
+                <a href="rgb.html">RGB</a>
+                <a href="roominfo.html">Помещение</a>
+                <a href="roundslider.html">Круглый слайдер</a>
+                <a href="select.html">Выбор</a>
+                <a href="sendtext.html">Отправка текста</a>
+                <a href="slider.html">Слайдер</a>
+                <a href="sliderbuttons.html">Слайдер с кнопками</a>
+                <a href="slideshow.html">Слайд-шоу</a>
                 <a href="status.html">Статус</a>
+                <a href="stream.html">Потоковое видео</a>
                 <a href="table.html">Таблица</a>
-                <a href="timeline.html">Таймлайн</a>
+                <a href="test.html">Тест</a>
                 <a href="text.html">Текст</a>
                 <a href="thermostat.html">Термостат</a>
-                <a href="test.html">Тест</a>
+                <a href="timeline.html">Таймлайн</a>
+                <a href="timepicker.html">Выбор времени</a>
                 <a href="trend.html">Тренд</a>
-                <a href="clock.html">Часы</a>
-                <a href="chat.html">Чат</a>
-
+                <a href="tvremote.html">Пульт ТВ</a>
+                <a href="unknown.html">Неизвестный</a>
+                <a href="value.html">Значение</a>
+                <a href="video.html">Видео</a>
+                <a href="weather.html">Погода</a>
             </div>
             <a href="../editor.html"><i class="fas fa-edit"></i> Редактор виджетов</a>
             <a href="../builder.html"><i class="fas fa-wand-magic-sparkles"></i> Конструктор</a>
@@ -78,39 +77,36 @@
         <h2>Пульт музыки</h2>
         <div class="help-card" id="musicremote">
             <div class="help-card__head"><h3>Пульт музыки</h3><span class="badge">musicremote</span><a class="help-top" href="../widgets.html">↑ к списку виджетов</a></div>
-            <p>Пульт музыкального центра: питание, управление воспроизведением и выбор источника.</p>
-            <h4>Как работает</h4>
-            <p>Кнопки пульта (power, play/pause/stop, prev/next, CD/USB/BT/AUX, EQ, громкость) отправляют коды из словаря выбранным способом.</p>
-            <h4>Основные настройки</h4>
+<p>Пульт музыкального центра: питание, управление воспроизведением и выбор источника.</p>
+            <h4>Все поля</h4>
+            <p>Ниже — полный список полей настройки виджета: каждое поле, его ключ в файле виджета, тип и значение по умолчанию. Ключ нужен, если вы правите код виджета вручную или собираете свой виджет в конструкторе.</p>
+            <h5>Основное <span class="badge">params</span></h5>
             <table>
-                <tr><th>Настройка</th><th>Описание</th></tr>
-                <tr><td>Способ отправки</td><td>Установить свойство / Команда / Сценарий.</td></tr>
-                <tr><td>Объект отправки / Свойство</td><td>Куда записывается код.</td></tr>
-                <tr><td>Префикс команды</td><td>Префикс при способе «Команда».</td></tr>
-                <tr><td>Сценарий</td><td>Сценарий, получающий код.</td></tr>
-<tr><td>Коды кнопок (JSON)</td><td>Словарь кодов: <code>{"power":"M_PWR","vol+":"VOL_UP","vol-":"VOL_DOWN"}</code>. Если поле пустое или кнопка не задана — используются команды из таблицы ниже.</td></tr>
+                <tr><th>Поле</th><th>Тип</th><th>По умолчанию</th><th>Описание</th></tr>
+                <tr><td>Название<br><code>title</code></td><td><code>text</code></td><td>—</td><td>Заголовок карточки. Если пусто, виджет подставляет своё название.</td></tr>
+                <tr><td>Тип иконки<br><code>icon_type</code></td><td><code>select</code></td><td><code>icon</code></td><td>Откуда берётся иконка: из набора Font Awesome, из свойства объекта или по ссылке на картинку. От этой настройки зависит, какие из трёх полей ниже показываются.</td></tr>
+                <tr><td>Иконка<br><code>icon</code></td><td><code>icon_picker</code></td><td><code>fas fa-music</code></td><td>Класс иконки Font Awesome, например <code>fas fa-lightbulb</code>. <span class="help-note-inline">Показывается: пока <b>Тип иконки</b> = <code>icon</code>.</span></td></tr>
+                <tr><td>Объект (иконка)<br><code>icon_object</code></td><td><code>object</code></td><td>—</td><td>Объект, свойство которого даёт иконку. Показывается, когда выбран тип «Свойство». <span class="help-note-inline">Показывается: пока <b>Тип иконки</b> = <code>property</code>.</span></td></tr>
+                <tr><td>Свойство (иконка)<br><code>icon_property</code></td><td><code>property</code></td><td>—</td><td>Свойство объекта, значение которого используется как иконка. <span class="help-note-inline">Показывается: пока <b>Тип иконки</b> = <code>property</code>.</span></td></tr>
+                <tr><td>URL иконки<br><code>icon_url</code></td><td><code>text</code></td><td>—</td><td>Адрес картинки, которая показывается как иконка: <code>https://…</code> либо путь внутри модуля. <span class="help-note-inline">Показывается: пока <b>Тип иконки</b> = <code>url</code>.</span></td></tr>
+                <tr><td>Способ отправки<br><code>send_mode</code></td><td><code>select</code></td><td><code>property</code></td><td>Что делает виджет при отправке: вызов метода объекта, запуск скрипта или вызов одного из кодов.</td></tr>
+                <tr><td>Объект отправки<br><code>object</code></td><td><code>object</code></td><td>—</td><td>Объект Majordomo, из которого виджет читает значение или в который его записывает. <span class="help-note-inline">Показывается: пока <b>Способ отправки</b> = <code>property</code>.</span></td></tr>
+                <tr><td>Свойство<br><code>property</code></td><td><code>property</code></td><td><code>value</code></td><td>Свойство объекта, значение которого показывает виджет. Список свойств появляется после выбора объекта; пока объект не выбран, поле остаётся пустым и показывает «по умолчанию». <span class="help-note-inline">Показывается: пока <b>Способ отправки</b> = <code>property</code>.</span></td></tr>
+                <tr><td>Префикс команды<br><code>command_prefix</code></td><td><code>text</code></td><td>—</td><td>Текст, который подставляется перед введённой командой. Плейсхолдер <code>&lt;text&gt;</code> заменяется введённым текстом. <span class="help-note-inline">Показывается: пока <b>Способ отправки</b> = <code>command</code>.</span></td></tr>
+                <tr><td>Имя сценария<br><code>script</code></td><td><code>text</code></td><td>—</td><td>Имя сценария, который запускает виджет. <span class="help-note-inline">Показывается: пока <b>Способ отправки</b> = <code>script</code>.</span></td></tr>
+                <tr><td>Коды кнопок (JSON)<br><code>codes</code></td><td><code>textarea</code></td><td>—</td><td>Список кодов Majordomo для отправки — по одному в строке, в порядке вывода на панели.</td></tr>
             </table>
-            <h4>Кнопки и команды по умолчанию</h4>
-            <p>Кнопка отправляет команду из «Коды кнопок», а при пустом словаре или отсутствующей кнопке — команду по умолчанию:</p>
+            <h5>Дополнительно <span class="badge">advanced</span></h5>
             <table>
-                <tr><th>Кнопка</th><th>Код</th><th>Команда по умолчанию</th></tr>
-                <tr><td>Питание</td><td>power</td><td>Power</td></tr>
-                <tr><td>Назад (предыдущий трек)</td><td>prev</td><td>Previous</td></tr>
-                <tr><td>Вперёд (следующий трек)</td><td>next</td><td>Next</td></tr>
-                <tr><td>Стоп</td><td>stop</td><td>Stop</td></tr>
-                <tr><td>Пауза</td><td>pause</td><td>Pause</td></tr>
-                <tr><td>Играть / Пауза</td><td>play</td><td>PlayPause</td></tr>
-                <tr><td>Без звука</td><td>mute</td><td>Mute</td></tr>
-                <tr><td>Громкость + / −</td><td>vol+ / vol-</td><td>VolumeUp / VolumeDown</td></tr>
-                <tr><td>Извлечь</td><td>eject</td><td>eject (без замены)</td></tr>
-                <tr><td>Источник CD / USB / BT / AUX</td><td>cd / usb / bt / aux</td><td>cd / usb / bt / aux (без замены)</td></tr>
-                <tr><td>Режим</td><td>mode</td><td>mode (без замены)</td></tr>
-                <tr><td>Эквалайзер</td><td>eq</td><td>eq (без замены)</td></tr>
-            </table>
-            <h4>Дополнительно</h4>
-            <table>
-                <tr><th>Настройка</th><th>Описание</th></tr>
-                <tr><td>Признак доступности / Таймаут</td><td>Блокировка при недоступности устройства.</td></tr>
+                <tr><th>Поле</th><th>Тип</th><th>По умолчанию</th><th>Описание</th></tr>
+                <tr><td>Фон виджета<br><code>bg_mode</code></td><td><code>select</code></td><td>—</td><td>Откуда берётся фон карточки: тема виджета, картинка, свой цвет или цвет из свойства объекта.</td></tr>
+                <tr><td>Цвет<br><code>color</code></td><td><code>color</code></td><td>—</td><td>Цвет фона карточки. Применяется, когда выбран режим «Свой цвет». <span class="help-note-inline">Показывается: пока <b>Фон виджета</b> = <code>color</code>.</span></td></tr>
+                <tr><td>URL изображения<br><code>bg_image</code></td><td><code>text</code></td><td>—</td><td>Адрес фоновой картинки. Показывается, когда выбран режим «Картинка». <span class="help-note-inline">Показывается: пока <b>Фон виджета</b> = <code>image</code>.</span></td></tr>
+                <tr><td>Объект (цвет)<br><code>bg_object</code></td><td><code>object</code></td><td>—</td><td>Объект, свойство которого задаёт цвет фона. Показывается, когда выбран режим «Цвет из свойства». <span class="help-note-inline">Показывается: пока <b>Фон виджета</b> = <code>property</code>.</span></td></tr>
+                <tr><td>Свойство (цвет)<br><code>bg_property</code></td><td><code>property</code></td><td>—</td><td>Свойство объекта, значение которого используется как цвет фона. <span class="help-note-inline">Показывается: пока <b>Фон виджета</b> = <code>property</code>.</span></td></tr>
+                <tr><td>Признак доступности<br><code>object_alive</code></td><td><code>object</code></td><td>—</td><td>Объект, по которому проверяется «живость» виджета: если он не отвечает, карточка гаснет и перестаёт откликаться.</td></tr>
+                <tr><td>Свойство (доступность)<br><code>property_alive</code></td><td><code>property</code></td><td>—</td><td>Свойство объекта «живости», по которому виджет понимает, что связь жива.</td></tr>
+                <tr><td>Таймаут (сек)<br><code>alive_timeout</code></td><td><code>number</code></td><td>—</td><td>Сколько секунд ждать ответа, прежде чем считать объект недоступным. По умолчанию 3.</td></tr>
             </table>
         </div>
     </main>
@@ -142,5 +138,3 @@
 <script src="../js/help-search.js"></script>
 </body>
 </html>
-
-

@@ -20,51 +20,50 @@
             <a href="../index.html"><i class="fas fa-home"></i> Обзор</a>
             <a href="../panels.html"><i class="fas fa-th-large"></i> Панели</a>
             <a href="../widgets.html" class="help-side__toggle" aria-expanded="false"><i class="fas fa-puzzle-piece"></i> Виджеты</a><div class="help-side__sub">
+                <a href="acremote.html">Пульт кондиционера</a>
                 <a href="analogclock.html">Аналоговые часы</a>
-                <a href="video.html">Видео</a>
-                <a href="select.html">Выбор</a>
-                <a href="timepicker.html">Выбор времени</a>
+                <a href="button.html">Кнопка</a>
+                <a href="calendar.html">Календарь</a>
+                <a href="chat.html">Чат</a>
+                <a href="clock.html">Часы</a>
+                <a href="colorslider.html">Слайдер цвета</a>
                 <a href="datepicker.html">Выбор даты</a>
+                <a href="dimmer.html">Диммер</a>
+                <a href="empty.html">Пустой</a>
+                <a href="gauge.html">Индикатор</a>
+                <a href="gradient-slider.html">gradient-slider</a>
                 <a href="graph.html">График</a>
                 <a href="group.html">Группа</a>
-                <a href="dimmer.html">Диммер</a>
-                <a href="value.html" class="active">Значение</a>
-                <a href="image.html">Изображение</a>
-                <a href="gauge.html">Индикатор</a>
                 <a href="iframe.html">iFrame</a>
-                <a href="calendar.html">Календарь</a>
-                <a href="map.html">Карта</a>
+                <a href="image.html">Изображение</a>
                 <a href="keypad.html">Клавиатура</a>
-                <a href="button.html">Кнопка</a>
-                <a href="roundslider.html">Круглый слайдер</a>
-                <a href="unknown.html">Неизвестный</a>
-                <a href="sendtext.html">Отправка текста</a>
-                <a href="weather.html">Погода</a>
-                <a href="roominfo.html">Помещение</a>
-                <a href="stream.html">Потоковое видео</a>
-                <a href="progressbar.html">Прогресс-бар</a>
-                <a href="acremote.html">Пульт кондиционера</a>
+                <a href="map.html">Карта</a>
                 <a href="musicremote.html">Пульт музыки</a>
-                <a href="tvremote.html">Пульт ТВ</a>
-                <a href="empty.html">Пустой</a>
-                <a href="rgb.html">RGB</a>
-                <a href="relay.html">Реле</a>
-                <a href="slideshow.html">Слайд-шоу</a>
-                <a href="slider.html">Слайдер</a>
-                <a href="gradient-slider.html">Слайдер с градиентом</a>
-                <a href="sliderbuttons.html">Слайдер с кнопками</a>
-                <a href="colorslider.html">Слайдер цвета</a>
                 <a href="panellink.html">Ссылка на панель</a>
+                <a href="progressbar.html">Прогресс-бар</a>
+                <a href="relay.html">Реле</a>
+                <a href="rgb.html">RGB</a>
+                <a href="roominfo.html">Помещение</a>
+                <a href="roundslider.html">Круглый слайдер</a>
+                <a href="select.html">Выбор</a>
+                <a href="sendtext.html">Отправка текста</a>
+                <a href="slider.html">Слайдер</a>
+                <a href="sliderbuttons.html">Слайдер с кнопками</a>
+                <a href="slideshow.html">Слайд-шоу</a>
                 <a href="status.html">Статус</a>
+                <a href="stream.html">Потоковое видео</a>
                 <a href="table.html">Таблица</a>
-                <a href="timeline.html">Таймлайн</a>
+                <a href="test.html">Тест</a>
                 <a href="text.html">Текст</a>
                 <a href="thermostat.html">Термостат</a>
-                <a href="test.html">Тест</a>
+                <a href="timeline.html">Таймлайн</a>
+                <a href="timepicker.html">Выбор времени</a>
                 <a href="trend.html">Тренд</a>
-                <a href="clock.html">Часы</a>
-                <a href="chat.html">Чат</a>
-
+                <a href="tvremote.html">Пульт ТВ</a>
+                <a href="unknown.html">Неизвестный</a>
+                <a href="value.html" class="active">Значение</a>
+                <a href="video.html">Видео</a>
+                <a href="weather.html">Погода</a>
             </div>
             <a href="../editor.html"><i class="fas fa-edit"></i> Редактор виджетов</a>
             <a href="../builder.html"><i class="fas fa-wand-magic-sparkles"></i> Конструктор</a>
@@ -78,20 +77,34 @@
         <h2>Значение</h2>
         <div class="help-card" id="value">
             <div class="help-card__head"><h3>Значение</h3><span class="badge">value</span><a class="help-top" href="../widgets.html">↑ к списку виджетов</a></div>
-            <p>Крупное число — текущее значение выбранного объекта.</p>
-            <h4>Как работает</h4>
-            <p>Подписывается на свойство объекта и обновляет число в реальном времени. Значения можно заменять подписями (алиасами), например вместо <code>1</code> показывать «Включено».</p>
-            <h4>Основные настройки</h4>
+<p>Крупное число — текущее значение выбранного объекта.</p>
+            <h4>Все поля</h4>
+            <p>Ниже — полный список полей настройки виджета: каждое поле, его ключ в файле виджета, тип и значение по умолчанию. Ключ нужен, если вы правите код виджета вручную или собираете свой виджет в конструкторе.</p>
+            <h5>Основное <span class="badge">params</span></h5>
             <table>
-                <tr><th>Настройка</th><th>Описание</th></tr>
-                <tr><td>Объект / Свойство</td><td>Объект и свойство, значение которого отображается.</td></tr>
-                <tr><td>Подписи алиасов (JSON)</td><td>Замена значений подписями: <code>{"1":"on","0":"off"}</code>.</td></tr>
+                <tr><th>Поле</th><th>Тип</th><th>По умолчанию</th><th>Описание</th></tr>
+                <tr><td>Название<br><code>title</code></td><td><code>text</code></td><td>—</td><td>Заголовок карточки. Если пусто, виджет подставляет своё название.</td></tr>
+                <tr><td>Тип иконки<br><code>icon_type</code></td><td><code>select</code></td><td><code>icon</code></td><td>Откуда берётся иконка: из набора Font Awesome, из свойства объекта или по ссылке на картинку. От этой настройки зависит, какие из трёх полей ниже показываются.</td></tr>
+                <tr><td>Иконка<br><code>icon</code></td><td><code>icon_picker</code></td><td><code>fas fa-hashtag</code></td><td>Класс иконки Font Awesome, например <code>fas fa-lightbulb</code>. <span class="help-note-inline">Показывается: пока <b>Тип иконки</b> = <code>icon</code>.</span></td></tr>
+                <tr><td>Объект (иконка)<br><code>icon_object</code></td><td><code>object</code></td><td>—</td><td>Объект, свойство которого даёт иконку. Показывается, когда выбран тип «Свойство». <span class="help-note-inline">Показывается: пока <b>Тип иконки</b> = <code>property</code>.</span></td></tr>
+                <tr><td>Свойство (иконка)<br><code>icon_property</code></td><td><code>property</code></td><td>—</td><td>Свойство объекта, значение которого используется как иконка. <span class="help-note-inline">Показывается: пока <b>Тип иконки</b> = <code>property</code>.</span></td></tr>
+                <tr><td>URL иконки<br><code>icon_url</code></td><td><code>text</code></td><td>—</td><td>Адрес картинки, которая показывается как иконка: <code>https://…</code> либо путь внутри модуля. <span class="help-note-inline">Показывается: пока <b>Тип иконки</b> = <code>url</code>.</span></td></tr>
+                <tr><td>Объект<br><code>object</code></td><td><code>object</code></td><td>—</td><td>Объект Majordomo, из которого виджет читает значение или в который его записывает.</td></tr>
+                <tr><td>Свойство<br><code>property</code></td><td><code>property</code></td><td>—</td><td>Свойство объекта, значение которого показывает виджет. Список свойств появляется после выбора объекта; пока объект не выбран, поле остаётся пустым и показывает «по умолчанию».</td></tr>
+                <tr><td>Подписи алиасов (JSON)<br><code>aliasLabels</code></td><td><code>text</code></td><td>—</td><td>Подписи для нестандартных значений в JSON: <code>{"1":"on","0":"off"}</code>. Ключ — значение, которое приходит от объекта, значение — подпись на панели.</td></tr>
             </table>
-            <h4>Дополнительно</h4>
+            <h5>Дополнительно <span class="badge">advanced</span></h5>
             <table>
-                <tr><th>Настройка</th><th>Описание</th></tr>
-                <tr><td>Информация объекта / Свойство (информация)</td><td>Дополнительная строка в шапке виджета (например текущая температура).</td></tr>
-                <tr><td>Префикс / Постфикс информации</td><td>Текст до и после значения информации.</td></tr>
+                <tr><th>Поле</th><th>Тип</th><th>По умолчанию</th><th>Описание</th></tr>
+                <tr><td>Фон виджета<br><code>bg_mode</code></td><td><code>select</code></td><td>—</td><td>Откуда берётся фон карточки: тема виджета, картинка, свой цвет или цвет из свойства объекта.</td></tr>
+                <tr><td>Цвет<br><code>color</code></td><td><code>color</code></td><td>—</td><td>Цвет фона карточки. Применяется, когда выбран режим «Свой цвет». <span class="help-note-inline">Показывается: пока <b>Фон виджета</b> = <code>color</code>.</span></td></tr>
+                <tr><td>URL изображения<br><code>bg_image</code></td><td><code>text</code></td><td>—</td><td>Адрес фоновой картинки. Показывается, когда выбран режим «Картинка». <span class="help-note-inline">Показывается: пока <b>Фон виджета</b> = <code>image</code>.</span></td></tr>
+                <tr><td>Объект (цвет)<br><code>bg_object</code></td><td><code>object</code></td><td>—</td><td>Объект, свойство которого задаёт цвет фона. Показывается, когда выбран режим «Цвет из свойства». <span class="help-note-inline">Показывается: пока <b>Фон виджета</b> = <code>property</code>.</span></td></tr>
+                <tr><td>Свойство (цвет)<br><code>bg_property</code></td><td><code>property</code></td><td>—</td><td>Свойство объекта, значение которого используется как цвет фона. <span class="help-note-inline">Показывается: пока <b>Фон виджета</b> = <code>property</code>.</span></td></tr>
+                <tr><td>Информация объекта<br><code>object_info</code></td><td><code>object</code></td><td>—</td><td>Объект, значение которого выводится нижней строкой карточки.</td></tr>
+                <tr><td>Свойство (информация)<br><code>property_info</code></td><td><code>property</code></td><td>—</td><td>Свойство объекта, значение которого выводится нижней строкой карточки.</td></tr>
+                <tr><td>Префикс информации<br><code>pre_info</code></td><td><code>text</code></td><td>—</td><td>Текст перед значением в нижней строке.</td></tr>
+                <tr><td>Постфикс информации<br><code>pos_info</code></td><td><code>text</code></td><td>—</td><td>Текст после значения в нижней строке.</td></tr>
             </table>
         </div>
     </main>
@@ -123,5 +136,3 @@
 <script src="../js/help-search.js"></script>
 </body>
 </html>
-
-

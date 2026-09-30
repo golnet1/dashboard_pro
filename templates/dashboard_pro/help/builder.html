@@ -87,6 +87,8 @@
                 <tr><td><span class="badge">Экспорт</span></td><td>Редактор виджетов, строка вида виджета</td><td>Собирает ZIP с виджетом для переноса на другую установку.</td></tr>
             </table>
             <p>Внутри конструктора виджет можно переключать без возврата в список: в выпадающем поле <b>Виджет</b> в шапке перечислены все установленные типы, а пункт «— новый виджет —» открывает пустую форму для создания нового типа.</p>
+            <p>Новый виджет не совсем пустой: в его настройках сразу есть шесть стандартных полей (<b>Заголовок</b>, <b>Тип иконки</b>, <b>Иконка</b>, <b>Объект иконки</b>, <b>Свойство иконки</b>, <b>Адрес иконки</b>), а на холсте — два стандартных компонента: <b>иконка</b> в левом верхнем углу и <b>Название</b> сразу рядом с ней, привязанное к полю «Заголовок».</p>
+            <p>Эти компоненты считаются служебными: пока их не трогать, они не попадают в сгенерированный код и повторно не добавляются. Измените текст «Название» или иконку — компонент станет обычным, и дальше с ним можно работать как с любым другим. Если заголовок или иконка виджету не нужны, их достаточно убрать с холста.</p>
             <p class="help-note">Созданный или изменённый виджет становится обычным элементом списка: его можно добавить на панель как любой другой тип.</p>
         </div>
 
@@ -149,6 +151,7 @@
             <p>Противоположная сторона остаётся на месте, блок не выходит за границы виджета и не сжимается меньше 20&nbsp;px. Вне квадратиков курсор обычный — перемещение. Блок можно наложить на соседний: при перетаскивании он упирается в первый перекрытый блок, а при растягивании — нет.</p>
             <p>Растягивание блока меняет размер самого компонента: он занимает прямоугольник выделения, а начертание внутри (шрифт, отступы) остаётся прежним.</p>
             <p>У каждого компонента есть <b>привязка</b> — по горизонтали (слева, по центру, справа) и по вертикали (сверху, по центру, снизу). Она задаёт, к какой стороне виджета компонент привязан, когда размер виджета меняется: при привязке «справа» компонент сохраняет расстояние до правого края, а при «по центру» остаётся посередине. Значение <b>«Не привязан»</b> (по умолчанию) означает, что компонент остаётся на месте: при изменении размера виджета двигается только видимая область, координаты компонентов не меняются.</p>
+            <p>Положение и размер компонента можно задать и числами: у выбранного компонента в блоке «Свойства» есть поля <b>Координата X</b>, <b>Координата Y</b>, <b>Размер W</b> и <b>Размер H</b>. Координаты отсчитываются от левого верхнего угла внутренней области виджета (без отступа) и работают так же, как перетаскивание мышью: значение не может стать отрицательным или выйти за правый и нижний край — оно удерживается на границе, а в поле возвращается уже исправленное число.</p>
             <p>Размер виджета настраивается отдельно — в блоке «Модуль» или в настройках виджета на панели. Он меняет только видимую область: компоненты остаются прежнего размера, а свободное место появляется там, куда они не привязаны.</p>
 
             <h4>Растягивание</h4>
@@ -183,23 +186,43 @@
             <h4>Вкладки</h4>
             <p>Вкладку можно переименовать, удалить и добавить. Ключ вкладки (<code>key</code>) связывает её с группой полей в файле виджета: вкладка <code>main</code> — это группа <code>params</code>.</p>
 
-            <h4>Системные разделы</h4>
-            <p>Кроме обычных полей есть системные разделы — их форму и хранение данных ведёт сам модуль, а виджет только объявляет ключ:</p>
+            <p>Кроме обычных полей вкладка настроек может содержать системные разделы. Их форму и хранение ведёт сам модуль, виджет только объявляет ключ раздела. Всего разделов 7 — список ниже полный.</p>
             <table>
-                <tr><th>Раздел</th><th>Ключ во вкладке</th><th>Что настраивает</th></tr>
-                <tr><td>Виджеты</td><td><code>widgets</code></td><td>Вложенные виджеты и их раскладку.</td></tr>
-                <tr><td>Графики</td><td><code>graphs</code></td><td>Серии для графиков.</td></tr>
-                <tr><td>Колонки</td><td><code>columns</code></td><td>Колонки и их ширину.</td></tr>
-                <tr><td>Слайды</td><td><code>slides</code></td><td>Слайд-шоу.</td></tr>
-                <tr><td>Статусы</td><td><code>statuses</code></td><td>Список статусов.</td></tr>
-                <tr><td>Пункты</td><td><code>items</code></td><td>Списки и варианты выбора.</td></tr>
-                <tr><td>Цвета</td><td><code>colors</code></td><td>Палитру цветов.</td></tr>
+                <tr><th>Раздел</th><th>Ключ во вкладке</th><th>Ключ данных</th><th>Что настраивает</th></tr>
+                <tr><td><i class="fas fa-cubes"></i> Виджеты</td><td><code>widgets</code></td><td><code>children</code></td><td>Вложенные виджеты модуля и их раскладка внутри этого виджета. Форму и хранение ведёт сам модуль.</td></tr>
+                <tr><td><i class="fas fa-chart-area"></i> Графики</td><td><code>graphs</code></td><td><code>series</code></td><td>Серии графиков: какие данные и как часто опрашивать.</td></tr>
+                <tr><td><i class="fas fa-table"></i> Колонки</td><td><code>columns</code></td><td><code>columns</code></td><td>Колонки таблицы: ключ строки, заголовок и ширина.</td></tr>
+                <tr><td><i class="fas fa-images"></i> Слайды</td><td><code>slides</code></td><td><code>slides</code></td><td>Слайды для слайд-шоу: картинка, подпись и время показа.</td></tr>
+                <tr><td><i class="fas fa-heart"></i> Статусы</td><td><code>statuses</code></td><td><code>statuses</code></td><td>Список статусов объекта: значение, подпись, цвет и иконка.</td></tr>
+                <tr><td><i class="fas fa-list-ul"></i> Варианты</td><td><code>items</code></td><td><code>items</code></td><td>Списки и варианты выбора для радиокнопок, сегментов и вкладок.</td></tr>
+                <tr><td><i class="fas fa-palette"></i> Цвета</td><td><code>colors</code></td><td><code>colors</code></td><td>Палитра цветов, используемая в градиентах и статусных схемах.</td></tr>
             </table>
-            <p>Системное поле нельзя скопировать, и повторно добавить в одну вкладку — сообщение «Такое системное поле уже есть во вкладке».</p>
+            <p class="help-note">Системное поле нельзя скопировать, и повторно добавить в одну вкладку — модуль отвечает «Такое системное поле уже есть во вкладке».</p>
 
             <h4>Поле</h4>
             <p>У каждого поля есть ключ параметра, подпись, значение по умолчанию, подсказка и номер ряда. Ключ — это то, к чему потом привязываются компоненты во вкладке «Внешний вид». Ключ пишется латиницей, может содержать цифры и <code>_</code>, но не начинается с цифры.</p>
-            <p>Типы полей: текст, многострочный текст, число, список, флажок, ползунок, цвет, объект, свойство, метод, вызов метода объекта, скрипт, выбор иконки, выбор панели, информация. Типы «метод» и «вызов метода объекта» идут парой: сначала выбирают объект, затем метод — так в настройках виджета выглядят строки вида «Объект (перекл) / Метод переключения».</p>
+            <h4>Все типы полей</h4>
+            <p>Тип выбирается слева, в списке «Тип поля». От него зависит вид поля в карточке настройки и то, как значение попадает в файл виджета. В списке 15 типов, плюс один служебный — <code>method_object</code>: он не выбирается сам, а добавляется к слову «метод» и хранит объект для него. В таблице оба показаны рядом.</p>
+            <table>
+                <tr><th>Тип</th><th>Ключ типа</th><th>Что делает</th></tr>
+                <tr><td><i class="fas fa-font"></i> <b>Текст</b></td><td><code>text</code></td><td>Однострочный текст. Хранится как строка.</td></tr>
+                <tr><td><i class="fas fa-key"></i> <b>Пароль</b></td><td><code>password</code></td><td>Строка с закрытым вводом — значение скрыто точками.</td></tr>
+                <tr><td><i class="fas fa-sort-numeric-up"></i> <b>Число</b></td><td><code>number</code></td><td>Число. Дробная часть и знак допускаются, если это не запрещено.</td></tr>
+                <tr><td><i class="fas fa-align-left"></i> <b>Многострочный текст</b></td><td><code>textarea</code></td><td>Многострочный текст: JSON, список кодов, запрос к данным.</td></tr>
+                <tr><td><i class="fas fa-caret-down"></i> <b>Выбор</b></td><td><code>select</code></td><td>Выбор из заданного списка. Показывает «по умолчанию», пока значение не выбрано.</td></tr>
+                <tr><td><i class="fas fa-check-square"></i> <b>Флажок</b></td><td><code>checkbox</code></td><td>Флажок включения.</td></tr>
+                <tr><td><i class="fas fa-sliders"></i> <b>Ползунок</b></td><td><code>slider</code></td><td>Ползунок в заданном диапазоне.</td></tr>
+                <tr><td><i class="fas fa-palette"></i> <b>Цвет</b></td><td><code>color</code></td><td>Цвет: палитра или ввод значения. В виджете можно указать и название цвета темы.</td></tr>
+                <tr><td><i class="fas fa-cube"></i> <b>Объект</b></td><td><code>object</code></td><td>Объект Majordomo из списка объектов. Список свойств, методов и значений заполняется по выбранному объекту.</td></tr>
+                <tr><td><i class="fas fa-list-alt"></i> <b>Свойство</b></td><td><code>property</code></td><td>Свойство выбранного объекта. Пока объекта нет, поле пустое и показывает «по умолчанию».</td></tr>
+                <tr><td><i class="fas fa-cogs"></i> <b>Метод</b></td><td><code>method</code></td><td>Метод объекта. Хранится вместе с объектом одной строкой «Объект/Метод» и в настройках показывается двумя полями.</td></tr>
+                <tr><td><b>Объект для метода</b></td><td><code>method_object</code></td><td>Объект для метода. В паре с полем типа «метод» образуют строку настроек.</td></tr>
+                <tr><td><i class="fas fa-file-code"></i> <b>Сценарий</b></td><td><code>script</code></td><td>Сценарий из списка сценариев модуля.</td></tr>
+                <tr><td><i class="fas fa-icons"></i> <b>Выбор иконки</b></td><td><code>icon_picker</code></td><td>Выбор иконки из набора Font Awesome с поиском по названию.</td></tr>
+                <tr><td><i class="fas fa-th-large"></i> <b>Выбор панели</b></td><td><code>panel_select</code></td><td>Выбор панели из списка панелей.</td></tr>
+                <tr><td><i class="fas fa-info-circle"></i> <b>Информация</b></td><td><code>info</code></td><td>Служебная подсказка: ничего не сохраняет, только показывает пояснение в карточке настройки.</td></tr>
+            </table>
+            <p class="help-note">Типы <code>object</code>, <code>property</code>, <code>method</code> и <code>script</code> подставляют списки из Majordomo: пока объект не выбран, список свойств и методов пуст и поле показывает значение по умолчанию. Типы <code>method</code> и <code>method_object</code> всегда идут парой и в настройках видны одной строкой — «Объект (перекл) / Метод переключения».</p>
         </div>
 
         <div class="help-card">
@@ -266,6 +289,317 @@
                 <li>На новом сервере: <b>Редактор виджетов</b> → <span class="badge">Добавить виджет</span> и выберите архив.</li>
             </ol>
             <p class="help-note">«Загрузить ZIP» в конструкторе для переноса не нужен: он только открывает виджет в форме. Ставить виджет на панель нужно через «Добавить виджет».</p>
+        </div>
+
+        <div class="help-card">
+            <h3>Справочник компонентов палитры</h3>
+            <p>Полный список: у каждого компонента — ключ для файла виджета, размер по умолчанию, правило растягивания, назначение и все его свойства. Компонентов 32, они собраны в пять групп палитры.</p>
+            <h4><i class="fas fa-font"></i> Базовые <span class="badge">basic</span> <span class="help-note-inline">7 компонентов</span></h4>
+            <p>Базовые: текст, кнопка, иконка, разделитель, отступ, карточка, ряд.</p>
+                <h5><i class="fas fa-font"></i> Текст <span class="badge">text</span> <span class="help-note-inline">160&times;24 px · растягивание: только по ширине</span></h5>
+                <p>Текстовая надпись. Может быть подписана к параметру настройки, брать живое значение и скрываться по условию.</p>
+                <table>
+                    <tr><th>Свойство</th><th>Ключ</th><th>Тип</th><th>Что делает</th></tr>
+                    <tr><td>Текст</td><td><code>text</code></td><td><code>text</code></td><td>Собственный текст компонента.</td></tr>
+                    <tr><td>Связать с параметром</td><td><code>bind</code></td><td><code>setting</code></td><td>Связь с полем настройки. Значение параметра подставляется в <code>{{ widget.ключ }}</code>, и по этой связи работает «Сгенерировать код».</td></tr>
+                    <tr><td>Размер шрифта</td><td><code>size</code></td><td><code>number</code></td><td>Размер в пикселях. Принимает и число, и готовое значение с единицей: <code>1.49rem</code> повторит заголовок карточки.</td></tr>
+                    <tr><td>Цвет текста</td><td><code>color</code></td><td><code>color</code></td><td>Цвет. Можно указать и название цвета темы — тогда он последует за темой оформления.</td></tr>
+                    <tr><td>Выравнивание</td><td><code>align</code></td><td><code>select</code> <span class="help-note-inline"><code>left</code> <code>center</code> <code>right</code></span></td><td>Выравнивание текста по горизонтали.</td></tr>
+                    <tr><td>Полужирный</td><td><code>bold</code></td><td><code>bool</code></td><td>Полужирное начертание.</td></tr>
+                    <tr><td>Курсив</td><td><code>italic</code></td><td><code>bool</code></td><td>Курсив.</td></tr>
+                    <tr><td>Живое значение</td><td><code>expr</code></td><td><code>expr</code></td><td>Живое значение: имя свойства или вычисление, например <code>level</code> или <code>a &gt; b ? 1 : 0</code>. Вставляется прямо в атрибут шаблона, поэтому в нём нельзя ставить двойные кавычки, фигурные скобки, <code>&lt;</code>, обратный слэш и комментарии.</td></tr>
+                    <tr><td>Показывать если</td><td><code>vif</code></td><td><code>expr</code></td><td>Показывать, если выражение истинно — работает как <code>v-if</code>. Пишется без <code>{{ }}</code>: <code>isOn</code>, <code>widget.object_info</code>.</td></tr>
+                </table>
+                <h5><i class="fas fa-hand-pointer"></i> Кнопка <span class="badge">button</span> <span class="help-note-inline">160&times;36 px · растягивание: только по ширине</span></h5>
+                <p>Кнопка. Надпись, иконка, вид (залитая или с контуром) и обработчик действия. В готовом виджете по нажатию можно вызвать метод объекта или запустить сценарий.</p>
+                <table>
+                    <tr><th>Свойство</th><th>Ключ</th><th>Тип</th><th>Что делает</th></tr>
+                    <tr><td>Текст</td><td><code>text</code></td><td><code>text</code></td><td>Собственный текст компонента.</td></tr>
+                    <tr><td>Иконка</td><td><code>icon</code></td><td><code>icon</code></td><td>Класс иконки Font Awesome, например <code>fas fa-star</code>.</td></tr>
+                    <tr><td>Связать с параметром</td><td><code>bind</code></td><td><code>setting</code></td><td>Связь с полем настройки. Значение параметра подставляется в <code>{{ widget.ключ }}</code>, и по этой связи работает «Сгенерировать код».</td></tr>
+                    <tr><td>Вид</td><td><code>variant</code></td><td><code>select</code> <span class="help-note-inline"><code>solid</code> <code>outline</code></span></td><td>Вид кнопки: залитая или с контуром.</td></tr>
+                    <tr><td>Цвет текста</td><td><code>color</code></td><td><code>color</code></td><td>Цвет. Можно указать и название цвета темы — тогда он последует за темой оформления.</td></tr>
+                    <tr><td>Размер кнопки</td><td><code>size</code></td><td><code>number</code></td><td>Размер в пикселях. Принимает и число, и готовое значение с единицей: <code>1.49rem</code> повторит заголовок карточки.</td></tr>
+                    <tr><td>Текст</td><td><code>action</code></td><td><code>text</code></td><td>Обработчик: команда или вызов, выполняемый при действии. Именно с ним работает «Сгенерировать код».</td></tr>
+                </table>
+                <h5><i class="fas fa-star"></i> Иконка <span class="badge">icon</span> <span class="help-note-inline">40&times;40 px · растягивание: не растягивается</span></h5>
+                <p>Иконка Font Awesome. Глиф может приходить из параметра настройки или вычисляемого свойства, а подсветка — из класса темы.</p>
+                <table>
+                    <tr><th>Свойство</th><th>Ключ</th><th>Тип</th><th>Что делает</th></tr>
+                    <tr><td>Иконка</td><td><code>icon</code></td><td><code>icon</code></td><td>Класс иконки Font Awesome, например <code>fas fa-star</code>.</td></tr>
+                    <tr><td>Размер иконки</td><td><code>size</code></td><td><code>number</code></td><td>Размер в пикселях. Принимает и число, и готовое значение с единицей: <code>1.49rem</code> повторит заголовок карточки.</td></tr>
+                    <tr><td>Цвет текста</td><td><code>color</code></td><td><code>color</code></td><td>Цвет. Можно указать и название цвета темы — тогда он последует за темой оформления.</td></tr>
+                    <tr><td>Доп. классы</td><td><code>cls</code></td><td><code>text</code></td><td>Дополнительные классы элемента — например, чтобы взять оформление карточки.</td></tr>
+                    <tr><td>Подсветка из</td><td><code>hl</code></td><td><code>text</code></td><td>Подсветка из вычисляемого свойства: берёт классы из указанного имени. Так работает подсветка включённой иконки — <code>iconHlClass</code>.</td></tr>
+                    <tr><td>Живое значение</td><td><code>expr</code></td><td><code>expr</code></td><td>Живое значение: имя свойства или вычисление, например <code>level</code> или <code>a &gt; b ? 1 : 0</code>. Вставляется прямо в атрибут шаблона, поэтому в нём нельзя ставить двойные кавычки, фигурные скобки, <code>&lt;</code>, обратный слэш и комментарии.</td></tr>
+                    <tr><td>Показывать если</td><td><code>vif</code></td><td><code>expr</code></td><td>Показывать, если выражение истинно — работает как <code>v-if</code>. Пишется без <code>{{ }}</code>: <code>isOn</code>, <code>widget.object_info</code>.</td></tr>
+                </table>
+                <h5><i class="fas fa-minus"></i> Разделитель <span class="badge">divider</span> <span class="help-note-inline">200&times;8 px · растягивание: только по ширине</span></h5>
+                <p>Горизонтальная линия между блоками: сплошная, пунктирная или точечная.</p>
+                <table>
+                    <tr><th>Свойство</th><th>Ключ</th><th>Тип</th><th>Что делает</th></tr>
+                    <tr><td>Цвет текста</td><td><code>color</code></td><td><code>color</code></td><td>Цвет. Можно указать и название цвета темы — тогда он последует за темой оформления.</td></tr>
+                    <tr><td>Стиль</td><td><code>style</code></td><td><code>select</code> <span class="help-note-inline"><code>solid</code> <code>dashed</code> <code>dot</code></span></td><td>Вид линии.</td></tr>
+                </table>
+                <h5><i class="fas fa-arrows-up-down"></i> Отступ <span class="badge">spacer</span> <span class="help-note-inline">40&times;16 px · растягивание: по ширине и по высоте</span></h5>
+                <p>Пустой промежуток. Свойство «Растянуть» задаёт, какую долю свободного места он занимает рядом с растягивающимися компонентами.</p>
+                <table>
+                    <tr><th>Свойство</th><th>Ключ</th><th>Тип</th><th>Что делает</th></tr>
+                    <tr><td>Растянуть</td><td><code>grow</code></td><td><code>number</code></td><td>Насколько компонент тянется, если рядом растягиваются другие: вес свободного места.</td></tr>
+                </table>
+                <h5><i class="fas fa-square"></i> Карточка <span class="badge">card</span> <span class="help-note-inline">240&times;80 px · растягивание: по ширине и по высоте</span></h5>
+                <p>Карточка-подложка: свой фон, скругление, внутренние поля и рамка. Внутри неё размещаются другие компоненты.</p>
+                <table>
+                    <tr><th>Свойство</th><th>Ключ</th><th>Тип</th><th>Что делает</th></tr>
+                    <tr><td>Цвет текста</td><td><code>bg</code></td><td><code>color</code></td><td>Цвет фона карточки.</td></tr>
+                    <tr><td>Скругление</td><td><code>radius</code></td><td><code>number</code></td><td>Скругление углов в пикселях.</td></tr>
+                    <tr><td>Поля</td><td><code>pad</code></td><td><code>number</code></td><td>Внутренний отступ в пикселях.</td></tr>
+                    <tr><td>Цвет текста</td><td><code>border</code></td><td><code>color</code></td><td>Цвет рамки.</td></tr>
+                </table>
+                <h5><i class="fas fa-align-justify"></i> Контейнер <span class="badge">row</span> <span class="help-note-inline">260&times;40 px · растягивание: по ширине и по высоте</span></h5>
+                <p>Контейнер-ряд: Components выстраиваются в строку или столбик, между ними задаётся зазор, ряд выравнивается по вертикали и распределяется по горизонтали.</p>
+                <table>
+                    <tr><th>Свойство</th><th>Ключ</th><th>Тип</th><th>Что делает</th></tr>
+                    <tr><td>Зазор</td><td><code>gap</code></td><td><code>number</code></td><td>Промежуток между элементами в пикселях.</td></tr>
+                    <tr><td>Выравнивание</td><td><code>align</code></td><td><code>select</code> <span class="help-note-inline"><code>stretch</code> <code>center</code> <code>flex-start</code> <code>flex-end</code></span></td><td>Выравнивание текста по горизонтали.</td></tr>
+                    <tr><td>Распределение</td><td><code>justify</code></td><td><code>select</code> <span class="help-note-inline"><code>flex-start</code> <code>center</code> <code>space-between</code> <code>space-around</code> <code>flex-end</code></span></td><td>Распределение элементов по горизонтали: отступы, по центру, между краями, поровну, к правому краю.</td></tr>
+                </table>
+            <h4><i class="fas fa-keyboard"></i> Поля ввода <span class="badge">input</span> <span class="help-note-inline">8 компонентов</span></h4>
+            <p>Поля ввода: поле, многострочное поле, число, чекбокс, выключатель, ползунок, цвет, дата и время.</p>
+                <h5><i class="fas fa-keyboard"></i> Поле ввода <span class="badge">input</span> <span class="help-note-inline">200&times;34 px · растягивание: только по ширине</span></h5>
+                <p>Однострочное поле ввода. Может быть связано с параметром настройки, показывать подсказку в пустом поле и закрывать введённое значение точками.</p>
+                <table>
+                    <tr><th>Свойство</th><th>Ключ</th><th>Тип</th><th>Что делает</th></tr>
+                    <tr><td>Текст</td><td><code>label</code></td><td><code>text</code></td><td>Подпись, которая видна на панели рядом с компонентом.</td></tr>
+                    <tr><td>Связать с параметром</td><td><code>bind</code></td><td><code>setting</code></td><td>Связь с полем настройки. Значение параметра подставляется в <code>{{ widget.ключ }}</code>, и по этой связи работает «Сгенерировать код».</td></tr>
+                    <tr><td>Текст</td><td><code>placeholder</code></td><td><code>text</code></td><td>Текст-подсказка, виден в пустом поле.</td></tr>
+                    <tr><td>Размер шрифта</td><td><code>ph</code></td><td><code>number</code></td><td>Размер шрифта внутри поля в пикселях.</td></tr>
+                    <tr><td>Скрытый ввод</td><td><code>password</code></td><td><code>bool</code></td><td>Закрытый ввод: значение скрыто точками.</td></tr>
+                </table>
+                <h5><i class="fas fa-align-left"></i> Многострочное поле <span class="badge">textarea</span> <span class="help-note-inline">240&times;80 px · растягивание: по ширине и по высоте</span></h5>
+                <p>Многострочное поле ввода. Высота задаётся числом строк, значение можно тянуть мышью за нижний край.</p>
+                <table>
+                    <tr><th>Свойство</th><th>Ключ</th><th>Тип</th><th>Что делает</th></tr>
+                    <tr><td>Текст</td><td><code>label</code></td><td><code>text</code></td><td>Подпись, которая видна на панели рядом с компонентом.</td></tr>
+                    <tr><td>Связать с параметром</td><td><code>bind</code></td><td><code>setting</code></td><td>Связь с полем настройки. Значение параметра подставляется в <code>{{ widget.ключ }}</code>, и по этой связи работает «Сгенерировать код».</td></tr>
+                    <tr><td>Текст</td><td><code>placeholder</code></td><td><code>text</code></td><td>Текст-подсказка, виден в пустом поле.</td></tr>
+                    <tr><td>Строк</td><td><code>rows</code></td><td><code>number</code></td><td>Высота многострочного поля в строках.</td></tr>
+                </table>
+                <h5><i class="fas fa-sort-numeric-up"></i> Число <span class="badge">number</span> <span class="help-note-inline">140&times;34 px · растягивание: только по ширине</span></h5>
+                <p>Числовое поле с ограничением диапазона, шагом и подписью после значения.</p>
+                <table>
+                    <tr><th>Свойство</th><th>Ключ</th><th>Тип</th><th>Что делает</th></tr>
+                    <tr><td>Текст</td><td><code>label</code></td><td><code>text</code></td><td>Подпись, которая видна на панели рядом с компонентом.</td></tr>
+                    <tr><td>Связать с параметром</td><td><code>bind</code></td><td><code>setting</code></td><td>Связь с полем настройки. Значение параметра подставляется в <code>{{ widget.ключ }}</code>, и по этой связи работает «Сгенерировать код».</td></tr>
+                    <tr><td>Минимум</td><td><code>min</code></td><td><code>number</code></td><td>Минимум шкалы. Число остаётся числом, а имя вроде <code>min</code> превращается в живую привязку <code>:min="min"</code>.</td></tr>
+                    <tr><td>Максимум</td><td><code>max</code></td><td><code>number</code></td><td>Максимум шкалы. Правило живого значения то же, что у минимума.</td></tr>
+                    <tr><td>Шаг</td><td><code>step</code></td><td><code>number</code></td><td>Шаг шкалы. Может быть числом или именем поля — тогда берётся из него.</td></tr>
+                    <tr><td>Текст</td><td><code>suffix</code></td><td><code>text</code></td><td>Подпись после значения, например <code>°C</code> или <code>кВт</code>.</td></tr>
+                </table>
+                <h5><i class="fas fa-check-square"></i> Чекбокс <span class="badge">checkbox</span> <span class="help-note-inline">170&times;24 px · растягивание: только по ширине</span></h5>
+                <p>Настоящий флажок: рисует <code>&lt;input type="checkbox"&gt;</code> и показывает состояние параметра. В конструкторе не переключается.</p>
+                <table>
+                    <tr><th>Свойство</th><th>Ключ</th><th>Тип</th><th>Что делает</th></tr>
+                    <tr><td>Текст</td><td><code>label</code></td><td><code>text</code></td><td>Подпись, которая видна на панели рядом с компонентом.</td></tr>
+                    <tr><td>Связать с параметром</td><td><code>bind</code></td><td><code>setting</code></td><td>Связь с полем настройки. Значение параметра подставляется в <code>{{ widget.ключ }}</code>, и по этой связи работает «Сгенерировать код».</td></tr>
+                </table>
+                <h5><i class="fas fa-toggle-on"></i> Выключатель <span class="badge">switch</span> <span class="help-note-inline">140&times;26 px · растягивание: не растягивается</span></h5>
+                <p>Переключатель вкл/выкл. В режиме «Тема» рисуется настоящим элементом темы и становится кликабельным, в режиме «Конструктор» — картинкой. Размер блока не растягивается.</p>
+                <table>
+                    <tr><th>Свойство</th><th>Ключ</th><th>Тип</th><th>Что делает</th></tr>
+                    <tr><td>Подпись</td><td><code>label</code></td><td><code>text</code></td><td>Подпись, которая видна на панели рядом с компонентом.</td></tr>
+                    <tr><td>Связать с параметром</td><td><code>bind</code></td><td><code>setting</code></td><td>Связь с полем настройки. Значение параметра подставляется в <code>{{ widget.ключ }}</code>, и по этой связи работает «Сгенерировать код».</td></tr>
+                    <tr><td>Включено</td><td><code>on</code></td><td><code>bool</code></td><td>Рисунок включённого состояния: синий с ползунком справа, серый с ползунком слева.</td></tr>
+                    <tr><td>Оформление</td><td><code>skin</code></td><td><code>select</code> <span class="help-note-inline"><code>builder</code> <code>v</code></span></td><td>Оформление. В режиме «Тема» выключатель рисуется как <code>.v-input--switch</code>, а ползунок — как <code>.v-slider</code> с полосой и бегунком, и становится кликабельным. В режиме «Конструктор» остаётся картинка.</td></tr>
+                    <tr><td>Обработчик</td><td><code>action</code></td><td><code>text</code></td><td>Обработчик: команда или вызов, выполняемый при действии. Именно с ним работает «Сгенерировать код».</td></tr>
+                    <tr><td>Живое значение</td><td><code>expr</code></td><td><code>expr</code></td><td>Живое значение: имя свойства или вычисление, например <code>level</code> или <code>a &gt; b ? 1 : 0</code>. Вставляется прямо в атрибут шаблона, поэтому в нём нельзя ставить двойные кавычки, фигурные скобки, <code>&lt;</code>, обратный слэш и комментарии.</td></tr>
+                    <tr><td>Показывать если</td><td><code>vif</code></td><td><code>expr</code></td><td>Показывать, если выражение истинно — работает как <code>v-if</code>. Пишется без <code>{{ }}</code>: <code>isOn</code>, <code>widget.object_info</code>.</td></tr>
+                </table>
+                <h5><i class="fas fa-sliders"></i> Ползунок <span class="badge">slider</span> <span class="help-note-inline">200&times;34 px · растягивание: только по ширине</span></h5>
+                <p>Ползунок. В режиме «Тема» становится настоящим <code>.v-slider</code> с полосой и бегунком. Границы, шаг и заливку можно задавать числом, именем поля или выражением.</p>
+                <table>
+                    <tr><th>Свойство</th><th>Ключ</th><th>Тип</th><th>Что делает</th></tr>
+                    <tr><td>Текст</td><td><code>label</code></td><td><code>text</code></td><td>Подпись, которая видна на панели рядом с компонентом.</td></tr>
+                    <tr><td>Связать с параметром</td><td><code>bind</code></td><td><code>setting</code></td><td>Связь с полем настройки. Значение параметра подставляется в <code>{{ widget.ключ }}</code>, и по этой связи работает «Сгенерировать код».</td></tr>
+                    <tr><td>Минимум</td><td><code>min</code></td><td><code>number</code></td><td>Минимум шкалы. Число остаётся числом, а имя вроде <code>min</code> превращается в живую привязку <code>:min="min"</code>.</td></tr>
+                    <tr><td>Максимум</td><td><code>max</code></td><td><code>number</code></td><td>Максимум шкалы. Правило живого значения то же, что у минимума.</td></tr>
+                    <tr><td>Шаг</td><td><code>step</code></td><td><code>number</code></td><td>Шаг шкалы. Может быть числом или именем поля — тогда берётся из него.</td></tr>
+                    <tr><td>Текст</td><td><code>unit</code></td><td><code>text</code></td><td>Единица измерения, которая подписывает значение, например <code>°C</code> или <code>кВт</code>.</td></tr>
+                    <tr><td>Оформление</td><td><code>skin</code></td><td><code>select</code> <span class="help-note-inline"><code>builder</code> <code>v</code></span></td><td>Оформление. В режиме «Тема» выключатель рисуется как <code>.v-input--switch</code>, а ползунок — как <code>.v-slider</code> с полосой и бегунком, и становится кликабельным. В режиме «Конструктор» остаётся картинка.</td></tr>
+                    <tr><td>Обработчик</td><td><code>action</code></td><td><code>text</code></td><td>Обработчик: команда или вызов, выполняемый при действии. Именно с ним работает «Сгенерировать код».</td></tr>
+                    <tr><td>Минимум (живой)</td><td><code>lomin</code></td><td><code>expr</code></td><td>Живой минимум ползунка — имя поля или вычисление.</td></tr>
+                    <tr><td>Максимум (живой)</td><td><code>himax</code></td><td><code>expr</code></td><td>Живой максимум ползунка.</td></tr>
+                    <tr><td>Шаг (живой)</td><td><code>stepexpr</code></td><td><code>expr</code></td><td>Живой шаг ползунка.</td></tr>
+                    <tr><td>Заливка, %</td><td><code>fill</code></td><td><code>expr</code></td><td>Заливка, в процентах.</td></tr>
+                    <tr><td>Заблокирован</td><td><code>disabled</code></td><td><code>expr</code></td><td>Живое условие блокировки: <code>!alive</code> — виджет гаснет, когда пропала связь.</td></tr>
+                    <tr><td>Живое значение</td><td><code>expr</code></td><td><code>expr</code></td><td>Живое значение: имя свойства или вычисление, например <code>level</code> или <code>a &gt; b ? 1 : 0</code>. Вставляется прямо в атрибут шаблона, поэтому в нём нельзя ставить двойные кавычки, фигурные скобки, <code>&lt;</code>, обратный слэш и комментарии.</td></tr>
+                    <tr><td>Показывать если</td><td><code>vif</code></td><td><code>expr</code></td><td>Показывать, если выражение истинно — работает как <code>v-if</code>. Пишется без <code>{{ }}</code>: <code>isOn</code>, <code>widget.object_info</code>.</td></tr>
+                </table>
+                <h5><i class="fas fa-palette"></i> Цвет <span class="badge">color</span> <span class="help-note-inline">120&times;34 px · растягивание: только по ширине</span></h5>
+                <p>Выбор цвета: палитра и строка значения. Пока в параметре настройки ничего нет, берётся цвет по умолчанию.</p>
+                <table>
+                    <tr><th>Свойство</th><th>Ключ</th><th>Тип</th><th>Что делает</th></tr>
+                    <tr><td>Текст</td><td><code>label</code></td><td><code>text</code></td><td>Подпись, которая видна на панели рядом с компонентом.</td></tr>
+                    <tr><td>Связать с параметром</td><td><code>bind</code></td><td><code>setting</code></td><td>Связь с полем настройки. Значение параметра подставляется в <code>{{ widget.ключ }}</code>, и по этой связи работает «Сгенерировать код».</td></tr>
+                    <tr><td>Цвет текста</td><td><code>def</code></td><td><code>color</code></td><td>Цвет, который берётся по умолчанию.</td></tr>
+                </table>
+                <h5><i class="fas fa-calendar"></i> Дата/время <span class="badge">datetime</span> <span class="help-note-inline">200&times;34 px · растягивание: только по ширине</span></h5>
+                <p>Поле выбора даты и времени. Формат переключается: дата и время, дата, время, месяц, неделя.</p>
+                <table>
+                    <tr><th>Свойство</th><th>Ключ</th><th>Тип</th><th>Что делает</th></tr>
+                    <tr><td>Текст</td><td><code>label</code></td><td><code>text</code></td><td>Подпись, которая видна на панели рядом с компонентом.</td></tr>
+                    <tr><td>Связать с параметром</td><td><code>bind</code></td><td><code>setting</code></td><td>Связь с полем настройки. Значение параметра подставляется в <code>{{ widget.ключ }}</code>, и по этой связи работает «Сгенерировать код».</td></tr>
+                    <tr><td>Формат</td><td><code>kind</code></td><td><code>select</code> <span class="help-note-inline"><code>datetime-local</code> <code>date</code> <code>time</code> <code>month</code> <code>week</code></span></td><td>Что выбирается: дата и время, дата, время, месяц или неделя.</td></tr>
+                </table>
+            <h4><i class="fas fa-caret-down"></i> Выбор <span class="badge">select</span> <span class="help-note-inline">4 компонента</span></h4>
+            <p>Выбор: список, радиокнопки, вкладки, сегменты.</p>
+                <h5><i class="fas fa-caret-down"></i> Список <span class="badge">select</span> <span class="help-note-inline">200&times;34 px · растягивание: только по ширине</span></h5>
+                <p>Выпадающий список. Варианты задаются строками в формате <code>значение|Подпись</code>.</p>
+                <table>
+                    <tr><th>Свойство</th><th>Ключ</th><th>Тип</th><th>Что делает</th></tr>
+                    <tr><td>Текст</td><td><code>label</code></td><td><code>text</code></td><td>Подпись, которая видна на панели рядом с компонентом.</td></tr>
+                    <tr><td>Связать с параметром</td><td><code>bind</code></td><td><code>setting</code></td><td>Связь с полем настройки. Значение параметра подставляется в <code>{{ widget.ключ }}</code>, и по этой связи работает «Сгенерировать код».</td></tr>
+                    <tr><td>Варианты</td><td><code>options</code></td><td><code>textarea</code></td><td>Список вариантов: <code>значение|Подпись</code> по одной в строке.</td></tr>
+                    <tr><td>Текст</td><td><code>ph</code></td><td><code>text</code></td><td>Подпись, которая видна в списке, пока вариант не выбран.</td></tr>
+                </table>
+                <h5><i class="fas fa-dot-circle"></i> Радиокнопки <span class="badge">radio</span> <span class="help-note-inline">200&times;80 px · растягивание: по ширине и по высоте</span></h5>
+                <p>Переключатели. Несколько вариантов в строку или столбиком — задаётся направлением.</p>
+                <table>
+                    <tr><th>Свойство</th><th>Ключ</th><th>Тип</th><th>Что делает</th></tr>
+                    <tr><td>Текст</td><td><code>label</code></td><td><code>text</code></td><td>Подпись, которая видна на панели рядом с компонентом.</td></tr>
+                    <tr><td>Связать с параметром</td><td><code>bind</code></td><td><code>setting</code></td><td>Связь с полем настройки. Значение параметра подставляется в <code>{{ widget.ключ }}</code>, и по этой связи работает «Сгенерировать код».</td></tr>
+                    <tr><td>Варианты</td><td><code>options</code></td><td><code>textarea</code></td><td>Список вариантов: <code>значение|Подпись</code> по одной в строке.</td></tr>
+                    <tr><td>Направление</td><td><code>dir</code></td><td><code>select</code> <span class="help-note-inline"><code>horizontal</code> <code>vertical</code></span></td><td>Расположение вариантов: в строку или столбиком.</td></tr>
+                </table>
+                <h5><i class="fas fa-layer-group"></i> Вкладки <span class="badge">tabs</span> <span class="help-note-inline">260&times;34 px · растягивание: только по ширине</span></h5>
+                <p>Полоска вкладок. Подписи задаются по одной в строке; внешний вид — как у вкладок темы.</p>
+                <table>
+                    <tr><th>Свойство</th><th>Ключ</th><th>Тип</th><th>Что делает</th></tr>
+                    <tr><td>Связать с параметром</td><td><code>bind</code></td><td><code>setting</code></td><td>Связь с полем настройки. Значение параметра подставляется в <code>{{ widget.ключ }}</code>, и по этой связи работает «Сгенерировать код».</td></tr>
+                    <tr><td>Компоненты</td><td><code>items</code></td><td><code>textarea</code></td><td>Список элементов: одна запись в строке. Для вкладок — <code>ключ|Подпись</code>.</td></tr>
+                </table>
+                <h5><i class="fas fa-grip"></i> Сегменты <span class="badge">segment</span> <span class="help-note-inline">220&times;32 px · растягивание: только по ширине</span></h5>
+                <p>Сегментированный переключатель: варианты делят блок поровну, активный подсвечен заливкой.</p>
+                <table>
+                    <tr><th>Свойство</th><th>Ключ</th><th>Тип</th><th>Что делает</th></tr>
+                    <tr><td>Связать с параметром</td><td><code>bind</code></td><td><code>setting</code></td><td>Связь с полем настройки. Значение параметра подставляется в <code>{{ widget.ключ }}</code>, и по этой связи работает «Сгенерировать код».</td></tr>
+                    <tr><td>Варианты</td><td><code>options</code></td><td><code>textarea</code></td><td>Список вариантов: <code>значение|Подпись</code> по одной в строке.</td></tr>
+                </table>
+            <h4><i class="fas fa-tasks"></i> Отображение <span class="badge">display</span> <span class="help-note-inline">12 компонентов</span></h4>
+            <p>Отображение: прогресс, шкала, метка, список, таблица, график, картинка, видео, iframe, карта, спиннер, HTML.</p>
+                <h5><i class="fas fa-tasks"></i> Прогресс <span class="badge">progress</span> <span class="help-note-inline">220&times;22 px · растягивание: только по ширине</span></h5>
+                <p>Горизонтальная полоса заполнения. Слева по желанию показывается процент заполнения.</p>
+                <table>
+                    <tr><th>Свойство</th><th>Ключ</th><th>Тип</th><th>Что делает</th></tr>
+                    <tr><td>Связать с параметром</td><td><code>bind</code></td><td><code>setting</code></td><td>Связь с полем настройки. Значение параметра подставляется в <code>{{ widget.ключ }}</code>, и по этой связи работает «Сгенерировать код».</td></tr>
+                    <tr><td>Цвет текста</td><td><code>color</code></td><td><code>color</code></td><td>Цвет. Можно указать и название цвета темы — тогда он последует за темой оформления.</td></tr>
+                    <tr><td>Высота</td><td><code>height</code></td><td><code>number</code></td><td>Высота в пикселях.</td></tr>
+                    <tr><td>Показывать подпись</td><td><code>label</code></td><td><code>bool</code></td><td>Подпись, которая видна на панели рядом с компонентом.</td></tr>
+                </table>
+                <h5><i class="fas fa-tachometer-alt"></i> Шкала <span class="badge">gauge</span> <span class="help-note-inline">180&times;120 px · растягивание: не растягивается</span></h5>
+                <p>Круговая шкала с числом в центре. Цветом красится дуга.</p>
+                <table>
+                    <tr><th>Свойство</th><th>Ключ</th><th>Тип</th><th>Что делает</th></tr>
+                    <tr><td>Связать с параметром</td><td><code>bind</code></td><td><code>setting</code></td><td>Связь с полем настройки. Значение параметра подставляется в <code>{{ widget.ключ }}</code>, и по этой связи работает «Сгенерировать код».</td></tr>
+                    <tr><td>Минимум</td><td><code>min</code></td><td><code>number</code></td><td>Минимум шкалы. Число остаётся числом, а имя вроде <code>min</code> превращается в живую привязку <code>:min="min"</code>.</td></tr>
+                    <tr><td>Максимум</td><td><code>max</code></td><td><code>number</code></td><td>Максимум шкалы. Правило живого значения то же, что у минимума.</td></tr>
+                    <tr><td>Текст</td><td><code>unit</code></td><td><code>text</code></td><td>Единица измерения, которая подписывает значение, например <code>°C</code> или <code>кВт</code>.</td></tr>
+                    <tr><td>Цвет текста</td><td><code>color</code></td><td><code>color</code></td><td>Цвет. Можно указать и название цвета темы — тогда он последует за темой оформления.</td></tr>
+                </table>
+                <h5><i class="fas fa-tag"></i> Метка <span class="badge">badge</span> <span class="help-note-inline">90&times;22 px · растягивание: только по ширине</span></h5>
+                <p>Метка-«таблетка» с текстом и цветом. Текст может приходить из параметра настройки.</p>
+                <table>
+                    <tr><th>Свойство</th><th>Ключ</th><th>Тип</th><th>Что делает</th></tr>
+                    <tr><td>Связать с параметром</td><td><code>bind</code></td><td><code>setting</code></td><td>Связь с полем настройки. Значение параметра подставляется в <code>{{ widget.ключ }}</code>, и по этой связи работает «Сгенерировать код».</td></tr>
+                    <tr><td>Текст</td><td><code>text</code></td><td><code>text</code></td><td>Собственный текст компонента.</td></tr>
+                    <tr><td>Цвет текста</td><td><code>color</code></td><td><code>color</code></td><td>Цвет. Можно указать и название цвета темы — тогда он последует за темой оформления.</td></tr>
+                </table>
+                <h5><i class="fas fa-list"></i> Список <span class="badge">list</span> <span class="help-note-inline">240&times;100 px · растягивание: по ширине и по высоте</span></h5>
+                <p>Список элементов. Сколько их показывать — задаётся числом, вместо номеров можно поставить точки-маркеры.</p>
+                <table>
+                    <tr><th>Свойство</th><th>Ключ</th><th>Тип</th><th>Что делает</th></tr>
+                    <tr><td>Связать с параметром</td><td><code>bind</code></td><td><code>setting</code></td><td>Связь с полем настройки. Значение параметра подставляется в <code>{{ widget.ключ }}</code>, и по этой связи работает «Сгенерировать код».</td></tr>
+                    <tr><td>Количество</td><td><code>items</code></td><td><code>number</code></td><td>Список элементов: одна запись в строке. Для вкладок — <code>ключ|Подпись</code>.</td></tr>
+                    <tr><td>Маркеры</td><td><code>bullet</code></td><td><code>bool</code></td><td>Пункты вместо номеров.</td></tr>
+                </table>
+                <h5><i class="fas fa-table"></i> Таблица <span class="badge">table</span> <span class="help-note-inline">280&times;120 px · растягивание: по ширине и по высоте</span></h5>
+                <p>Таблица. Столбцы задаются строками <code>ключ|Заголовок|Ширина</code>, строки приходят из связанного параметра; фон строк можно чередовать.</p>
+                <table>
+                    <tr><th>Свойство</th><th>Ключ</th><th>Тип</th><th>Что делает</th></tr>
+                    <tr><td>Связать с параметром</td><td><code>bind</code></td><td><code>setting</code></td><td>Связь с полем настройки. Значение параметра подставляется в <code>{{ widget.ключ }}</code>, и по этой связи работает «Сгенерировать код».</td></tr>
+                    <tr><td>Столбцы</td><td><code>cols</code></td><td><code>textarea</code></td><td>Колонки: <code>ключ|Заголовок|Ширина</code> по одной в строке.</td></tr>
+                    <tr><td>Строк</td><td><code>rows</code></td><td><code>number</code></td><td>Высота многострочного поля в строках.</td></tr>
+                    <tr><td>Чередование строк</td><td><code>striped</code></td><td><code>bool</code></td><td>Чередование фона строк.</td></tr>
+                </table>
+                <h5><i class="fas fa-chart-line"></i> График <span class="badge">chart</span> <span class="help-note-inline">280&times;140 px · растягивание: по ширине и по высоте</span></h5>
+                <p>График: линия или столбцы, с заливкой площади под линией. Данные приходят из связанного параметра настройки.</p>
+                <table>
+                    <tr><th>Свойство</th><th>Ключ</th><th>Тип</th><th>Что делает</th></tr>
+                    <tr><td>Связать с параметром</td><td><code>bind</code></td><td><code>setting</code></td><td>Связь с полем настройки. Значение параметра подставляется в <code>{{ widget.ключ }}</code>, и по этой связи работает «Сгенерировать код».</td></tr>
+                    <tr><td>Цвет текста</td><td><code>color</code></td><td><code>color</code></td><td>Цвет. Можно указать и название цвета темы — тогда он последует за темой оформления.</td></tr>
+                    <tr><td>Формат</td><td><code>kind</code></td><td><code>select</code> <span class="help-note-inline"><code>line</code> <code>bar</code></span></td><td>Что выбирается: дата и время, дата, время, месяц или неделя.</td></tr>
+                    <tr><td>Заливка</td><td><code>fill</code></td><td><code>bool</code></td><td>Заливка, в процентах.</td></tr>
+                </table>
+                <h5><i class="fas fa-image"></i> Картинка <span class="badge">image</span> <span class="help-note-inline">220&times;130 px · растягивание: по ширине и по высоте</span></h5>
+                <p>Картинка по адресу. Вписывается в рамку несколькими способами, углы скругляются, для битой картинки задаётся запасной текст.</p>
+                <table>
+                    <tr><th>Свойство</th><th>Ключ</th><th>Тип</th><th>Что делает</th></tr>
+                    <tr><td>Текст</td><td><code>src</code></td><td><code>text</code></td><td>Адрес источника: картинки, видео или страницы в iframe.</td></tr>
+                    <tr><td>Связать с параметром</td><td><code>bind</code></td><td><code>setting</code></td><td>Связь с полем настройки. Значение параметра подставляется в <code>{{ widget.ключ }}</code>, и по этой связи работает «Сгенерировать код».</td></tr>
+                    <tr><td>Текст</td><td><code>alt</code></td><td><code>text</code></td><td>Текст вместо картинки, если она не загрузилась.</td></tr>
+                    <tr><td>Скругление</td><td><code>radius</code></td><td><code>number</code></td><td>Скругление углов в пикселях.</td></tr>
+                    <tr><td>Вписать</td><td><code>fit</code></td><td><code>select</code> <span class="help-note-inline"><code>cover</code> <code>contain</code> <code>fill</code> <code>none</code> <code>scale-down</code></span></td><td>Как картинка вписывается в рамку: заполняет и обрезается, вписывается целиком, растягивается, по размеру или как есть.</td></tr>
+                </table>
+                <h5><i class="fas fa-video"></i> Видео <span class="badge">video</span> <span class="help-note-inline">260&times;150 px · растягивание: по ширине и по высоте</span></h5>
+                <p>Видеоплеер: файл или поток. Управление и автовоспроизведение включаются флажками.</p>
+                <table>
+                    <tr><th>Свойство</th><th>Ключ</th><th>Тип</th><th>Что делает</th></tr>
+                    <tr><td>Текст</td><td><code>src</code></td><td><code>text</code></td><td>Адрес источника: картинки, видео или страницы в iframe.</td></tr>
+                    <tr><td>Связать с параметром</td><td><code>bind</code></td><td><code>setting</code></td><td>Связь с полем настройки. Значение параметра подставляется в <code>{{ widget.ключ }}</code>, и по этой связи работает «Сгенерировать код».</td></tr>
+                    <tr><td>Управление</td><td><code>controls</code></td><td><code>bool</code></td><td>Показывать панель управления видеоплеером.</td></tr>
+                    <tr><td>Автовоспроизведение</td><td><code>autoplay</code></td><td><code>bool</code></td><td>Запускать видео сразу.</td></tr>
+                    <tr><td>Скругление</td><td><code>radius</code></td><td><code>number</code></td><td>Скругление углов в пикселях.</td></tr>
+                </table>
+                <h5><i class="fas fa-window-restore"></i> Iframe <span class="badge">iframe</span> <span class="help-note-inline">260&times;150 px · растягивание: по ширине и по высоте</span></h5>
+                <p>Встраивание внешней страницы. Рамка вокруг содержимого включается флажком.</p>
+                <table>
+                    <tr><th>Свойство</th><th>Ключ</th><th>Тип</th><th>Что делает</th></tr>
+                    <tr><td>Текст</td><td><code>src</code></td><td><code>text</code></td><td>Адрес источника: картинки, видео или страницы в iframe.</td></tr>
+                    <tr><td>Связать с параметром</td><td><code>bind</code></td><td><code>setting</code></td><td>Связь с полем настройки. Значение параметра подставляется в <code>{{ widget.ключ }}</code>, и по этой связи работает «Сгенерировать код».</td></tr>
+                    <tr><td>Рамка</td><td><code>border</code></td><td><code>bool</code></td><td>Цвет рамки.</td></tr>
+                </table>
+                <h5><i class="fas fa-map"></i> Карта <span class="badge">map</span> <span class="help-note-inline">260&times;150 px · растягивание: по ширине и по высоте</span></h5>
+                <p>Карта с центром в заданных координатах и масштабе. Координаты и масштаб можно задать константой, а карту растянуть по обоим направлениям.</p>
+                <table>
+                    <tr><th>Свойство</th><th>Ключ</th><th>Тип</th><th>Что делает</th></tr>
+                    <tr><td>Широта</td><td><code>lat</code></td><td><code>number</code></td><td>Широта центра карты.</td></tr>
+                    <tr><td>Долгота</td><td><code>lon</code></td><td><code>number</code></td><td>Долгота центра карты.</td></tr>
+                    <tr><td>Масштаб</td><td><code>zoom</code></td><td><code>number</code></td><td>Масштаб карты.</td></tr>
+                    <tr><td>Скругление</td><td><code>radius</code></td><td><code>number</code></td><td>Скругление углов в пикселях.</td></tr>
+                </table>
+                <h5><i class="fas fa-circle-notch"></i> Спиннер <span class="badge">spinner</span> <span class="help-note-inline">40&times;40 px · растягивание: не растягивается</span></h5>
+                <p>Крутящийся индикатор ожидания. Задаются сторона и цвет.</p>
+                <table>
+                    <tr><th>Свойство</th><th>Ключ</th><th>Тип</th><th>Что делает</th></tr>
+                    <tr><td>Размер</td><td><code>size</code></td><td><code>number</code></td><td>Размер в пикселях. Принимает и число, и готовое значение с единицей: <code>1.49rem</code> повторит заголовок карточки.</td></tr>
+                    <tr><td>Цвет текста</td><td><code>color</code></td><td><code>color</code></td><td>Цвет. Можно указать и название цвета темы — тогда он последует за темой оформления.</td></tr>
+                </table>
+                <h5><i class="fas fa-code"></i> HTML <span class="badge">html</span> <span class="help-note-inline">240&times;80 px · растягивание: по ширине и по высоте</span></h5>
+                <p>Произвольная HTML-разметка: вставляется как есть, вместе с ней можно задать свои стили.</p>
+                <table>
+                    <tr><th>Свойство</th><th>Ключ</th><th>Тип</th><th>Что делает</th></tr>
+                    <tr><td>Связать с параметром</td><td><code>bind</code></td><td><code>setting</code></td><td>Связь с полем настройки. Значение параметра подставляется в <code>{{ widget.ключ }}</code>, и по этой связи работает «Сгенерировать код».</td></tr>
+                    <tr><td>HTML-код</td><td><code>code</code></td><td><code>textarea</code></td><td>Своя HTML-разметка. Вставляется как есть — вместе с ней можно задать свои стили.</td></tr>
+                </table>
+            <h4><i class="fas fa-cubes"></i> Виджеты <span class="badge">widgets</span> <span class="help-note-inline">1 компонент</span></h4>
+            <p>Вложенный готовый виджет модуля.</p>
+                <h5><i class="fas fa-cubes"></i> Виджет <span class="badge">widget</span> <span class="help-note-inline">260&times;160 px · растягивание: по ширине и по высоте</span></h5>
+                <p>Вложенный готовый виджет модуля. Тип выбирается из списка установленных.</p>
+                <table>
+                    <tr><th>Свойство</th><th>Ключ</th><th>Тип</th><th>Что делает</th></tr>
+                    <tr><td>Идентификатор (type)</td><td><code>type</code></td><td><code>select</code></td><td>Какой виджет вложить. Список пополняется установленными типами.</td></tr>
+                    <tr><td>Связать с параметром</td><td><code>bind</code></td><td><code>setting</code></td><td>Связь с полем настройки. Значение параметра подставляется в <code>{{ widget.ключ }}</code>, и по этой связи работает «Сгенерировать код».</td></tr>
+                </table>
         </div>
 
         <div class="help-card">

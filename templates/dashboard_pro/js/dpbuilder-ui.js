@@ -379,6 +379,13 @@
             '          <div class="dpb-frame__size">{{ model.appearance.width }} &times; {{ model.appearance.height }} px</div>' +
             '          <div class="dpb-frame__body" :style="frameBodyStyle()">' +
             '            <div class="dpb-frame__grid"></div>' +
+            /* the header the module starts with: the same icon and name the code writes */
+            '            <div class="dpb-head" v-if="model.appearance.showTitle || model.appearance.iconType === \'property\' || (model.appearance.iconType === \'icon\' && model.appearance.icon) || (model.appearance.iconType === \'url\' && model.appearance.iconUrl)">' +
+            '              <i class="dpb-ico" v-if="model.appearance.iconType === \'icon\' && model.appearance.icon" :class="model.appearance.icon"></i>' +
+            '              <img class="dpb-ico" v-else-if="model.appearance.iconType === \'url\' && model.appearance.iconUrl" :src="model.appearance.iconUrl" alt="">' +
+            '              <i class="dpb-ico" v-else-if="model.appearance.iconType === \'property\' && model.appearance.iconProperty" :class="model.appearance.iconProperty"></i>' +
+            '              <span class="dpb-title" v-if="model.appearance.showTitle && model.appearance.title">{{ model.appearance.title }}</span>' +
+            '            </div>' +
             '            <div class="dpb-canvas__stack" ref="area">' +
              '              <div v-for="it in model.appearance.items" :key="it._i" class="dpb-node" :class="{ \'dpb-node--on\': sel === it._i, \'dpb-node--drag\': drag && drag._i === it._i, \'dpb-node--rs\': rs && rs._i === it._i }"' +
              '                   :style="nodeStyle(it)" @mousedown="dragStart($event, it)" @click.stop="sel = it._i">' +
@@ -440,16 +447,30 @@
             '            <select v-model="model.appearance.align">' +
             '              <option v-for="o in [\'stretch\', \'flex-start\', \'center\', \'flex-end\']" :key="o" :value="o">{{ valLabel(o) }}</option></select></div>' +
             '          <div class="dpb-chk"><input type="checkbox" id="dpbShowTitle" v-model="model.appearance.showTitle"><label for="dpbShowTitle">{{ t(\'dpb_showtitle\') }}</label></div>' +
-            '          <div class="dpb-f" v-if="model.appearance.showTitle"><label>{{ t(\'dpb_title\') }}</label><input type="text" v-model="model.appearance.title"></div>' +
+            '          <div class="dpb-f" v-if="model.appearance.showTitle"><label>{{ t(\'field_title\') }}</label><input type="text" v-model="model.appearance.title"></div>' +
+            /* the icon of the module itself: the same set the settings panel offers */
+            '          <div class="dpb-f"><label>{{ t(\'field_icon_type\') }}</label><select v-model="model.appearance.iconType">' +
+            '            <option value="icon">{{ t(\'opt_icon\') }}</option>' +
+            '            <option value="property">{{ t(\'opt_property\') }}</option>' +
+            '            <option value="url">{{ t(\'opt_url\') }}</option></select></div>' +
+            '          <div class="dpb-f" v-if="model.appearance.iconType === \'icon\'"><label>{{ t(\'field_icon\') }}</label><icon-picker v-model="model.appearance.icon"></icon-picker></div>' +
+            '          <div class="dpb-row2" v-if="model.appearance.iconType === \'property\'">' +
+            '            <div class="dpb-f"><label>{{ t(\'field_icon_object\') }}</label><input type="text" spellcheck="false" v-model="model.appearance.iconObject" placeholder="MegaCC"></div>' +
+            '            <div class="dpb-f"><label>{{ t(\'field_icon_property\') }}</label><input type="text" spellcheck="false" v-model="model.appearance.iconProperty" placeholder="Status"></div>' +
+            '          </div>' +
+            '          <div class="dpb-f" v-if="model.appearance.iconType === \'url\'"><label>{{ t(\'field_icon_url\') }}</label><input type="text" spellcheck="false" v-model="model.appearance.iconUrl" placeholder="https://..."></div>' +
             '        </div>' +
             /* --- selected component --- */
             '        <div class="dpb-block" v-if="cur">' +
             '          <div class="dpb-block__title"><i :class="compOf(cur).icon"></i>{{ t(compOf(cur).label) }}</div>' +
             '          <div class="dpb-row2">' +
+            '            <div class="dpb-f"><label>{{ t(\'dpb_x\') }}</label><input type="number" v-model.number="cur.x" min="0" step="1" @change="setPos(cur, cur.x, cur.y)"></div>' +
+            '            <div class="dpb-f"><label>{{ t(\'dpb_y\') }}</label><input type="number" v-model.number="cur.y" min="0" step="1" @change="setPos(cur, cur.x, cur.y)"></div>' +
+            '          </div>' +
+            '          <div class="dpb-row2">' +
             '            <div class="dpb-f"><label>{{ t(\'dpb_w\') }}</label><input type="number" v-model.number="cur.w" min="10" step="1"></div>' +
             '            <div class="dpb-f"><label>{{ t(\'dpb_h\') }}</label><input type="number" v-model.number="cur.h" min="10" step="1"></div>' +
             '          </div>' +
-            '          <div class="dpb-hint">{{ t(\'dpb_pos_hint\') }}</div>' +
              '          <div class="dpb-row2">' +
              '            <div class="dpb-f"><label>{{ t(\'dpb_anchor_x\') }}</label>' +
              '              <select v-model="cur.anchorX" :disabled="cur.stretchX"><option value="">{{ t(\'dpb_anchor_none\') }}</option>' +
@@ -536,7 +557,7 @@
             '        <div v-for="(f, fi) in curTab.items" :key="f._i" class="dpb-frow" :class="{ \'dpb-frow--on\': fsel === f._i, \'dpb-frow--sys\': sysOf(f) }" @click="selField(f)">' +
             '          <i class="fas fa-grip-vertical dpb-grip"></i>' +
             '          <i :class="sysOf(f) ? sysOf(f).icon : fIcon(f.type)"></i>' +
-            '          <div class="dpb-frow__main"><b>{{ f.label || f.key || t(\'dpb_unnamed\') }}</b><span>{{ sysOf(f) ? t(sysOf(f).label) + \' · \' + f.key : f.key + \' · \' + fType(f.type) }}</span></div>' +
+            '          <div class="dpb-frow__main"><b>{{ fLbl(f) }}</b><span>{{ sysOf(f) ? t(sysOf(f).label) + \' · \' + f.key : f.key + \' · \' + fType(f.type) }}</span></div>' +
             '          <div class="dpb-frow__ops">' +
             '            <button :disabled="fi === 0" @click.stop="moveField(fi, -1)"><i class="fas fa-arrow-up"></i></button>' +
             '            <button :disabled="fi === curTab.items.length - 1" @click.stop="moveField(fi, 1)"><i class="fas fa-arrow-down"></i></button>' +
@@ -562,7 +583,8 @@
             '            <input type="text" v-model="curF.key" :class="{ \'dpb-bad\': keyError }" @input="keyError = \'\'" placeholder="myParam">' +
             '            <div class="dpb-err" v-if="keyError"><i class="fas fa-exclamation-triangle"></i>{{ keyError }}</div>' +
             '            <div class="dpb-hint" v-else>a-z 0-9 _</div></div>' +
-            '          <div class="dpb-f"><label>{{ t(\'dpb_label\') }}</label><input type="text" v-model="curF.label"></div>' +
+            '          <div class="dpb-f"><label>{{ t(\'dpb_label\') }}</label><input type="text" v-model="curF.label">' +
+            '            <div class="dpb-hint">{{ t(\'dpb_label_hint\') }}</div></div>' +
             '          <div class="dpb-f"><label>{{ t(\'dpb_default\') }}</label>' +
             '            <icon-picker v-if="curF.type === \'icon_picker\'" v-model="curF.default"></icon-picker>' +
             '            <color-picker v-else-if="curF.type === \'color\'" v-model="curF.default"></color-picker>' +
@@ -722,13 +744,26 @@
                section of such a widget opens right on data(): it is always there,
                while methods() is still empty and would only show the stub */
             isBlank: function () {
-                var m = this.model || {}, c = m.code || {};
+                var m = this.model || {}, c = m.code || {}, a = m.appearance || {};
                 if (String(m.title || '').trim() || String(m.description || '').trim()) return false;
-                if ((((m.appearance || {}).items) || []).length) return false;
-                if (String((m.appearance || {}).html || '').trim()) return false;
+                if (((a.items) || []).some(function (it) {
+                    if (it._std && DpBuilder.isStdItem && DpBuilder.isStdItem(it)) return false;
+                    return true;
+                })) return false;
+                if (String(a.html || '').trim()) return false;
+                /* a header the user has set is work too, even without a single block */
+                if (a.showTitle && String(a.title || '').trim()) return false;
+                if (String(a.icon || '').trim() || String(a.iconUrl || '').trim()) return false;
+                if (String(a.iconObject || '').trim() || String(a.iconProperty || '').trim()) return false;
                 var tabs = ((m.settings || {}).tabs) || [];
                 for (var i = 0; i < tabs.length; i++) {
-                    if ((((tabs[i] || {}).items) || []).length) return false;
+                    var items = ((tabs[i] || {}).items) || [];
+                    for (var x = 0; x < items.length; x++) {
+                        var f = items[x] || {};
+                        if (f._sys || f.type === 'info') continue;
+                        if (f._std && DpBuilder.isStdField && DpBuilder.isStdField(f)) continue;
+                        return false;
+                    }
                 }
                 var keys = ['dataPre', 'data', 'computed', 'methods', 'mounted', 'watch', 'beforeUnmount'];
                 for (var j = 0; j < keys.length; j++) {
@@ -928,6 +963,14 @@
         fType: function (tp) { return window.__t ? window.__t('dpb_ft_' + tp) : tp; },
             fIcon: function (tp) { return (B.FIELD_TYPES[tp] || {}).icon || 'fas fa-square'; },
             tabLabel: function (v) { return B.lbl ? B.lbl(v) : v; },
+            /* the name of a field as the widget shows it: the label of a ready made
+               widget is a key of the language file, an own one is written as it is */
+            fLbl: function (f) {
+                if (!f) return this.t('dpb_unnamed');
+                var v = String(f.label || '').trim();
+                if (v && B.lbl) v = B.lbl(v) || v;
+                return v || f.key || this.t('dpb_unnamed');
+            },
             /* the system section a field belongs to, or null for an ordinary field */
             sysOf: function (f) { return (B.systemFieldOf && f && f._sys) ? B.systemFieldOf(f) : null; },
             /* the tab belongs to a section of the core */
@@ -943,6 +986,15 @@
                     this.clampItems();
                 },
                 clampItems: function () { B.clampAll(this.model.appearance); },
+                /* a coordinate typed by hand has to land inside the canvas, the
+                   same way a dragged component does */
+                setPos: function (it, ax, ay) {
+                    if (!it) return;
+                    var a = this.model.appearance;
+                    var p = B.clampPos(a, Math.round(Number(ax) || 0), Math.round(Number(ay) || 0), it.w, it.h);
+                    it.x = p.x; it.y = p.y;
+                    B.clampAll(a);
+                },
                 frameStyle: function () {
                     var a = this.model.appearance;
                     return 'width:' + (Number(a.width) || 0) + 'px;height:' + (Number(a.height) || 0) + 'px;' +
