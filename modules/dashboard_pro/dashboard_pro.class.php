@@ -1061,15 +1061,16 @@ class dashboard_pro extends module
             $mx = SQLSelectOne("SELECT MAX(PRIORITY) as MX FROM dashboard_widgets");
             if (isset($mx['MX']) && $mx['MX'] !== null) $priority = (int)$mx['MX'] + 1;
 
-            SQLInsert('dashboard_widgets', array(
+            $rec = array(
                 'TYPE' => $type,
                 'ICON' => $icon,
                 'TITLE' => $title,
                 'DESCRIPTION' => $description,
                 'PRIORITY' => $priority,
-                'FILE' => 'js/widgets/' . $type . '.js',
+                'FILE' => $relFile,
                 'ENABLED' => 1
-            ));
+            );
+            SQLInsert('dashboard_widgets', $rec);
 
             $out['updated'] = false;
             return $out;

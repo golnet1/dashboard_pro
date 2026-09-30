@@ -4,7 +4,17 @@ function dpHttp(path, opts) {
     return fetch('/api.php/module/dashboard_pro/' + path, {
         ...opts,
         headers: { 'Content-Type': 'application/json', ...opts?.headers }
-    }).then(r => r.json()).then(d => d.apiHandleResult !== undefined ? d.apiHandleResult : d);
+    }).then(r => r.text().then(txt => {
+        let d = null;
+        if (txt) { try { d = JSON.parse(txt); } catch (e) { d = null; } }
+        if (d === null) {
+            /* a fatal error on the server leaves the page empty: report what came
+               back, otherwise the caller only sees a cryptic parse error */
+            const head = String(txt || '').replace(/\s+/g, ' ').trim().slice(0, 200);
+            return { error: 'HTTP ' + r.status + (head ? ': ' + head : ': empty response'), status: r.status, raw: txt };
+        }
+        return d.apiHandleResult !== undefined ? d.apiHandleResult : d;
+    }));
 }
 
 function getPropertyCacheKey(object, property) {

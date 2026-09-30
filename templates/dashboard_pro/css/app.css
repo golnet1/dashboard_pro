@@ -465,6 +465,13 @@ a.user-menu__item { text-decoration: none; color: inherit; }
 .widget-v-card__unit { font-size:.8rem; color:var(--on-theme-dim); }
 .widget-v-card__info { padding:0 12px 8px; font-size:.78rem; color:var(--on-theme-mid); }
 
+/* widgets made in the visual builder: the root must look like a standard card */
+.dpb-root { display:block; position:relative; background:rgba(var(--theme-bg-rgb), var(--card-alpha, 1)); color:var(--on-theme-high); }
+.dpb-title { color:var(--on-theme-high); }
+/* the box of the component follows the selection, the element takes it over */
+.dpb-item { color:var(--on-theme-high); display:flex; align-items:center; justify-content:center; }
+.dpb-item > * { width:100%; height:100%; box-sizing:border-box; }
+
 /* override inline rgba(255,255,255,*) in widget templates — adapts to --on-theme */
 .widget-v-card [style*="color: rgba(255,255,255,.87)"] { color: var(--on-theme-high) !important; }
 .widget-v-card [style*="color:rgba(255,255,255,.87"] { color: var(--on-theme-high) !important; }
@@ -909,16 +916,38 @@ body.widget-dragging, body.widget-dragging * { cursor: grabbing !important; }
 /* the node is the place on the canvas, the frame is drawn around the component itself */
 .dpb-node { position:absolute; box-sizing:border-box; padding:0; display:flex; align-items:center; justify-content:center; overflow:visible; cursor:move; user-select:none; touch-action:none; }
 .dpb-node__body { width:100%; height:100%; display:flex; align-items:center; justify-content:center; box-sizing:border-box; overflow:visible; }
-.dpb-node__body > *:first-child { outline:1px solid #5a5a5a; outline-offset:0; border-radius:6px; }
+/* the box of the component follows the selection: the element takes it over, the sizes
+   written into it (font, paddings) stay the ones the component was given */
+.dpb-fit { width:100%; height:100%; display:flex; align-items:center; justify-content:center; box-sizing:border-box; border-radius:6px; }
+.dpb-fit > * { width:100%; height:100%; box-sizing:border-box; }
+.dpb-node__body > .dpb-fit { outline:1px solid #5a5a5a; outline-offset:0; border-radius:6px; }
 .dpb-node--drag { z-index:20; cursor:grabbing; }
-.dpb-node--drag > .dpb-node__body > *:first-child { box-shadow:0 4px 14px rgba(0,0,0,.55); }
-.dpb-node:hover > .dpb-node__body > *:first-child { outline-color:rgba(255,255,255,.5); }
-.dpb-node--on > .dpb-node__body > *:first-child { outline:2px solid #1976d2; box-shadow:0 0 0 1px #1976d2; }
+.dpb-node--drag .dpb-fit { box-shadow:0 4px 14px rgba(0,0,0,.55); }
+.dpb-node:hover .dpb-fit { outline-color:rgba(255,255,255,.5); }
+.dpb-node--on .dpb-fit { outline:2px solid #1976d2; box-shadow:0 0 0 1px #1976d2; }
+
 .dpb-node__ops { position:absolute; top:0; right:0; display:none; gap:2px; padding:1px; background:rgba(0,0,0,.75); border-radius:0 0 0 5px; }
 .dpb-node:hover .dpb-node__ops, .dpb-node--on .dpb-node__ops { display:flex; }
 .dpb-node__ops button, .dpb-frow__ops button { border:none; background:none; color:rgba(255,255,255,.7); cursor:pointer; padding:2px 4px; font-size:.68rem; border-radius:3px; }
 .dpb-node__ops button:hover:not(:disabled), .dpb-frow__ops button:hover:not(:disabled) { background:rgba(255,255,255,.18); color:#fff; }
 .dpb-node__ops button:disabled, .dpb-frow__ops button:disabled { opacity:.25; cursor:default; }
+
+/* eight resize handles of the selected component (as in mboard): the square sits
+   on the border, the invisible area around it keeps the handle easy to catch */
+.dpb-node__hs { position:absolute; inset:0; pointer-events:none; }
+.dpb-h { position:absolute; box-sizing:border-box; width:10px; height:10px; background:#eee; border:1px solid #333; pointer-events:auto; }
+.dpb-h::before { content:""; position:absolute; left:-10px; right:-10px; top:-10px; bottom:-10px; }
+.dpb-h--nw { top:0; left:0; cursor:nw-resize; }
+.dpb-h--n { top:0; left:50%; margin-left:-5px; cursor:n-resize; }
+.dpb-h--ne { top:0; right:0; cursor:ne-resize; }
+.dpb-h--e { top:50%; margin-top:-5px; right:0; cursor:e-resize; }
+.dpb-h--se { bottom:0; right:0; cursor:se-resize; }
+.dpb-h--s { bottom:0; left:50%; margin-left:-5px; cursor:s-resize; }
+.dpb-h--sw { bottom:0; left:0; cursor:sw-resize; }
+.dpb-h--w { top:50%; margin-top:-5px; left:0; cursor:w-resize; }
+.dpb-node--drag .dpb-h, .dpb-node--drag .dpb-h::before { display:none; }
+.dpb-node--rs { z-index:20; }
+.dpb-node--rs .dpb-fit { box-shadow:0 4px 14px rgba(0,0,0,.55); }
 
 .dpb-empty { padding:36px 20px; text-align:center; color:rgba(255,255,255,.35); font-size:.82rem; }
 

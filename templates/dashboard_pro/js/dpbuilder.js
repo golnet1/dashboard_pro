@@ -519,6 +519,10 @@
             it[k] = typeof d.props[k].def === 'undefined' ? '' : d.props[k].def;
         }
         if (d.options) it[d.optionsKey || 'options'] = d.options.join('\n');
+        /* the side of the widget the component is tied to when the widget is resized;
+           empty means the coordinates of the editor are kept */
+        if (typeof it.anchorX === 'undefined') it.anchorX = '';
+        if (typeof it.anchorY === 'undefined') it.anchorY = '';
         return it;
     }
 
@@ -748,6 +752,40 @@
         return slide || free(from.x, from.y) || { x: from.x, y: from.y, w: s.w, h: s.h };
     }
 
+    /* a component never shrinks below this, no matter how hard the handle is pulled */
+    var MIN_ITEM = 20;
+
+    function lim(v, lo, hi) {
+        v = Number(v);
+        if (!isFinite(v)) return lo;
+        return v < lo ? lo : (v > hi ? hi : v);
+    }
+
+    /* resizing by one of the eight handles: the opposite edge keeps its place,
+       the component never leaves the widget; px/py are frame coordinates */
+    function resizeItem(a, it, dir, px, py) {
+        var b = innerSize(a), s = itemSize(it);
+        var x = val(it.x, 0), y = val(it.y, 0), w = s.w, h = s.h;
+        var d = String(dir || ''), n, room;
+        if (d.indexOf('e') >= 0) {
+            room = Math.max(0, b.w - x);
+            w = lim(px - x, Math.min(MIN_ITEM, room), room);
+        } else if (d.indexOf('w') >= 0) {
+            n = x + w;
+            x = lim(px, 0, Math.max(0, n - Math.min(MIN_ITEM, n)));
+            w = n - x;
+        }
+        if (d.indexOf('s') >= 0) {
+            room = Math.max(0, b.h - y);
+            h = lim(py - y, Math.min(MIN_ITEM, room), room);
+        } else if (d.indexOf('n') >= 0) {
+            n = y + h;
+            y = lim(py, 0, Math.max(0, n - Math.min(MIN_ITEM, n)));
+            h = n - y;
+        }
+        return { x: Math.round(x), y: Math.round(y), w: Math.round(w), h: Math.round(h) };
+    }
+
     /* ------------------------------------------------------------------ */
     /* compilation: model -> Vue component                                 */
     /* ------------------------------------------------------------------ */
@@ -758,6 +796,24 @@
         try { return d.html(it, !!isPreview) || ''; } catch (e) { return ''; }
     }
 
+    /* where a component sits when the panel gives the widget a box of another size.
+       No anchor: the offset from the top left corner stays, exactly as in the editor.
+       An anchor ties the component to that side and keeps the distance to it. */
+    function anchorCss(a, it, s, p) {
+        var b = innerSize(a);
+        var ax = String(it.anchorX || ''), ay = String(it.anchorY || '');
+        var c = 'position:absolute;box-sizing:border-box';
+        if (!ax || ax === 'left') c += ';left:' + p.x + 'px';
+        else if (ax === 'center') c += ';left:50%;margin-left:-' + Math.round(p.w / 2) + 'px';
+        else if (ax === 'right') c += ';right:' + Math.max(0, b.w - p.x - p.w) + 'px';
+        else c += ';left:' + p.x + 'px';
+        if (!ay || ay === 'top') c += ';top:' + p.y + 'px';
+        else if (ay === 'center') c += ';top:50%;margin-top:-' + Math.round(p.h / 2) + 'px';
+        else if (ay === 'bottom') c += ';bottom:' + Math.max(0, b.h - p.y - p.h) + 'px';
+        else c += ';top:' + p.y + 'px';
+        return c + ';width:' + p.w + 'px;height:' + p.h + 'px';
+    }
+
     function appearanceTemplate(m) {
         var a = m.appearance;
         /* widget imported from a ready made file: its own HTML is used as is */
@@ -766,20 +822,24 @@
         var inner = items.map(function (it) {
             var s = itemSize(it);
             var p = clampPos(a, it.x, it.y, s.w, s.h);
-            return '<div class="dpb-item" style="position:absolute;left:' + p.x + 'px;top:' + p.y + 'px;width:' + p.w +
-                'px;height:' + p.h + 'px;box-sizing:border-box">' + itemHtml(it, false) + '</div>';
+            return '<div class="dpb-item" style="' + anchorCss(a, it, s, p) + '">' + itemHtml(it, false) + '</div>';
         }).join('');
         var parts = [];
         if (a.showTitle && a.title) {
             parts.push('<div class="dpb-title" style="font-size:.92rem;font-weight:500;margin-bottom:6px">' + esc(a.title) + '</div>');
         }
+        /* the coordinates are the ones set in the editor, so the placed area starts at
+           the top left corner and keeps that position whatever box the panel gives
+           the widget: only the free space at the right and below changes */
         parts.push('<div class="dpb-body" style="position:relative;width:100%;height:100%;overflow:hidden">' + inner + '</div>');
         return '<div class="dpb-root" style="' + st({
-            'width': (val(a.width, 320) || 320) + 'px',
-            'height': (val(a.height, 200) || 200) + 'px',
+            'width': '100%',
+            'height': '100%',
             'padding': (val(a.pad, 10) || 10) + 'px',
             'border-radius': (val(a.radius, 8) || 8) + 'px',
-            'background': a.bg || 'transparent',
+            /* without an explicit colour the class must stay in charge, otherwise
+               an inline "transparent" overrides the card background of the theme */
+            'background': a.bg || '',
             'color': a.color || '',
             'box-sizing': 'border-box',
             'overflow': 'hidden',
@@ -862,6 +922,14 @@
                 if (f._hasDefault || (f.default !== '' && f.default !== undefined && f.default !== null)) out[k] = f.default;
             });
         });
+        /* the size of the canvas is the size of the widget on the panel: the "Позиция"
+           tab is the same for every widget and takes width and height from here.
+           A ready made widget keeps the size its own file already declares, and a file
+           whose defaults could not be read is written back exactly as it is. */
+        var a = m.appearance || {};
+        var canAdd = !locked || !m.defaultsRaw;
+        if (canAdd && (!locked || !Object.prototype.hasOwnProperty.call(out, 'width'))) out.width = val(a.width, 320) || 320;
+        if (canAdd && (!locked || !Object.prototype.hasOwnProperty.call(out, 'height'))) out.height = val(a.height, 200) || 200;
         return out;
     }
 
@@ -2213,9 +2281,12 @@
         itemSize: itemSize,
         innerSize: innerSize,
         clampPos: clampPos,
+        anchorCss: anchorCss,
+
         autoPos: autoPos,
         clampAll: clampAll,
         placeFree: placeFree,
+        resizeItem: resizeItem,
         settingKeys: settingKeys,
         blockIndent: blockIndent,
         dedentBlock: dedentBlock,

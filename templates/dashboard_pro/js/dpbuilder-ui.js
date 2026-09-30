@@ -319,6 +319,9 @@
 
     /* ---------------------------------------------------------------- */
 
+    /* the eight resize handles of the selected component, as in mboard */
+    var HANDLES = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
+
     var DpBuilder = {
         name: 'dp-builder',
         components: {
@@ -377,9 +380,12 @@
             '          <div class="dpb-frame__body" :style="frameBodyStyle()">' +
             '            <div class="dpb-frame__grid"></div>' +
             '            <div class="dpb-canvas__stack" ref="area">' +
-            '              <div v-for="(it, i) in model.appearance.items" :key="it._i" class="dpb-node" :class="{ \'dpb-node--on\': sel === it._i, \'dpb-node--drag\': drag && drag._i === it._i }"' +
+            '              <div v-for="(it, i) in model.appearance.items" :key="it._i" class="dpb-node" :class="{ \'dpb-node--on\': sel === it._i, \'dpb-node--drag\': drag && drag._i === it._i, \'dpb-node--rs\': rs && rs._i === it._i }"' +
             '                   :style="nodeStyle(it)" @mousedown="dragStart($event, it)" @click.stop="sel = it._i">' +
-            '                <div class="dpb-node__body" v-html="renderItem(it)"></div>' +
+            '                <div class="dpb-node__body"><div class="dpb-fit" v-html="renderItem(it)"></div></div>' +
+            '                <div class="dpb-node__hs" v-if="sel === it._i">' +
+            '                  <i v-for="hd in HANDLES" :key="hd" class="dpb-h" :class="\'dpb-h--\' + hd" @mousedown.stop="resizeStart($event, it, hd)"></i>' +
+            '                </div>' +
             '                <div class="dpb-node__ops">' +
             '                  <button :title="t(\'dpb_copy\')" @click.stop="copyItem(i)"><i class="fas fa-copy"></i></button>' +
             '                  <button :title="t(\'dpb_delete\')" @click.stop="delItem(i)"><i class="far fa-trash-alt"></i></button>' +
@@ -419,7 +425,7 @@
             '            <div class="dpb-err" v-if="typeError"><i class="fas fa-exclamation-triangle"></i>{{ typeError }}</div>' +
             '            <div class="dpb-hint" v-else>a-z 0-9 _ -</div>' +
             '          </div>' +
-            '          <div class="dpb-f"><label>{{ t(\'dpb_icon\') }}</label><input type="text" v-model="model.icon" placeholder="fas fa-cube"></div>' +
+            '          <div class="dpb-f"><label>{{ t(\'dpb_icon\') }}</label><icon-picker v-model="model.icon"></icon-picker></div>' +
             '          <div class="dpb-f"><label>{{ t(\'dpb_desc\') }}</label><textarea rows="2" v-model="model.description"></textarea></div>' +
             '        </div>' +
             /* --- module look --- */
@@ -447,6 +453,15 @@
             '            <div class="dpb-f"><label>{{ t(\'dpb_h\') }}</label><input type="number" v-model.number="cur.h" min="10" step="1"></div>' +
             '          </div>' +
             '          <div class="dpb-hint">{{ t(\'dpb_pos_hint\') }}</div>' +
+            '          <div class="dpb-row2">' +
+            '            <div class="dpb-f"><label>{{ t(\'dpb_anchor_x\') }}</label>' +
+            '              <select v-model="cur.anchorX"><option value="">{{ t(\'dpb_anchor_none\') }}</option>' +
+            '                <option v-for="o in [\'left\', \'center\', \'right\']" :key="o" :value="o">{{ valLabel(o) }}</option></select></div>' +
+            '            <div class="dpb-f"><label>{{ t(\'dpb_anchor_y\') }}</label>' +
+            '              <select v-model="cur.anchorY"><option value="">{{ t(\'dpb_anchor_none\') }}</option>' +
+            '                <option v-for="o in [\'top\', \'center\', \'bottom\']" :key="o" :value="o">{{ valLabel(o) }}</option></select></div>' +
+            '          </div>' +
+            '          <div class="dpb-hint">{{ t(\'dpb_anchor_hint\') }}</div>' +
             '          <div class="dpb-f"><label>{{ t(\'dpb_bind\') }}</label><select v-model="cur.bind">' +
             '            <option value="">—</option><option v-for="k in settingKeys" :key="k" :value="k">{{ k }}</option></select></div>' +
             '          <div v-for="(pd, pk) in propsOf(cur)" :key="pk" class="dpb-f">' +
@@ -621,6 +636,7 @@
                 ren: -1,
                 over: false,
                 drag: null,
+                rs: null,
                 palette: null,
                 nameError: '',
                 typeError: '',
@@ -646,7 +662,8 @@
                     { key: 'watch', label: 'watch', icon: 'fas fa-eye' },
                     { key: 'beforeUnmount', label: 'beforeUnmount()', icon: 'fas fa-flag' }
                 ],
-                SIZE_PRESETS: [[280, 170], [320, 200], [400, 300], [560, 320]]
+                SIZE_PRESETS: [[280, 170], [320, 200], [400, 300], [560, 320]],
+                HANDLES: HANDLES
             };
         },
 
@@ -698,6 +715,24 @@
             hasRawHtml: function () {
                 var h = this.model.appearance ? this.model.appearance.html : '';
                 return String(h || '').trim() !== '';
+            },
+            /* nothing has been made yet: no blocks, no fields, no code. The code
+               section of such a widget opens right on data(): it is always there,
+               while methods() is still empty and would only show the stub */
+            isBlank: function () {
+                var m = this.model || {}, c = m.code || {};
+                if (String(m.title || '').trim() || String(m.description || '').trim()) return false;
+                if ((((m.appearance || {}).items) || []).length) return false;
+                if (String((m.appearance || {}).html || '').trim()) return false;
+                var tabs = ((m.settings || {}).tabs) || [];
+                for (var i = 0; i < tabs.length; i++) {
+                    if ((((tabs[i] || {}).items) || []).length) return false;
+                }
+                var keys = ['dataPre', 'data', 'computed', 'methods', 'mounted', 'watch', 'beforeUnmount'];
+                for (var j = 0; j < keys.length; j++) {
+                    if (String(c[keys[j]] || '').trim()) return false;
+                }
+                return !((c.funcs) || []).length;
             },
             /* 'auto' follows the model: a widget with own HTML opens in code mode,
                a widget made of blocks opens in the visual mode */
@@ -791,6 +826,9 @@
         mounted: function () {
             /* a widget with own markup opens in the code mode, everything is checked once */
             if (this.hasRawHtml) this.checkRaw();
+            /* a brand new widget starts in data(): it is the only section that is
+               there from the start, methods() and the rest are still empty */
+            if (this.isBlank && this.code === 'methods') this.code = 'data';
             /* the "add a function" menu closes on a click outside the builder */
             var self = this;
             this._fnDoc = function (e) {
@@ -894,7 +932,7 @@
             /* --- mouse placement inside the widget frame --- */
             dragStart: function (ev, it) {
                 if (ev.button !== 0) return;
-                if (ev.target && ev.target.closest && ev.target.closest('.dpb-node__ops')) return;
+                if (ev.target && ev.target.closest && ev.target.closest('.dpb-node__ops, .dpb-node__hs')) return;
                 var s = B.itemSize(it);
                 this.sel = it._i;
                 this.drag = {
@@ -927,6 +965,35 @@
                 if (this._onUp) document.removeEventListener('mouseup', this._onUp, true);
                 this._onMove = this._onUp = null;
                 this.drag = null;
+            },
+
+            /* --- resizing the component by one of the eight handles --- */
+            resizeStart: function (ev, it, dir) {
+                if (ev.button !== 0) return;
+                this.sel = it._i;
+                this.rs = { _i: it._i, it: it, dir: dir };
+                var self = this;
+                this._onRsMove = function (e) { self.resizeMove(e); };
+                this._onRsUp = function () { self.resizeEnd(); };
+                document.addEventListener('mousemove', this._onRsMove, true);
+                document.addEventListener('mouseup', this._onRsUp, true);
+                ev.preventDefault();
+                ev.stopPropagation();
+            },
+            resizeMove: function (ev) {
+                var r = this.rs;
+                if (!r) return;
+                var pt = this.areaPoint(ev);
+                if (!pt) return;
+                var p = B.resizeItem(this.model.appearance, r.it, r.dir, pt.x, pt.y);
+                r.it.x = p.x; r.it.y = p.y; r.it.w = p.w; r.it.h = p.h;
+                ev.preventDefault();
+            },
+            resizeEnd: function () {
+                if (this._onRsMove) document.removeEventListener('mousemove', this._onRsMove, true);
+                if (this._onRsUp) document.removeEventListener('mouseup', this._onRsUp, true);
+                this._onRsMove = this._onRsUp = null;
+                this.rs = null;
             },
             /* point of the frame body (content box) under the mouse */
             areaPoint: function (ev) {
