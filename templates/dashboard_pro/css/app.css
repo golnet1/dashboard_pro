@@ -964,6 +964,8 @@ body.widget-dragging, body.widget-dragging * { cursor: grabbing !important; }
     width:100%; box-sizing:border-box; background:#3a3a3a; border:1px solid #5a5a5a;
     border-radius:5px; color:#fff; padding:5px 8px; font-size:.8rem; font-family:inherit; }
 .dpb-f input::placeholder, .dpb-f textarea::placeholder { color:rgba(255,255,255,.4); }
+/* a live value is javascript, not a plain string */
+.dpb-f input.dpb-expr { font-family:ui-monospace, Consolas, monospace; color:#a5d6a7; }
 .dpb-f input:focus, .dpb-f select:focus, .dpb-f textarea:focus { outline:none; border-color:#1976d2; }
 .dpb-f input[type=color] { width:100%; height:28px; padding:0; border:1px solid rgba(255,255,255,.16); border-radius:5px; background:none; }
 .dpb-row2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; }

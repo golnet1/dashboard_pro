@@ -17,6 +17,15 @@
         return (v === undefined || v === null || v === '') ? (d === undefined ? '' : d) : v;
     }
 
+    /* a size may be a plain number (pixels, as the editor shows it) or a value
+       that already carries its unit: "1.49rem" copies the title of a ready made
+       card and follows the font size of the page */
+    function len(v, d) {
+        var s = String(val(v, d) === undefined || val(v, d) === null ? '' : val(v, d)).trim();
+        if (s === '') return '';
+        return /^-?\d*\.?\d+$/.test(s) ? s + 'px' : s;
+    }
+
     function st(o) {
         var out = [];
         for (var k in o) {
@@ -69,6 +78,99 @@
         return 'src="' + esc(def || '') + '"';
     }
 
+    /* ---- live values: a component may show the state of the widget itself ----
+       The settings are stored in "widget", but a dimmer also has what it has just
+       read from the object: the level, whether the light is on, the moment of the
+       last action. Those live in the data of the component, so the binding needs
+       an expression: "expr: 'isOn'" gives ':class="{ ... isOn }"'. The expression
+       is plain text and lands in the generated code, so only a safe subset of
+       javascript is let through — a name, a property chain, a call, arithmetic
+       and comparisons, inside {{ }} or an attribute.
+
+       An expression lands in the generated code, inside {{ }} or inside a
+       double quoted attribute, so it must not be able to end the string it
+       sits in or open anything of its own:
+         - a double quote would close the attribute
+         - a backslash would escape the next character
+         - { } would open a block, and would close {{ }}
+         - < would open a tag, and a backtick a template literal
+         - ; would end the statement, // and /* would open a comment
+       Everything else stays: a single quote, >, |, &, ? and the arithmetic
+       are ordinary javascript and read well in a binding. */
+    var EXPR_BAD = /[;{}\x3c"\x60\\]|\/\*|\/\//;
+
+    function isIdent(s) { return /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(s); }
+
+    /* is the text a single name or a property chain: widget.level, this.level */
+    function isPath(s) { return /^(this\.)?[A-Za-z_$][A-Za-z0-9_$]*(\.[A-Za-z_$][A-Za-z0-9_$]*)*$/.test(s); }
+
+    /* a javascript expression safe to put in the generated code */
+    function safeExpr(s) {
+        var v = String(s == null ? '' : s).trim();
+        if (!v || v.length > 120) return '';
+        if (EXPR_BAD.test(v)) return '';
+        /* only the characters a javascript expression may hold */
+        if (!/^[A-Za-z0-9_$.,()[\]'"+\-*/%?:!<>=|&\s]+$/.test(v)) return '';
+        if (v.indexOf('v-') >= 0 || v.indexOf('@') >= 0) return '';
+        return v;
+    }
+
+    /* the name of a two way bound value: "expr" or "widget.key" -> the key */
+    function modelKey(e) {
+        var x = safeExpr(e.expr);
+        if (isPath(x) && x.indexOf('.') < 0) return x;
+        var k = bkey(e);
+        return k || '';
+    }
+
+    /* text position from a live expression: {{ level }} */
+    function bex(e, key, def) {
+        var x = safeExpr(e.expr);
+        if (x) return '{{ ' + x + ' }}';
+        return bv(e, key, def);
+    }
+
+    /* :attr="expr" when there is an expression, the settings binding otherwise */
+    function battr(e, attr, def) {
+        var x = safeExpr(e.expr);
+        if (x) return ':' + attr + '="' + x + '"';
+        return batt(e, def);
+    }
+
+    /* v-if="expr" — the element exists only when the expression is true */
+    function bvif(e) {
+        var x = safeExpr(e.vif);
+        return x ? ' v-if="' + x + '"' : '';
+    }
+
+    /* @click.stop="name" when a handler is named */
+    function bact(e, key) {
+        var m = String((e && e[key]) || '').trim();
+        if (!isIdent(m)) return '';
+        return ' @click.stop="' + m + '"';
+    }
+
+    /* "v-model" style two way binding of a live value */
+    function bmodel(e, attr) {
+        var m = modelKey(e);
+        if (!m) return '';
+        return ' v-model' + (attr || '') + '="' + m + '"';
+    }
+
+    /* the settings of a component: the extra keys every one of them may have */
+    var LIVE = {
+        expr: { type: 'expr', label: 'dpb_expr' },
+        vif: { type: 'expr', label: 'dpb_vif' }
+    };
+
+    function withLive(props) {
+        var o = {}, k;
+        for (k in props) if (Object.prototype.hasOwnProperty.call(props, k)) o[k] = props[k];
+        for (k in LIVE) if (Object.prototype.hasOwnProperty.call(LIVE, k)) o[k] = LIVE[k];
+        return o;
+    }
+
+
     /* ------------------------------------------------------------------ */
     /* component catalog                                                    */
     /* ------------------------------------------------------------------ */
@@ -106,15 +208,15 @@
     }
 
     /* --- basic --- */
-    def('text', 'basic', 'dpb_c_text', 'fas fa-font', 160, 24, { text: P.text, bind: P.bind, size: pn('dpb_font_size'), color: P.color, align: P.align, bold: pb('dpb_bold'), italic: pb('dpb_italic') },
+    def('text', 'basic', 'dpb_c_text', 'fas fa-font', 160, 24, withLive({ text: P.text, bind: P.bind, size: pn('dpb_font_size'), color: P.color, align: P.align, bold: pb('dpb_bold'), italic: pb('dpb_italic') }),
         function (e) {
-            return '<span style="' + st({
-                'font-size': (val(e.size, 14) || 14) + 'px',
+            return '<span' + bvif(e) + ' style="' + st({
+                'font-size': len(e.size, 14),
                 'color': e.color || 'inherit',
                 'font-weight': e.bold ? '600' : '400',
                 'font-style': e.italic ? 'italic' : 'normal',
                 'text-align': e.align || 'left'
-            }) + '">' + bv(e, 'text', e.text || 'Text') + '</span>';
+            }) + '">' + bex(e, 'text', e.text || 'Text') + '</span>';
         });
 
     def('button', 'basic', 'dpb_c_button', 'fas fa-hand-pointer', 160, 36, { text: P.text, icon: P.icon, bind: P.bind, variant: ps('dpb_variant', ['solid', 'outline']), color: P.color, size: pn('dpb_btn_size'), action: P.text },
@@ -131,11 +233,25 @@
             }) + bs + '">' + (e.icon ? '<i class="' + esc(e.icon) + '"></i>' : '') + '<span>' + bv(e, 'text', e.text || 'Button') + '</span></button>';
         });
 
-    def('icon', 'basic', 'dpb_c_icon', 'fas fa-star', 40, 40, { icon: P.icon, size: pn('dpb_icon_size'), color: P.color },
+    /* the icon of a card: the glyph may come from the settings or from a live
+       value, and a computed property may add classes to it — the highlight of a
+       switched on icon works the way it does in the ready made widgets */
+    def('icon', 'basic', 'dpb_c_icon', 'fas fa-star', 40, 40, withLive({ icon: P.icon, size: pn('dpb_icon_size'), color: P.color, cls: { type: 'text', label: 'dpb_icon_cls' }, hl: { type: 'text', label: 'dpb_icon_hl' } }),
         function (e) {
-            return '<i class="' + esc(e.icon || 'fas fa-star') + '" style="' + st({
-                'font-size': (val(e.size, 20) || 20) + 'px', 'color': e.color || 'inherit'
-            }) + '"></i>';
+            var k = bkey(e);
+            var x = safeExpr(e.expr);
+            var staticGlyph = esc(e.icon || 'fas fa-star');
+            /* the glyph is a plain class list unless the settings hold it */
+            var glyph = k ? 'widget.' + k : (x ? x : staticGlyph);
+            var extra = esc(String(e.cls || '').replace(/\s+/g, ' ').trim());
+            var hl = safeExpr(e.hl);
+            /* the highlight is a name of the component data: its value is a part
+               of the class list, so it goes to :class next to the glyph */
+            var dynamic = (k || x) && hl ? '[' + glyph + ', ' + hl + ']' : (k || x ? glyph : null);
+            return '<i class="' + (dynamic ? extra : (extra ? extra + ' ' : '') + staticGlyph) + '"' +
+                (dynamic ? ' :class="' + esc(dynamic) + '"' : '') + ' style="' + st({
+                    'font-size': len(e.size, 20), 'color': e.color || 'inherit'
+                }) + '"' + bvif(e) + '></i>';
         });
 
     def('divider', 'basic', 'dpb_c_divider', 'fas fa-minus', 200, 8, { color: P.color, style: ps('dpb_style', ['solid', 'dashed', 'dot']) },
@@ -155,8 +271,8 @@
         function (e) {
             return '<div style="' + st({
                 'background': e.bg || 'rgba(255,255,255,.05)',
-                'border-radius': (val(e.radius, 8) || 8) + 'px',
-                'padding': (val(e.pad, 10) || 10) + 'px',
+                'border-radius': val(e.radius, 8) + 'px',
+                'padding': val(e.pad, 10) + 'px',
                 'border': e.border ? '1px solid ' + e.border : '',
                 'width': '100%', 'height': '100%', 'box-sizing': 'border-box', 'overflow': 'hidden'
             }) + '"></div>';
@@ -201,21 +317,64 @@
                 '<span style="font-size:.85rem">' + bv(e, 'label', e.label || '') + '</span></label>';
         });
 
-    def('switch', 'input', 'dpb_c_switch', 'fas fa-toggle-on', 140, 26, { label: P.text, bind: P.bind, on: pb('dpb_on') },
+    /* the switch of a card: "skin: v" gives the markup of the theme
+       (v-input--switch), the position of the thumb follows the state itself */
+    def('switch', 'input', 'dpb_c_switch', 'fas fa-toggle-on', 140, 26, withLive({ label: P.text, bind: P.bind, on: pb('dpb_on'), skin: ps('dpb_skin', ['builder', 'v']), action: P.text }),
         function (e) {
+            var act = bact(e, 'action');
+            if (String(e.skin || '') === 'v') {
+                var x = safeExpr(e.expr);
+                return '<div class="v-input--switch" :class="{ \'input--is-checked\': ' + (x || 'false') + ' }"' + act + bvif(e) + '>' +
+                    '<div class="v-input--switch__track"><div class="v-input--switch__thumb"></div></div></div>';
+            }
             var on = e.on !== false;
             return '<label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer">' +
                 '<span style="width:38px;height:20px;border-radius:10px;position:relative;display:inline-block;background:' + (on ? '#1976d2' : 'rgba(255,255,255,.22)') + '">' +
                 '<span style="position:absolute;top:2px;left:' + (on ? '20px' : '2px') + ';width:16px;height:16px;border-radius:50%;background:#fff;transition:left .15s"></span></span>' +
-                '<span style="font-size:.85rem">' + bv(e, 'label', e.label || '') + '</span></label>';
+                '<span style="font-size:.85rem">' + bex(e, 'label', e.label || '') + '</span></label>';
         });
 
-    def('slider', 'input', 'dpb_c_slider', 'fas fa-sliders', 200, 34, { label: P.text, bind: P.bind, min: pn('dpb_min'), max: pn('dpb_max'), step: pn('dpb_step'), unit: P.text },
+    /* the slider of a card: "skin: v" gives v-slider with its own track, fill and
+       thumb; min / max / step / the value itself may come from live data */
+    def('slider', 'input', 'dpb_c_slider', 'fas fa-sliders', 200, 34, withLive({
+        label: P.text, bind: P.bind, min: pn('dpb_min'), max: pn('dpb_max'), step: pn('dpb_step'),
+        unit: P.text, skin: ps('dpb_skin', ['builder', 'v']), action: P.text,
+        lomin: { type: 'expr', label: 'dpb_min_expr' },
+        himax: { type: 'expr', label: 'dpb_max_expr' },
+        stepexpr: { type: 'expr', label: 'dpb_step_expr' },
+        fill: { type: 'expr', label: 'dpb_fill_expr' },
+        disabled: { type: 'expr', label: 'dpb_disabled_expr' }
+    }),
         function (e) {
+            var x = safeExpr(e.expr);
+            var lo = safeExpr(e.lomin), hi = safeExpr(e.himax), stp = safeExpr(e.stepexpr);
+            /* a plain number stays a plain attribute: only a name of the component data
+               (or a path) becomes a live one. "lomin" and the rest take any expression */
+            var named = function (v) {
+                var s = String(v == null ? '' : v).trim();
+                return (isIdent(s) || isPath(s)) ? safeExpr(s) : '';
+            };
+            var mlo = lo || named(e.min);
+            var mhi = hi || named(e.max);
+            var mst = stp || named(e.step);
+            if (String(e.skin || '') === 'v') {
+                var ml = bmodel(e, '.number');
+                var dis = safeExpr(e.disabled) ? ' :disabled="' + safeExpr(e.disabled) + '"' : '';
+                var fill = safeExpr(e.fill) || '0';
+                var chg = isIdent(e.action || '') ? ' @change="' + e.action + '"' : '';
+                return '<div class="v-slider theme--dark" style="width:100%"' + bvif(e) + '>' +
+                    '<input type="range" class="v-slider__input"' + (ml || battr(e, 'value', val(e.min, 0))) +
+                    (mlo ? ' :min="' + mlo + '"' : ' min="' + esc(val(e.min, 0)) + '"') +
+                    (mhi ? ' :max="' + mhi + '"' : ' max="' + esc(val(e.max, 100)) + '"') +
+                    (mst ? ' :step="' + mst + '"' : ' step="' + esc(val(e.step, 'any')) + '"') + chg + dis + '>' +
+                    '<div class="v-slider__track"><div class="v-slider__track-fill" :style="{width: ' + fill + ' + \'%\'}"></div></div>' +
+                    '<div class="v-slider__thumb-container" :style="{left: ' + fill + ' + \'%\'}"><div class="v-slider__thumb"></div></div>' +
+                    '</div>';
+            }
             var mn = val(e.min, 0), mx = val(e.max, 100);
             return '<label style="display:flex;flex-direction:column;gap:6px;width:100%">' +
                 (e.label ? '<span style="font-size:.78rem;opacity:.7">' + esc(e.label) + '</span>' : '') +
-                '<span style="display:flex;align-items:center;gap:8px"><input type="range" min="' + mn + '" max="' + mx + '" step="' + val(e.step, 'any') + '" ' + batt(e, mn) + ' style="flex:1;accent-color:#1976d2"><b style="font-size:.8rem;min-width:34px;text-align:right">' + bv(e, 'value', '') + (e.unit ? esc(e.unit) : '') + '</b></span></label>';
+                '<span style="display:flex;align-items:center;gap:8px"><input type="range" min="' + mn + '" max="' + mx + '" step="' + val(e.step, 'any') + '" ' + battr(e, 'value', mn) + ' style="flex:1;accent-color:#1976d2"><b style="font-size:.8rem;min-width:34px;text-align:right">' + bex(e, 'value', '') + (e.unit ? esc(e.unit) : '') + '</b></span></label>';
         });
 
     def('color', 'input', 'dpb_c_colorpick', 'fas fa-palette', 120, 34, { label: P.text, bind: P.bind, def: P.color },
@@ -539,7 +698,7 @@
             appearance: {
                 title: '', width: 320, height: 200, pad: 10, gap: 8, radius: 8,
                 bg: '', color: '', align: 'stretch', dir: 'column', showTitle: false,
-                html: '', items: []
+                cls: '', html: '', items: []
             },
             settings: {
                 tabs: [{ key: 'main', label: 'tab_main', items: [] }]
@@ -641,10 +800,12 @@
         };
     }
 
+    /* the size left for the components: the padding of the card is taken off it.
+       A pad of 0 is a real value — the theme card has none — so it must survive */
     function innerSize(a) {
         return {
-            w: Math.max(1, (val(a.width, 320) || 320) - 2 * (val(a.pad, 10) || 10)),
-            h: Math.max(1, (val(a.height, 200) || 200) - 2 * (val(a.pad, 10) || 10))
+            w: Math.max(1, (val(a.width, 320) || 320) - 2 * val(a.pad, 10)),
+            h: Math.max(1, (val(a.height, 200) || 200) - 2 * val(a.pad, 10))
         };
     }
 
@@ -832,11 +993,14 @@
            the top left corner and keeps that position whatever box the panel gives
            the widget: only the free space at the right and below changes */
         parts.push('<div class="dpb-body" style="position:relative;width:100%;height:100%;overflow:hidden">' + inner + '</div>');
-        return '<div class="dpb-root" style="' + st({
+        /* a class on the root lets a widget made here borrow the look of a ready made
+           one: "widget-v-card" brings the card background and the theme colours */
+        var rootCls = String(a.cls || '').replace(/\s+/g, ' ').trim();
+        return '<div class="dpb-root' + (rootCls ? ' ' + esc(rootCls) : '') + '" style="' + st({
             'width': '100%',
             'height': '100%',
-            'padding': (val(a.pad, 10) || 10) + 'px',
-            'border-radius': (val(a.radius, 8) || 8) + 'px',
+            'padding': val(a.pad, 10) + 'px',
+            'border-radius': val(a.radius, 8) + 'px',
             /* without an explicit colour the class must stay in charge, otherwise
                an inline "transparent" overrides the card background of the theme */
             'background': a.bg || '',

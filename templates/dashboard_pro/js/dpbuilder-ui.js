@@ -439,6 +439,7 @@
             '            <div class="dpb-f"><label>{{ t(\'dpb_bg\') }}</label><input type="color" v-model="model.appearance.bg"></div>' +
             '            <div class="dpb-f"><label>{{ t(\'dpb_color\') }}</label><input type="color" v-model="model.appearance.color"></div>' +
             '          </div>' +
+            '          <div class="dpb-f"><label>{{ t(\'dpb_root_cls\') }}</label><input type="text" spellcheck="false" v-model="model.appearance.cls" placeholder="widget-v-card"></div>' +
             '          <div class="dpb-f"><label>{{ t(\'dpb_align\') }}</label>' +
             '            <select v-model="model.appearance.align">' +
             '              <option v-for="o in [\'stretch\', \'flex-start\', \'center\', \'flex-end\']" :key="o" :value="o">{{ valLabel(o) }}</option></select></div>' +
@@ -473,6 +474,7 @@
             '            <select v-else-if="pd.type === \'setting\'" v-model="cur[pk]">' +
             '              <option value="">—</option><option v-for="k in settingKeys" :key="k" :value="k">{{ k }}</option></select>' +
             '            <textarea v-else-if="pd.type === \'textarea\'" rows="3" v-model="cur[pk]"></textarea>' +
+            '            <input v-else-if="pd.type === \'expr\'" type="text" class="dpb-expr" spellcheck="false" v-model="cur[pk]" placeholder="&#123;&#123; level &#125;&#125;">' +
             '            <input v-else type="text" v-model="cur[pk]">' +
             '          </div>' +
             '        </div>' +
