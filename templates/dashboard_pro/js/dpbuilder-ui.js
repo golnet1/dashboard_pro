@@ -380,17 +380,13 @@
             '          <div class="dpb-frame__body" :style="frameBodyStyle()">' +
             '            <div class="dpb-frame__grid"></div>' +
             '            <div class="dpb-canvas__stack" ref="area">' +
-            '              <div v-for="(it, i) in model.appearance.items" :key="it._i" class="dpb-node" :class="{ \'dpb-node--on\': sel === it._i, \'dpb-node--drag\': drag && drag._i === it._i, \'dpb-node--rs\': rs && rs._i === it._i }"' +
-            '                   :style="nodeStyle(it)" @mousedown="dragStart($event, it)" @click.stop="sel = it._i">' +
-            '                <div class="dpb-node__body"><div class="dpb-fit" v-html="renderItem(it)"></div></div>' +
-            '                <div class="dpb-node__hs" v-if="sel === it._i">' +
-            '                  <i v-for="hd in HANDLES" :key="hd" class="dpb-h" :class="\'dpb-h--\' + hd" @mousedown.stop="resizeStart($event, it, hd)"></i>' +
-            '                </div>' +
-            '                <div class="dpb-node__ops">' +
-            '                  <button :title="t(\'dpb_copy\')" @click.stop="copyItem(i)"><i class="fas fa-copy"></i></button>' +
-            '                  <button :title="t(\'dpb_delete\')" @click.stop="delItem(i)"><i class="far fa-trash-alt"></i></button>' +
-            '                </div>' +
-            '              </div>' +
+             '              <div v-for="it in model.appearance.items" :key="it._i" class="dpb-node" :class="{ \'dpb-node--on\': sel === it._i, \'dpb-node--drag\': drag && drag._i === it._i, \'dpb-node--rs\': rs && rs._i === it._i }"' +
+             '                   :style="nodeStyle(it)" @mousedown="dragStart($event, it)" @click.stop="sel = it._i">' +
+             '                <div class="dpb-node__body"><div class="dpb-fit" v-html="renderItem(it)"></div></div>' +
+             '                <div class="dpb-node__hs" v-if="sel === it._i">' +
+             '                  <i v-for="hd in HANDLES" :key="hd" class="dpb-h" :class="\'dpb-h--\' + hd" @mousedown.stop="resizeStart($event, it, hd)"></i>' +
+             '                </div>' +
+             '              </div>' +
             '              <div v-if="!model.appearance.items.length && rawPreview" class="dpb-rawprev"><component :is="rawPreview" :widget="previewWidget"></component></div>' +
             '              <div v-else-if="!model.appearance.items.length" class="dpb-empty">{{ t(\'dpb_canvas_empty\') }}</div>' +
             '            </div>' +
@@ -454,15 +450,19 @@
             '            <div class="dpb-f"><label>{{ t(\'dpb_h\') }}</label><input type="number" v-model.number="cur.h" min="10" step="1"></div>' +
             '          </div>' +
             '          <div class="dpb-hint">{{ t(\'dpb_pos_hint\') }}</div>' +
-            '          <div class="dpb-row2">' +
-            '            <div class="dpb-f"><label>{{ t(\'dpb_anchor_x\') }}</label>' +
-            '              <select v-model="cur.anchorX"><option value="">{{ t(\'dpb_anchor_none\') }}</option>' +
-            '                <option v-for="o in [\'left\', \'center\', \'right\']" :key="o" :value="o">{{ valLabel(o) }}</option></select></div>' +
-            '            <div class="dpb-f"><label>{{ t(\'dpb_anchor_y\') }}</label>' +
-            '              <select v-model="cur.anchorY"><option value="">{{ t(\'dpb_anchor_none\') }}</option>' +
-            '                <option v-for="o in [\'top\', \'center\', \'bottom\']" :key="o" :value="o">{{ valLabel(o) }}</option></select></div>' +
-            '          </div>' +
-            '          <div class="dpb-hint">{{ t(\'dpb_anchor_hint\') }}</div>' +
+             '          <div class="dpb-row2">' +
+             '            <div class="dpb-f"><label>{{ t(\'dpb_anchor_x\') }}</label>' +
+             '              <select v-model="cur.anchorX" :disabled="cur.stretchX"><option value="">{{ t(\'dpb_anchor_none\') }}</option>' +
+             '                <option v-for="o in [\'left\', \'center\', \'right\']" :key="o" :value="o">{{ valLabel(o) }}</option></select>' +
+             '              <div class="dpb-chk" v-if="stretchOf(cur, \'x\')"><input type="checkbox" id="dpbStx" v-model="cur.stretchX"><label for="dpbStx">{{ t(\'dpb_stretch_x\') }}</label></div>' +
+             '            </div>' +
+             '            <div class="dpb-f"><label>{{ t(\'dpb_anchor_y\') }}</label>' +
+             '              <select v-model="cur.anchorY" :disabled="cur.stretchY"><option value="">{{ t(\'dpb_anchor_none\') }}</option>' +
+             '                <option v-for="o in [\'top\', \'center\', \'bottom\']" :key="o" :value="o">{{ valLabel(o) }}</option></select>' +
+             '              <div class="dpb-chk" v-if="stretchOf(cur, \'y\')"><input type="checkbox" id="dpbSty" v-model="cur.stretchY"><label for="dpbSty">{{ t(\'dpb_stretch_y\') }}</label></div>' +
+             '            </div>' +
+             '          </div>' +
+             '          <div class="dpb-hint">{{ cur.stretchX || cur.stretchY ? t(\'dpb_stretch_hint\') : t(\'dpb_anchor_hint\') }}</div>' +
             '          <div class="dpb-f"><label>{{ t(\'dpb_bind\') }}</label><select v-model="cur.bind">' +
             '            <option value="">—</option><option v-for="k in settingKeys" :key="k" :value="k">{{ k }}</option></select></div>' +
             '          <div v-for="(pd, pk) in propsOf(cur)" :key="pk" class="dpb-f">' +
@@ -825,24 +825,49 @@
             'model.code.funcs': { deep: true, handler: function () { this.check(); } }
         },
 
-        mounted: function () {
-            /* a widget with own markup opens in the code mode, everything is checked once */
-            if (this.hasRawHtml) this.checkRaw();
-            /* a brand new widget starts in data(): it is the only section that is
-               there from the start, methods() and the rest are still empty */
-            if (this.isBlank && this.code === 'methods') this.code = 'data';
-            /* the "add a function" menu closes on a click outside the builder */
-            var self = this;
-            this._fnDoc = function (e) {
-                if (!self.fnMenu) return;
-                var el = self.$el;
-                if (el && el.contains(e.target)) return;
-                self.fnMenu = false;
-                self.fnren = -1;
-            };
-            document.addEventListener('click', this._fnDoc);
-        },
-        beforeUnmount: function () { if (this._fnDoc) document.removeEventListener('click', this._fnDoc); },
+         mounted: function () {
+             /* a widget with own markup opens in the code mode, everything is checked once */
+             if (this.hasRawHtml) this.checkRaw();
+             /* a brand new widget starts in data(): it is the only section that is
+                there from the start, methods() and the rest are still empty */
+             if (this.isBlank && this.code === 'methods') this.code = 'data';
+             /* the "add a function" menu closes on a click outside the builder */
+             var self = this;
+             this._fnDoc = function (e) {
+                 if (!self.fnMenu) return;
+                 var el = self.$el;
+                 if (el && el.contains(e.target)) return;
+                 self.fnMenu = false;
+                 self.fnren = -1;
+             };
+              this._kb = function (e) {
+                  /* the keys belong to the canvas only: in the code mode and in the other
+                     sections they must keep their usual meaning */
+                  if (self.sub !== 'view' || self.viewIsCode) return;
+                  var tag = (e.target && e.target.tagName) || '';
+                  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+                  /* cur is a computed, so it holds the component itself - calling it
+                     would throw inside the listener and the key would do nothing */
+                  var it = self.cur;
+                  if (!self.sel || !it) return;
+                  var items = self.model.appearance.items;
+                  var idx = items.findIndex(function (x) { return x._i === it._i; });
+                  if (idx < 0) return;
+                  if (e.key === 'Delete' || e.key === 'Backspace' || e.code === 'Delete') {
+                      e.preventDefault();
+                      self.delItem(idx);
+                  } else if ((e.ctrlKey || e.metaKey) && String(e.key || '').toLowerCase() === 'c') {
+                      e.preventDefault();
+                      self.copyItem(idx);
+                  }
+              };
+             document.addEventListener('click', this._fnDoc);
+             document.addEventListener('keydown', this._kb, true);
+         },
+         beforeUnmount: function () {
+             if (this._fnDoc) document.removeEventListener('click', this._fnDoc);
+             if (this._kb) document.removeEventListener('keydown', this._kb, true);
+         },
 
         methods: {
             t: function (s) { return window.__t ? window.__t(s) : s; },
@@ -934,7 +959,7 @@
             /* --- mouse placement inside the widget frame --- */
             dragStart: function (ev, it) {
                 if (ev.button !== 0) return;
-                if (ev.target && ev.target.closest && ev.target.closest('.dpb-node__ops, .dpb-node__hs')) return;
+                if (ev.target && ev.target.closest && ev.target.closest('.dpb-node__hs')) return;
                 var s = B.itemSize(it);
                 this.sel = it._i;
                 this.drag = {
@@ -1069,9 +1094,15 @@
                 var t = a[i]; a[i] = a[j]; a[j] = t;
             },
 
+            /* a component can be stretched only along the sides it can really take:
+               a slider grows sideways but keeps its height, a switch does not grow
+               at all, an image takes both */
+            stretchOf: function (it, axis) {
+                return !!(it && B.canStretch(it._t, axis));
+            },
+
             /* --- settings tabs --- */
-            addTab: function () {
-                var n = this.model.settings.tabs.length + 1;
+            addTab: function () {                var n = this.model.settings.tabs.length + 1;
                 var key = 'tab' + n;
                 while (this.model.settings.tabs.some(function (x) { return x.key === key; })) { n++; key = 'tab' + n; }
                 this.model.settings.tabs.push({ key: key, label: 'Tab ' + n, items: [] });

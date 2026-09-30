@@ -926,11 +926,9 @@ body.widget-dragging, body.widget-dragging * { cursor: grabbing !important; }
 .dpb-node:hover .dpb-fit { outline-color:rgba(255,255,255,.5); }
 .dpb-node--on .dpb-fit { outline:2px solid #1976d2; box-shadow:0 0 0 1px #1976d2; }
 
-.dpb-node__ops { position:absolute; top:0; right:0; display:none; gap:2px; padding:1px; background:rgba(0,0,0,.75); border-radius:0 0 0 5px; }
-.dpb-node:hover .dpb-node__ops, .dpb-node--on .dpb-node__ops { display:flex; }
-.dpb-node__ops button, .dpb-frow__ops button { border:none; background:none; color:rgba(255,255,255,.7); cursor:pointer; padding:2px 4px; font-size:.68rem; border-radius:3px; }
-.dpb-node__ops button:hover:not(:disabled), .dpb-frow__ops button:hover:not(:disabled) { background:rgba(255,255,255,.18); color:#fff; }
-.dpb-node__ops button:disabled, .dpb-frow__ops button:disabled { opacity:.25; cursor:default; }
+.dpb-frow__ops button { border:none; background:none; color:rgba(255,255,255,.7); cursor:pointer; padding:2px 4px; font-size:.68rem; border-radius:3px; }
+.dpb-frow__ops button:hover:not(:disabled) { background:rgba(255,255,255,.18); color:#fff; }
+.dpb-frow__ops button:disabled { opacity:.25; cursor:default; }
 
 /* eight resize handles of the selected component (as in mboard): the square sits
    on the border, the invisible area around it keeps the handle easy to catch */

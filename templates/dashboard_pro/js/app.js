@@ -492,16 +492,24 @@ const app = createApp({
             return Array.isArray(depVal) ? depVal.includes(val) : val === depVal;
         }
 
+        /* the object a property is read from. A method carries its own object in the same
+           value, so it needs no pair - every other property lives in a named field. */
+        function objectKeyOfField(key) {
+            if (!key) return null;
+            if (key === 'property') return 'object';
+            if (key === 'icon_property') return 'icon_object';
+            if (key === 'bg_property') return 'bg_object';
+            if (key === 'property_info') return 'object_info';
+            if (key.startsWith('property_')) return 'object_' + key.slice('property_'.length);
+            return null;
+        }
         function getFieldOptions(field) {
             if (field.type === 'property') {
                 if (field.key === 'icon_property') return iconProperties.value;
                 if (field.key === 'bg_property') return bgProperties.value;
                 if (field.key === 'property_info') return infoProperties.value;
-                if (field.key?.startsWith('property_')) {
-                    const suffix = field.key.replace('property_', '');
-                    const objKey = 'object_' + suffix;
-                    return extraProperties.value[objKey] || [];
-                }
+                const objKey = objectKeyOfField(field.key);
+                if (objKey && objKey !== 'object') return extraProperties.value[objKey] || [];
             }
             return widgetProperties.value;
         }
@@ -544,13 +552,41 @@ const app = createApp({
             return desc ? item.TITLE + ' - ' + desc : item.TITLE;
         }
 
-        function getMethodObj(val) { return val ? val.split('/')[0] : ''; }
-        function getMethodName(val) { return val ? val.split('/')[1] || '' : ''; }
+        /* A method field holds one address: "Object/Method". A value with no slash is the
+           method itself - that is how a default is written, before an object is picked - so
+           its object part is empty and the method name is not lost. A value that ends with a
+           slash is an object whose method is not chosen yet: the object has to stay in the
+           field, the list of its methods is built from it. */
+        function getMethodObj(val) { const s = String(val == null ? '' : val); const i = s.indexOf('/'); return i < 0 ? '' : s.slice(0, i); }
+        function getMethodName(val) { const s = String(val == null ? '' : val); const i = s.indexOf('/'); return i < 0 ? s : s.slice(i + 1); }
         function setMethodField(key, partVal, isObj) {
             const cur = editWidgetForm.value[key] || '';
             const obj = isObj ? partVal : getMethodObj(cur);
-            const method = isObj ? getMethodName(cur) : partVal;
-            editWidgetForm.value[key] = obj && method ? obj + '/' + method : (obj || method);
+            let method = isObj ? getMethodName(cur) : partVal;
+            /* the default of a method waits for its object: the list of methods is built from
+               the object, so the field keeps the "default" placeholder until one is chosen */
+            if (isObj && !method && pendingFieldDefaults[key]) method = pendingFieldDefaults[key];
+            const both = obj && method;
+            /* an address is written whole: the object alone keeps its slash, so a bare
+               value always stays readable as the method it names */
+            editWidgetForm.value[key] = both ? obj + '/' + method : (isObj ? (obj ? obj + '/' : method) : (obj ? obj + '/' : ''));
+        }
+        /* the defaults of the fields whose value is only readable once an object is chosen */
+        let pendingFieldDefaults = {};
+        function takePendingFieldDefault(key) {
+            const d = pendingFieldDefaults[key];
+            delete pendingFieldDefaults[key];
+            return d;
+        }
+        function applyPendingObjectFields(objKey) {
+            const f = editWidgetForm.value;
+            if (!f || !objKey || !f[objKey]) return;
+            for (const key of Object.keys(pendingFieldDefaults)) {
+                if (objectKeyOfField(key) !== objKey) continue;
+                /* a field the user filled, or cleared on purpose, never takes the default */
+                if (f[key] !== '' && f[key] !== undefined && f[key] !== null) { delete pendingFieldDefaults[key]; continue; }
+                f[key] = takePendingFieldDefault(key);
+            }
         }
 
         // ---- Column editing for table widget ----
@@ -916,6 +952,22 @@ function loadScript(src, version) {
             });
         }
 
+        /* The file of a widget is cached under its url, and installing an archive replaces
+           that file without changing the url. With one fixed number behind "?v=" the browser
+           kept handing out the previous version of the widget, so a fix in an archive never
+           reached the panel. The token changes on every install, and the base follows the
+           module, so a module update also refreshes the widgets. */
+        const WIDGET_TOKEN_KEY = 'dp_widget_token';
+        const WIDGET_TOKEN_BASE = 166;
+        function widgetToken() {
+            let token = 0;
+            try { token = parseInt(localStorage.getItem(WIDGET_TOKEN_KEY) || '0', 10) || 0; } catch (e) { token = 0; }
+            return (token > WIDGET_TOKEN_BASE ? token : WIDGET_TOKEN_BASE) + '';
+        }
+        function bumpWidgetToken() {
+            try { localStorage.setItem(WIDGET_TOKEN_KEY, String(Date.now())); } catch (e) { /* private mode: the base still helps */ }
+        }
+
         async function loadWidgetDefs() {
             const widgets = await dpAPI('widgets');
             if (!widgets || !widgets.items) return;
@@ -925,7 +977,7 @@ function loadScript(src, version) {
             widgetList.value = [...widgetDefs.value].sort((a, b) => (a.priority || 0) - (b.priority || 0));
             for (const w of widgets.items) {
                 if (!w.FILE) continue;
-                await loadScript(w.FILE, 164);
+                await loadScript(w.FILE, widgetToken());
             }
             widgetDefs.value.forEach(d => registerWidgetComponent(d.type));
         }
@@ -976,10 +1028,36 @@ function loadScript(src, version) {
             const widgetTabs = getWidgetTabs(type);
             const allFields = widgetTabs.flatMap(tab => getWidgetFields(type, tab.fields || tab.key));
             const fieldDefaults = {};
+            /* A property and a method are read through their object: the list of them is
+               built from it, so a value written before the object is chosen matches no
+               option and the field shows an empty box instead of the "default" one. Their
+               defaults therefore wait for the object - pendingFieldDefaults - and are put
+               into the field by setMethodField() and applyPendingObjectFields(). */
+            const needsObject = t => t === 'property' || t === 'method';
+            const stash = d => (d === '' || d === undefined || d === null) ? '' : String(d);
+            pendingFieldDefaults = {};
             allFields.forEach(f => {
                 if (!f.key) return;
-                if (!(f.key in fieldDefaults)) fieldDefaults[f.key] = (f.default !== undefined) ? f.default : '';
+                const d = (f.default !== undefined) ? f.default : '';
+                if (needsObject(f.type)) {
+                    if (!(f.key in fieldDefaults)) fieldDefaults[f.key] = '';
+                    pendingFieldDefaults[f.key] = stash(d);
+                    return;
+                }
+                if (!(f.key in fieldDefaults)) fieldDefaults[f.key] = d;
             });
+            /* the defaults block of the file is read the same way: a property or a method
+               named there waits for its object as well */
+            const typeDefaultsFlat = {};
+            for (const k of Object.keys(typeDefaults || {})) {
+                if (!(k in fieldDefaults)) continue;
+                if (needsObject(allFields.find(f => f.key === k)?.type)) {
+                    if (!pendingFieldDefaults[k]) pendingFieldDefaults[k] = stash(typeDefaults[k]);
+                    typeDefaultsFlat[k] = '';
+                } else {
+                    typeDefaultsFlat[k] = typeDefaults[k];
+                }
+            }
             const w = {
                 id: 'w_' + Date.now() + '_' + Math.floor(Math.random() * 1000), type,
                 title: def?.title || type,
@@ -1002,7 +1080,7 @@ function loadScript(src, version) {
                 viewTime: true, viewDate: true, sizeTime: 48, sizeDate: 16,
                 x: 0, y: 0, width: 280, height: 170,
                 ...fieldDefaults,
-                ...typeDefaults
+                ...typeDefaultsFlat
             };
             w.icon = typeDefaults.icon || def?.icon || '';
             if (groupAddTarget.value) {
@@ -1320,6 +1398,8 @@ function loadScript(src, version) {
             editWidgetParent.value = parent || null;
             editWidgetIsNew.value = false;
             const def = widgetDefs.value.find(d => d.type === w.type);
+            /* a saved widget carries its own values: nothing is waiting for an object */
+            pendingFieldDefaults = {};
             editWidgetForm.value = {
                 ...w,
                 children: Array.isArray(w.children) ? w.children.map(c => ({ ...c })) : [],
@@ -1501,7 +1581,7 @@ if (f.key) {
                 let val = w[fd.field];
                 if (!val && fd.alias) val = w[fd.alias];
                 if (!val) return false;
-                if (fd.field === 'method' || fd.field.startsWith('object_')) return !!val.split('/')[0];
+                if (fd.field === 'method' || fd.field.startsWith('object_')) return !!getMethodObj(val);
                 return true;
             });
         }
@@ -1529,7 +1609,7 @@ if (f.key) {
                 if (!val && fd.alias) val = w[fd.alias];
                 if (!val) continue;
                 let objKey = val;
-                if (fd.isMethod && val.includes('/')) objKey = val.split('/')[0];
+                if (fd.isMethod) objKey = getMethodObj(val);
                 if (!objKey) continue;
                 if (!groups[objKey]) groups[objKey] = { oldObj: objKey, newObj: objKey, fields: [] };
                 groups[objKey].fields.push(fd.label);
@@ -1559,8 +1639,9 @@ if (f.key) {
                     const field = fieldMap[lbl];
                     if (!field) continue;
                     if (methodLabels.includes(lbl)) {
-                        const method = (w[field] || '').split('/')[1] || '';
-                        w[field] = g.newObj + '/' + method;
+                        /* the method of the old address comes along to the new object */
+                        const method = getMethodName(w[field]);
+                        w[field] = g.newObj + (method ? '/' + method : '/');
                     } else if (aliases[lbl]) {
                         if (w[field]) w[field] = g.newObj;
                         if (w[aliases[lbl]]) w[aliases[lbl]] = g.newObj;
@@ -1860,6 +1941,12 @@ if (f.key) {
             watch(() => editWidgetForm.value?.[key] ? getMethodObj(editWidgetForm.value[key]) : '', (obj) => {
                 if (obj) loadObjectMethods(obj);
             });
+        });
+        /* the object of a property is chosen in another field: as soon as it is named, the
+           default the property was holding comes into it */
+        const objectFields = ['object', 'object_level', 'object_alive', 'object_info', 'icon_object', 'bg_object'];
+        objectFields.forEach(key => {
+            watch(() => editWidgetForm.value?.[key], (obj) => applyPendingObjectFields(key));
         });
         watch(() => editWidgetForm.value?.bg_mode, async (mode) => {
             if (!editWidgetForm.value) return;
@@ -2819,6 +2906,9 @@ if (f.key) {
                             }
                         } else {
                             alert(t('widget_editor_installed') + (res.type || file.name));
+                            /* the file changed under the same url: drop the token so the
+                               panel gets the widget that was just installed */
+                            bumpWidgetToken();
                             await loadWidgetDefs();
                         }
                     } catch (err) {
@@ -2948,7 +3038,7 @@ onMounted(() => {
             panels, currentPanel, selectPanel, selectHomePanel, loading, editMode,
             showAddWidget, widgetSearch, filteredDefs, plusTooltip, addPlusButton,
             widgetTypeComponent, addWidget, openWidgetHelp, getWidgetFields, getWidgetRows, getWidgetTabs, getFieldOptions, fieldVisible, g2rCameraOptions, loadGo2rtcCameras,
-            getMethodObj, getMethodName, setMethodField, itemLabel,
+            getMethodObj, getMethodName, setMethodField, itemLabel, objectKeyOfField,
             editWidgetForm, editWidgetIsNew, widgetTab, widgetTabPos, editWidget, saveEditWidget, removeWidget,
         builderModel, builderReady, builderBusy, builderTitles, builderTypes, builderTarget,
         ensureBuilder, openBuilder, builderReset, builderAction, builderLoadZip, builderCloseNotice, widgetEditorTab,

@@ -892,7 +892,7 @@ class dashboard_pro extends module
             if ($type === '') return ['error' => 'type is required'];
             if (!preg_match('/^[a-z0-9_\-]{1,40}$/i', $type)) return ['error' => 'invalid widget type'];
 
-            $w = SQLSelectOne("SELECT ID, TYPE, FILE FROM dashboard_widgets WHERE TYPE LIKE '" . DBSafe($type) . "'");
+            $w = SQLSelectOne("SELECT ID, TYPE FROM dashboard_widgets WHERE TYPE LIKE '" . DBSafe($type) . "'");
             if (!$w) return ['error' => 'widget "' . $type . '" not found'];
 
             $usage = $this->countWidgetUsage($type);
@@ -902,13 +902,8 @@ class dashboard_pro extends module
 
             SQLExec("DELETE FROM dashboard_widgets WHERE ID=" . (int)$w['ID']);
 
-            if (!empty($w['FILE'])) {
-                $base = basename($w['FILE']);
-                if (preg_match('/^[a-z0-9_\-]{1,40}\.js$/i', $base)) {
-                    $target = DIR_TEMPLATES . $this->name . '/js/widgets/' . $base;
-                    if (is_file($target)) @unlink($target);
-                }
-            }
+            $target = DIR_TEMPLATES . $this->name . '/js/widgets/' . $type . '.js';
+            if (is_file($target)) @unlink($target);
 
             return ['success' => true, 'type' => $type];
         }
@@ -940,21 +935,18 @@ class dashboard_pro extends module
             if ($type === '') return ['error' => 'type is required'];
             if (!preg_match('/^[a-z0-9_\-]{1,40}$/i', $type)) return ['error' => 'invalid widget type "' . $type . '"'];
 
-            $w = SQLSelectOne("SELECT TYPE, ICON, TITLE, DESCRIPTION, PRIORITY, FILE FROM dashboard_widgets WHERE TYPE LIKE '" . DBSafe($type) . "'");
+            $w = SQLSelectOne("SELECT TYPE, ICON, TITLE, DESCRIPTION FROM dashboard_widgets WHERE TYPE LIKE '" . DBSafe($type) . "'");
             if (!$w) return ['error' => 'widget "' . $type . '" not found'];
 
-            $file = trim((string)($w['FILE'] ?? ''));
-            if ($file === '' || $file === null) $file = 'js/widgets/' . $type . '.js';
-            $base = basename($file);
-            if (!preg_match('/^[a-z0-9_\-]{1,40}\.js$/i', $base)) return ['error' => 'invalid widget file name "' . $file . '"'];
-
+            $base = $type . '.js';
             $jsPath = DIR_TEMPLATES . $this->name . '/js/widgets/' . $base;
             $js = is_file($jsPath) ? file_get_contents($jsPath) : '';
             if ($js === false || trim($js) === '') {
                 return ['error' => 'widget file "' . $base . '" not found or empty'];
             }
 
-            $json = json_encode($w, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            $desc = $this->widgetArchiveDesc($type, $w['ICON'], $w['TITLE'], $w['DESCRIPTION']);
+            $json = json_encode($desc, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
             if ($json === false) return ['error' => 'cannot encode widget description "' . $base . '"'];
 
             $tmp = tempnam(sys_get_temp_dir(), 'dpw');
@@ -995,7 +987,7 @@ class dashboard_pro extends module
             if (trim($js) === '') return ['error' => 'widget code (js) is empty'];
             if (strpos($js, 'DpWidgets') === false) return ['error' => 'widget code does not look like a widget (no DpWidgets registration found)'];
 
-            $desc = array('TYPE' => $type, 'TITLE' => $title, 'ICON' => $icon, 'DESCRIPTION' => $description);
+            $desc = $this->widgetArchiveDesc($type, $icon, $title, $description);
             $json = json_encode($desc, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
             if ($json === false) return ['error' => 'cannot encode widget description'];
 
@@ -1019,8 +1011,6 @@ class dashboard_pro extends module
                 return array('success' => true, 'type' => $type, 'zip' => base64_encode($zipData), 'name' => $type . '.zip');
             }
 
-            $existing = SQLSelectOne("SELECT ID, PRIORITY, FILE FROM dashboard_widgets WHERE TYPE = '" . DBSafe($type) . "'");
-
             /* the title must stay unique across all other widgets */
             $dup = SQLSelectOne("SELECT TYPE FROM dashboard_widgets WHERE TITLE = '" . DBSafe($title) . "' AND TYPE <> '" . DBSafe($type) . "'");
             if ($dup) return ['error' => 'a widget named "' . $title . '" already exists (type: ' . $dup['TYPE'] . ')'];
@@ -1029,13 +1019,7 @@ class dashboard_pro extends module
             if (!is_dir($targetDir)) @mkdir($targetDir, 0755, true);
             if (!is_dir($targetDir)) return ['error' => 'cannot create widgets directory'];
 
-            /* keep the file path the widget is already registered with */
             $relFile = 'js/widgets/' . $type . '.js';
-            if ($existing && !empty($existing['FILE'])) {
-                $oldBase = basename(str_replace('\\', '/', (string)$existing['FILE']));
-                if (preg_match('/^[a-z0-9_\-]{1,40}\.js$/i', $oldBase)) $relFile = 'js/widgets/' . $oldBase;
-            }
-
             $jsPath = DIR_TEMPLATES . $this->name . '/' . $relFile;
             if (@file_put_contents($jsPath, $js) === false) return ['error' => 'cannot write widget file "' . basename($relFile) . '"'];
 
@@ -1045,6 +1029,7 @@ class dashboard_pro extends module
                 $out['name'] = $type . '.zip';
             }
 
+            $existing = SQLSelectOne("SELECT ID FROM dashboard_widgets WHERE TYPE = '" . DBSafe($type) . "'");
             if ($existing) {
                 SQLUpdate('dashboard_widgets', array(
                     'ID' => (int)$existing['ID'],
@@ -1086,11 +1071,7 @@ class dashboard_pro extends module
             $w = SQLSelectOne("SELECT TYPE, ICON, TITLE, DESCRIPTION, PRIORITY, FILE, ENABLED FROM dashboard_widgets WHERE TYPE = '" . DBSafe($type) . "'");
             if (!$w) return ['error' => 'widget "' . $type . '" not found'];
 
-            $file = trim((string)($w['FILE'] ?? ''));
-            if ($file === '') $file = 'js/widgets/' . $type . '.js';
-            $base = basename($file);
-            if (!preg_match('/^[a-z0-9_\-]{1,40}\.js$/i', $base)) return ['error' => 'invalid widget file name "' . $file . '"'];
-
+            $base = $type . '.js';
             $jsPath = DIR_TEMPLATES . $this->name . '/js/widgets/' . $base;
             $js = is_file($jsPath) ? @file_get_contents($jsPath) : '';
             if ($js === false || trim($js) === '') return ['error' => 'widget file "' . $base . '" not found or empty'];
@@ -1431,6 +1412,23 @@ class dashboard_pro extends module
             $rec = array('TITLE' => $objName, 'CLASS_ID' => $classId);
             SQLInsert('objects', $rec);
         }
+    }
+
+    /* the description inside a widget archive: one .json next to one .js of the same
+       name. Both the constructor (widgetBuild) and the export of an installed widget
+       (widgetExport) write the archive through here, so the file looks the same
+       whoever packed it. The four fields are the ones a widget carries with it;
+       the place in the list and the path of the file are not in the archive - the
+       first is MAX(PRIORITY)+1 of the installation, the second is always the file
+       named after the type. */
+    function widgetArchiveDesc($type, $icon, $title, $description)
+    {
+        return array(
+            'TYPE' => (string)$type,
+            'ICON' => (string)$icon,
+            'TITLE' => (string)$title,
+            'DESCRIPTION' => (string)$description
+        );
     }
 
     /* the widget archive of a constructor: one .json and one .js with the same name.
@@ -1893,16 +1891,13 @@ class dashboard_pro extends module
         static $cache = array();
         if (isset($cache[$type])) return $cache[$type];
         $cache[$type] = 170;
-        $def = SQLSelectOne("SELECT FILE FROM dashboard_widgets WHERE TYPE='" . DBSafe($type) . "'");
-        if ($def && !empty($def['FILE'])) {
-            $path = DIR_TEMPLATES . $this->name . '/' . $def['FILE'];
-            if (is_file($path)) {
-                $content = file_get_contents($path);
-                foreach (preg_split('/\R/', $content) as $line) {
-                    if (strpos($line, 'defaults:') === false) continue;
-                    if (preg_match('/\bheight\s*:\s*(\d+)/', $line, $m)) $cache[$type] = (int)$m[1];
-                    break;
-                }
+        $path = DIR_TEMPLATES . $this->name . '/js/widgets/' . $type . '.js';
+        if (is_file($path)) {
+            $content = file_get_contents($path);
+            foreach (preg_split('/\R/', $content) as $line) {
+                if (strpos($line, 'defaults:') === false) continue;
+                if (preg_match('/\bheight\s*:\s*(\d+)/', $line, $m)) $cache[$type] = (int)$m[1];
+                break;
             }
         }
         return $cache[$type];

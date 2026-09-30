@@ -177,6 +177,9 @@
 
     var P = {
         text: { type: 'text', label: 'dpb_text' },
+        /* the caption of a component and the name of its handler are not a "text" */
+        label: { type: 'text', label: 'dpb_label' },
+        action: { type: 'text', label: 'dpb_action' },
         bind: { type: 'setting', label: 'dpb_bind' },
         icon: { type: 'icon', label: 'dpb_icon' },
         color: { type: 'color', label: 'dpb_color' },
@@ -205,6 +208,26 @@
         if (extra) for (var k in extra) o[k] = extra[k];
         C[t] = o;
         return o;
+    }
+
+    /* Which sides of a component may follow the size of the widget: "x" width,
+       "y" height, "xy" both, nothing means it keeps its own size on both sides.
+       A line of text or a slider has a height of its own and would look broken
+       stretched sideways, so they take the width only. A switch, an icon, a dial
+       and a spinner have a fixed shape - they are not stretched at all. */
+    var STRETCH = {
+        text: 'x', button: 'x', icon: '', divider: 'x', spacer: 'xy',
+        card: 'xy', row: 'xy',
+        input: 'x', textarea: 'xy', number: 'x', checkbox: 'x', switch: '',
+        slider: 'x', color: 'x', datetime: 'x',
+        select: 'x', radio: 'xy', tabs: 'x', segment: 'x',
+        progress: 'x', gauge: '', badge: 'x', list: 'xy', table: 'xy',
+        chart: 'xy', image: 'xy', video: 'xy', iframe: 'xy', map: 'xy',
+        spinner: '', html: 'xy', widget: 'xy'
+    };
+
+    function canStretch(t, axis) {
+        return String(STRETCH[t] || '').indexOf(axis) >= 0;
     }
 
     /* --- basic --- */
@@ -248,9 +271,28 @@
             /* the highlight is a name of the component data: its value is a part
                of the class list, so it goes to :class next to the glyph */
             var dynamic = (k || x) && hl ? '[' + glyph + ', ' + hl + ']' : (k || x ? glyph : null);
+            /* a highlight paints the background of the glyph box. A bare inline box is
+               the line of the font, and the empty room under the baseline makes the
+               background hang below the icon, so a highlighted glyph gets a box of its
+               own - the size of the component, the same one a ready made widget uses.
+               The type is named here: without it the size would fall back to a generic
+               box and the background would cover half the card. */
+            var bx = hl ? itemSize(e._t ? e : { w: e.w, h: e.h, _t: 'icon' }) : null;
             return '<i class="' + (dynamic ? extra : (extra ? extra + ' ' : '') + staticGlyph) + '"' +
                 (dynamic ? ' :class="' + esc(dynamic) + '"' : '') + ' style="' + st({
-                    'font-size': len(e.size, 20), 'color': e.color || 'inherit'
+                    'display': bx ? 'inline-flex' : '',
+                    'align-items': bx ? 'center' : '',
+                    'justify-content': bx ? 'center' : '',
+                    'width': bx ? bx.w + 'px' : '',
+                    'height': bx ? bx.h + 'px' : '',
+                    'font-size': len(e.size, 20),
+                    /* a class of the theme may bring its own colour, so the inline one
+                       is only written when the field was filled */
+                    'color': e.color || '',
+                    /* a highlight class of the theme may carry padding, and a glyph is an
+                       inline box: the padding would grow it and it would jump every time
+                       the highlight comes and goes. The inline padding wins over the class. */
+                    'padding': hl ? '0' : ''
                 }) + '"' + bvif(e) + '></i>';
         });
 
@@ -319,7 +361,7 @@
 
     /* the switch of a card: "skin: v" gives the markup of the theme
        (v-input--switch), the position of the thumb follows the state itself */
-    def('switch', 'input', 'dpb_c_switch', 'fas fa-toggle-on', 140, 26, withLive({ label: P.text, bind: P.bind, on: pb('dpb_on'), skin: ps('dpb_skin', ['builder', 'v']), action: P.text }),
+    def('switch', 'input', 'dpb_c_switch', 'fas fa-toggle-on', 140, 26, withLive({ label: P.label, bind: P.bind, on: pb('dpb_on'), skin: ps('dpb_skin', ['builder', 'v']), action: P.action }),
         function (e) {
             var act = bact(e, 'action');
             if (String(e.skin || '') === 'v') {
@@ -338,7 +380,7 @@
        thumb; min / max / step / the value itself may come from live data */
     def('slider', 'input', 'dpb_c_slider', 'fas fa-sliders', 200, 34, withLive({
         label: P.text, bind: P.bind, min: pn('dpb_min'), max: pn('dpb_max'), step: pn('dpb_step'),
-        unit: P.text, skin: ps('dpb_skin', ['builder', 'v']), action: P.text,
+        unit: P.text, skin: ps('dpb_skin', ['builder', 'v']), action: P.action,
         lomin: { type: 'expr', label: 'dpb_min_expr' },
         himax: { type: 'expr', label: 'dpb_max_expr' },
         stepexpr: { type: 'expr', label: 'dpb_step_expr' },
@@ -682,6 +724,10 @@
            empty means the coordinates of the editor are kept */
         if (typeof it.anchorX === 'undefined') it.anchorX = '';
         if (typeof it.anchorY === 'undefined') it.anchorY = '';
+        /* a stretched side follows the size of the widget; only a side the component
+           can stretch is given the flag, so a model never promises more than it can */
+        it.stretchX = it.stretchX && canStretch(it._t, 'x') ? true : false;
+        it.stretchY = it.stretchY && canStretch(it._t, 'y') ? true : false;
         return it;
     }
 
@@ -959,20 +1005,30 @@
 
     /* where a component sits when the panel gives the widget a box of another size.
        No anchor: the offset from the top left corner stays, exactly as in the editor.
-       An anchor ties the component to that side and keeps the distance to it. */
+       An anchor ties the component to that side and keeps the distance to it.
+       A stretched side has no size of its own: the distance to the left and to the
+       right edge is written instead of a width, so the browser gives it the room
+       that is left - that is what makes the component follow the size of the widget. */
     function anchorCss(a, it, s, p) {
         var b = innerSize(a);
         var ax = String(it.anchorX || ''), ay = String(it.anchorY || '');
-        var c = 'position:absolute;box-sizing:border-box';
-        if (!ax || ax === 'left') c += ';left:' + p.x + 'px';
-        else if (ax === 'center') c += ';left:50%;margin-left:-' + Math.round(p.w / 2) + 'px';
-        else if (ax === 'right') c += ';right:' + Math.max(0, b.w - p.x - p.w) + 'px';
-        else c += ';left:' + p.x + 'px';
-        if (!ay || ay === 'top') c += ';top:' + p.y + 'px';
-        else if (ay === 'center') c += ';top:50%;margin-top:-' + Math.round(p.h / 2) + 'px';
-        else if (ay === 'bottom') c += ';bottom:' + Math.max(0, b.h - p.y - p.h) + 'px';
-        else c += ';top:' + p.y + 'px';
-        return c + ';width:' + p.w + 'px;height:' + p.h + 'px';
+        /* a stretched side is written as the two gaps instead of a size, so the
+           browser hands the component the room that is left in the box */
+        var sx = !!(it.stretchX && canStretch(it._t, 'x'));
+        var sy = !!(it.stretchY && canStretch(it._t, 'y'));
+        var cx, cy;
+        if (sx) cx = ';left:' + p.x + 'px;right:' + Math.max(0, b.w - p.x - p.w) + 'px';
+        else if (!ax || ax === 'left') cx = ';left:' + p.x + 'px';
+        else if (ax === 'center') cx = ';left:50%;margin-left:-' + Math.round(p.w / 2) + 'px';
+        else if (ax === 'right') cx = ';right:' + Math.max(0, b.w - p.x - p.w) + 'px';
+        else cx = ';left:' + p.x + 'px';
+        if (sy) cy = ';top:' + p.y + 'px;bottom:' + Math.max(0, b.h - p.y - p.h) + 'px';
+        else if (!ay || ay === 'top') cy = ';top:' + p.y + 'px';
+        else if (ay === 'center') cy = ';top:50%;margin-top:-' + Math.round(p.h / 2) + 'px';
+        else if (ay === 'bottom') cy = ';bottom:' + Math.max(0, b.h - p.y - p.h) + 'px';
+        else cy = ';top:' + p.y + 'px';
+        return 'position:absolute;box-sizing:border-box' + cx + cy +
+            (sx ? '' : ';width:' + p.w + 'px') + (sy ? '' : ';height:' + p.h + 'px');
     }
 
     function appearanceTemplate(m) {
@@ -2446,6 +2502,7 @@
         innerSize: innerSize,
         clampPos: clampPos,
         anchorCss: anchorCss,
+        canStretch: canStretch,
 
         autoPos: autoPos,
         clampAll: clampAll,
