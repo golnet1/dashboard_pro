@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Ubuntu">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Arimo:400,600,700">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700">
-    <link rel="stylesheet" href="css/app.css?v=80">
+    <link rel="stylesheet" href="css/app.css?v=102">
     <link rel="stylesheet" href="css/leaflet.css?v=1">
     <script src="js/lib/vue.global.prod.js"></script>
 </head>
@@ -602,7 +602,15 @@
                             <div style="margin-bottom:8px">
                                 <button @click="showWidgetEditorPanel = false" style="background:none;border:none;color:rgba(255,255,255,.7);cursor:pointer;font-size:1.2rem;padding:4px 8px;margin:4px 8px"><i class="fas fa-arrow-left"></i></button>
                             </div>
-                            <div class="widget-editor">
+                            <div class="we-tabs">
+                                <button type="button" class="we-tab" :class="{ 'we-tab--on': widgetEditorTab === 'list' }" @click="widgetEditorTab = 'list'">
+                                    <i class="fas fa-list"></i> {{ t('dpb_tab_list') }}
+                                </button>
+                                <button type="button" class="we-tab" :class="{ 'we-tab--on': widgetEditorTab === 'build' }" @click="widgetEditorTab = 'build'; if (!builderModel) ensureBuilder(builderTarget, true)">
+                                    <i class="fas fa-magic"></i> {{ t('tab_build') }}
+                                </button>
+                            </div>
+                            <div class="widget-editor" v-show="widgetEditorTab === 'list'">
                                 <div class="widget-editor__toolbar">
                                     <div class="v-subheader theme--dark" style="margin:8px 0;padding:0">{{ t('widget_editor_list') }} ({{ widgetList.length }})</div>
                                     <div style="flex:1"></div>
@@ -614,9 +622,12 @@
                                     <div v-for="(w, i) in widgetList" :key="w.type" class="widget-editor__item" :data-id="w.type" :class="{ 'widget-editor__item--dragging': dragWidgetDefId === w.type, 'widget-editor__item--drop-target': dragWidgetDefOverId === w.type, 'widget-editor__item--disabled': w.enabled === 0 }" @mousedown="widgetDefMouseDown($event, w)">
                                         <i :class="w.icon || 'fas fa-puzzle-piece'" class="widget-editor__item-icon"></i>
                                         <div class="widget-editor__item-info">
-                                            <div class="widget-editor__item-title">{{ t('widget_' + w.type) }}</div>
+                                            <div class="widget-editor__item-title">{{ widgetName(w) }}</div>
                                             <div class="widget-editor__item-type">{{ w.type }}</div>
                                         </div>
+                                        <button type="button" class="widget-editor__btn" @click="openBuilder(w.type)" :title="t('dpb_edit_desc')" draggable="false">
+                                            <i class="fas fa-magic"></i> {{ t('dpb_edit') }}
+                                        </button>
                                         <button type="button" class="widget-editor__btn" @click="exportWidgetZip(w)" :title="t('widget_editor_export_desc')" draggable="false">
                                             <i class="fas fa-file-export"></i> {{ t('widget_editor_export') }}
                                         </button>
@@ -631,6 +642,33 @@
                                 <div v-else class="empty-state">
                                     <i class="fas fa-puzzle-piece"></i>
                                     <p>{{ t('widget_editor_empty') }}</p>
+                                </div>
+                            </div>
+                            <div class="we-build" v-show="widgetEditorTab === 'build'">
+                                <div class="we-build__bar">
+                                    <label class="we-build__lbl">{{ t('dpb_target') }}</label>
+                                    <select class="we-build__sel" v-model="builderTarget" @change="ensureBuilder(builderTarget, true)">
+                                        <option value="">{{ t('dpb_target_new') }}</option>
+                                        <option v-for="w in widgetList" :key="w.type" :value="w.type">{{ widgetName(w) }} · {{ w.type }}</option>
+                                    </select>
+                                    <div style="flex:1"></div>
+                                    <div class="we-build__meta" v-if="builderModel">
+                                        <i :class="builderModel.icon || 'fas fa-cube'"></i>
+                                        <span>{{ builderModel.title || t('dpb_untitled') }}</span>
+                                        <code>{{ builderModel.type }}</code>
+                                    </div>
+                                </div>
+                                <div class="dpb-host">
+                                    <div v-if="!builderReady" style="padding:40px;text-align:center;color:rgba(255,255,255,.45)">
+                                        <i class="fas fa-spinner fa-spin"></i> {{ t('loading') }}
+                                    </div>
+                                    <dp-builder v-else-if="builderModel"
+                                        :model-value="builderModel"
+                                        :existing-titles="builderTitles"
+                                        :built-types="builderTypes"
+                                        :busy="builderBusy"
+                                        @action="builderAction"
+                                        @reset="builderReset"></dp-builder>
                                 </div>
                             </div>
 						</div>
@@ -750,7 +788,7 @@
                     <div class="widget-def-list">
                         <div v-for="def in filteredDefs" :key="def.type" class="widget-def-item" @click="addWidget(def.type)">
                             <i :class="def.icon"></i>
-                            <div class="widget-def-label"><div>{{ t('widget_' + def.type) }}</div><div v-if="t('widget_' + def.type + '_desc') !== ('widget_' + def.type + '_desc')" style="font-size:.8rem;color:var(--text-secondary)">{{ t('widget_' + def.type + '_desc') }}</div></div>
+                            <div class="widget-def-label"><div>{{ widgetName(def) }}</div><div v-if="t('widget_' + def.type + '_desc') !== ('widget_' + def.type + '_desc')" style="font-size:.8rem;color:var(--text-secondary)">{{ t('widget_' + def.type + '_desc') }}</div></div>
                             <button class="widget-def-help" :title="t('help')" @click.stop="openWidgetHelp(def.type)"><i class="fas fa-circle-question"></i></button>
                         </div>
                     </div>
@@ -1159,8 +1197,8 @@
 
         <!-- ===== Widget Editor ===== -->
         <div id="widget-edit" class="v-dialog__content v-dialog__content--active" v-if="editWidgetForm" style="z-index:202">
-            <div class="v-dialog v-dialog--active v-dialog--persistent v-dialog--scrollable" style="width:700px" tabindex="0">
-                <div class="v-card v-sheet theme--dark" style="background-color:rgba(48,48,48,var(--dialog-alpha,1));border-color:#303030;display:flex;flex-direction:column;max-height:70vh;overflow:hidden">
+                <div class="v-dialog v-dialog--active v-dialog--persistent v-dialog--scrollable" style="width:700px;max-height:70vh" tabindex="0">
+                    <div class="v-card v-sheet theme--dark" :style="{ backgroundColor: 'rgba(48,48,48,var(--dialog-alpha,1))', borderColor: '#303030', display: 'flex', flexDirection: 'column', maxHeight: '70vh', overflow: 'hidden' }">
                     <div class="v-card__title" style="flex-shrink:0;display:flex;align-items:center;gap:12px">
                         <span class="headline_m">{{ editWidgetForm.title ? t('edit_widget') + editWidgetForm.title : t('new_widget') }}</span>
                     </div>
@@ -1174,7 +1212,7 @@
                                     <button v-for="tab in getWidgetTabs(editWidgetForm.type)" :key="tab.key"
                                         class="v-tab"
                                         :class="{ 'v-tab--active': widgetTab === tab.key }"
-                                        @click="widgetTab = tab.key; if (tab.key === 'columns') columnIdx = 0; else if (tab.key === 'graphs') seriesIdx = 0"
+                                        @click="widgetTab = tab.key; if (tab.key === 'columns') columnIdx = 0; else if (tab.key === 'graphs') seriesIdx = 0; else if (tab.key === 'template') openTemplateTab(editWidgetForm.type)"
                                         role="tab">{{ t(tab.label) }}</button>
                                 </div>
                             </div>
@@ -1188,6 +1226,38 @@
                                     <template v-for="tab in getWidgetTabs(editWidgetForm.type)" :key="tab.key">
                                     <div class="v-window-item" v-if="widgetTab === tab.key">
 
+                                        <template v-if="tab.key === 'template'">
+                                        <div class="dpb-tpl">
+                                            <div class="dpb-tpl__bar">
+                                                <button type="button" class="dpb-tpl__mode" :class="{ 'dpb-tpl__mode--on': tplMode === 'design' }" @click="tplMode = 'design'"><i class="fas fa-tv"></i> {{ t('dpb_tpl_design') }}</button>
+                                                <button type="button" class="dpb-tpl__mode" :class="{ 'dpb-tpl__mode--on': tplMode === 'html' }" @click="tplMode = 'html'"><i class="fas fa-code"></i> {{ t('dpb_tpl_html') }}</button>
+                                                <div style="flex:1"></div>
+                                                <code class="dpb-tpl__meta" v-if="builderModel">{{ builderModel.type }}</code>
+                                            </div>
+                                            <div class="dpb-tpl__body">
+                                                <div v-if="!tplReady" class="dpb-tpl__wait"><i class="fas fa-spinner fa-spin"></i> {{ t('loading') }}</div>
+                                                <div v-else-if="tplMode === 'design'" class="dpb-tpl__design">
+                                                    <dpb-host v-if="builderModel">
+                                                        <dp-builder :model-value="builderModel"
+                                                            :existing-titles="builderTitles"
+                                                            :built-types="builderTypes"
+                                                            :busy="builderBusy"
+                                                            @action="builderAction"
+                                                            @reset="builderReset"></dp-builder>
+                                                    </dpb-host>
+                                                </div>
+                                                <div v-else class="dpb-tpl__html">
+                                                    <div class="dpb-tpl__htmlbar">
+                                                        <span>{{ t('dpb_tpl_html_hint') }}</span>
+                                                        <div style="flex:1"></div>
+                                                        <button type="button" class="dpb-tpl__copy" @click="copyTemplateHtml"><i class="far fa-copy"></i> {{ t('dpb_tpl_copy') }}</button>
+                                                    </div>
+                                                    <pre class="dpb-tpl__pre"><code>{{ builderTemplateHtml }}</code></pre>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        </template>
+
                                         <template v-if="tab.key === 'widgets'">
                                         <div class="d-flex gap-1 ma-1" style="align-items:center">
                                             <button type="button" class="v-btn v-btn--is-elevated v-btn--fab v-btn--has-bg v-btn--round v-size--x-small" @click="startGroupChildAdd()" :title="t('add_widget')"><i class="fas fa-plus"></i></button>
@@ -1197,8 +1267,8 @@
                                             <div v-for="(child, ci) in groupChildrenList" :key="child.id" class="widget-group-list__item" :data-id="child.id" :class="{ 'widget-group-list__item--dragging': dragChildId === child.id, 'widget-group-list__item--drop-target': dragOverChildId === child.id }" @mousedown="groupChildMouseDown($event, child)">
                                                 <span class="widget-group-list__avatar"><i :class="child.icon || 'fas fa-square'"></i></span>
                                                 <div class="widget-group-list__content">
-                                                    <div class="widget-group-list__title">{{ child.title || t('widget_' + child.type) }}</div>
-                                                    <div class="widget-group-list__type">{{ t('widget_' + child.type) }}</div>
+                                                    <div class="widget-group-list__title">{{ widgetName(child) }}</div>
+                                                    <div class="widget-group-list__type">{{ child.type }}</div>
                                                 </div>
                                                 <div class="widget-group-list__action">
                                                     <div class="widget-group-list__colslider">
@@ -1765,6 +1835,23 @@
             </div>
         </div>
 
+        <!-- Widget builder: build finished -->
+        <div class="modal-overlay" v-if="widgetConfirm && widgetConfirm.built" style="background:rgba(0,0,0,.6);z-index:260">
+            <div class="modal" style="max-width:440px">
+                <div class="modal-header"><h3>{{ t('dpb_built_title') }}</h3></div>
+                <div class="modal-body" style="display:flex;gap:12px;align-items:flex-start">
+                    <i class="fas fa-circle-check" style="font-size:1.4rem;color:#66bb6a;margin-top:2px"></i>
+                    <div style="font-size:.9rem;line-height:1.5">
+                        <b>{{ widgetConfirm.type }}</b>
+                        <div style="color:rgba(255,255,255,.6);margin-top:4px">{{ widgetConfirm.updated ? t('dpb_built_updated') : t('dpb_built_created') }}</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-primary" @click="builderCloseNotice">{{ t('dpb_built_go') }}</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Icon Picker -->
         <div class="modal-overlay" v-if="showIconPicker" @click.self="showIconPicker = false" style="background:rgba(0,0,0,.6)">
             <div class="modal" style="max-width:900px;width:70%;min-height:60vh;max-height:80vh;display:flex;flex-direction:column;background:rgba(48,48,48,.92);color:#fff;border-radius:8px;overflow:hidden">
@@ -2077,7 +2164,7 @@
                 <div class="modal-body" style="text-align:center;padding:2rem 1.5rem">
                     <i class="fas fa-chart-line" style="font-size:3rem;color:var(--primary);margin-bottom:1rem"></i>
                     <h3 style="margin-bottom:.3rem">Dashboard Pro</h3>
-                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 1.16</p>
+                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 1.17</p>
                     <p style="color:var(--text-secondary);font-size:.8rem">{{ t('app_desc') }}</p>
                     <div class="about-links" style="margin-top:1rem;font-size:.85rem;color:var(--text-secondary);line-height:1.8">
                         <div>{{ t('about_telegram') }}: <a href="https://t.me/+9ZFQaxs_Ukw4NmMy" target="_blank" rel="noopener">Telegram</a></div>
@@ -2102,6 +2189,10 @@
 <script src="js/widget-config.js?v=11"></script>
 <script src="js/lib/leaflet.js?v=1"></script>
 <script src="js/lib/hls.min.js?v=1"></script>
-<script src="js/app.js?v=239"></script>
+<script src="js/dpbuilder.js?v=23"></script>
+<script src="js/dpbuilder-ui.js?v=26"></script>
+<script src="js/app.js?v=250"></script>
 </body>
 </html>
+
+

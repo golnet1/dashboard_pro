@@ -814,6 +814,26 @@ class dashboard_pro extends module
             return ['success' => true, 'type' => $type, 'enabled' => $enabled];
         }
 
+        if ($params['request'][0] == 'widgetLoad') {
+            /* the archive of a widget is only read here: nothing is written,
+               the constructor opens the model and saves it when the user is ready */
+            $method = $_SERVER['REQUEST_METHOD'];
+            if ($method != 'POST') return ['error' => 'POST required'];
+
+            $input = $this->bodyInput();
+            if (!is_array($input)) $input = array();
+
+            $zipB64 = $input['zip'] ?? '';
+            if ($zipB64 === '' || $zipB64 === null) return ['error' => 'zip file (base64) is required'];
+
+            $w = $this->readWidgetArchive($zipB64);
+            if (isset($w['error'])) return $w;
+            unset($w['desc']);
+
+            $w['success'] = true;
+            return $w;
+        }
+
         if ($params['request'][0] == 'widgetInstall') {
             $this->ensureWidgetsTable();
 
@@ -826,106 +846,22 @@ class dashboard_pro extends module
             $zipB64 = $input['zip'] ?? '';
             if ($zipB64 === '' || $zipB64 === null) return ['error' => 'zip file (base64) is required'];
 
-            $zipData = base64_decode($zipB64);
-            if ($zipData === false || $zipData === '') return ['error' => 'invalid zip file data'];
-
-            $tmpDir = DIR_TEMPLATES . $this->name . '/tmp';
-            if (!is_dir($tmpDir)) @mkdir($tmpDir, 0755, true);
-            if (!is_dir($tmpDir)) return ['error' => 'cannot create temp directory'];
-
-            $tmpFile = $tmpDir . '/widget_' . uniqid() . '.zip';
-            file_put_contents($tmpFile, $zipData);
-
-            $zip = new ZipArchive();
-            $res = $zip->open($tmpFile);
-            if ($res !== true) {
-                @unlink($tmpFile);
-                return ['error' => 'cannot open zip archive'];
-            }
-
-            $jsonFiles = array();
-            $jsFiles = array();
-            for ($i = 0; $i < $zip->numFiles; $i++) {
-                $name = $zip->getNameIndex($i);
-                if (substr($name, -1) == '/' || strpos($name, '__MACOSX') !== false) continue;
-                $base = basename($name);
-                $ext = strtolower(pathinfo($base, PATHINFO_EXTENSION));
-                if ($ext == 'json') $jsonFiles[] = $name;
-                if ($ext == 'js') $jsFiles[] = $name;
-            }
-
-            if (count($jsonFiles) != 1) {
-                $zip->close(); @unlink($tmpFile);
-                return ['error' => 'archive must contain exactly one .json description file, found ' . count($jsonFiles)];
-            }
-            if (count($jsFiles) != 1) {
-                $zip->close(); @unlink($tmpFile);
-                return ['error' => 'archive must contain exactly one .js widget file, found ' . count($jsFiles)];
-            }
-
-            $jsonName = $jsonFiles[0];
-            $jsName = $jsFiles[0];
-            $type = basename($jsonName, '.json');
-            if ($type !== basename($jsName, '.js')) {
-                $zip->close(); @unlink($tmpFile);
-                return ['error' => 'description file "' . $jsonName . '" and widget file "' . $jsName . '" must have the same base name (TYPE)'];
-            }
-            if (!preg_match('/^[a-z0-9_\-]{1,40}$/i', $type)) {
-                $zip->close(); @unlink($tmpFile);
-                return ['error' => 'invalid widget type "' . $type . '" (only letters, digits, _ and - allowed)'];
-            }
+            $w = $this->readWidgetArchive($zipB64);
+            if (isset($w['error'])) return $w;
+            $type = $w['type'];
+            $jsContent = $w['js'];
 
             $exists = SQLSelectOne("SELECT ID FROM dashboard_widgets WHERE TYPE LIKE '" . DBSafe($type) . "'");
             if ($exists) {
-                $zip->close(); @unlink($tmpFile);
                 return ['error' => 'widget_exists', 'type' => $type];
             }
-
-            $descRaw = $zip->getFromName($jsonName);
-            if ($descRaw === false || trim($descRaw) === '') {
-                $zip->close(); @unlink($tmpFile);
-                return ['error' => 'description file "' . $jsonName . '" is empty'];
-            }
-            $desc = json_decode($descRaw, true);
-            if (!is_array($desc)) {
-                $zip->close(); @unlink($tmpFile);
-                return ['error' => 'description file "' . $jsonName . '" contains invalid JSON: ' . json_last_error_msg()];
-            }
-
-            $descType = '';
-            foreach (array('TYPE', 'type') as $k) { if (!empty($desc[$k])) { $descType = $desc[$k]; break; } }
-            if ($descType !== $type) {
-                $zip->close(); @unlink($tmpFile);
-                return ['error' => 'description file "' . $jsonName . '" TYPE (' . $descType . ') does not match file name "' . $type . '"'];
-            }
-
-            $jsContent = $zip->getFromName($jsName);
-            if ($jsContent === false || trim($jsContent) === '') {
-                $zip->close(); @unlink($tmpFile);
-                return ['error' => 'widget file "' . $jsName . '" is empty'];
-            }
-            if (stripos($jsContent, 'DpWidgets') === false) {
-                $zip->close(); @unlink($tmpFile);
-                return ['error' => 'widget file "' . $jsName . '" does not look like a widget (no DpWidgets registration found)'];
-            }
-
-            $title = '';
-            foreach (array('TITLE', 'title') as $k) { if (!empty($desc[$k])) { $title = $desc[$k]; break; } }
-            $icon = '';
-            foreach (array('ICON', 'icon') as $k) { if (!empty($desc[$k])) { $icon = $desc[$k]; break; } }
-            $description = '';
-            foreach (array('DESCRIPTION', 'description', 'desc') as $k) { if (!empty($desc[$k])) { $description = $desc[$k]; break; } }
 
             $targetDir = DIR_TEMPLATES . $this->name . '/js/widgets';
             if (!is_dir($targetDir)) @mkdir($targetDir, 0755, true);
             if (!is_dir($targetDir)) {
-                $zip->close(); @unlink($tmpFile);
                 return ['error' => 'cannot create widgets directory'];
             }
             file_put_contents($targetDir . '/' . $type . '.js', $jsContent);
-
-            $zip->close();
-            @unlink($tmpFile);
 
             $priority = 0;
             $mx = SQLSelectOne("SELECT MAX(PRIORITY) as MX FROM dashboard_widgets");
@@ -933,9 +869,9 @@ class dashboard_pro extends module
 
             $rec = array(
                 'TYPE' => $type,
-                'ICON' => $icon,
-                'TITLE' => $title,
-                'DESCRIPTION' => $description,
+                'ICON' => $w['icon'],
+                'TITLE' => $w['title'],
+                'DESCRIPTION' => $w['description'],
                 'PRIORITY' => $priority,
                 'FILE' => 'js/widgets/' . $type . '.js',
                 'ENABLED' => 1
@@ -1035,6 +971,133 @@ class dashboard_pro extends module
             @unlink($tmp);
             if ($data === false || $data === '') return ['error' => 'cannot read zip archive'];
             return ['success' => true, 'zip' => base64_encode($data), 'name' => $type . '.zip'];
+        }
+
+        if ($params['request'][0] == 'widgetBuild') {
+            if (empty($session->data['DP_PRO_USERNAME']) || !empty($session->data['DP_PRO_LOGGED_OUT'])) return ['error' => 'not authorized'];
+            $this->ensureWidgetsTable();
+
+            $method = $_SERVER['REQUEST_METHOD'];
+            if ($method != 'POST') return ['error' => 'POST required'];
+
+            $input = $this->bodyInput();
+            if (!is_array($input)) $input = array();
+
+            $type = trim((string)($input['type'] ?? ''));
+            if (!preg_match('/^[a-z0-9_\-]{1,40}$/i', $type)) return ['error' => 'invalid widget type "' . $type . '" (only letters, digits, _ and - allowed)'];
+
+            $title = trim((string)($input['title'] ?? ''));
+            if ($title === '') $title = $type;
+            $icon = trim((string)($input['icon'] ?? ''));
+            $description = trim((string)($input['description'] ?? ''));
+            $js = (string)($input['js'] ?? '');
+
+            if (trim($js) === '') return ['error' => 'widget code (js) is empty'];
+            if (strpos($js, 'DpWidgets') === false) return ['error' => 'widget code does not look like a widget (no DpWidgets registration found)'];
+
+            $desc = array('TYPE' => $type, 'TITLE' => $title, 'ICON' => $icon, 'DESCRIPTION' => $description);
+            $json = json_encode($desc, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            if ($json === false) return ['error' => 'cannot encode widget description'];
+
+            $zipTmp = tempnam(sys_get_temp_dir(), 'dpb');
+            $zipData = '';
+            if ($zipTmp !== false) {
+                $zip = new ZipArchive();
+                if ($zip->open($zipTmp, ZipArchive::OVERWRITE) === true) {
+                    $zip->addFromString($type . '.json', $json);
+                    $zip->addFromString($type . '.js', $js);
+                    $zip->close();
+                    $d = @file_get_contents($zipTmp);
+                    if ($d !== false) $zipData = $d;
+                }
+                @unlink($zipTmp);
+            }
+
+            $mode = strtolower(trim((string)($input['mode'] ?? 'install')));
+            if ($mode === 'zip') {
+                if ($zipData === '') return ['error' => 'cannot create zip archive'];
+                return array('success' => true, 'type' => $type, 'zip' => base64_encode($zipData), 'name' => $type . '.zip');
+            }
+
+            $existing = SQLSelectOne("SELECT ID, PRIORITY, FILE FROM dashboard_widgets WHERE TYPE = '" . DBSafe($type) . "'");
+
+            /* the title must stay unique across all other widgets */
+            $dup = SQLSelectOne("SELECT TYPE FROM dashboard_widgets WHERE TITLE = '" . DBSafe($title) . "' AND TYPE <> '" . DBSafe($type) . "'");
+            if ($dup) return ['error' => 'a widget named "' . $title . '" already exists (type: ' . $dup['TYPE'] . ')'];
+
+            $targetDir = DIR_TEMPLATES . $this->name . '/js/widgets';
+            if (!is_dir($targetDir)) @mkdir($targetDir, 0755, true);
+            if (!is_dir($targetDir)) return ['error' => 'cannot create widgets directory'];
+
+            /* keep the file path the widget is already registered with */
+            $relFile = 'js/widgets/' . $type . '.js';
+            if ($existing && !empty($existing['FILE'])) {
+                $oldBase = basename(str_replace('\\', '/', (string)$existing['FILE']));
+                if (preg_match('/^[a-z0-9_\-]{1,40}\.js$/i', $oldBase)) $relFile = 'js/widgets/' . $oldBase;
+            }
+
+            $jsPath = DIR_TEMPLATES . $this->name . '/' . $relFile;
+            if (@file_put_contents($jsPath, $js) === false) return ['error' => 'cannot write widget file "' . basename($relFile) . '"'];
+
+            $out = array('success' => true, 'type' => $type);
+            if ($zipData !== '') {
+                $out['zip'] = base64_encode($zipData);
+                $out['name'] = $type . '.zip';
+            }
+
+            if ($existing) {
+                SQLUpdate('dashboard_widgets', array(
+                    'ID' => (int)$existing['ID'],
+                    'ICON' => $icon,
+                    'TITLE' => $title,
+                    'DESCRIPTION' => $description,
+                    'FILE' => $relFile
+                ));
+                $out['updated'] = true;
+                return $out;
+            }
+
+            $priority = 0;
+            $mx = SQLSelectOne("SELECT MAX(PRIORITY) as MX FROM dashboard_widgets");
+            if (isset($mx['MX']) && $mx['MX'] !== null) $priority = (int)$mx['MX'] + 1;
+
+            SQLInsert('dashboard_widgets', array(
+                'TYPE' => $type,
+                'ICON' => $icon,
+                'TITLE' => $title,
+                'DESCRIPTION' => $description,
+                'PRIORITY' => $priority,
+                'FILE' => 'js/widgets/' . $type . '.js',
+                'ENABLED' => 1
+            ));
+
+            $out['updated'] = false;
+            return $out;
+        }
+
+        if ($params['request'][0] == 'widgetModel') {
+            if (empty($session->data['DP_PRO_USERNAME']) || !empty($session->data['DP_PRO_LOGGED_OUT'])) return ['error' => 'not authorized'];
+            $this->ensureWidgetsTable();
+            $type = trim((string)($params['type'] ?? ''));
+            if ($type === '') return ['error' => 'type is required'];
+            if (!preg_match('/^[a-z0-9_\-]{1,40}$/i', $type)) return ['error' => 'invalid widget type'];
+
+            $w = SQLSelectOne("SELECT TYPE, ICON, TITLE, DESCRIPTION, PRIORITY, FILE, ENABLED FROM dashboard_widgets WHERE TYPE = '" . DBSafe($type) . "'");
+            if (!$w) return ['error' => 'widget "' . $type . '" not found'];
+
+            $file = trim((string)($w['FILE'] ?? ''));
+            if ($file === '') $file = 'js/widgets/' . $type . '.js';
+            $base = basename($file);
+            if (!preg_match('/^[a-z0-9_\-]{1,40}\.js$/i', $base)) return ['error' => 'invalid widget file name "' . $file . '"'];
+
+            $jsPath = DIR_TEMPLATES . $this->name . '/js/widgets/' . $base;
+            $js = is_file($jsPath) ? @file_get_contents($jsPath) : '';
+            if ($js === false || trim($js) === '') return ['error' => 'widget file "' . $base . '" not found or empty'];
+
+            $model = '';
+            if (preg_match('/\/\*\s*DPMODEL-BEGIN\s*\*\/([\s\S]*?)\/\*\s*DPMODEL-END\s*\*\//', $js, $mm)) $model = $mm[1];
+
+            return array('success' => true, 'type' => $type, 'meta' => $w, 'js' => $js, 'model' => $model);
         }
 
         if ($params['request'][0] == 'properties') {
@@ -1367,6 +1430,107 @@ class dashboard_pro extends module
             $rec = array('TITLE' => $objName, 'CLASS_ID' => $classId);
             SQLInsert('objects', $rec);
         }
+    }
+
+    /* the widget archive of a constructor: one .json and one .js with the same name.
+       The archive is only read here, the caller decides what to do with the widget. */
+    function readWidgetArchive($zipB64)
+    {
+        $zipData = base64_decode($zipB64);
+        if ($zipData === false || $zipData === '') return ['error' => 'invalid zip file data'];
+
+        $tmpDir = DIR_TEMPLATES . $this->name . '/tmp';
+        if (!is_dir($tmpDir)) @mkdir($tmpDir, 0755, true);
+        if (!is_dir($tmpDir)) return ['error' => 'cannot create temp directory'];
+
+        $tmpFile = $tmpDir . '/widget_' . uniqid() . '.zip';
+        file_put_contents($tmpFile, $zipData);
+
+        $zip = new ZipArchive();
+        $res = $zip->open($tmpFile);
+        if ($res !== true) {
+            @unlink($tmpFile);
+            return ['error' => 'cannot open zip archive'];
+        }
+
+        $jsonFiles = array();
+        $jsFiles = array();
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $name = $zip->getNameIndex($i);
+            if (substr($name, -1) == '/' || strpos($name, '__MACOSX') !== false) continue;
+            $base = basename($name);
+            $ext = strtolower(pathinfo($base, PATHINFO_EXTENSION));
+            if ($ext == 'json') $jsonFiles[] = $name;
+            if ($ext == 'js') $jsFiles[] = $name;
+        }
+
+        if (count($jsonFiles) != 1) {
+            $zip->close(); @unlink($tmpFile);
+            return ['error' => 'archive must contain exactly one .json description file, found ' . count($jsonFiles)];
+        }
+        if (count($jsFiles) != 1) {
+            $zip->close(); @unlink($tmpFile);
+            return ['error' => 'archive must contain exactly one .js widget file, found ' . count($jsFiles)];
+        }
+
+        $jsonName = $jsonFiles[0];
+        $jsName = $jsFiles[0];
+        $type = basename($jsonName, '.json');
+        if ($type !== basename($jsName, '.js')) {
+            $zip->close(); @unlink($tmpFile);
+            return ['error' => 'description file "' . $jsonName . '" and widget file "' . $jsName . '" must have the same base name (TYPE)'];
+        }
+        if (!preg_match('/^[a-z0-9_\-]{1,40}$/i', $type)) {
+            $zip->close(); @unlink($tmpFile);
+            return ['error' => 'invalid widget type "' . $type . '" (only letters, digits, _ and - allowed)'];
+        }
+
+        $descRaw = $zip->getFromName($jsonName);
+        if ($descRaw === false || trim($descRaw) === '') {
+            $zip->close(); @unlink($tmpFile);
+            return ['error' => 'description file "' . $jsonName . '" is empty'];
+        }
+        $desc = json_decode($descRaw, true);
+        if (!is_array($desc)) {
+            $zip->close(); @unlink($tmpFile);
+            return ['error' => 'description file "' . $jsonName . '" contains invalid JSON: ' . json_last_error_msg()];
+        }
+
+        $descType = '';
+        foreach (array('TYPE', 'type') as $k) { if (!empty($desc[$k])) { $descType = $desc[$k]; break; } }
+        if ($descType !== $type) {
+            $zip->close(); @unlink($tmpFile);
+            return ['error' => 'description file "' . $jsonName . '" TYPE (' . $descType . ') does not match file name "' . $type . '"'];
+        }
+
+        $jsContent = $zip->getFromName($jsName);
+        if ($jsContent === false || trim($jsContent) === '') {
+            $zip->close(); @unlink($tmpFile);
+            return ['error' => 'widget file "' . $jsName . '" is empty'];
+        }
+        if (stripos($jsContent, 'DpWidgets') === false) {
+            $zip->close(); @unlink($tmpFile);
+            return ['error' => 'widget file "' . $jsName . '" does not look like a widget (no DpWidgets registration found)'];
+        }
+
+        $title = '';
+        foreach (array('TITLE', 'title') as $k) { if (!empty($desc[$k])) { $title = $desc[$k]; break; } }
+        $icon = '';
+        foreach (array('ICON', 'icon') as $k) { if (!empty($desc[$k])) { $icon = $desc[$k]; break; } }
+        $description = '';
+        foreach (array('DESCRIPTION', 'description', 'desc') as $k) { if (!empty($desc[$k])) { $description = $desc[$k]; break; } }
+
+        $zip->close();
+        @unlink($tmpFile);
+
+        return array(
+            'type' => $type,
+            'title' => $title,
+            'icon' => $icon,
+            'description' => $description,
+            'js' => $jsContent,
+            'desc' => $desc
+        );
     }
 
     function loadPanels()

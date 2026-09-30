@@ -82,6 +82,20 @@ const translations = ref({});
 window.__t = function(text) { return translations.value[text] || text; };
 const t = window.__t;
 
+/* the name of a widget: its own title first, then the translation, and the type
+   itself as the last resort - never a raw key like widget_type */
+function widgetName(w) {
+    const o = (w && typeof w === 'object') ? w : null;
+    const type = (o ? (o.type || '') : w) || '';
+    const own = (o && (o.title || o.name)) || '';
+    if (own) return own;
+    const tr = translations.value['widget_' + type];
+    if (tr) return tr;
+    const def = widgetDefs.value.find(d => d.type === type);
+    if (def && def.title) return def.title;
+    return type;
+}
+
 async function loadTranslations() {
     try {
         const d = await dpAPI('lang');
@@ -395,7 +409,7 @@ const app = createApp({
             const list = widgetDefs.value.filter(d => d.enabled !== 0);
             if (!q) return list;
             return list.filter(d => {
-                const haystack = [t('widget_' + d.type), d.title, (t('widget_' + d.type + '_desc') !== 'widget_' + d.type + '_desc' ? t('widget_' + d.type + '_desc') : ''), d.type]
+                const haystack = [widgetName(d), (t('widget_' + d.type + '_desc') !== 'widget_' + d.type + '_desc' ? t('widget_' + d.type + '_desc') : ''), d.type]
                     .map(s => String(s || '').toLowerCase());
                 return haystack.some(s => s.includes(q));
             });
@@ -460,7 +474,7 @@ const app = createApp({
                 }
             }
             tabs = tabs.filter(tab => {
-                if (tab.key === 'columns' || tab.key === 'widgets' || tab.key === 'graphs' || tab.key === 'colors' || tab.key === 'items' || tab.key === 'slides' || tab.key === 'statuses') return true;
+                if (tab.key === 'columns' || tab.key === 'widgets' || tab.key === 'graphs' || tab.key === 'colors' || tab.key === 'items' || tab.key === 'slides' || tab.key === 'statuses' || tab.key === 'template') return true;
                 const fields = getWidgetFields(type, tab.fields || tab.key);
                 return fields.length > 0;
             });
@@ -802,6 +816,12 @@ const app = createApp({
                 if (!active) return;
                 const er = el.getBoundingClientRect();
                 const ar = active.getBoundingClientRect();
+                const wrap = el.parentElement;
+                if (wrap && wrap.scrollWidth > wrap.clientWidth) {
+                    const wr = wrap.getBoundingClientRect();
+                    if (ar.left < wr.left) wrap.scrollLeft -= (wr.left - ar.left) + 8;
+                    else if (ar.right > wr.right) wrap.scrollLeft += (ar.right - wr.right) + 8;
+                }
                 widgetTabPos.left = (ar.left - er.left) + 'px';
                 widgetTabPos.width = ar.width + 'px';
             });
@@ -820,7 +840,9 @@ const app = createApp({
             });
         }
 
-        watch(widgetTab, () => nextTick(updateWidgetTabSlider));
+        watch(widgetTab, () => {
+            nextTick(updateWidgetTabSlider);
+        });
         watch(panelTab, () => nextTick(updatePanelTabSlider));
 
         const plusTooltip = computed(() => {
@@ -903,7 +925,7 @@ function loadScript(src, version) {
             widgetList.value = [...widgetDefs.value].sort((a, b) => (a.priority || 0) - (b.priority || 0));
             for (const w of widgets.items) {
                 if (!w.FILE) continue;
-                await loadScript(w.FILE, 163);
+                await loadScript(w.FILE, 164);
             }
             widgetDefs.value.forEach(d => registerWidgetComponent(d.type));
         }
@@ -1048,6 +1070,243 @@ function loadScript(src, version) {
 
         function openWidgetHelp(type) {
             window.open('help/widgets/' + type + '.html', '_blank', 'noopener');
+        }
+
+        /* ---- Widget builder (page showWidgetEditorPanel, tab "Создание и редактирование") ---- */
+        const widgetEditorTab = ref('list');
+        const builderTarget = ref('');
+        const builderModel = ref(null);
+        const builderReady = ref(false);
+        const builderBusy = ref(false);
+
+        const builderTitles = computed(() => {
+            const me = builderTarget.value || '';
+            const out = [];
+            (widgetDefs.value || []).forEach(d => {
+                if (d.type && d.type === me) return;
+                if (d.title) out.push(d.title);
+            });
+            return out;
+        });
+
+        const builderTypes = computed(() => {
+            const me = builderTarget.value || '';
+            return (widgetDefs.value || []).map(d => d.type).filter(x => x && x !== 'unknown' && x !== me);
+        });
+
+        function builderBlank(type) {
+            const base = type || 'new_widget';
+            let t = base.replace(/[^a-z0-9_]/gi, '_').toLowerCase();
+            if (!/^[a-z]/.test(t)) t = 'w_' + t;
+            const m = window.DpBuilder ? window.DpBuilder.newModel(t) : null;
+            if (m) m.title = '';
+            return m;
+        }
+
+        async function ensureBuilder(type, force) {
+            const cur = type !== undefined ? (type || '') : builderTarget.value;
+            if (!force && builderModel.value && builderReady.value && builderTarget.value === cur) return builderModel.value;
+            if (!window.DpBuilder) return null;
+            builderTarget.value = cur;
+            if (cur) {
+                let res = null;
+                try {
+                    res = await dpAPI('widgetModel?type=' + encodeURIComponent(cur));
+                } catch (e) { res = null; }
+                if (res && !res.error && (res.js || res.model)) {
+                    const meta = res.meta || {};
+                    const fill = (m) => {
+                        m.type = cur;
+                        m.title = m.title || meta.TITLE || '';
+                        m.icon = m.icon || meta.ICON || 'fas fa-cube';
+                        m.description = m.description || meta.DESCRIPTION || '';
+                    };
+                    /* widget created with the builder: its design model is stored in the file */
+                    const m = window.DpBuilder.parseSource(res.js || res.model);
+                    if (m) {
+                        fill(m);
+                        builderModel.value = m;
+                        builderReady.value = true;
+                        return m;
+                    }
+                    /* ready made widget: take its HTML, fields, defaults and code from the file */
+                    const comp = getWidgetComponent(cur);
+                    const im = window.DpBuilder.importSource(res.js || '', {
+                        type: cur,
+                        title: meta.TITLE || '',
+                        icon: meta.ICON || '',
+                        description: meta.DESCRIPTION || '',
+                        defaults: (comp && comp.defaults) || null,
+                        tabs: (comp && comp.tabs) || null,
+                        fields: (comp && comp.fields) || null
+                    });
+                    if (im) {
+                        fill(im);
+                        builderModel.value = im;
+                        builderReady.value = true;
+                        return im;
+                    }
+                }
+            }
+            builderModel.value = builderBlank(cur);
+            builderReady.value = true;
+            return builderModel.value;
+        }
+
+        function openBuilder(type) {
+            widgetEditorTab.value = 'build';
+            showWidgetEditorPanel.value = true;
+            showSettingsPanel.value = false;
+            builderReady.value = false;
+            builderModel.value = null;
+            ensureBuilder(type || '', true);
+        }
+
+        function builderReset() {
+            builderModel.value = builderBlank(builderTarget.value);
+            builderReady.value = true;
+        }
+
+        /* ---- "Внешний вид" (template:) tab inside the per-widget dialog ---- */
+        const tplMode = ref('design');
+        const tplReady = ref(false);
+
+        async function openTemplateTab(type) {
+            tplMode.value = 'design';
+            tplReady.value = false;
+            if (!type) { tplReady.value = true; return; }
+            builderTarget.value = type;
+            await ensureBuilder(type, true);
+            tplReady.value = true;
+        }
+
+        const builderTemplateHtml = computed(() => {
+            const m = builderModel.value;
+            if (!m || !window.DpBuilder) return '';
+            try { return window.DpBuilder.templateOf(m) || ''; } catch (e) { return ''; }
+        });
+
+        async function copyTemplateHtml() {
+            const txt = builderTemplateHtml.value;
+            if (!txt) return;
+            try {
+                await navigator.clipboard.writeText(txt);
+            } catch (e) {
+                const ta = document.createElement('textarea');
+                ta.value = txt; document.body.appendChild(ta); ta.select();
+                try { document.execCommand('copy'); } catch (e2) { /* ignore */ }
+                document.body.removeChild(ta);
+            }
+        }
+
+        async function builderAction(kind, payload) {
+            /* the archive is picked here: the builder only asks for it */
+            if (kind === 'loadzip') { builderLoadZip(); return; }
+            if (!payload || builderBusy.value) return;
+            const m = payload.model;
+            if (!m) return;
+            builderBusy.value = true;
+            try {
+                const body = {
+                    type: m.type,
+                    title: m.title,
+                    icon: m.icon,
+                    description: m.description,
+                    js: payload.js,
+                    mode: kind === 'download' ? 'zip' : 'install'
+                };
+                const res = await dpAPI('widgetBuild', { method: 'POST', body: JSON.stringify(body) });
+                if (res.error) {
+                    alert(t('error_label') + ' ' + res.error);
+                    return;
+                }
+                if (kind === 'download') {
+                    if (res.zip) {
+                        const blob = base64ToBlob(res.zip, 'application/zip');
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = res.name || (m.type + '.zip');
+                        a.click();
+                        URL.revokeObjectURL(url);
+                    }
+                    return;
+                }
+                await loadWidgetDefs();
+                widgetConfirm.value = {
+                    built: true,
+                    type: res.type,
+                    updated: !!res.updated
+                };
+                builderReady.value = false;
+                builderModel.value = null;
+                ensureBuilder(res.type || m.type, true);
+            } catch (e) {
+                alert(t('error_label') + (e.message || e));
+            } finally {
+                builderBusy.value = false;
+            }
+        }
+
+        /* an archive of a widget opens in the constructor: the model is read from the
+           file, nothing is written until the user saves the widget */
+        function builderLoadZip() {
+            if (!window.DpBuilder) { alert(t('error_label') + ' dpbuilder'); return; }
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.zip';
+            input.onchange = (e) => {
+                const file = e.target.files && e.target.files[0];
+                if (!file) return;
+                if (!/\.zip$/i.test(file.name)) { alert(t('widget_editor_bad_zip')); return; }
+                const reader = new FileReader();
+                reader.onload = async () => {
+                    const b64 = String(reader.result || '').split(',')[1] || '';
+                    if (!b64) { alert(t('widget_editor_bad_zip')); return; }
+                    try {
+                        builderBusy.value = true;
+                        const res = await dpAPI('widgetLoad', { method: 'POST', body: JSON.stringify({ zip: b64 }) });
+                        if (res.error) { alert(t('error_label') + ' ' + res.error); return; }
+                        const src = res.js || '';
+                        /* a widget made in the constructor carries its design model,
+                           a ready made one is read from the file itself */
+                        let m = window.DpBuilder.parseSource(src);
+                        if (!m) {
+                            const own = window.DpBuilder.componentOf ? window.DpBuilder.componentOf(src) : null;
+                            const comp = own || (getWidgetComponent(res.type) || null);
+                            m = window.DpBuilder.importSource(src, {
+                                type: res.type,
+                                title: res.title || '',
+                                icon: res.icon || '',
+                                description: res.description || '',
+                                defaults: (comp && comp.defaults) || null,
+                                tabs: (comp && comp.tabs) || null,
+                                fields: (comp && comp.fields) || null
+                            });
+                        }
+                        if (!m) { alert(t('error_label') + ' ' + t('dpb_zip_bad')); return; }
+                        m.type = res.type || m.type;
+                        m.title = m.title || res.title || '';
+                        m.icon = m.icon || res.icon || 'fas fa-cube';
+                        m.description = m.description || res.description || '';
+                        builderTarget.value = m.type;
+                        builderModel.value = m;
+                        builderReady.value = true;
+                        alert(t('dpb_zip_loaded') + (m.title || m.type));
+                    } catch (err) {
+                        alert(t('error_label') + (err.message || err));
+                    } finally {
+                        builderBusy.value = false;
+                    }
+                };
+                reader.onerror = () => alert(t('error_label') + 'read');
+                reader.readAsDataURL(file);
+            };
+            input.click();
+        }
+
+        function builderCloseNotice() {
+            widgetConfirm.value = null;
         }
 
         async function editWidget(w, parent) {
@@ -1876,6 +2135,8 @@ if (f.key) {
             { name: 'brands', title: 'Brands', icons: ['fab fa-amazon','fab fa-android','fab fa-angular','fab fa-apple','fab fa-aws','fab fa-bitcoin','fab fa-cc-amex','fab fa-cc-mastercard','fab fa-cc-visa','fab fa-centos','fab fa-chrome','fab fa-cloudflare','fab fa-css3','fab fa-digital-ocean','fab fa-discord','fab fa-docker','fab fa-dropbox','fab fa-ebay','fab fa-edge','fab fa-ethereum','fab fa-facebook','fab fa-facebook-messenger','fab fa-fedora','fab fa-firefox','fab fa-github','fab fa-gitlab','fab fa-google','fab fa-html5','fab fa-hubspot','fab fa-instagram','fab fa-jira','fab fa-js','fab fa-linkedin','fab fa-linux','fab fa-microsoft','fab fa-node','fab fa-npm','fab fa-opera','fab fa-paypal','fab fa-pinterest','fab fa-playstation','fab fa-python','fab fa-react','fab fa-reddit','fab fa-redhat','fab fa-rocketchat','fab fa-safari','fab fa-salesforce','fab fa-slack','fab fa-snapchat','fab fa-soundcloud','fab fa-spotify','fab fa-stack-overflow','fab fa-steam','fab fa-stripe','fab fa-telegram','fab fa-tiktok','fab fa-trello','fab fa-twitch','fab fa-twitter','fab fa-ubuntu','fab fa-vimeo','fab fa-vk','fab fa-vuejs','fab fa-whatsapp','fab fa-windows','fab fa-xbox','fab fa-youtube'] },
         ];
         iconCategories[0].icons = iconCategories.slice(1).flatMap(c => c.icons).filter((v,i,a) => a.indexOf(v) === i);
+        /* the widget builder has its own Vue app: it takes the same list of icons */
+        window.DpIconCategories = iconCategories;
 
         const filteredIconCategories = computed(() => {
             const q = iconCategorySearch.value.toLowerCase();
@@ -2689,6 +2950,9 @@ onMounted(() => {
             widgetTypeComponent, addWidget, openWidgetHelp, getWidgetFields, getWidgetRows, getWidgetTabs, getFieldOptions, fieldVisible, g2rCameraOptions, loadGo2rtcCameras,
             getMethodObj, getMethodName, setMethodField, itemLabel,
             editWidgetForm, editWidgetIsNew, widgetTab, widgetTabPos, editWidget, saveEditWidget, removeWidget,
+        builderModel, builderReady, builderBusy, builderTitles, builderTypes, builderTarget,
+        ensureBuilder, openBuilder, builderReset, builderAction, builderLoadZip, builderCloseNotice, widgetEditorTab,
+        tplMode, tplReady, openTemplateTab, builderTemplateHtml, copyTemplateHtml,
             grDragState, grColors, grPreview, grAdd, grRemove, grSet, grDrop,
             editWidgetParent, groupAddTarget, removeGroupChild,
             groupChildrenList, startGroupChildAdd, closeEditor, moveGroupChildOut, confirmOutOfGroup, groupChildMouseDown, groupChildMouseMove, groupChildMouseUp, resetChildDrag, dragChildId, dragOverChildId,
@@ -2710,7 +2974,7 @@ onMounted(() => {
             isAdmin, toggleEditMode, wsConnected, wsTooltip, wsStatus, wsPulse, wsBytesSent, wsBytesReceived, wsRev, user, userMenuOpen, sidebarMini, toggleSidebar, expandedGroups, childPanels, toggleGroup, forceRefresh, formatBytes,
             showNotifications, notifications, unreadCount, checkNotifications, markNotificationsRead, notifAvatarUrl, notifAvatarFallback,
             chatOpen, chatMessages, chatText, chatLoading, loadChat, sendChat, toggleChat, formatTime,
-            widgetList, exportWidgetZip, setWidgetEnabled, deleteWidgetDef, pickWidgetZip,
+            widgetList, exportWidgetZip, setWidgetEnabled, deleteWidgetDef, pickWidgetZip, widgetName,
             widgetDefMouseDown, widgetDefMouseMove, widgetDefMouseUp, dragWidgetDefId, dragWidgetDefOverId,
             t
         };
@@ -2719,11 +2983,15 @@ onMounted(() => {
 
 app.config.globalProperties.t = window.__t;
 
-function registerWidgetComponent(type) {
+    if (window.DpBuilderUI && !app.component('dp-builder')) {
+        app.component('dp-builder', window.DpBuilderUI);
+    }
+
+    function registerWidgetComponent(type) {
     if (app.component('widget-' + type)) return app.component('widget-' + type);
     const comp = (window.DpWidgets && window.DpWidgets[type]) || null;
     app.component('widget-' + type,
-        comp || { template: '<div>' + (t('widget_' + type) || type) + '</div>' });
+        comp || { template: '<div>' + (widgetName(type) || type) + '</div>' });
     return app.component('widget-' + type);
 }
 

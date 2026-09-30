@@ -12,7 +12,7 @@ const GraphWidget = {
             { key: 'icon_object', label: 'field_icon_object', type: 'object', row: 'icon_row', showIf: { icon_type: 'property' } },
             { key: 'icon_property', label: 'field_icon_property', type: 'property', row: 'icon_row', showIf: { icon_type: 'property' } },
             { key: 'icon_url', label: 'field_icon_url', type: 'text', row: 'icon_row', showIf: { icon_type: 'url' } },
-            { key: 'period', label: 'field_period', type: 'number', default: 24 },
+            { key: 'period', label: 'field_period_hours', type: 'number', default: 24 },
             { key: 'chart_type', label: 'field_chart_type', type: 'select', row: 'chart_row', default: 'line', options: [{value:'line',label:'opt_chart_line'},{value:'bar',label:'opt_chart_bar'}] },
             { key: 'enableZoom', label: 'field_enable_zoom', type: 'checkbox', row: 'chart_row', default: true },
             { key: 'bg_mode', label: 'field_bg_mode', type: 'select', row: 'bg_row', options: [{value:'default',label:'opt_default'},{value:'image',label:'opt_image'},{value:'color',label:'opt_custom_color'},{value:'property',label:'opt_color_property'}] },
