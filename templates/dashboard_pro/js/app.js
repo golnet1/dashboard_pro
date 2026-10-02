@@ -79,6 +79,10 @@ const widgetDefs = ref([]);
 const widgetList = ref([]);
 
 const translations = ref({});
+/* Until the language has arrived t() hands back the key itself, so nothing may be
+   drawn with it yet: the sign in screen would read "sign_in" instead of the words,
+   and the keys stay visible long enough to be read. The screen waits for this. */
+const langReady = ref(false);
 window.__t = function(text) { return translations.value[text] || text; };
 const t = window.__t;
 
@@ -97,10 +101,19 @@ function widgetName(w) {
 }
 
 async function loadTranslations() {
-    try {
-        const d = await dpAPI('lang');
-        if (d && typeof d === 'object') translations.value = d;
-    } catch(e) {}
+    /* one try, then one more. The screen waits for the dictionary, and a single
+       refused request would either leave it waiting for good or let it through to
+       show the keys. */
+    for (let i = 0; i < 2; i++) {
+        try {
+            const d = await dpAPI('lang');
+            if (d && typeof d === 'object') { translations.value = d; langReady.value = true; return; }
+        } catch(e) {}
+        if (i === 0) await new Promise(r => setTimeout(r, 400));
+    }
+    /* the api itself is down: there is no wording to show either way, and waiting
+       here for good would leave an empty screen with no way out */
+    langReady.value = true;
 }
 
 const app = createApp({
@@ -3126,7 +3139,7 @@ onMounted(() => {
         });
 
         return {
-            authenticated, authChecking, login, password, loginError, loginLoading, doLogin, doLogout, testAPI: Auth.testAPI,
+            authenticated, authChecking, langReady, login, password, loginError, loginLoading, doLogin, doLogout, testAPI: Auth.testAPI,
             headerTime, headerDate, headerStatusSectionOn, headerStatusList, headerStatusItems, headerStatusMaxReached,
             showHeaderStatusEditor, hsForm, hsProperties, hsEditIdx, openHeaderStatusEditor, loadHsProperties, clearHsObject, editHeaderStatusItem, saveHeaderStatusItem, removeHeaderStatusItem, hsMapArr, headerStatusImages: HEADER_STATUS_IMAGES,
             panels, currentPanel, selectPanel, selectHomePanel, loading, editMode,

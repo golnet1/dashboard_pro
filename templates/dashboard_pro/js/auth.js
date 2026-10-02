@@ -10,13 +10,32 @@ const Auth = (function() {
 
     async function checkAuth(onAuth) {
         authChecking.value = true;
-        try {
-            const res = await dpAPI('checkAuth');
-            if (res.authenticated) {
-                authenticated.value = true;
-                if (onAuth) await onAuth(res);
+        /* The session lives on the server, so a request that did not get through says
+           nothing about it. Without the retry one refused or half finished request put
+           the sign in screen in front of a user who is in fact authorised, and it
+           stayed there - nothing asked again. An answer that says "not authorised" is
+           the one that is taken at once, because that is the server talking. */
+        for (let i = 0; i < 3; i++) {
+            try {
+                const res = await dpAPI('checkAuth');
+                if (res && res.authenticated) {
+                    authenticated.value = true;
+                    if (onAuth) await onAuth(res);
+                    authChecking.value = false;
+                    return;
+                }
+                /* dpHttp never rejects: a request that did not come through comes
+                   back as a plain object with an error in it. That is not the server
+                   saying "not authorised", it is a question that was not answered, so
+                   it is asked again. Only a clean answer is taken at once - otherwise
+                   one bad request put the sign in screen in front of a user who is in
+                   fact authorised, and it stayed there, because nothing asked again. */
+                if (res && !res.error) break;
+            } catch (e) {
+                if (i === 2) console.error(e);
             }
-        } catch (e) { console.error(e); }
+            if (i < 2) await new Promise(r => setTimeout(r, 500));
+        }
         authChecking.value = false;
     }
 
