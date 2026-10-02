@@ -2115,8 +2115,13 @@
                         /* A name the generator owns is machine text even when it is
                            already there. Refreshing it is what lets a widget saved
                            before a change stop carrying the old version - skipping it
-                           is what left "Press" where the path of the icon belonged. */
-                        if (ownedName(e.name)) merged = replaceEntry(merged, e.name, e.text.replace(/\s+$/, ''));
+                           is what left "Press" where the path of the icon belonged.
+                           "icon" joins them while the icon goes after the switch of
+                           the panel: then it is not the field any more but the value
+                           the switch resolved, and the name beside the icon has to
+                           read the same one. A widget whose icon is bound to the
+                           field keeps its own "icon" - there the field is the value. */
+                        if (ownedName(e.name) || (e.name === 'icon' && followNeed)) merged = replaceEntry(merged, e.name, e.text.replace(/\s+$/, ''));
                         return;
                     }
                     have[e.name] = 1;
@@ -2359,13 +2364,23 @@
        generation left behind when the icon does not follow a property any more:
        dead code in the file is not harmless, a loader for a pair nothing reads
        still asks the object on every start. */
+    /* The entries that go are cut out of the text as it stands, and the rest is left
+       byte for byte. Writing the block back from the parsed entries instead quietly
+       dropped everything the parser did not recognise - a method written as
+       "async toggle() { }" arrived as the tail of a multiline call, and the widget
+       was left with "object: obj" where a method used to be: that is a name the file
+       cannot run, so the widget vanished from the panel. */
     function dropEntries(body, drop) {
-        var es = entriesOf(body), out = '', any = false;
-        es.forEach(function (e) {
-            if (drop(e.name)) { any = true; return; }
-            out = addEntry(out, e.text);
-        });
-        return any ? out : body;
+        var es = entriesOf(body), cut = [], any = false, i;
+        for (i = 0; i < es.length; i++) if (drop(es[i].name)) { cut.push(es[i]); any = true; }
+        if (!any) return body;
+        var lines = String(body || '').split('\n'), keep = [], n = 0;
+        for (i = 0; i < lines.length; i++) {
+            while (cut.length && cut[0].start === i) n = Math.max(n, cut[0].end), cut.shift();
+            if (i < n) continue;
+            keep.push(lines[i]);
+        }
+        return keep.join('\n');
     }
 
     /* The calls in mounted are statements, not entries, so they are taken out line
