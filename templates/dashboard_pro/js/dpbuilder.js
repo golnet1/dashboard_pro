@@ -3167,6 +3167,14 @@ var tpl = readTemplateStr(js);
         function acc(key) {
             if (!id(key) || seen[key]) return;
             seen[key] = 1;
+            /* the name beside the icon leans on "icon": it must answer the same question
+               the icon itself does. In the url and property modes the field "icon" stays
+               empty, so leaning on it put the name over the icon there. dpbWidgetIcon is
+               the value the icon actually shows, and that is what decides the place. */
+            if (key === 'icon' && mFollow) {
+                computed.push('    icon: function () { return this.dpbWidgetIcon; },');
+                return;
+            }
             computed.push('    ' + key + ': function () { return ' + path(key) + ' || \'\'; },');
         }
         binds.forEach(acc);
