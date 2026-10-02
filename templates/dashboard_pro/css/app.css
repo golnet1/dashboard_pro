@@ -456,6 +456,9 @@ a.user-menu__item { text-decoration: none; color: inherit; }
 .widget-v-card { display:flex; flex-direction:column; height:100%; width:100%; background:rgba(var(--theme-bg-rgb), var(--card-alpha, 1)); overflow:hidden; position:relative; transition:background .2s, box-shadow .2s; }
 .widget-v-card__header { display:flex; align-items:center; gap:8px; padding:10px 12px 4px; min-height:40px; }
 .widget-v-card__icon { font-size:var(--widget-icon-size, 23px); color:var(--on-theme-mid); text-align:center; flex-shrink:0; }
+/* иконка типа url или property - это картинка, а не класс Font Awesome:
+   размер берётся тот же, что и у значка, и она не должна ломать строку */
+.widget-v-card__icon--img { max-width:var(--widget-icon-size, 23px); max-height:var(--widget-icon-size, 23px); width:auto; height:auto; object-fit:contain; }
 .widget-v-card__icon--hl { background:rgba(25,118,210,.5); border-radius:6px; padding:6px 8px; }
 .widget-v-card__icon--hl--round { border-radius:50%; padding:8px; }
 .widget-v-card__title { font-size:var(--widget-title-size, 1.49rem); font-weight:500; color:var(--on-theme-high); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -577,6 +580,7 @@ a.user-menu__item { text-decoration: none; color: inherit; }
 .widget-v-card--button .dp-button--cover:hover { filter:brightness(1.15); }
 .widget-v-card--button .dp-button--cover:active { filter:brightness(.92); }
 .widget-v-card--button .dp-button__icon { font-size:2.2rem; flex-shrink:0; }
+.widget-v-card--button .dp-button__icon--img { max-width:2.2rem; max-height:2.2rem; width:auto; height:auto; object-fit:contain; flex-shrink:0; }
 .widget-v-card--button .dp-button__title { font-size:1.35rem; font-weight:600; line-height:1.25; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .widget-v-card--button .dp-button--cover:disabled { opacity:.4; cursor:not-allowed; }
 .widget-v-card--button .dp-button--dead-overlay { position:absolute; inset:0; background:rgba(255,0,0,.45); z-index:1; pointer-events:auto; }
@@ -662,6 +666,19 @@ a.user-menu__item { text-decoration: none; color: inherit; }
 /* Modal large */
 .modal-lg { max-width:700px !important; }
 
+/* Окно добавления виджета: шапка и поиск остаются на месте, прокручивается только
+   список. Правило намеренно не трогает остальные окна - они по-прежнему
+   прокручиваются целиком вместе с шапкой. */
+.modal-sticky-head { display: flex; flex-direction: column; overflow: hidden; }
+.modal-sticky-head .modal-header { flex: 0 0 auto; }
+.modal-sticky-head .modal-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 0; }
+.modal-sticky-head .search-box { position: sticky; top: 0; z-index: 2; margin: 0; padding: 1rem 1.5rem; background: var(--card); border-bottom: 1px solid var(--border); }
+/* лупа позиционируется от padding box контейнера, а у контейнера теперь есть
+   горизонтальный отступ - поэтому к 12px добавляется он сам, иначе иконка
+   уезжает влево от поля ввода на ширину этого отступа */
+.modal-sticky-head .search-box i { left: calc(1.5rem + 12px); }
+.modal-sticky-head .widget-def-list { padding: .75rem 1.5rem 1.5rem; }
+
 /* Dark scrollbar - global fallback (lowest priority) */
 #widget-edit, #panel-edit, #hs-edit { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.15) transparent; }
 #widget-edit::-webkit-scrollbar, #panel-edit::-webkit-scrollbar, #hs-edit::-webkit-scrollbar { width: 6px; }
@@ -742,6 +759,10 @@ body.widget-dragging, body.widget-dragging * { cursor: grabbing !important; }
 .widget-editor__item-info { flex:1; min-width:0; }
 .widget-editor__item-title { font-size:.875rem; font-weight:500; color:var(--on-theme-high); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .widget-editor__item-type { font-size:.75rem; color:var(--on-theme-dim); font-family:monospace; margin-top:2px; }
+/* How many copies of this type stand on the panels. Shown only when there is at
+   least one: a row of zeroes next to every unused type is noise, and a missing
+   badge already reads as "nowhere". */
+.widget-editor__usage { display:inline-flex; align-items:center; gap:5px; flex-shrink:0; padding:4px 9px; border:1px solid var(--border); border-radius:6px; background:rgba(var(--primary-rgb, 25,118,210), .12); color:var(--primary); font-size:.8rem; font-weight:600; cursor:default; }
 .widget-editor__btn { display:inline-flex; align-items:center; gap:6px; border:1px solid var(--border); background:transparent; color:var(--on-theme-high); border-radius:6px; padding:6px 10px; cursor:pointer; font-size:.8rem; flex-shrink:0; transition:border-color .15s, color .15s; }
 .widget-editor__btn:hover { border-color:var(--primary); color:var(--primary); }
 .widget-editor__btn--danger:hover { border-color:#f44336; color:#f44336; }
@@ -930,6 +951,10 @@ body.widget-dragging, body.widget-dragging * { cursor: grabbing !important; }
 .dpb-node--drag .dpb-fit { box-shadow:0 4px 14px rgba(0,0,0,.55); }
 .dpb-node:hover .dpb-fit { outline-color:rgba(255,255,255,.5); }
 .dpb-node--on .dpb-fit { outline:2px solid #1976d2; box-shadow:0 0 0 1px #1976d2; }
+/* блок с выражением смещения: на холсте он стоит на месте координат, двигается он
+   на панели - пунктир говорит, что место здесь посчитать нечем */
+.dpb-node--live .dpb-fit { outline-style:dashed; outline-color:rgba(255,193,7,.75); }
+.dpb-node--live:hover .dpb-fit { outline-color:rgba(255,193,7,.95); }
 
 .dpb-frow__ops button { border:none; background:none; color:rgba(255,255,255,.7); cursor:pointer; padding:2px 4px; font-size:.68rem; border-radius:3px; }
 .dpb-frow__ops button:hover:not(:disabled) { background:rgba(255,255,255,.18); color:#fff; }
@@ -956,6 +981,13 @@ body.widget-dragging, body.widget-dragging * { cursor: grabbing !important; }
 
 .dpb-modbar { display:flex; align-items:center; gap:10px; padding:6px 12px; border-top:1px solid rgba(255,255,255,.1); background:rgba(0,0,0,.2); flex-shrink:0; flex-wrap:wrap; }
 .dpb-modbar label { display:inline-flex; align-items:center; gap:5px; font-size:.72rem; color:rgba(255,255,255,.55); }
+/* The number fields here - width, height, gap - are narrow in what they hold: three
+   digits and nothing more. The browser still lays every <input> out for twenty
+   characters, so they came out about three times wider than needed. A third of the
+   default is 56px, which fits 560 and 320 whole, and the spinner keeps its place
+   because the border and padding are inside the 56 and not added to it. Only the
+   width is set here: colour, border and font stay as the bar has always had them. */
+.dpb-modbar input[type=number] { width:56px; box-sizing:border-box; text-align:center; }
 
 /* properties */
 .dpb-block { margin-bottom:12px; padding-bottom:10px; border-bottom:1px solid rgba(255,255,255,.08); }

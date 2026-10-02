@@ -26,7 +26,8 @@ const PanelLinkWidget = {
                 <img :src="panelImage" style="width:100%;height:100%;object-fit:contain">
             </div>
             <div class="widget-v-card__header">
-                <i v-if="displayIcon" :class="displayIcon" class="widget-v-card__icon"></i>
+                <img v-if="iconSrc" class="widget-v-card__icon widget-v-card__icon--img" :src="iconSrc" alt="">
+                <i v-else-if="displayIcon" :class="displayIcon" class="widget-v-card__icon"></i>
                 <div class="widget-v-card__title">{{ displayTitle }}</div>
                 <i class="fas fa-chevron-right" style="color:rgba(255,255,255,.3);font-size:.85rem;margin-left:auto"></i>
             </div>

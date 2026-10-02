@@ -110,6 +110,25 @@ const app = createApp({
         const { currentPanel, sidebarOpen, sidebarMini, expandedGroups, childPanels, toggleGroup, selectPanel, selectHomePanel, toggleSidebar } = Sidebar;
 
         const panels = ref([]);
+/* How many times each widget type is actually placed. Counted over every panel and
+   inside groups as well: a widget nested in a group stands on the panel all the
+   same, and stopping at the first level would under-report it. Two numbers are kept
+   apart on purpose - the total over all panels, and the share of the one panel being
+   edited. Editing a type changes every instance of it, so how many there are matters
+   before the edit, and where those instances live matters after it. */
+const widgetUsage = computed(() => {
+    const total = {}, here = {};
+    const walk = (list, isCurrent) => {
+        (Array.isArray(list) ? list : []).forEach(w => {
+            if (!w || !w.type) return;
+            total[w.type] = (total[w.type] || 0) + 1;
+            if (isCurrent) here[w.type] = (here[w.type] || 0) + 1;
+            if (Array.isArray(w.children)) walk(w.children, isCurrent);
+        });
+    };
+    panels.value.forEach(p => walk(p && p.widgets, p === currentPanel.value));
+    return { total, here };
+});
         const loading = ref(true);
         const editMode = ref(false);
         const showAddWidget = ref(false);
@@ -958,11 +977,16 @@ function loadScript(src, version) {
            reached the panel. The token changes on every install, and the base follows the
            module, so a module update also refreshes the widgets. */
         const WIDGET_TOKEN_KEY = 'dp_widget_token';
-        const WIDGET_TOKEN_BASE = 166;
+        const WIDGET_TOKEN_BASE = 170;
         function widgetToken() {
             let token = 0;
             try { token = parseInt(localStorage.getItem(WIDGET_TOKEN_KEY) || '0', 10) || 0; } catch (e) { token = 0; }
-            return (token > WIDGET_TOKEN_BASE ? token : WIDGET_TOKEN_BASE) + '';
+            /* The base is part of the address on purpose. A widget file that was changed
+               on the server does not reach a browser that already holds the old one:
+               the address is unchanged, so the old copy is served from the cache and the
+               fix looks as if it did nothing. The token alone only moves on install, so
+               raising the base is what invalidates the file everywhere at once. */
+            return ((token > WIDGET_TOKEN_BASE ? token : WIDGET_TOKEN_BASE) + '.' + WIDGET_TOKEN_BASE) + '';
         }
         function bumpWidgetToken() {
             try { localStorage.setItem(WIDGET_TOKEN_KEY, String(Date.now())); } catch (e) { /* private mode: the base still helps */ }
@@ -1172,11 +1196,70 @@ function loadScript(src, version) {
             return (widgetDefs.value || []).map(d => d.type).filter(x => x && x !== 'unknown' && x !== me);
         });
 
-        function builderBlank(type) {
-            const base = type || 'new_widget';
-            let t = base.replace(/[^a-z0-9_]/gi, '_').toLowerCase();
-            if (!/^[a-z]/.test(t)) t = 'w_' + t;
-            const m = window.DpBuilder ? window.DpBuilder.newModel(t) : null;
+        /* Three ways into the constructor, and they are not the same thing:
+           ''            - a widget built from nothing;
+           '__example__' - a widget built from the worked out example;
+           anything else - a widget that already exists, opened by its type.
+           The first two make a new file, so they must never take a name that is
+           taken: the type is the file name, and a second "new_widget" would quietly
+           write over the first one instead of adding to it. */
+        const T_NEW = '';
+        const T_EXAMPLE = '__example__';
+
+        /* The one menu of the constructor, top left. Two of its items do not open a
+           widget but make one: a blank one, and one from the worked out example. Both
+           are framed by dashes so they do not read as names of widgets. Everything
+           else is a widget that exists, and it keeps title and type - including the
+           starter widget itself, which stays reachable for editing. */
+        const builderTargets = computed(() => {
+            const out = [
+                { value: T_NEW, label: t('dpb_target_new') },
+                { value: T_EXAMPLE, label: t('dpb_cat_min_example') }
+            ];
+            (widgetList.value || []).forEach(w => {
+                out.push({ value: w.type, label: widgetName(w) + ' · ' + w.type });
+            });
+            return out;
+        });
+
+        /* Three ways into the constructor, and they are not the same thing:
+           ''            - a widget built from nothing;
+           '__example__' - a widget built from the worked out example;
+           anything else - a widget that already exists, opened by its type.
+           The first two make a new file, so they must never take a name that is
+           taken: the type is the file name, and a second "new_widget" would quietly
+           write over the first one instead of adding to it. */
+
+        function nextWidgetType(taken) {
+            const used = {};
+            (taken || []).forEach(x => { if (x) used[String(x)] = 1; });
+            for (let i = 1; i < 10000; i++) {
+                const t = 'widget_' + i;
+                if (!used[t]) return t;
+            }
+            return 'widget_' + String(Date.now());
+        }
+
+        function freeWidgetType() {
+            const names = (widgetDefs.value || []).map(d => d.type);
+            if (builderTarget.value) names.push(builderTarget.value);
+            return nextWidgetType(names);
+        }
+
+        /* A widget nobody has named must not arrive wearing a name, so the title is
+           emptied for every one of them - the example included. */
+        function builderBlank(target, example) {
+            const B = window.DpBuilder;
+            if (!B) return null;
+            let t, m;
+            if (target && target !== T_NEW && target !== T_EXAMPLE) {
+                t = target.replace(/[^a-z0-9_]/gi, '_').toLowerCase();
+                if (!/^[a-z]/.test(t)) t = 'w_' + t;
+                m = B.newModel(t);
+            } else {
+                t = freeWidgetType();
+                m = example ? B.newModel(t) : (B.emptyModel ? B.emptyModel(t) : B.newModel(t));
+            }
             if (m) m.title = '';
             return m;
         }
@@ -1186,6 +1269,12 @@ function loadScript(src, version) {
             if (!force && builderModel.value && builderReady.value && builderTarget.value === cur) return builderModel.value;
             if (!window.DpBuilder) return null;
             builderTarget.value = cur;
+            /* neither of the two starts opens a file - there is nothing to open yet */
+            if (cur === T_NEW || cur === T_EXAMPLE) {
+                builderModel.value = builderBlank(cur, cur === T_EXAMPLE);
+                builderReady.value = true;
+                return builderModel.value;
+            }
             if (cur) {
                 let res = null;
                 try {
@@ -1241,7 +1330,8 @@ function loadScript(src, version) {
         }
 
         function builderReset() {
-            builderModel.value = builderBlank(builderTarget.value);
+            const cur = builderTarget.value;
+            builderModel.value = builderBlank(cur, cur === T_EXAMPLE);
             builderReady.value = true;
         }
 
@@ -3040,7 +3130,7 @@ onMounted(() => {
             widgetTypeComponent, addWidget, openWidgetHelp, getWidgetFields, getWidgetRows, getWidgetTabs, getFieldOptions, fieldVisible, g2rCameraOptions, loadGo2rtcCameras,
             getMethodObj, getMethodName, setMethodField, itemLabel, objectKeyOfField,
             editWidgetForm, editWidgetIsNew, widgetTab, widgetTabPos, editWidget, saveEditWidget, removeWidget,
-        builderModel, builderReady, builderBusy, builderTitles, builderTypes, builderTarget,
+        builderModel, builderReady, builderBusy, builderTitles, builderTypes, builderTarget, builderTargets,
         ensureBuilder, openBuilder, builderReset, builderAction, builderLoadZip, builderCloseNotice, widgetEditorTab,
         tplMode, tplReady, openTemplateTab, builderTemplateHtml, copyTemplateHtml,
             grDragState, grColors, grPreview, grAdd, grRemove, grSet, grDrop,
@@ -3064,7 +3154,7 @@ onMounted(() => {
             isAdmin, toggleEditMode, wsConnected, wsTooltip, wsStatus, wsPulse, wsBytesSent, wsBytesReceived, wsRev, user, userMenuOpen, sidebarMini, toggleSidebar, expandedGroups, childPanels, toggleGroup, forceRefresh, formatBytes,
             showNotifications, notifications, unreadCount, checkNotifications, markNotificationsRead, notifAvatarUrl, notifAvatarFallback,
             chatOpen, chatMessages, chatText, chatLoading, loadChat, sendChat, toggleChat, formatTime,
-            widgetList, exportWidgetZip, setWidgetEnabled, deleteWidgetDef, pickWidgetZip, widgetName,
+            widgetList, widgetUsage, exportWidgetZip, setWidgetEnabled, deleteWidgetDef, pickWidgetZip, widgetName,
             widgetDefMouseDown, widgetDefMouseMove, widgetDefMouseUp, dragWidgetDefId, dragWidgetDefOverId,
             t
         };
@@ -3077,11 +3167,103 @@ app.config.globalProperties.t = window.__t;
         app.component('dp-builder', window.DpBuilderUI);
     }
 
+    /* The icon of a widget has three kinds, and only one of them is a Font Awesome
+       class. "url" keeps the path to the file and "property" keeps the name of the
+       object and the property where that path is stored, so both end up as a
+       picture and only "icon" stays a class. The widgets themselves were written
+       when the type did nothing and all of them draw
+       <i :class="widget.icon"> - so instead of thirty one templates, every widget
+       gets these fields through a mixin, and a template that asks for iconSrc
+       shows the picture. A widget that still draws only widget.icon keeps working
+       exactly as before. */
+    const widgetIconMixin = {
+        data() {
+            return { _iconSrc: '', _iconFor: '' };
+        },
+        computed: {
+            iconType() {
+                const w = this.widget || {};
+                const t = String(w.icon_type || w.iconType || 'icon');
+                return (t === 'property' || t === 'url') ? t : 'icon';
+            },
+            iconSrc() {
+                /* a picture is shown only for url and property; for a class the
+                   widget keeps drawing widget.icon itself */
+                if (this.iconType === 'icon') return '';
+                return this._iconSrc || '';
+            }
+        },
+        mounted() {
+            this.loadIconSrc();
+        },
+        watch: {
+            'widget.icon_type': function () { this.loadIconSrc(); },
+            'widget.icon_object': function () { this.loadIconSrc(); },
+            'widget.icon_property': function () { this.loadIconSrc(); },
+            'widget.icon_url': function () { this.loadIconSrc(); }
+        },
+        methods: {
+            loadIconSrc() {
+                const w = this.widget || {};
+                if (this.iconType === 'icon') {
+                    if (this._iconSrc) { this._iconSrc = ''; this._iconFor = ''; }
+                    return Promise.resolve();
+                }
+                const obj = String(w.icon_object || w.iconObject || '').trim();
+                const prop = String(w.icon_property || w.iconProperty || '').trim();
+                /* the url is already the path to the file */
+                if (this.iconType === 'url') {
+                    const u = String(w.icon_url || w.iconUrl || '').trim();
+                    this._iconSrc = u;
+                    this._iconFor = u ? 'url:' + u : '';
+                    return Promise.resolve();
+                }
+                if (!obj || !prop) {
+                    this._iconSrc = ''; this._iconFor = '';
+                    return Promise.resolve();
+                }
+                const key = 'property:' + obj + '.' + prop;
+                /* the same pair is asked for by every widget on the page, so the
+                   value that came back is kept for the others */
+                const shared = window.__dpIconPropCache || (window.__dpIconPropCache = {});
+                const self = this;
+                this._iconSeq = (this._iconSeq || 0) + 1;
+                const seq = this._iconSeq;
+                const apply = (v) => {
+                    if (seq !== self._iconSeq) return;
+                    self._iconSrc = String(v || '').trim();
+                    self._iconFor = key;
+                };
+                if (shared[key] !== undefined) { apply(shared[key]); return Promise.resolve(); }
+                return Promise.resolve(dpAPI('getProperty?' + new URLSearchParams({ object: obj, property: prop })))
+                    .then(r => {
+                        const v = (r && r.value !== undefined && r.value !== null) ? r.value : '';
+                        shared[key] = String(v).trim();
+                        apply(shared[key]);
+                    })
+                    .catch(() => {
+                        /* a wrong or unreachable property leaves the icon empty;
+                           it must not break the widget itself */
+                        shared[key] = '';
+                        apply('');
+                    });
+            }
+        }
+    };
+
     function registerWidgetComponent(type) {
     if (app.component('widget-' + type)) return app.component('widget-' + type);
     const comp = (window.DpWidgets && window.DpWidgets[type]) || null;
+    const withIcon = (c) => {
+        if (!c) return c;
+        /* the widget keeps its own mixins and hooks; the icon fields are added to
+           them, so a widget that never draws a picture is not touched */
+        const base = { template: '<div>' + (widgetName(type) || type) + '</div>' };
+        const src = c === base ? base : c;
+        return { ...src, mixins: [widgetIconMixin].concat(src.mixins || []) };
+    };
     app.component('widget-' + type,
-        comp || { template: '<div>' + (widgetName(type) || type) + '</div>' });
+        withIcon(comp) || { template: '<div>' + (widgetName(type) || type) + '</div>' });
     return app.component('widget-' + type);
 }
 

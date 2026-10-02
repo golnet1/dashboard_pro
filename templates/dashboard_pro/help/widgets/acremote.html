@@ -94,7 +94,7 @@
                 <tr><td>Свойство<br><code>property</code></td><td><code>property</code></td><td><code>value</code></td><td>Свойство объекта, значение которого показывает виджет. Список свойств появляется после выбора объекта; пока объект не выбран, поле остаётся пустым и показывает «по умолчанию». <span class="help-note-inline">Показывается: пока <b>Способ отправки</b> = <code>property</code>.</span></td></tr>
                 <tr><td>Префикс команды<br><code>command_prefix</code></td><td><code>text</code></td><td>—</td><td>Текст, который подставляется перед введённой командой. Плейсхолдер <code>&lt;text&gt;</code> заменяется введённым текстом. <span class="help-note-inline">Показывается: пока <b>Способ отправки</b> = <code>command</code>.</span></td></tr>
                 <tr><td>Имя сценария<br><code>script</code></td><td><code>text</code></td><td>—</td><td>Имя сценария, который запускает виджет. <span class="help-note-inline">Показывается: пока <b>Способ отправки</b> = <code>script</code>.</span></td></tr>
-                <tr><td>Коды кнопок (JSON)<br><code>codes</code></td><td><code>textarea</code></td><td>—</td><td>Список кодов Majordomo для отправки — по одному в строке, в порядке вывода на панели.</td></tr>
+                <tr><td>Коды кнопок (JSON)<br><code>codes</code></td><td><code>textarea</code></td><td>—</td><td><b>Этот виджет поле не использует.</b> У пульта кондиционера нет отдельной команды на каждую кнопку: любое нажатие отправляет полное состояние одним JSON — см. раздел «Что отправляет виджет» ниже. Поле оставлено для единообразия с пультами ТВ и музыки, заполнять его не нужно.</td></tr>
             </table>
             <h5>Дополнительно <span class="badge">advanced</span></h5>
             <table>
@@ -109,6 +109,34 @@
                 <tr><td>Таймаут (сек)<br><code>alive_timeout</code></td><td><code>number</code></td><td>—</td><td>Сколько секунд ждать ответа, прежде чем считать объект недоступным. По умолчанию 3.</td></tr>
                 <tr><td>Сохранять последние настройки<br><code>remember</code></td><td><code>checkbox</code></td><td>нет</td><td>Помнить последнее состояние между перезагрузками страницы: настройки ползунков и выключателей восстановятся.</td></tr>
             </table>
+            <h4>Что отправляет виджет</h4>
+            <p>У пульта кондиционера нет отдельной команды на каждую кнопку. Любое нажатие отправляет <b>полное состояние</b> одним JSON-объектом — поэтому обработчик должен уметь разбирать состояние целиком, а не отдельные коды.</p>
+            <table>
+                <tr><th>Поле</th><th>Значения</th><th>Что означает</th></tr>
+                <tr><td><code>on</code></td><td><code>0</code> / <code>1</code></td><td>Питание: выключено / включено</td></tr>
+                <tr><td><code>mode</code></td><td><code>auto</code>, <code>cool</code>, <code>heat</code>, <code>dry</code>, <code>fan</code></td><td>Режим работы: Авто / Охлаждение / Обогрев / Осушение / Вентилятор</td></tr>
+                <tr><td><code>temp</code></td><td>число от <code>16</code> до <code>32</code></td><td>Заданная температура, градусы Цельсия</td></tr>
+                <tr><td><code>swing</code></td><td><code>0</code> / <code>1</code></td><td>Качание жалюзи: выключено / включено</td></tr>
+                <tr><td><code>fan</code></td><td><code>0</code>–<code>4</code></td><td>Скорость вентилятора: <code>0</code> Авто, <code>1</code> Низкая, <code>2</code> Средняя, <code>3</code> Высокая, <code>4</code> Максимальная</td></tr>
+            </table>
+            <p>Пример отправляемого значения: <code>{"on":1,"mode":"cool","temp":24,"swing":0,"fan":2}</code></p>
+            <h4>Кнопки пульта</h4>
+            <p>Все кнопки меняют состояние и отправляют его целиком — отдельной команды у кнопки нет.</p>
+            <table>
+                <tr><th>Кнопка</th><th>Что меняет</th></tr>
+                <tr><td>Питание</td><td><code>on</code> — включает и выключает пульт. При включении, если режим ещё не выбран, автоматически выставляется <code>auto</code>.</td></tr>
+                <tr><td>A <span class="help-note-inline">Авто</span></td><td><code>mode</code> = <code>auto</code></td></tr>
+                <tr><td>Охлаждение</td><td><code>mode</code> = <code>cool</code></td></tr>
+                <tr><td>Обогрев</td><td><code>mode</code> = <code>heat</code></td></tr>
+                <tr><td>Осушение</td><td><code>mode</code> = <code>dry</code></td></tr>
+                <tr><td>Вентилятор</td><td><code>mode</code> = <code>fan</code> — работа только на обдув, без охлаждения и обогрева</td></tr>
+                <tr><td>Качание</td><td><code>swing</code> — включает и выключает качание жалюзи</td></tr>
+                <tr><td>Громче / Тихе<br><span class="help-note-inline">Температура</span></td><td><code>temp</code> — увеличивает или уменьшает на 1 градус, границы от 16 до 32</td></tr>
+                <tr><td>Вентилятор<br><span class="help-note-inline">Перебор режимов</span></td><td><code>fan</code> — перебирает скорости по кругу: 0 → 1 → 2 → 3 → 4 → 0</td></tr>
+            </table>
+            <p class="help-note-inline">Кнопки режима и температуры работают только при включённом питании: пока <code>on</code> = <code>0</code>, нажатие ничего не отправляет.</p>
+            <h4>Как обработать в MajorDomo</h4>
+            <p>В режиме <b>Свойство</b> JSON записывается в значение свойства объекта — заберите его скриптом и разберите <code>on</code>, <code>mode</code>, <code>temp</code>, <code>swing</code>, <code>fan</code>. В режиме <b>Команда</b> выполняется команда, у которой перед этим JSON стоит значение поля <code>command_prefix</code>, поэтому проще всего разбирать состояние в скрипте: в режиме <b>Сценарий</b> запускается <code>script</code>, а входное значение передаётся ему в параметре и содержит тот же JSON.</p>
         </div>
     </main>
 </div>

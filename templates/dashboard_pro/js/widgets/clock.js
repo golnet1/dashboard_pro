@@ -28,9 +28,16 @@ const ClockWidget = {
     },
     defaults: { icon: 'fas fa-clock', icon_type: 'icon', locale: 'ru-RU', viewTime: true, viewDate: true, sizeTime: 48, sizeDate: 16, height: 130 },
     template: `
-        <div class="widget-v-card" :style="cardStyle" style="display:flex;flex-direction:column;align-items:center;justify-content:center">
-            <div v-if="widget.viewTime || widget.viewTime == undefined" :style="'font-size:' + (widget.sizeTime || 48) + 'px;font-weight:300;color:rgba(255,255,255,.87);letter-spacing:2px;line-height:1.2'">{{ time }}</div>
-            <div v-if="widget.viewDate || widget.viewDate == undefined" :style="'font-size:' + (widget.sizeDate || 16) + 'px;color:rgba(255,255,255,.5);margin-top:4px'">{{ date }}</div>
+        <div class="widget-v-card" :style="cardStyle" style="display:flex;flex-direction:column">
+            <div v-if="iconSrc || widget.title" class="widget-v-card__header">
+                <img v-if="iconSrc" class="widget-v-card__icon widget-v-card__icon--img" :src="iconSrc" alt="">
+                <i v-else-if="widget.icon" :class="widget.icon" class="widget-v-card__icon"></i>
+                <div class="widget-v-card__title">{{ widget.title }}</div>
+            </div>
+            <div class="widget-v-card__body" style="align-items:center;justify-content:center">
+                <div v-if="widget.viewTime || widget.viewTime == undefined" :style="'font-size:' + (widget.sizeTime || 48) + 'px;font-weight:300;color:rgba(255,255,255,.87);letter-spacing:2px;line-height:1.2'">{{ time }}</div>
+                <div v-if="widget.viewDate || widget.viewDate == undefined" :style="'font-size:' + (widget.sizeDate || 16) + 'px;color:rgba(255,255,255,.5);margin-top:4px'">{{ date }}</div>
+            </div>
         </div>`,
     data() {
         return { time: '', date: '', timer: null };

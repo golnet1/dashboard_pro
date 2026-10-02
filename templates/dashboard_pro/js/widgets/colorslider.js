@@ -28,7 +28,10 @@ const ColorSliderWidget = {
     },
     defaults: { icon: 'fas fa-palette', icon_type: 'icon', height: 75 },
     template: `
-        <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled }" :style="cardStyle">
+        <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled }" :style="cardStyle" style="display:flex;flex-direction:column">
+            <div v-if="iconSrc" class="widget-v-card__header">
+                <img class="widget-v-card__icon widget-v-card__icon--img" :src="iconSrc" alt="">
+            </div>
             <div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:10px 14px;min-height:0">
                 <div v-if="widget.title" style="margin-bottom:10px;font-size:1.2rem;font-weight:500;color:rgba(255,255,255,.7);text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ widget.title }}</div>
                 <div ref="track"

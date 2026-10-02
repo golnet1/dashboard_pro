@@ -23,7 +23,8 @@ const ButtonWidget = {
     template: `
         <div class="widget-v-card widget-v-card--button" :style="cardStyle">
             <button type="button" class="dp-button dp-button--cover" @click="execute">
-                <i v-if="widget.icon" :class="widget.icon" class="dp-button__icon"></i>
+                <img v-if="iconSrc" class="dp-button__icon dp-button__icon--img" :src="iconSrc" alt="">
+                <i v-else-if="widget.icon" :class="widget.icon" class="dp-button__icon"></i>
                 <span v-if="widget.title" class="dp-button__title">{{ widget.title }}</span>
             </button>
             <div v-if="aliveDisabled" class="dp-button--dead-overlay"></div>

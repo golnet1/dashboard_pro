@@ -35,7 +35,8 @@ const RoundSliderWidget = {
         <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled }" :style="cardStyle">
             <div class="widget-v-card__body" style="display:flex;align-items:center;justify-content:center;flex:1;padding:0;overflow:hidden;position:relative">
                 <canvas ref="canvas" style="display:block;cursor:pointer" @mousedown="startDrag" @mousemove="onDrag" @mouseup="endDrag" @mouseleave="endDrag"></canvas>
-                <i v-if="widget.icon" :class="widget.icon" style="position:absolute;top:4px;left:8px;font-size:1rem;color:rgba(255,255,255,.6);pointer-events:none"></i>
+                <img v-if="iconSrc" :src="iconSrc" alt="" style="position:absolute;top:4px;left:8px;width:1rem;height:1rem;object-fit:contain;opacity:.6;pointer-events:none">
+                <i v-else-if="widget.icon" :class="widget.icon" style="position:absolute;top:4px;left:8px;font-size:1rem;color:rgba(255,255,255,.6);pointer-events:none"></i>
                 <div style="position:absolute;display:flex;flex-direction:column;align-items:center;pointer-events:none">
                     <div style="font-size:1.2rem;font-weight:500;color:rgba(255,255,255,.87)">{{ displayValue }}<span v-if="widget.unit" style="margin-left:4px">{{ widget.unit }}</span></div>
                     <div v-if="widget.title" style="margin-top:4px;font-size:1.2rem;font-weight:500;color:rgba(255,255,255,.6);white-space:nowrap">{{ widget.title }}</div>

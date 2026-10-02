@@ -89,14 +89,14 @@
                 <tr><td>Объект (иконка)<br><code>icon_object</code></td><td><code>object</code></td><td>—</td><td>Объект, свойство которого даёт иконку. Показывается, когда выбран тип «Свойство». <span class="help-note-inline">Показывается: пока <b>Тип иконки</b> = <code>property</code>.</span></td></tr>
                 <tr><td>Свойство (иконка)<br><code>icon_property</code></td><td><code>property</code></td><td>—</td><td>Свойство объекта, значение которого используется как иконка. <span class="help-note-inline">Показывается: пока <b>Тип иконки</b> = <code>property</code>.</span></td></tr>
                 <tr><td>URL иконки<br><code>icon_url</code></td><td><code>text</code></td><td>—</td><td>Адрес картинки, которая показывается как иконка: <code>https://…</code> либо путь внутри модуля. <span class="help-note-inline">Показывается: пока <b>Тип иконки</b> = <code>url</code>.</span></td></tr>
-                <tr><td>Способ отправки<br><code>send_mode</code></td><td><code>select</code></td><td><code>property</code></td><td>Что делает виджет при отправке: вызов метода объекта, запуск скрипта или вызов одного из кодов.</td></tr>
+                <tr><td>Способ отправки<br><code>send_mode</code></td><td><code>select</code></td><td><code>property</code></td><td>Что делает виджет при отправке: запись в свойство объекта, вызов команды, управление телевизором по локальной сети или запуск скрипта.</td></tr>
                 <tr><td>Объект отправки<br><code>object</code></td><td><code>object</code></td><td>—</td><td>Объект Majordomo, из которого виджет читает значение или в который его записывает. <span class="help-note-inline">Показывается: пока <b>Способ отправки</b> = <code>property</code>.</span></td></tr>
                 <tr><td>Свойство<br><code>property</code></td><td><code>property</code></td><td><code>value</code></td><td>Свойство объекта, значение которого показывает виджет. Список свойств появляется после выбора объекта; пока объект не выбран, поле остаётся пустым и показывает «по умолчанию». <span class="help-note-inline">Показывается: пока <b>Способ отправки</b> = <code>property</code>.</span></td></tr>
                 <tr><td>Префикс команды<br><code>command_prefix</code></td><td><code>text</code></td><td>—</td><td>Текст, который подставляется перед введённой командой. Плейсхолдер <code>&lt;text&gt;</code> заменяется введённым текстом. <span class="help-note-inline">Показывается: пока <b>Способ отправки</b> = <code>command</code>.</span></td></tr>
                 <tr><td>IP телевизора<br><code>tv_ip</code></td><td><code>text</code></td><td>—</td><td>IP-адрес телевизора в локальной сети. <span class="help-note-inline">Показывается: пока <b>Способ отправки</b> = <code>tv</code>.</span></td></tr>
                 <tr><td>Порт телевизора<br><code>tv_port</code></td><td><code>text</code></td><td>—</td><td>Порт телевизора для управления. Порт не указан — используется значение по умолчанию производителя. <span class="help-note-inline">Показывается: пока <b>Способ отправки</b> = <code>tv</code>.</span></td></tr>
                 <tr><td>Имя сценария<br><code>script</code></td><td><code>text</code></td><td>—</td><td>Имя сценария, который запускает виджет. <span class="help-note-inline">Показывается: пока <b>Способ отправки</b> = <code>script</code>.</span></td></tr>
-                <tr><td>Коды кнопок (JSON)<br><code>codes</code></td><td><code>textarea</code></td><td>—</td><td>Список кодов Majordomo для отправки — по одному в строке, в порядке вывода на панели.</td></tr>
+                <tr><td>Коды кнопок (JSON)<br><code>codes</code></td><td><code>textarea</code></td><td>—</td><td>JSON-объект, который сопоставляет клавишу пульта с командой MajorDomo: <code>{"power": "Power", "vol+": "VolumeUp"}</code>. Клавиша — из первого столбца таблицы ниже. Если клавиши в объекте нет или значение пустое, отправляется команда по умолчанию. Если JSON написан с ошибкой, виджет не ломается — используются команды по умолчанию.</td></tr>
             </table>
             <h5>Дополнительно <span class="badge">advanced</span></h5>
             <table>
@@ -110,6 +110,39 @@
                 <tr><td>Свойство (доступность)<br><code>property_alive</code></td><td><code>property</code></td><td>—</td><td>Свойство объекта «живости», по которому виджет понимает, что связь жива.</td></tr>
                 <tr><td>Таймаут (сек)<br><code>alive_timeout</code></td><td><code>number</code></td><td>—</td><td>Сколько секунд ждать ответа, прежде чем считать объект недоступным. По умолчанию 3.</td></tr>
             </table>
+            <h4>Клавиши пульта</h4>
+            <p>Каждая кнопка отправляет одну команду. По умолчанию виджет отправляет команды из столбца «Команда по умолчанию». Чтобы отправить свою команду, укажите её в поле <code>codes</code> в формате JSON, где ключ — клавиша из первого столбца, а значение — команда: <code>{"power": "TV_PWR", "vol+": "VOL_UP"}</code>. Клавиши, перечисленные в поле <code>codes</code>, отправляют указанную команду; остальные — команду по умолчанию.</p>
+            <table>
+                <tr><th>Клавиша</th><th>Команда по умолчанию</th><th>Кнопка</th></tr>
+                <tr><td><code>power</code></td><td><code>Power</code></td><td>Питание</td></tr>
+                <tr><td><code>menu</code></td><td><code>Menu</code></td><td>Меню</td></tr>
+                <tr><td><code>home</code></td><td><code>Home</code></td><td>Домой</td></tr>
+                <tr><td><code>info</code></td><td><code>Info</code></td><td>Инфо</td></tr>
+                <tr><td><code>1</code></td><td><code>Digit1</code></td><td>Цифра 1</td></tr>
+                <tr><td><code>2</code></td><td><code>Digit2</code></td><td>Цифра 2</td></tr>
+                <tr><td><code>3</code></td><td><code>Digit3</code></td><td>Цифра 3</td></tr>
+                <tr><td><code>4</code></td><td><code>Digit4</code></td><td>Цифра 4</td></tr>
+                <tr><td><code>5</code></td><td><code>Digit5</code></td><td>Цифра 5</td></tr>
+                <tr><td><code>6</code></td><td><code>Digit6</code></td><td>Цифра 6</td></tr>
+                <tr><td><code>7</code></td><td><code>Digit7</code></td><td>Цифра 7</td></tr>
+                <tr><td><code>8</code></td><td><code>Digit8</code></td><td>Цифра 8</td></tr>
+                <tr><td><code>9</code></td><td><code>Digit9</code></td><td>Цифра 9</td></tr>
+                <tr><td><code>input</code></td><td><code>Source</code></td><td>Вход — выбор источника сигнала</td></tr>
+                <tr><td><code>0</code></td><td><code>Digit0</code></td><td>Цифра 0</td></tr>
+                <tr><td><code>settings</code></td><td><code>Settings</code></td><td>Настройки</td></tr>
+                <tr><td><code>back</code></td><td><code>Back</code></td><td>Назад — выход из меню</td></tr>
+                <tr><td><code>up</code></td><td><code>CursorUp</code></td><td>Стрелка вверх</td></tr>
+                <tr><td><code>down</code></td><td><code>CursorDown</code></td><td>Стрелка вниз</td></tr>
+                <tr><td><code>left</code></td><td><code>CursorLeft</code></td><td>Стрелка влево</td></tr>
+                <tr><td><code>right</code></td><td><code>CursorRight</code></td><td>Стрелка вправо</td></tr>
+                <tr><td><code>ok</code></td><td><code>Confirm</code></td><td>OK — подтверждение</td></tr>
+                <tr><td><code>mute</code></td><td><code>Mute</code></td><td>Без звука</td></tr>
+                <tr><td><code>vol+</code></td><td><code>VolumeUp</code></td><td>Громче</td></tr>
+                <tr><td><code>vol-</code></td><td><code>VolumeDown</code></td><td>Тихе</td></tr>
+                <tr><td><code>ch+</code></td><td><code>ChannelStepUp</code></td><td>Канал +</td></tr>
+                <tr><td><code>ch-</code></td><td><code>ChannelStepDown</code></td><td>Канал −</td></tr>
+            </table>
+            <p class="help-note-inline">Кнопки-стрелки и цифры выводятся цифрами и символами, а не подписями; их назначение видно по наведению и клавишам в таблице.</p>
         </div>
     </main>
 </div>

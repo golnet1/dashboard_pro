@@ -32,7 +32,10 @@ const GradientSliderWidget = {
     },
     defaults: { icon: 'fas fa-fill-drip', icon_type: 'icon', property: 'level', min: 0, max: 100, step: 1, height: 75, colors: JSON.stringify([{color:'#a855f7'},{color:'#3b82f6'},{color:'#22c55e'},{color:'#facc15'},{color:'#ef4444'}]) },
     template: `
-        <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled }" :style="cardStyle">
+        <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled }" :style="cardStyle" style="display:flex;flex-direction:column">
+            <div v-if="iconSrc" class="widget-v-card__header">
+                <img class="widget-v-card__icon widget-v-card__icon--img" :src="iconSrc" alt="">
+            </div>
             <div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:10px 14px;min-height:0">
                 <div v-if="widget.title" style="margin-bottom:10px;font-size:1.2rem;font-weight:500;color:rgba(255,255,255,.7);text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ widget.title }}</div>
                 <div ref="track"

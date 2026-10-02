@@ -377,18 +377,18 @@
             '      <div class="dpb-canvas" :class="{ \'dpb-canvas--over\': over }">' +
             '        <div class="dpb-frame" :style="frameStyle()">' +
             '          <div class="dpb-frame__size">{{ model.appearance.width }} &times; {{ model.appearance.height }} px</div>' +
-            '          <div class="dpb-frame__body" :style="frameBodyStyle()">' +
+            '          <div class="dpb-frame__body" :style="frameBodyStyle()" @click="sel = \'\'">' +
             '            <div class="dpb-frame__grid"></div>' +
             /* the header the module starts with: the same icon and name the code writes */
             '            <div class="dpb-head" v-if="model.appearance.showTitle || model.appearance.iconType === \'property\' || (model.appearance.iconType === \'icon\' && model.appearance.icon) || (model.appearance.iconType === \'url\' && model.appearance.iconUrl)">' +
             '              <i class="dpb-ico" v-if="model.appearance.iconType === \'icon\' && model.appearance.icon" :class="model.appearance.icon"></i>' +
             '              <img class="dpb-ico" v-else-if="model.appearance.iconType === \'url\' && model.appearance.iconUrl" :src="model.appearance.iconUrl" alt="">' +
-            '              <i class="dpb-ico" v-else-if="model.appearance.iconType === \'property\' && model.appearance.iconProperty" :class="model.appearance.iconProperty"></i>' +
+            '              <img class="dpb-ico" v-else-if="model.appearance.iconType === \'property\' && model.appearance.iconProperty" :src="iconPropValue" alt="">' +
             '              <span class="dpb-title" v-if="model.appearance.showTitle && model.appearance.title">{{ model.appearance.title }}</span>' +
             '            </div>' +
             '            <div class="dpb-canvas__stack" ref="area">' +
-             '              <div v-for="it in model.appearance.items" :key="it._i" class="dpb-node" :class="{ \'dpb-node--on\': sel === it._i, \'dpb-node--drag\': drag && drag._i === it._i, \'dpb-node--rs\': rs && rs._i === it._i }"' +
-             '                   :style="nodeStyle(it)" @mousedown="dragStart($event, it)" @click.stop="sel = it._i">' +
+              '              <div v-for="it in model.appearance.items" :key="it._i" class="dpb-node" :class="{ \'dpb-node--on\': sel === it._i, \'dpb-node--drag\': drag && drag._i === it._i, \'dpb-node--rs\': rs && rs._i === it._i, \'dpb-node--live\': liveOf(it) }"' +
+              '                   :style="nodeStyle(it)" :title="liveOf(it)" @mousedown="dragStart($event, it)" @click.stop="sel = it._i">' +
              '                <div class="dpb-node__body"><div class="dpb-fit" v-html="renderItem(it)"></div></div>' +
              '                <div class="dpb-node__hs" v-if="sel === it._i">' +
              '                  <i v-for="hd in HANDLES" :key="hd" class="dpb-h" :class="\'dpb-h--\' + hd" @mousedown.stop="resizeStart($event, it, hd)"></i>' +
@@ -404,7 +404,6 @@
             '      <div class="dpb-modbar">' +
             '        <label>{{ t(\'dpb_mod_width\') }}<input type="number" v-model.number="model.appearance.width" min="40" step="10"></label>' +
             '        <label>{{ t(\'dpb_mod_height\') }}<input type="number" v-model.number="model.appearance.height" min="20" step="10"></label>' +
-            '        <label>{{ t(\'dpb_mod_dir\') }}<select v-model="model.appearance.dir"><option value="column">{{ valLabel(\'column\') }}</option><option value="row">{{ valLabel(\'row\') }}</option></select></label>' +
             '        <label>{{ t(\'dpb_mod_gap\') }}<input type="number" v-model.number="model.appearance.gap" min="0" step="2"></label>' +
             '        <span class="dpb-sizes">' +
             '          <button v-for="p in SIZE_PRESETS" :key="p[0] + \'x\' + p[1]" type="button" class="dpb-size" :class="{ \'dpb-size--on\': model.appearance.width === p[0] && model.appearance.height === p[1] }" @click="setSize(p[0], p[1])">{{ p[0] }}&times;{{ p[1] }}</button>' +
@@ -414,6 +413,15 @@
 
             '    <div class="dpb-pane dpb-pane--right">' +
             '      <div class="dpb-pane__title">{{ t(\'dpb_props\') }}</div>' +
+            /* --- the list of the components of the canvas: a way to reach a small one
+               or a covered one, where clicking on the canvas is not convenient --- */
+            '      <div class="dpb-f dpb-pick" v-if="model.appearance.items.length">' +
+            '        <label>{{ t(\'dpb_pick\') }}</label>' +
+            '        <select v-model="sel">' +
+            '          <option value="">{{ t(\'select_default\') }}</option>' +
+            '          <option v-for="(it, ii) in model.appearance.items" :key="it._i" :value="it._i">{{ itName(it, ii) }}</option>' +
+            '        </select>' +
+            '      </div>' +
             '      <div class="dpb-pane__scroll">' +
             /* --- widget identity --- */
             '        <div class="dpb-block">' +
@@ -471,6 +479,12 @@
             '            <div class="dpb-f"><label>{{ t(\'dpb_w\') }}</label><input type="number" v-model.number="cur.w" min="10" step="1"></div>' +
             '            <div class="dpb-f"><label>{{ t(\'dpb_h\') }}</label><input type="number" v-model.number="cur.h" min="10" step="1"></div>' +
             '          </div>' +
+            /* the place may follow a value instead of a number */
+            '          <div class="dpb-row2">' +
+            '            <div class="dpb-f"><label>{{ t(\'dpb_dx\') }}</label><input type="text" class="dpb-expr" spellcheck="false" v-model="cur.dx" @input="posInput($event, \'x\')" placeholder="on ? 0 : 48"></div>' +
+            '            <div class="dpb-f"><label>{{ t(\'dpb_dy\') }}</label><input type="text" class="dpb-expr" spellcheck="false" v-model="cur.dy" @input="posInput($event, \'y\')" placeholder="on ? 0 : 6"></div>' +
+            '          </div>' +
+            '          <div class="dpb-hint" v-if="cur.dx || cur.dy">{{ t(\'dpb_pos_expr_hint\') }}</div>' +
              '          <div class="dpb-row2">' +
              '            <div class="dpb-f"><label>{{ t(\'dpb_anchor_x\') }}</label>' +
              '              <select v-model="cur.anchorX" :disabled="cur.stretchX"><option value="">{{ t(\'dpb_anchor_none\') }}</option>' +
@@ -486,18 +500,26 @@
              '          <div class="dpb-hint">{{ cur.stretchX || cur.stretchY ? t(\'dpb_stretch_hint\') : t(\'dpb_anchor_hint\') }}</div>' +
             '          <div class="dpb-f"><label>{{ t(\'dpb_bind\') }}</label><select v-model="cur.bind">' +
             '            <option value="">—</option><option v-for="k in settingKeys" :key="k" :value="k">{{ k }}</option></select></div>' +
-            '          <div v-for="(pd, pk) in propsOf(cur)" :key="pk" class="dpb-f">' +
-            '            <label>{{ t(pd.label) }}</label>' +
-            '            <icon-picker v-if="pd.type === \'icon\'" v-model="cur[pk]"></icon-picker>' +
-            '            <color-picker v-else-if="pd.type === \'color\'" v-model="cur[pk]"></color-picker>' +
-            '            <select v-else-if="pd.type === \'select\'" v-model="cur[pk]"><option v-for="o in optList(pd, pk)" :key="o" :value="o">{{ valLabel(o) }}</option></select>' +
-            '            <select v-else-if="pd.type === \'bool\'" v-model="cur[pk]"><option :value="false">{{ t(\'dpb_no\') }}</option><option :value="true">{{ t(\'dpb_yes\') }}</option></select>' +
-            '            <select v-else-if="pd.type === \'setting\'" v-model="cur[pk]">' +
-            '              <option value="">—</option><option v-for="k in settingKeys" :key="k" :value="k">{{ k }}</option></select>' +
-            '            <textarea v-else-if="pd.type === \'textarea\'" rows="3" v-model="cur[pk]"></textarea>' +
-            '            <input v-else-if="pd.type === \'expr\'" type="text" class="dpb-expr" spellcheck="false" v-model="cur[pk]" placeholder="&#123;&#123; level &#125;&#125;">' +
-            '            <input v-else type="text" v-model="cur[pk]">' +
-            '          </div>' +
+            '          <template v-for="(pd, pk) in propsOf(cur)">' +
+            '            <div v-if="propShown(cur, pd)" :key="pk" class="dpb-f">' +
+            '              <label>{{ t(pd.label) }}</label>' +
+            '              <icon-picker v-if="pd.type === \'icon\'" v-model="cur[pk]"></icon-picker>' +
+            '              <color-picker v-else-if="pd.type === \'color\'" v-model="cur[pk]"></color-picker>' +
+            '              <select v-else-if="pd.type === \'select\'" v-model="cur[pk]"><option v-for="o in optList(pd, pk)" :key="String(o.value)" :value="o.value">{{ optLabel(o) }}</option></select>' +
+            '              <select v-else-if="pd.type === \'bool\'" v-model="cur[pk]"><option :value="false">{{ t(\'dpb_no\') }}</option><option :value="true">{{ t(\'dpb_yes\') }}</option></select>' +
+            '              <select v-else-if="pd.type === \'setting\'" v-model="cur[pk]">' +
+            '                <option value="">—</option><option v-for="k in settingKeys" :key="k" :value="k">{{ k }}</option></select>' +
+            '              <textarea v-else-if="pd.type === \'textarea\'" rows="3" v-model="cur[pk]"></textarea>' +
+            '              <input v-else-if="pd.type === \'expr\'" type="text" class="dpb-expr" spellcheck="false" v-model="cur[pk]" placeholder="&#123;&#123; level &#125;&#125;">' +
+            '              <input v-else type="text" v-model="cur[pk]">' +
+            '              <div class="dpb-hint" v-if="pd.hint">{{ t(pd.hint) }}</div>' +
+            '            </div>' +
+            '          </template>' +
+            /* the hook of the component in the generated code: what a hand written
+               method looks the component up by */
+            '          <div class="dpb-f"><label>{{ t(\'dpb_hook\') }}</label>' +
+            '            <input type="text" class="dpb-expr" readonly :value="hookOf(cur)"></div>' +
+            '          <div class="dpb-hint">{{ t(\'dpb_hook_hint\') }}</div>' +
             '        </div>' +
             '      </div>' +
             '    </div>' +
@@ -669,6 +691,12 @@
                 rawErr: '',
                 rawTpl: '',
                 rawTimer: null,
+            iconPropValue: '',
+            iconPropFor: '',
+            /* the values read from the objects for the canvas: keyed by the key of the
+               field, so an icon bound to a field of type "property" can be drawn with
+               the value of the property instead of its name */
+            iconPropVals: {},
                 viewMode: 'auto',
                 fnMenu: false,
                 fnren: -1,
@@ -686,7 +714,10 @@
                     { key: 'watch', label: 'watch', icon: 'fas fa-eye' },
                     { key: 'beforeUnmount', label: 'beforeUnmount()', icon: 'fas fa-flag' }
                 ],
-                SIZE_PRESETS: [[280, 170], [320, 200], [400, 300], [560, 320]],
+                /* the sizes offered as one click. The three narrow ones are what a card on the
+       panel is: one line, two lines, and the tall one - so the width stays 280 and
+       only the height changes, which is what most widgets need */
+    SIZE_PRESETS: [[280, 115], [280, 140], [280, 170], [320, 200], [400, 300], [560, 320]],
                 HANDLES: HANDLES
             };
         },
@@ -845,11 +876,13 @@
         watch: {
             /* another widget is opened: the mode follows the new model again */
             modelValue: function () { this.viewMode = 'auto'; this.rawTpl = ''; this.rawErr = ''; this.fnMenu = false; this.fnren = -1; },
-            model: { deep: true, handler: function () { this.validate(); } },
+            model: { deep: true, handler: function () { this.validate(); this.loadIconProps(); } },
             'model.appearance.width': function () { this.clampItems(); },
             'model.appearance.height': function () { this.clampItems(); },
             'model.appearance.pad': function () { this.clampItems(); },
             'model.appearance.html': function () { this.queueRaw(); },
+            'model.appearance.iconProperty': function () { this.loadIconProp(); },
+            'model.appearance.iconObject': function () { this.loadIconProp(); },
             'model.code.data': function () { this.check(); },
             'model.code.dataPre': function () { this.check(); },
             'model.code.computed': function () { this.check(); },
@@ -866,10 +899,14 @@
              /* a brand new widget starts in data(): it is the only section that is
                 there from the start, methods() and the rest are still empty */
              if (this.isBlank && this.code === 'methods') this.code = 'data';
-             /* the "add a function" menu closes on a click outside the builder */
-             var self = this;
-             this._fnDoc = function (e) {
-                 if (!self.fnMenu) return;
+              /* the "add a function" menu closes on a click outside the builder */
+              var self = this;
+              this._fnDoc = function (e) {
+                  /* the selection is taken off only on the canvas itself and by the
+                     empty line of the list in the panel. Any other click - on a
+                     field, a colour, a button of the selected component - means the
+                     user is working with it, so the selection must stay. */
+                  if (!self.fnMenu) return;
                  var el = self.$el;
                  if (el && el.contains(e.target)) return;
                  self.fnMenu = false;
@@ -896,8 +933,10 @@
                       self.copyItem(idx);
                   }
               };
-             document.addEventListener('click', this._fnDoc);
-             document.addEventListener('keydown', this._kb, true);
+              document.addEventListener('click', this._fnDoc);
+              document.addEventListener('keydown', this._kb, true);
+              this.loadIconProp();
+              this.loadIconProps();
          },
          beforeUnmount: function () {
              if (this._fnDoc) document.removeEventListener('click', this._fnDoc);
@@ -907,6 +946,131 @@
         methods: {
             t: function (s) { return window.__t ? window.__t(s) : s; },
             compOf: function (it) { return B.COMPONENTS[it._t] || { label: it._t, icon: 'fas fa-square' }; },
+            /* the name of a component in the list of the panel. The number is the
+               place on the canvas: two texts of the same kind would otherwise be
+               told apart by nothing. It is a method and not a computed on purpose -
+               a computed is cached and gets no argument, so every component in the
+               list would have been shown under the name of the first one. */
+            /* the icon of the module of type "property": the property keeps the path to
+               the picture, so the canvas has to show that path and not the name of the
+               property. It used to be written straight into the class, which showed
+               nothing - "Status" is not a class. The value is read once per change of
+               the object or the property; a wrong answer only leaves the icon empty. */
+            loadIconProp: function () {
+                var a = this.model && this.model.appearance;
+                if (!a || String(a.iconType || '') !== 'property') {
+                    this.iconPropValue = '';
+                    this.iconPropFor = '';
+                    return;
+                }
+                var obj = String(a.iconObject || '').trim();
+                var prop = String(a.iconProperty || '').trim();
+                if (!obj || !prop) {
+                    this.iconPropValue = '';
+                    this.iconPropFor = '';
+                    return;
+                }
+                var self = this;
+                this._iconSeq = (this._iconSeq || 0) + 1;
+                var seq = this._iconSeq;
+                var url = 'getProperty?object=' + encodeURIComponent(obj) + '&property=' + encodeURIComponent(prop);
+                Promise.resolve(typeof dpAPI === 'function' ? dpAPI(url) : null)
+                    .then(function (r) {
+                        /* a newer request has come in the meantime: its answer wins */
+                        if (seq !== self._iconSeq) return;
+                        var v = (r && r.value !== undefined && r.value !== null) ? r.value : '';
+                        self.iconPropValue = String(v).trim();
+                        self.iconPropFor = obj + '.' + prop;
+                    })
+                    .catch(function () {
+                        if (seq !== self._iconSeq) return;
+                        self.iconPropValue = '';
+                        self.iconPropFor = obj + '.' + prop;
+                    });
+            },
+            /* The same for the icons on the canvas. A field of type "property" holds the
+               name of a property, so the canvas drew the name as a font class and stayed
+               empty - the written widget fetched the value, the editor did not, and the
+               two disagreed about the very same model. Read once per change of the object
+               or of the property; a wrong answer only leaves the icon empty. */
+            loadIconProps: function () {
+                var self = this;
+                var m = this.model;
+                if (!m || !m.appearance || !m.appearance.items) return;
+                var fields = [];
+                (m.settings.tabs || []).forEach(function (tb) {
+                    (tb.items || []).forEach(function (f) { if (f && f.key) fields.push(f); });
+                });
+                var objOf = function (row) {
+                    var hit = '';
+                    fields.forEach(function (f) {
+                        if (!hit && String(f.type) === 'object' && String(f.row || '') === String(row || '')) hit = String(f.key);
+                    });
+                    if (!hit) fields.forEach(function (f) { if (!hit && String(f.type) === 'object') hit = String(f.key); });
+                    return hit;
+                };
+                var want = {};
+                m.appearance.items.forEach(function (it) {
+                    if (!it || String(it._t) !== 'icon') return;
+                    var k = String(it.bind || '');
+                    if (!k) {
+                        /* an icon that follows a property of its own: the object and the
+                           property are written on the component, the name it reads the
+                           value under is the one the model carries */
+                        if (String(it.iconType || '') !== 'property') return;
+                        var io = String(it.iconObject || '').trim();
+                        var ip = String(it.iconProperty || '').trim();
+                        if (!io || !ip || !it._ico) return;
+                        want[it._ico] = { obj: io, prop: ip };
+                        return;
+                    }
+                    var pf = null;
+                    /* an icon on the switch of the settings panel follows the choice
+                       made there, so the pair to read is the one the panel declares */
+                    if (k === 'icon_type') {
+                        var wo = String(this.previewWidget.icon_object == null ? '' : this.previewWidget.icon_object).trim();
+                        var wp = String(this.previewWidget.icon_property == null ? '' : this.previewWidget.icon_property).trim();
+                        if (String(this.previewWidget.icon_type || '') === 'property' && wo && wp) {
+                            want[wp] = { obj: wo, prop: wp };
+                        }
+                        return;
+                    }
+                    fields.forEach(function (f) { if (!pf && String(f.key) === k && String(f.type) === 'property') pf = f; });
+                    if (!pf) return;
+                    var obj = objOf(pf.row);
+                    var prop = String(this.previewWidget[k] == null ? '' : this.previewWidget[k]).trim();
+                    if (!obj || !prop) return;
+                    want[k] = { obj: obj, prop: prop };
+                }, this);
+                var keys = Object.keys(want);
+                if (!keys.length) {
+                    if (Object.keys(this.iconPropVals).length) this.iconPropVals = {};
+                    return;
+                }
+                this._ipSeq = (this._ipSeq || 0) + 1;
+                var seq = this._ipSeq;
+                Promise.all(keys.map(function (k) {
+                    var url = 'getProperty?object=' + encodeURIComponent(want[k].obj) +
+                        '&property=' + encodeURIComponent(want[k].prop);
+                    return Promise.resolve(typeof dpAPI === 'function' ? dpAPI(url) : null)
+                        .then(function (r) { return [k, (r && r.value !== undefined && r.value !== null) ? String(r.value).trim() : '']; })
+                        .catch(function () { return [k, '']; });
+                })).then(function (pairs) {
+                    /* a newer request has come in the meantime: its answer wins */
+                    if (seq !== self._ipSeq) return;
+                    var next = {};
+                    pairs.forEach(function (p) { next[p[0]] = p[1]; });
+                    self.iconPropVals = next;
+                });
+            },
+
+            itName: function (it, idx) {                var c = this.compOf(it);                var kind = this.t(c.label);
+                var txt = String(it.text === undefined || it.text === null ? '' : it.text).trim();
+                /* one word and not too long: a whole sentence would fill the whole list */
+                if (txt && txt.length <= 24 && !/\s/.test(txt)) txt = '«' + txt + '»';
+                else if (txt) txt = '«' + txt.slice(0, 23).trim() + '…»';
+                return (idx + 1) + '. ' + kind + (txt ? ' ' + txt : '');
+            },
             setViewMode: function (m) {
                 var a = this.model.appearance;
                 if (m === 'code') {
@@ -951,15 +1115,38 @@
                 this.rawTimer = setTimeout(function () { self.rawTimer = null; self.checkRaw(); }, 500);
             },
             propsOf: function (it) { return (B.COMPONENTS[it._t] || {}).props || {}; },
+
+            /* a field with `when` belongs to the component only in some of the
+               modes: the font size of its own is in the way while the size is
+               taken from the common settings of the panel */
+            propShown: function (it, pd) {
+                if (!pd || !pd.when) return true;
+                var w = pd.when, v = it[w.key];
+                if (v === undefined || v === null) v = '';
+                return (w.show || []).indexOf(String(v)) >= 0;
+            },
             optList: function (pd, key) {
             /* `types` is filled with the widgets the module has installed */
-            var out = (pd.dyn === 'types' ? (this.builtTypes || []) : (pd.options || [])).slice();
+            var raw = (pd.dyn === 'types' ? (this.builtTypes || []) : (pd.options || [])).slice();
+            /* the same two shapes a field uses: a bare value, whose caption comes from
+               its own name, or {value,label}, where the caption is given outright.
+               Both come back as {value,label}, so the list is drawn one way. */
+            var out = raw.map(function (o) {
+                return (o && typeof o === 'object' && o.value !== undefined)
+                    ? { value: o.value, label: o.label }
+                    : { value: o, label: '' };
+            });
             /* a value that is not in the list stays in the list: nothing is lost on save */
             var v = key ? this.cur[key] : '';
-            if (v !== '' && v !== undefined && v !== null && out.indexOf(v) < 0) out.unshift(v);
-            return out.length ? out : [''];
+            var seen = out.some(function (o) { return String(o.value) === String(v); });
+            if (v !== '' && v !== undefined && v !== null && !seen) out.unshift({ value: v, label: '' });
+            return out.length ? out : [{ value: '', label: '' }];
         },
-        valLabel: valLabel,
+            valLabel: valLabel,
+            optLabel: function (o) {
+                if (!o) return '';
+                return o.label ? this.t(o.label) : valLabel(o.value);
+            },
         fType: function (tp) { return window.__t ? window.__t('dpb_ft_' + tp) : tp; },
             fIcon: function (tp) { return (B.FIELD_TYPES[tp] || {}).icon || 'fas fa-square'; },
             tabLabel: function (v) { return B.lbl ? B.lbl(v) : v; },
@@ -975,9 +1162,33 @@
             sysOf: function (f) { return (B.systemFieldOf && f && f._sys) ? B.systemFieldOf(f) : null; },
             /* the tab belongs to a section of the core */
             isSysTab: function (tb) { return !!(B.systemTabOf && B.systemTabOf(tb)); },
+                /* an offset that is a plain number is a real place on the canvas: the
+                   panel puts it as left/top from the edge, so the canvas does the same
+                   and holds the component inside. An expression of live values cannot
+                   be counted here - only on the panel - so it keeps the editor place
+                   and is marked instead. */
+                numOf: function (v) {
+                    var x = B.safeExpr(v);
+                    if (x === '' || !/^-?\d+(\.\d+)?$/.test(x)) return null;
+                    var n = Math.round(Number(x));
+                    return isFinite(n) ? n : null;
+                },
+                liveOf: function (it) {
+                    if (!it) return '';
+                    var a = B.safeExpr(it.dx), b = B.safeExpr(it.dy);
+                    if (!a && !b) return '';
+                    if ((a && this.numOf(a) === null) || (b && this.numOf(b) === null)) {
+                        return (a ? this.t('dpb_dx') + ': ' + a : '') + (a && b ? '   ' : '') +
+                            (b ? this.t('dpb_dy') + ': ' + b : '');
+                    }
+                    return '';
+                },
                 nodeStyle: function (it) {
                     var s = B.itemSize(it);
-                    var p = B.clampPos(this.model.appearance, it.x, it.y, s.w, s.h);
+                    var ax = this.numOf(it.dx), ay = this.numOf(it.dy);
+                    var x = ax === null ? it.x : ax;
+                    var y = ay === null ? it.y : ay;
+                    var p = B.clampPos(this.model.appearance, x, y, s.w, s.h);
                     return 'left:' + p.x + 'px;top:' + p.y + 'px;width:' + p.w + 'px;height:' + p.h + 'px';
                 },
                 setSize: function (w, h) {
@@ -994,6 +1205,22 @@
                     var p = B.clampPos(a, Math.round(Number(ax) || 0), Math.round(Number(ay) || 0), it.w, it.h);
                     it.x = p.x; it.y = p.y;
                     B.clampAll(a);
+                },
+                /* an offset names an exact place from the edge, a stretched side fills
+                   whatever is left over - the two cannot hold at once. The offset wins,
+                   so the checkbox is cleared here instead of leaving the model saying
+                   "stretched" while the code quietly ignores the offset. */
+                posInput: function (ev, side) {
+                    var it = this.cur;
+                    if (!it) return;
+                    var v = String((ev && ev.target && ev.target.value) || '');
+                    if (v.trim()) it[side === 'y' ? 'stretchY' : 'stretchX'] = false;
+                    this.check();
+                },
+                /* the selector a hand written method uses to find this component */
+                hookOf: function (it) {
+                    if (!it || !it._i) return '';
+                    return '[data-dpb-i="' + String(it._i).replace(/["\\\\<>&]/g, '') + '"]';
                 },
                 frameStyle: function () {
                     var a = this.model.appearance;
@@ -1082,7 +1309,7 @@
                 return { x: ev.clientX - r.left, y: ev.clientY - r.top };
             },
                 stackStyle: function () { return ''; },
-            renderItem: function (it) { return B.previewHtml(it, this.previewWidget); },
+            renderItem: function (it) { return B.previewHtml(it, this.previewWidget, this.model, this.iconPropVals); },
 
             /* --- palette / drop --- */
             onPaletteDrag: function (it) { this.palette = it; },
@@ -1133,10 +1360,20 @@
                 if (this.sel === it._i) this.sel = '';
             },
             copyItem: function (i) {
-                var src = this.model.appearance.items[i];
+                var a = this.model.appearance;
+                var src = a.items[i];
                 var c = JSON.parse(JSON.stringify(src));
                 c._i = B.uid('c');
-                this.model.appearance.items.splice(i + 1, 0, c);
+                /* a copy that lands on the original cannot be seen or grabbed, so it
+                   takes another place: first straight under the original, and if that
+                   is taken - any free one. The width and height come from the copy, so
+                   a stretched side keeps its own size here just like it does anywhere */
+                var s = B.itemSize(c);
+                var gap = Number(a.gap) || 8;
+                var p = B.placeFree(a, c, src.x, src.y + s.h + gap);
+                if (!p || (p.x === src.x && p.y === src.y)) p = B.autoPos(a, a.items, s.w, s.h);
+                c.x = p.x; c.y = p.y;
+                a.items.splice(i + 1, 0, c);
                 this.sel = c._i;
             },
             moveItem: function (i, d) {
@@ -1305,11 +1542,21 @@
                     if (String(w[k] || '').trim()) this.model.code[k] = w[k];
                 }.bind(this);
                 fill('data');
-                fill('computed');
+                this.mergeComputed();
                 fill('methods');
                 fill('mounted');
                 fill('beforeUnmount');
                 this.check();
+            },
+
+            /* the wizard fills an empty section, so a name that showed up later - a new
+               field, or an expression in a component offset - never reached the code.
+               The file then names a value the widget never declares, the render throws
+               and nothing moves. Every name the wizard offers that the written
+               computed does not have yet is appended to it; the same guarantee is
+               made again by genSource, so it holds even without the button. */
+            mergeComputed: function () {
+                B.ensureComputed(this.model);
             },
 
             /* --- validation --- */

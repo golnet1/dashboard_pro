@@ -94,7 +94,7 @@
                 <tr><td>Свойство<br><code>property</code></td><td><code>property</code></td><td><code>value</code></td><td>Свойство объекта, значение которого показывает виджет. Список свойств появляется после выбора объекта; пока объект не выбран, поле остаётся пустым и показывает «по умолчанию». <span class="help-note-inline">Показывается: пока <b>Способ отправки</b> = <code>property</code>.</span></td></tr>
                 <tr><td>Префикс команды<br><code>command_prefix</code></td><td><code>text</code></td><td>—</td><td>Текст, который подставляется перед введённой командой. Плейсхолдер <code>&lt;text&gt;</code> заменяется введённым текстом. <span class="help-note-inline">Показывается: пока <b>Способ отправки</b> = <code>command</code>.</span></td></tr>
                 <tr><td>Имя сценария<br><code>script</code></td><td><code>text</code></td><td>—</td><td>Имя сценария, который запускает виджет. <span class="help-note-inline">Показывается: пока <b>Способ отправки</b> = <code>script</code>.</span></td></tr>
-                <tr><td>Коды кнопок (JSON)<br><code>codes</code></td><td><code>textarea</code></td><td>—</td><td>Список кодов Majordomo для отправки — по одному в строке, в порядке вывода на панели.</td></tr>
+                <tr><td>Коды кнопок (JSON)<br><code>codes</code></td><td><code>textarea</code></td><td>—</td><td>JSON-объект, который сопоставляет клавишу пульта с командой MajorDomo: <code>{"power": "Power", "vol+": "VolumeUp"}</code>. Клавиша — из первого столбца таблицы ниже. Если клавиши в объекте нет или значение пустое, отправляется команда по умолчанию. Если JSON написан с ошибкой, виджет не ломается — используются команды по умолчанию.</td></tr>
             </table>
             <h5>Дополнительно <span class="badge">advanced</span></h5>
             <table>
@@ -108,6 +108,28 @@
                 <tr><td>Свойство (доступность)<br><code>property_alive</code></td><td><code>property</code></td><td>—</td><td>Свойство объекта «живости», по которому виджет понимает, что связь жива.</td></tr>
                 <tr><td>Таймаут (сек)<br><code>alive_timeout</code></td><td><code>number</code></td><td>—</td><td>Сколько секунд ждать ответа, прежде чем считать объект недоступным. По умолчанию 3.</td></tr>
             </table>
+            <h4>Клавиши пульта</h4>
+            <p>Каждая кнопка отправляет одну команду. По умолчанию виджет отправляет команды из столбца «Команда по умолчанию». Чтобы отправить свою команду, укажите её в поле <code>codes</code> в формате JSON, где ключ — клавиша из первого столбца, а значение — команда: <code>{"power": "MP3_POWER", "play": "MP3_PLAY"}</code>.</p>
+            <table>
+                <tr><th>Клавиша</th><th>Команда по умолчанию</th><th>Кнопка</th></tr>
+                <tr><td><code>power</code></td><td><code>Power</code></td><td>Питание</td></tr>
+                <tr><td><code>mute</code></td><td><code>Mute</code></td><td>Без звука</td></tr>
+                <tr><td><code>vol+</code></td><td><code>VolumeUp</code></td><td>Громче</td></tr>
+                <tr><td><code>vol-</code></td><td><code>VolumeDown</code></td><td>Тихе</td></tr>
+                <tr><td><code>prev</code></td><td><code>Previous</code></td><td>Предыдущий трек</td></tr>
+                <tr><td><code>play</code></td><td><code>PlayPause</code></td><td>Плей / пауза — переключающая кнопка: первое нажатие включает воспроизведение, второе ставит паузу</td></tr>
+                <tr><td><code>pause</code></td><td><code>Pause</code></td><td>Пауза</td></tr>
+                <tr><td><code>stop</code></td><td><code>Stop</code></td><td>Стоп</td></tr>
+                <tr><td><code>next</code></td><td><code>Next</code></td><td>Следующий трек</td></tr>
+                <tr><td><code>eject</code></td><td><code>eject</code></td><td>Извлечь. Своей команды по умолчанию нет — отправляется имя клавиши, поэтому задайте его в <code>codes</code></td></tr>
+                <tr><td><code>cd</code></td><td><code>cd</code></td><td>Источник CD. Своей команды по умолчанию нет — отправляется имя клавиши</td></tr>
+                <tr><td><code>usb</code></td><td><code>usb</code></td><td>Источник USB. Своей команды по умолчанию нет — отправляется имя клавиши</td></tr>
+                <tr><td><code>bt</code></td><td><code>bt</code></td><td>Источник Bluetooth. Своей команды по умолчанию нет — отправляется имя клавиши</td></tr>
+                <tr><td><code>aux</code></td><td><code>aux</code></td><td>Источник AUX. Своей команды по умолчанию нет — отправляется имя клавиши</td></tr>
+                <tr><td><code>mode</code></td><td><code>mode</code></td><td>Режим — переключение источника. Своей команды по умолчанию нет — отправляется имя клавиши, поэтому задайте его в <code>codes</code></td></tr>
+                <tr><td><code>eq</code></td><td><code>eq</code></td><td>ЭКВ — эквалайзер. Своей команды по умолчанию нет — отправляется имя клавиши, поэтому задайте его в <code>codes</code></td></tr>
+            </table>
+            <p class="help-note-inline">Клавиши <code>eject</code>, <code>cd</code>, <code>usb</code>, <code>bt</code>, <code>aux</code>, <code>mode</code> и <code>eq</code> — единственные, у которых команда по умолчанию совпадает с именем клавиши. Это сделано намеренно: у них нет общепринятого названия команды, поэтому для них почти всегда нужен свой код.</p>
         </div>
     </main>
 </div>

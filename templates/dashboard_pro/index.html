@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Ubuntu">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Arimo:400,600,700">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700">
-    <link rel="stylesheet" href="css/app.css?v=107">
+    <link rel="stylesheet" href="css/app.css?v=113">
     <link rel="stylesheet" href="css/leaflet.css?v=1">
     <script src="js/lib/vue.global.prod.js"></script>
 </head>
@@ -625,6 +625,7 @@
                                             <div class="widget-editor__item-title">{{ widgetName(w) }}</div>
                                             <div class="widget-editor__item-type">{{ w.type }}</div>
                                         </div>
+                                        <span v-if="widgetUsage.total[w.type]" class="widget-editor__usage" :title="t('widget_editor_usage_desc') + ': ' + widgetUsage.total[w.type] + (widgetUsage.here[w.type] ? ' / ' + t('widget_editor_usage_here') + ': ' + widgetUsage.here[w.type] : '')"><i class="fas fa-layer-group"></i> {{ widgetUsage.total[w.type] }}</span>
                                         <button type="button" class="widget-editor__btn" @click="openBuilder(w.type)" :title="t('dpb_edit_desc')" draggable="false">
                                             <i class="fas fa-magic"></i> {{ t('dpb_edit') }}
                                         </button>
@@ -648,8 +649,7 @@
                                 <div class="we-build__bar">
                                     <label class="we-build__lbl">{{ t('dpb_target') }}</label>
                                     <select class="we-build__sel" v-model="builderTarget" @change="ensureBuilder(builderTarget, true)">
-                                        <option value="">{{ t('dpb_target_new') }}</option>
-                                        <option v-for="w in widgetList" :key="w.type" :value="w.type">{{ widgetName(w) }} · {{ w.type }}</option>
+                                        <option v-for="o in builderTargets" :key="o.value || '__new'" :value="o.value">{{ o.label }}</option>
                                     </select>
                                     <div style="flex:1"></div>
                                     <div class="we-build__meta" v-if="builderModel">
@@ -781,7 +781,7 @@
 
         <!-- ===== Add Widget Modal ===== -->
         <div class="modal-overlay" v-if="showAddWidget">
-            <div class="modal modal-lg">
+            <div class="modal modal-lg modal-sticky-head">
                 <div class="modal-header"><h3>{{ t('add_widget') }}</h3><button class="modal-close" @click="showAddWidget = false; groupAddTarget = null">&times;</button></div>
                 <div class="modal-body">
                     <div class="search-box"><i class="fas fa-search"></i><input v-model="widgetSearch" :placeholder="t('search')"></div>
@@ -2164,7 +2164,7 @@
                 <div class="modal-body" style="text-align:center;padding:2rem 1.5rem">
                     <i class="fas fa-chart-line" style="font-size:3rem;color:var(--primary);margin-bottom:1rem"></i>
                     <h3 style="margin-bottom:.3rem">Dashboard Pro</h3>
-                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 01.17.04</p>
+                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 01.17.05</p>
                     <p style="color:var(--text-secondary);font-size:.8rem">{{ t('app_desc') }}</p>
                     <div class="about-links" style="margin-top:1rem;font-size:.85rem;color:var(--text-secondary);line-height:1.8">
                         <div>{{ t('about_telegram') }}: <a href="https://t.me/+9ZFQaxs_Ukw4NmMy" target="_blank" rel="noopener">Telegram</a></div>
@@ -2189,9 +2189,9 @@
 <script src="js/widget-config.js?v=11"></script>
 <script src="js/lib/leaflet.js?v=1"></script>
 <script src="js/lib/hls.min.js?v=1"></script>
-<script src="js/dpbuilder.js?v=36"></script>
-<script src="js/dpbuilder-ui.js?v=38"></script>
-<script src="js/app.js?v=254"></script>
+<script src="js/dpbuilder.js?v=64"></script>
+<script src="js/dpbuilder-ui.js?v=51"></script>
+<script src="js/app.js?v=264"></script>
 </body>
 </html>
 

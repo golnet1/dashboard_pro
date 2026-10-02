@@ -43,6 +43,70 @@
         return /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(k) ? k : '';
     }
 
+    /* The value of an icon may be a Font Awesome name or the path to a picture,
+       and the two cannot both go into a class: "fas fa-star" is a glyph, while
+       "/img/icons/movie.png" in a class draws nothing at all. A name is a list
+       of words and never carries a slash; a path always has one, or an image
+       extension at the end. That is the whole difference between them.
+
+       The same test is written into the code of a ready made widget, where the
+       value is only known once the browser runs - the two must stay equal, or
+       the editor and the widget would draw the icon differently. */
+    function isPicValue(v) {
+        var s = String(v == null ? '' : v).trim();
+        if (!s) return false;
+        if (s.indexOf('/') >= 0 || s.indexOf('\\') >= 0) return true;
+        return /\.(png|jpe?g|gif|svg|webp|bmp|ico|avif)$/i.test(s);
+    }
+
+    /* A field of type "property" holds the NAME of a property, not its value: the
+       name is written into "widget.<key>", and the value itself is read from the
+       object and kept in values[<key>]. An icon bound to such a field shows that
+       value - the name of a property is neither a glyph nor a path, so as a class
+       it draws nothing. Returns the key when it names a property field, else ''. */
+    function propertyKeyOf(m, key) {
+        var k = String(key || '');
+        if (!k || !m || !m.settings || !m.settings.tabs) return '';
+        var hit = '';
+        m.settings.tabs.forEach(function (tb) {
+            (tb.items || []).forEach(function (f) {
+                if (hit || !f || f._sys) return;
+                if (String(f.key) === k && String(f.type) === 'property') hit = k;
+            });
+        });
+        return hit;
+    }
+
+    /* the object and the property an icon component follows on its own. This is the
+       pair the header of the module uses (iconNeeds below); an icon on the canvas is
+       the same choice, only each component carries its own instead of sharing one.
+       A component bound to a field has nothing to do here - the field decides. */
+    function iconOwnPair(e) {
+        if (!e || bkey(e)) return null;
+        if (String(e.iconType || '') !== 'property') return null;
+        if (!e.iconObject || !e.iconProperty) return null;
+        return { obj: String(e.iconObject), prop: String(e.iconProperty) };
+    }
+
+    /* marks the icon components whose value has to be read from a property, so that
+       the markup of a component - the one place that knows how an icon is drawn -
+       does not have to know anything about the settings panel */
+    function markIconProps(m) {
+        var items = (m && m.appearance && m.appearance.items) || [];
+        var n = 0;
+        items.forEach(function (it) {
+            if (!it || it._t !== 'icon') return;
+            var p = propertyKeyOf(m, bkey(it));
+            if (p) { it._prop = p; delete it._ico; return; }
+            delete it._prop;
+            /* the name the value is read under in the generated code. It goes onto
+               the model rather than being counted where the markup is written, so the
+               markup and the code agree without either of them knowing the other */
+            if (iconOwnPair(it)) it._ico = 'dpbIco' + (++n);
+            else delete it._ico;
+        });
+    }
+
     /* text position: {{ widget.key }} or the static prop value */
     function bv(e, key, def) {
         var k = bkey(e);
@@ -143,6 +207,80 @@
         return x ? ' v-if="' + x + '"' : '';
     }
 
+    /* The field "icon_type" of the settings panel is not a value but a switch: it says
+       where the icon comes from - a glyph, a path, or a property of an object. An icon
+       bound to that field used to draw the name of the chosen variant ("property") as a
+       class, so the card showed a square with nothing in it. What the switch selects is
+       resolved here, and the computed dpbWidgetIcon of the generated widget resolves
+       the same three cases from the settings of the running widget - keep the two
+       equal, this one is what the canvas shows and that one is what the panel shows. */
+    function iconFollowsWidget(e) {
+        return bkey(e) === 'icon_type';
+    }
+
+    /* Панель объявляет переключатель иконки полем icon_type, а рядом с ним, в том
+       же ряду, лежат сами значения: иконка, объект, свойство, путь. Видно их по
+       ряду, а не по названию, поэтому поле можно переименовать и ряд всё равно
+       будет опознан. Всё, что шаблон вправе спросить у такого виджета, берётся
+       отсюда, а не из списка имён, который надо помнить. */
+    function iconRowFields(m) {
+        var tabs = (m && m.settings && m.settings.tabs) || [];
+        var row = '';
+        tabs.forEach(function (tb) {
+            (tb.items || []).forEach(function (f) {
+                if (!row && f && !f._sys && String(f.key) === 'icon_type') row = String(f.row || '');
+            });
+        });
+        if (!row) return [];
+        var out = [];
+        tabs.forEach(function (tb) {
+            (tb.items || []).forEach(function (f) {
+                if (!f || f._sys || String(f.row || '') !== row) return;
+                if (!/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(String(f.key || ''))) return;
+                out.push(f);
+            });
+        });
+        return out;
+    }
+
+    function widgetIconValue(w, vals) {
+        w = w || {};
+        var t = String(w.icon_type || 'icon');
+        if (t === 'url') return String(w.icon_url == null ? '' : w.icon_url).trim();
+        if (t === 'property') {
+            /* a field of type "property" keeps the NAME of the property; the value
+               behind it is what the loader put into values[<name>] */
+            var n = String(w.icon_property == null ? '' : w.icon_property).trim();
+            var v = (n && vals) ? vals[n] : '';
+            if (v === undefined || v === null || String(v).trim() === '') v = n;
+            return String(v == null ? '' : v).trim();
+        }
+        return String(w.icon == null ? '' : w.icon).trim();
+    }
+
+    /* the names an expression leans on: "iconOn ? 0 : 48" gives ["iconOn"]. They
+       have to exist in the generated data, or the widget fails to compile. */
+    var EXPR_WORDS = {
+        'this': 1, 'true': 1, 'false': 1, 'null': 1, 'undefined': 1,
+        'Number': 1, 'String': 1, 'Boolean': 1, 'Math': 1, 'parseInt': 1, 'parseFloat': 1
+    };
+
+    function exprRoots(s) {
+        var x = safeExpr(s);
+        if (!x) return [];
+        var re = /[A-Za-z_$][A-Za-z0-9_$]*/g, m, out = [], seen = {};
+        /* the member behind a dot is read, not declared: widget.level, this.level */
+        while ((m = re.exec(x)) !== null) {
+            var w = m[0];
+            if (EXPR_WORDS[w] || seen[w]) continue;
+            if (x.charAt(m.index + w.length) === '.') continue;
+            if (m.index > 0 && x.charAt(m.index - 1) === '.') continue;
+            seen[w] = 1;
+            out.push(w);
+        }
+        return out;
+    }
+
     /* @click.stop="name" when a handler is named */
     function bact(e, key) {
         var m = String((e && e[key]) || '').trim();
@@ -158,6 +296,10 @@
     }
 
     /* the settings of a component: the extra keys every one of them may have */
+    /* expr and vif belong to the property list of the components that take them.
+       dx and dy are NOT here: the place of a component is one block of its own in the
+       panel, right under the size, and every component may move - keeping them out of
+       LIVE stops them from turning up a second time in the property list */
     var LIVE = {
         expr: { type: 'expr', label: 'dpb_expr' },
         vif: { type: 'expr', label: 'dpb_vif' }
@@ -192,14 +334,67 @@
     /* a switch always shows its own name, not the generic "flag" */
     function pb(label) { return { type: 'bool', label: label }; }
 
-    /* a dropdown with the values the renderer knows */
-    function ps(label, options) { return { type: 'select', label: label, options: options }; }
+    /* a dropdown with the values the renderer knows; def is the value a field
+       gets when the model says nothing about it */
+    function ps(label, options, def) {
+        var p = { type: 'select', label: label, options: options };
+        if (def !== undefined) p.def = def;
+        return p;
+    }
 
     /* a list of values, one per line */
     function plist(label) { return { type: 'textarea', label: label }; }
 
     /* a number with its own name: "size" of a font is not the "size" of an icon */
     function pn(label) { return { type: 'number', label: label }; }
+
+    /* the fonts the panel offers in its common settings. The same list lives in
+       app.js; it is repeated here on purpose: the generated widget has to carry
+       the font itself, and it is written into a file that is read long after the
+       builder is gone.
+
+       The names carry no quotes on purpose. A style goes into a double quoted
+       HTML attribute, and a quoted family would close it - st() escapes the
+       quotes, the browser would read a backslash and the font would be lost with
+       the markup around it. An unquoted family name is valid CSS even when it is
+       made of two words: `Helvetica Neue`, `Open Sans`. */
+    var FONT_STACKS = {
+        Roboto: 'Roboto, Arial, sans-serif',
+        Ubuntu: 'Ubuntu, Arial, sans-serif',
+        Arial: 'Arial, Arimo, sans-serif',
+        Helvetica: 'Helvetica Neue, Open Sans, Arial, sans-serif',
+        Tahoma: 'Tahoma, Arial, sans-serif',
+        Verdana: 'Verdana, Arial, sans-serif'
+    };
+
+    /* a field that only matters in some of the modes: the menu next to it says
+       where the value is taken from, and when it is not taken from the component
+       its own field is not shown at all */
+    function pwhen(p, key, show) { p.when = { key: key, show: show }; return p; }
+
+    /* a field that is not obvious: where the value comes from and what happens
+       when it is left alone */
+    function withHint(p, hint) { p.hint = hint; return p; }
+
+    /* the size of a font is either the one of the panel or the number of the
+       component. The panel ones are CSS variables, so a widget follows the
+       settings of the panel without being rebuilt, and nothing is written into
+       the model for them */
+    function fontSize(e) {
+        var m = String(val(e.sizeMode, '')).trim();
+        if (m === 'title') return 'var(--widget-title-size, 1.49rem)';
+        if (m === 'sub') return 'var(--widget-subtitle-size, 1rem)';
+        return len(e.size, 14);
+    }
+
+    /* the font of the panel is left to the cascade: with nothing in the style the
+       component keeps the family that the panel sets for the whole page, so both
+       "common" and an empty field have to end up as an empty style */
+    function fontCss(e) {
+        var f = String(val(e.font, '')).trim();
+        if (!f || f === 'common') return '';
+        return FONT_STACKS[f] || (f + ', sans-serif');
+    }
 
     var C = {};
 
@@ -231,10 +426,18 @@
     }
 
     /* --- basic --- */
-    def('text', 'basic', 'dpb_c_text', 'fas fa-font', 160, 24, withLive({ text: P.text, bind: P.bind, size: pn('dpb_font_size'), color: P.color, align: P.align, bold: pb('dpb_bold'), italic: pb('dpb_italic') }),
+    def('text', 'basic', 'dpb_c_text', 'fas fa-font', 160, 24, withLive({
+            text: P.text, bind: P.bind,
+            sizeMode: withHint(ps('dpb_font_size', ['title', 'sub', 'own'], 'own'), 'dpb_font_size_hint'),
+            size: pwhen(pn('dpb_font_size_own'), 'sizeMode', ['', 'own']),
+            font: withHint(ps('dpb_font_family', ['common'].concat(Object.keys(FONT_STACKS)), 'common'), 'dpb_font_family_hint'),
+            color: P.color, align: P.align, bold: pb('dpb_bold'), italic: pb('dpb_italic')
+        }),
         function (e) {
+            var fam = fontCss(e);
             return '<span' + bvif(e) + ' style="' + st({
-                'font-size': len(e.size, 14),
+                'font-size': fontSize(e),
+                'font-family': fam,
                 'color': e.color || 'inherit',
                 'font-weight': e.bold ? '600' : '400',
                 'font-style': e.italic ? 'italic' : 'normal',
@@ -259,41 +462,134 @@
     /* the icon of a card: the glyph may come from the settings or from a live
        value, and a computed property may add classes to it — the highlight of a
        switched on icon works the way it does in the ready made widgets */
-    def('icon', 'basic', 'dpb_c_icon', 'fas fa-star', 40, 40, withLive({ icon: P.icon, size: pn('dpb_icon_size'), color: P.color, cls: { type: 'text', label: 'dpb_icon_cls' }, hl: { type: 'text', label: 'dpb_icon_hl' } }),
-        function (e) {
+    def('icon', 'basic', 'dpb_c_icon', 'fas fa-star', 40, 40, withLive({
+            /* the same set the header of the module offers: a glyph, a path, or the
+               value of a property of an object. While the icon is bound to a field the
+               field says what to draw, so the choice of its own is put away */
+            iconType: {
+                type: 'select', label: 'field_icon_type',
+                options: [
+                    { value: 'icon', label: 'opt_icon' },
+                    { value: 'property', label: 'opt_property' },
+                    { value: 'url', label: 'opt_url' }
+                ],
+                when: { key: 'bind', show: [''] }
+            },
+            icon: { type: 'icon', label: 'field_icon', when: { key: 'iconType', show: ['icon', ''] } },
+            iconUrl: { type: 'text', label: 'field_icon_url', when: { key: 'iconType', show: ['url'] } },
+            iconObject: { type: 'text', label: 'field_icon_object', when: { key: 'iconType', show: ['property'] } },
+            iconProperty: { type: 'text', label: 'field_icon_property', when: { key: 'iconType', show: ['property'] } },
+            size: withHint(pn('dpb_icon_size'), 'dpb_icon_size_hint'),
+            color: P.color,
+            cls: { type: 'text', label: 'dpb_icon_cls' },
+            hl: { type: 'text', label: 'dpb_icon_hl' }
+        }),
+        function (e, isPreview, widget) {
             var k = bkey(e);
             var x = safeExpr(e.expr);
-            var staticGlyph = esc(e.icon || 'fas fa-star');
-            /* the glyph is a plain class list unless the settings hold it */
-            var glyph = k ? 'widget.' + k : (x ? x : staticGlyph);
+            /* the same three choices the header of the module offers. A path the user
+               typed is written into the file as it is, a glyph stays a class - which
+               one it is, isPixValue() decides, the same as everywhere else here */
+            var own = String(e.iconType || '');
+            /* bound to the switch of the settings panel: what to draw is decided by
+               the choice made there, not by the name of the choice */
+            var follow = iconFollowsWidget(e);
+            var raw = own === 'url'
+                ? String(e.iconUrl || '')
+                : String(e.icon || 'fas fa-star');
+            if (follow) raw = '';
+            var staticGlyph = esc(raw);
             var extra = esc(String(e.cls || '').replace(/\s+/g, ' ').trim());
             var hl = safeExpr(e.hl);
-            /* the highlight is a name of the component data: its value is a part
-               of the class list, so it goes to :class next to the glyph */
-            var dynamic = (k || x) && hl ? '[' + glyph + ', ' + hl + ']' : (k || x ? glyph : null);
+            /* a field of type "property" keeps the name of a property; the icon wants
+               the value behind it, which the loader has put into values[<key>] */
+            var pk = String(e._prop || '');
+            /* the icon follows a property of an object of its own: the loader put the
+               value into values[<property>] and this component reads it under the
+               name markIconProps gave it. The pair is the one the header of the module
+               uses, only every component carries its own */
+            var ico = String(e._ico || '');
+            /* the value comes either from the settings of the widget, from here, or
+               from a property of an object the icon follows on its own */
+            var dyn = !!(k || x || ico || follow);
+            var expr = follow ? 'dpbWidgetIcon'
+                : (pk ? 'dpbPic(' + jsStr(pk) + ')'
+                    : (k ? 'widget.' + k : (x || ico || '')));
+            var box = itemSize(e._t ? e : { w: e.w, h: e.h, _t: 'icon' });
+            var vh = bvif(e);
+            /* A guard on the glyph ("v-if=widget.icon") is exactly backwards here: the
+               glyph is the value of one of the three modes, so in "property" and "url"
+               it is empty and the icon would vanish. What decides is the resolved
+               value, so the guard is put on that. A vif of the user's own is kept. */
+            if (follow && /\bwidget\.icon\b/.test(vh)) vh = ' v-if="dpbWidgetIcon"';
+            /* a picture has no glyph to scale, so it is given the box of the
+               component and is fitted into it - the same the ready made widgets
+               do with their own picture */
+            var picStyle = st({
+                'display': 'inline-flex',
+                'align-items': 'center',
+                'justify-content': 'center',
+                'width': box.w + 'px',
+                'height': box.h + 'px',
+                'object-fit': 'contain',
+                'padding': '0'
+            });
             /* a highlight paints the background of the glyph box. A bare inline box is
                the line of the font, and the empty room under the baseline makes the
                background hang below the icon, so a highlighted glyph gets a box of its
                own - the size of the component, the same one a ready made widget uses.
                The type is named here: without it the size would fall back to a generic
                box and the background would cover half the card. */
-            var bx = hl ? itemSize(e._t ? e : { w: e.w, h: e.h, _t: 'icon' }) : null;
-            return '<i class="' + (dynamic ? extra : (extra ? extra + ' ' : '') + staticGlyph) + '"' +
-                (dynamic ? ' :class="' + esc(dynamic) + '"' : '') + ' style="' + st({
-                    'display': bx ? 'inline-flex' : '',
-                    'align-items': bx ? 'center' : '',
-                    'justify-content': bx ? 'center' : '',
-                    'width': bx ? bx.w + 'px' : '',
-                    'height': bx ? bx.h + 'px' : '',
-                    'font-size': len(e.size, 20),
-                    /* a class of the theme may bring its own colour, so the inline one
-                       is only written when the field was filled */
-                    'color': e.color || '',
-                    /* a highlight class of the theme may carry padding, and a glyph is an
-                       inline box: the padding would grow it and it would jump every time
-                       the highlight comes and goes. The inline padding wins over the class. */
-                    'padding': hl ? '0' : ''
-                }) + '"' + bvif(e) + '></i>';
+            var iStyle = st({
+                'display': hl ? 'inline-flex' : '',
+                'align-items': hl ? 'center' : '',
+                'justify-content': hl ? 'center' : '',
+                'width': hl ? box.w + 'px' : '',
+                'height': hl ? box.h + 'px' : '',
+                /* an icon with no size of its own takes the size the panel
+                   gives to the icons of its widgets. The variable keeps
+                   following the common settings, so the icon stays the same
+                   size as the ones of a ready made widget. */
+                'font-size': String(val(e.size, '')).trim() ? len(e.size, 20) : 'var(--widget-icon-size, 23px)',
+                /* a class of the theme may bring its own colour, so the inline one
+                   is only written when the field was filled */
+                'color': e.color || '',
+                /* a highlight class of the theme may carry padding, and a glyph is an
+                   inline box: the padding would grow it and it would jump every time
+                   the highlight comes and goes. The inline padding wins over the class. */
+                'padding': hl ? '0' : ''
+            });
+
+            /* the canvas already holds the values of the settings, so the tag is
+               chosen here and the browser is given the finished markup. An empty
+               value counts too: an icon on a property whose value has not arrived
+               yet is drawn empty, not shown with the Vue attributes written out. */
+            if (isPreview && dyn && (k || ico || follow) && widget) {
+                var pv = follow ? widgetIconValue(widget, widget.dpb_icon_vals) : widget[k || ico];
+                if (pv != null && String(pv).trim() !== '') {
+                    return isPicValue(pv)
+                        ? '<img class="' + extra + '" src="' + esc(pv) + '" style="' + picStyle + '"' + vh + '>'
+                        : '<i class="' + (extra ? extra + ' ' : '') + esc(String(pv).trim()) + '" style="' + iStyle + '"' + vh + '></i>';
+                }
+                return '<i class="' + extra + '" style="' + iStyle + '"' + vh + '></i>';
+            }
+
+            if (!dyn && isPicValue(raw)) {
+                return '<img class="' + extra + '" src="' + staticGlyph + '" style="' + picStyle + '"' + vh + '>';
+            }
+
+            if (dyn) {
+                /* the value is a name and a picture at the same time - which one it
+                   is only the browser knows, so both tags are written and dpbIsPic
+                   picks the one to show */
+                var iCls = hl ? '[' + expr + ', ' + hl + ']' : expr;                var pair = '<img v-if="dpbIsPic(' + expr + ')" class="' + extra + '" :src="' + expr + '" style="' + picStyle + '">' +
+                    '<i v-else class="' + extra + '" :class="' + esc(iCls) + '" style="' + iStyle + '"></i>';
+                /* vif brings a v-if of its own, and an element may only carry one:
+                   both tags go under one template instead of repeating the attribute */
+                return vh ? '<template' + vh + '>' + pair + '</template>' : pair;
+            }
+
+            return '<i class="' + (extra ? extra + ' ' : '') + staticGlyph + '" style="' + iStyle + '"' + vh + '></i>';
         });
 
     def('divider', 'basic', 'dpb_c_divider', 'fas fa-minus', 200, 8, { color: P.color, style: ps('dpb_style', ['solid', 'dashed', 'dot']) },
@@ -724,6 +1020,10 @@
            empty means the coordinates of the editor are kept */
         if (typeof it.anchorX === 'undefined') it.anchorX = '';
         if (typeof it.anchorY === 'undefined') it.anchorY = '';
+        /* the place may also follow a value: an empty expression keeps the coordinates
+           of the editor, a filled one is written as an expression of pixels */
+        if (typeof it.dx === 'undefined') it.dx = '';
+        if (typeof it.dy === 'undefined') it.dy = '';
         /* a stretched side follows the size of the widget; only a side the component
            can stretch is given the flag, so a model never promises more than it can */
         it.stretchX = it.stretchX && canStretch(it._t, 'x') ? true : false;
@@ -740,10 +1040,12 @@
 
     /* the fields every new widget starts with: the name of the module and the whole
        icon block, written exactly as a ready made widget declares them - the same
-       keys, the same rows, the same conditions and labels taken from the language file */
+       keys, the same rows, the same conditions and labels taken from the language file.
+       The name field is left empty on purpose: a widget nobody has named yet must not
+       come out wearing one, and the field itself is what the user types into later */
     function stdFields() {
         var out = [
-            { type: 'text', key: 'title', label: 'field_title' },
+            { type: 'text', key: 'title', label: 'field_title', default: '' },
             {
                 type: 'select', key: 'icon_type', label: 'field_icon_type', row: 'icon_row',
                 default: 'icon', options: 'icon|opt_icon\nproperty|opt_property\nurl|opt_url'
@@ -786,9 +1088,24 @@
         var ico = newItem('icon');
         var ttl = newItem('text');
         ico.icon = 'fas fa-cube';
+        /* the class the icons of a ready made card carry, so the icon of the widget
+           looks the same as the ones on the panel */
+        ico.cls = 'widget-v-card__icon';
+        /* the icon follows the switch of the settings panel: one choice there decides
+           whether it is a glyph, a path or the value of a property, and the component
+           is not tied to any one of the three */
+        ico.bind = 'icon_type';
         ttl.bind = 'title';
-        var ic = clampPos(a, 0, 0, 40, 40);
-        var tc = clampPos(a, 48, 6, 180, 28);
+        /* the name of the widget is written in the size of a heading */
+        ttl.sizeMode = 'title';
+        /* the place of the name depends on whether the icon takes the room next to it */
+        ttl.dx = 'icon ? 50 : 2';
+        /* the icon sits in the corner of the card, the name goes after it and is
+           shifted out of the way whenever the icon is there. Both are clamped to
+           the card, so shrinking it pulls them inside instead of letting them
+           hang over the edge */
+        var ic = clampPos(a, 2, 2, 40, 40);
+        var tc = clampPos(a, 50, 7, 190, 22);
         ico.x = ic.x; ico.y = ic.y; ico.w = ic.w; ico.h = ic.h;
         ttl.x = tc.x; ttl.y = tc.y; ttl.w = tc.w; ttl.h = tc.h;
         ico._std = 1; ttl._std = 1;
@@ -798,16 +1115,29 @@
     /* untouched = the component is still the one stdItems() hands out */
     function isStdItem(it) {
         if (!it || !it._std) return false;
-        if (it._t === 'icon') return String(it.icon || '') === 'fas fa-cube' && !String(it.bind || '').trim();
-        if (it._t === 'text') return it.bind === 'title' && !String(it.text || '').trim();
+        if (it._t === 'icon') {
+            return String(it.icon || '') === 'fas fa-cube' &&
+                String(it.cls || '') === 'widget-v-card__icon' &&
+                String(it.bind || '') === 'icon_type';
+        }
+        if (it._t === 'text') {
+            return it.bind === 'title' && String(it.sizeMode || '') === 'title' &&
+                String(it.dx || '') === 'icon ? 50 : 2' && !String(it.text || '').trim();
+        }
         return false;
     }
 
-    function newModel(type) {
+    /* the skeleton of a widget: everything the builder needs, with the code empty.
+       This is what every model starts from - normalizeModel() hands it out as the
+       defaults, so it must stay cheap and must not ask wizard() for anything.
+       The card itself is a row of the panel: 280x90, no rounding, the very class the
+       ready made cards carry, so a new widget looks like one of them and not like a
+       grey box in a corner */
+    function bareModel(type) {
         var appearance = {
-            title: '', width: 320, height: 200, pad: 10, gap: 8, radius: 8,
+            title: '', width: 280, height: 90, pad: 10, gap: 8, radius: 0,
             bg: '', color: '', align: 'stretch', dir: 'column', showTitle: false,
-            cls: '', html: '', items: [],
+            cls: 'widget-v-card', html: '', items: [],
             iconType: 'icon', icon: '', iconObject: '', iconProperty: '', iconUrl: ''
         };
         appearance.items = stdItems(appearance);
@@ -822,9 +1152,56 @@
         };
     }
 
+    /* A brand new widget opens in the builder with its code already filled in: the
+       standard icon follows the icon_type switch, so the panel's own pair of object
+       and property has to be readable from the first moment - the loader, the
+       watchers and the flag it raises, plus the resolver that picks glyph, path or
+       value. It is taken from wizard(), the same place the file is written from, so
+       the code a new widget starts with is exactly the code it is saved with.
+
+       The skeleton stays bare for wizard() to walk over - filling it there as well
+       would ask for the same code twice over and for nothing. */
+    function newModel(type) {
+        var m = bareModel(type);
+        var wiz = wizard(m);
+        /* set() writes a value back into the object. Nothing a widget starts with
+           writes anything, so it is left out - a starter that carried a setter would
+           put a write into every new widget before anyone asked for one */
+        var setters = {};
+        (wiz.loaders || []).forEach(function (ld) { if (ld.set) setters[ld.set] = 1; });
+        m.code.data = wiz.data;
+        m.code.computed = wiz.computed;
+        m.code.methods = dropEntries(wiz.methods, function (name) { return !!setters[name]; });
+        m.code.mounted = wiz.mounted;
+        return m;
+    }
+
+    /* The same skeleton, but with nothing in it at all: no components, no fields,
+       no code, no icon. This is what "новый виджет" must open - a widget built from
+       nothing, not the minimal example dressed up as a blank one. The card frame
+       stays: that is the shape of any widget, not content of it.
+
+       The tab itself stays as well, and that is not a compromise but a necessity:
+       the panel reads the first tab straight off, without asking whether there is
+       one, so a model with no tabs leaves the window blank instead of showing an
+       empty widget. The tab is kept with no fields in it - for a tab that is what
+       empty means. */
+    function emptyModel(type) {
+    var m = bareModel(type);
+    m.icon = '';
+    /* a blank card is one line tall, not the two of the example: 280x115 fits the
+       icon of 40 and a name beside it with air to spare, and leaves room to drop
+       something underneath later */
+    m.appearance.width = 280;
+    m.appearance.height = 115;
+    m.appearance.items = [];
+    m.settings.tabs = [{ key: 'main', label: 'tab_main', items: [] }];
+    return m;
+    }
+
     function normalizeModel(m) {
-        if (!m || typeof m !== 'object') return newModel('widget');
-        var d = newModel(m.type || 'widget');
+        if (!m || typeof m !== 'object') return bareModel('widget');
+        var d = bareModel(m.type || 'widget');
         d.v = 1;
         d.type = m.type || d.type;
         d.title = m.title || '';
@@ -839,7 +1216,13 @@
             var o = { _i: it._i || uid('c'), _t: it._t || 'text' };
             if (def) {
                 for (var k in def.props) {
-                    if (Object.prototype.hasOwnProperty.call(def.props, k) && it[k] !== undefined) o[k] = it[k];
+                    if (!Object.prototype.hasOwnProperty.call(def.props, k)) continue;
+                    /* def is the value of a field that the model does not mention:
+                       the model of an older widget has no sizeMode and no font, and
+                       they must not look like an unfinished one */
+                    var dflt = def.props[k].def;
+                    if (it[k] !== undefined) o[k] = it[k];
+                    else if (dflt !== undefined) o[k] = dflt;
                 }
             }
             for (var k2 in it) {
@@ -1069,10 +1452,10 @@
     /* compilation: model -> Vue component                                 */
     /* ------------------------------------------------------------------ */
 
-    function itemHtml(it, isPreview) {
+    function itemHtml(it, isPreview, widget) {
         var d = C[it._t];
         if (!d) return '';
-        try { return d.html(it, !!isPreview) || ''; } catch (e) { return ''; }
+        try { return d.html(it, !!isPreview, widget) || ''; } catch (e) { return ''; }
     }
 
     /* where a component sits when the panel gives the widget a box of another size.
@@ -1085,10 +1468,14 @@
         var b = innerSize(a);
         var ax = String(it.anchorX || ''), ay = String(it.anchorY || '');
         /* a stretched side is written as the two gaps instead of a size, so the
-           browser hands the component the room that is left in the box */
-        var sx = !!(it.stretchX && canStretch(it._t, 'x'));
-        var sy = !!(it.stretchY && canStretch(it._t, 'y'));
-        var cx, cy;
+           browser hands the component the room that is left in the box - but an
+           offset names an exact place from the edge, and the two cannot hold at
+           once. The offset wins: that side stops stretching and gets its width
+           back, otherwise the offset would be written and then dropped. */
+        var dxs = safeExpr(it.dx), dys = safeExpr(it.dy);
+        var sx = !!(it.stretchX && canStretch(it._t, 'x') && !dxs);
+        var sy = !!(it.stretchY && canStretch(it._t, 'y') && !dys);
+        var cx, cy, bind = '';
         if (sx) cx = ';left:' + p.x + 'px;right:' + Math.max(0, b.w - p.x - p.w) + 'px';
         else if (!ax || ax === 'left') cx = ';left:' + p.x + 'px';
         else if (ax === 'center') cx = ';left:50%;margin-left:-' + Math.round(p.w / 2) + 'px';
@@ -1099,14 +1486,32 @@
         else if (ay === 'center') cy = ';top:50%;margin-top:-' + Math.round(p.h / 2) + 'px';
         else if (ay === 'bottom') cy = ';bottom:' + Math.max(0, b.h - p.y - p.h) + 'px';
         else cy = ';top:' + p.y + 'px';
-        return 'position:absolute;box-sizing:border-box' + cx + cy +
+        /* an expression of the place wins over the anchor of that side: the anchor
+           names one side, the expression is a number of pixels from the left/top.
+           The unit is written with single quotes and the expression is wrapped in
+           brackets: the whole binding sits in a double quoted :style attribute, and
+           an expression may be a ternary, where a bare +"px" would land on one
+           branch only. */
+        if (dxs) {
+            bind += "left:(" + dxs + ")+'px'";
+            cx = ';left:' + p.x + 'px';
+            ax = 'left';
+        }
+        if (dys) {
+            if (bind) bind += ',';
+            bind += "top:(" + dys + ")+'px'";
+            cy = ';top:' + p.y + 'px';
+            ay = 'top';
+        }
+        var style = 'position:absolute;box-sizing:border-box' + cx + cy +
             (sx ? '' : ';width:' + p.w + 'px') + (sy ? '' : ';height:' + p.h + 'px');
+        return { style: style, bind: bind };
     }
 
     /* the header of the module: the same icon set the settings panel offers, written
-       the way a ready made widget writes it - a class for "icon", a picture for "url"
-       and the current value of the property for "property", so the module always
-       shows what the object reports right now. The title comes along when it is set. */
+       the way a ready made widget writes it - a class for "icon" and a picture for
+       both "url" and "property", because a property is read here as the path to the
+       file the object keeps in it. The title comes along when it is set. */
     function appearanceHead(a) {
         var icon = '', t = String(a.iconType || 'icon');
         if (t === 'icon' && a.icon) {
@@ -1114,7 +1519,7 @@
         } else if (t === 'url' && a.iconUrl) {
             icon = '<img class="dpb-ico" src="' + esc(a.iconUrl) + '" alt="">';
         } else if (t === 'property' && a.iconObject && a.iconProperty) {
-            icon = '<i class="dpb-ico" :class="dpbIconCls"></i>';
+            icon = '<img class="dpb-ico" :src="dpbIconSrc" alt="">';
         }
         var title = (a.showTitle && a.title) ? '<div class="dpb-title">' + esc(a.title) + '</div>' : '';
         if (!icon && !title) return '';
@@ -1125,11 +1530,17 @@
         var a = m.appearance;
         /* widget imported from a ready made file: its own HTML is used as is */
         if (typeof a.html === 'string' && a.html.trim() !== '') return a.html;
+        markIconProps(m);
         var items = a.items || [];
-        var inner = items.map(function (it) {
+        var inner = items.map(function (it, ix) {
             var s = itemSize(it);
             var p = clampPos(a, it.x, it.y, s.w, s.h);
-            return '<div class="dpb-item" style="' + anchorCss(a, it, s, p) + '">' + itemHtml(it, false) + '</div>';
+            var g = anchorCss(a, it, s, p);
+            /* data-dpb-i is the hook of the component: the widget code may look a
+               component up by it, the number it was given in the canvas */
+            var hook = ' data-dpb-i="' + esc(it._i || ('i' + ix)) + '" data-dpb-n="' + ix + '"';
+            var sty = ' style="' + g.style + '"' + (g.bind ? ' :style="{' + g.bind + '}"' : '');
+            return '<div class="dpb-item"' + hook + sty + '>' + itemHtml(it, false) + '</div>';
         }).join('');
         var parts = [];
         var head = appearanceHead(a);
@@ -1593,7 +2004,356 @@
         return JSON.stringify(got) !== JSON.stringify(want);
     }
 
+    /* Every name an expression leans on has to exist in the code, or the widget
+       names a value nothing declares and it fails to render. The wizard knows the
+       names, but it only runs on a button press, so the guarantee is made here,
+       where the file is written: whatever the expressions need and the computed
+       does not have yet is appended. Existing entries are never touched and a name
+       is never written twice. */
+    function ensureComputed(model) {
+        if (!model || typeof model !== 'object') return;
+        var m = normalizeModel(model);
+        /* the icon components are marked before anything is written out: the name a
+           component reads its value under has to be on the model by the time the
+           markup and the code are built, or the two would count differently */
+        markIconProps(m);
+        /* whether any icon still follows the switch of the settings panel: decides if
+           the helper that resolves that choice is needed at all */
+        var followNeed = (m.appearance.items || []).some(function (it) {
+            return it && it._t === 'icon' && iconFollowsWidget(it);
+        });
+        var wiz = wizard(m);
+        var want = wiz.computed;
+        var cur = String(model.code && model.code.computed || '');
+        var merged = cur;
+        if (String(want || '').trim()) {
+            if (!cur.trim()) {
+                merged = want;
+            } else {
+                var have = {}, re = /^\s*([A-Za-z_$][\w$]*)\s*:/gm, mm;
+                while ((mm = re.exec(cur)) !== null) have[mm[1]] = 1;
+                /* the section is taken apart by entries, not by lines: an entry is a
+                   name and everything up to its own closing brace. Walking line by
+                   line dropped the body of a multi line entry - the wizard writes
+                   names on one line and the code of the entry below it - so the icon
+                   of the module arrived as "dpbIconSrc: function () {" and nothing
+                   more, and the widget had no value to show. */
+                var add = [];
+                entriesOf(want).forEach(function (e) {
+                    if (have[e.name]) {
+                        /* A name the generator owns is machine text even when it is
+                           already there. Refreshing it is what lets a widget saved
+                           before a change stop carrying the old version - skipping it
+                           is what left "Press" where the path of the icon belonged. */
+                        if (ownedName(e.name)) merged = replaceEntry(merged, e.name, e.text.replace(/\s+$/, ''));
+                        return;
+                    }
+                    have[e.name] = 1;
+                    add.push(e.text.replace(/\s+$/, ''));
+                });
+                if (add.length) {
+                    /* the section is kept as a body, one entry after another; a hand
+                       written body may leave out the last comma */
+                    var head = merged.replace(/\s+$/, '');
+                    if (!/,\s*$/.test(head) && add.length) head += ',';
+                    merged = head + '\n' + add.join('\n');
+                }
+            }
+        }
+        /* the caller keeps the model it passed in, so that is where the names go:
+           normalizeModel builds a fresh object and its copy would be thrown away */
+        if (!model.code || typeof model.code !== 'object') model.code = {};
+        model.code.computed = merged;
+
+        /* the icon of the module needs more than a computed name: the value of the
+           property has to be read and kept somewhere, so the code also needs "values"
+           in data, the loader in methods and the call in mounted. Only computed was
+           merged above, and runWizard fills a section only while it is still empty,
+           so a model whose sections already hold something never got these three and
+           the written widget then read a value nothing had ever put there. They are
+           added here, the same way: what the file already names is left alone. */
+        var icon = iconNeeds(m);
+        if (icon) {
+            if (!hasName(model.code.data, 'values')) {
+                model.code.data = addEntry(model.code.data,
+                    '    values: {},');
+            }
+            if (!/loadDpbIcon\s*:/.test(String(model.code.methods || ''))) {
+                model.code.methods = addEntry(model.code.methods,
+                    '    loadDpbIcon: function () {\n' +
+                    '        var self = this;\n' +
+                    '        this.busy = true;\n' +
+                    '        return dpAPI(\'getProperty?object=\' + encodeURIComponent(' + jsStr(icon.obj) + ') + \'&property=\' + encodeURIComponent(' + jsStr(icon.prop) + '))\n' +
+                    '            .then(function (r) { if (r && !r.error) self.values[' + jsStr(icon.prop) + '] = r.value; })\n' +
+                    '            .catch(function (e) { console.error(\'[dpb] loadDpbIcon\', e); })\n' +
+                    '            .then(function () { self.busy = false; });\n' +
+                    '    },');
+            }
+            if (!/loadDpbIcon\s*\(\s*\)/.test(String(model.code.mounted || ''))) {
+                model.code.mounted = addEntry(model.code.mounted,
+                    '    this.loadDpbIcon();', false);
+            }
+        }
+
+        /* the same hole for an icon component on the canvas: bound to a field it
+           calls dpbIsPic() from its own markup, and a model that already holds code
+           never got the method - the widget would fail on the missing name and draw
+           no icon at all. The entry is taken from wizard() instead of being written
+           out again, so both places always agree. dpbPic() comes the same way: it is
+           what reads the value of a property the icon is bound to. */
+        entriesOf(wiz.methods).forEach(function (e) {
+            if (e.name !== 'dpbIsPic' && e.name !== 'dpbPic') return;
+            /* always from wizard(), which is where both places are written; a model
+               that already holds a helper gets the current text, otherwise it keeps
+               reading the field name where the value of the property should be */
+            model.code.methods = replaceEntry(model.code.methods, e.name, e.text);
+        });
+        /* those helpers read from values, which a model with its own data may not have */
+        if ((wiz.data || '').indexOf('values') >= 0 && !hasName(model.code.data, 'values')) {
+            model.code.data = addEntry(model.code.data, '    values: {},');
+        }
+
+        /* A field of type "property" is only a NAME; the value the icon draws has to
+           be read from the object. wizard() writes that loader, but it stayed in its
+           own sections and never reached the file - the widget asked for a value
+           nobody had ever fetched and so drew nothing. Only the pairs an icon really
+           uses are brought over: a loader for a pair nothing reads would be code
+           nobody asked for. The text is the wizard's own, so the two agree. */
+        var wantProp = '';
+        (m.appearance.items || []).forEach(function (it) {
+            if (!it || it._t !== 'icon' || wantProp) return;
+            wantProp = propertyKeyOf(m, bkey(it));
+        });
+        /* An icon on the icon_type switch asks for the value behind the property
+           field of that row just as much as an icon bound straight to the field
+           does - but it is bound to the switch, which is a select, so it was not
+           seen here and the loader never reached the file. values then stayed
+           empty and the icon drew the NAME of the property instead of what it
+           holds. The switch is the one asking, so its row counts as a use. */
+        var rowProp = '';
+        if (!wantProp) {
+            iconRowFields(m).forEach(function (f) {
+                if (!rowProp && String(f.type) === 'property') rowProp = String(f.key);
+            });
+        }
+        if (rowProp) wantProp = rowProp;
+        if (wantProp) {
+            /* the loader sets busy while it reads */
+            if (!hasName(model.code.data, 'busy')) {
+                model.code.data = addEntry(model.code.data, '    busy: false,');
+            }
+            (wiz.loaders || []).forEach(function (ld) {
+                if (ld.prop !== wantProp) return;
+                /* the object and the property are baked into the text of the loader,
+                   so a model saved under different ones is refreshed too */
+                model.code.methods = replaceEntry(model.code.methods, ld.name, ld.code.join('\n'));
+                ld.mounted.forEach(function (t) {
+                    if (String(model.code.mounted || '').indexOf(t) < 0) {
+                        model.code.mounted = addEntry(model.code.mounted, t, false);
+                    }
+                });
+            });
+        }
+
+        /* the same hole for an icon that follows a property of its own: the name it
+           reads the value under and the loader that fills it are the same two pieces
+           genSource writes, so a model whose code is already there gets them under
+           their own names and not under the ones of another model */
+        var ownDone = {}, ownNeed = {};
+        (m.appearance.items || []).forEach(function (it) {
+            var pr = it && it._t === 'icon' ? iconOwnPair(it) : null;
+            if (!pr || !it._ico || ownDone[pr.prop]) return;
+            ownDone[pr.prop] = 1;
+            var ln = 'load' + it._ico.charAt(0).toUpperCase() + it._ico.slice(1);
+            ownNeed[it._ico] = 1;
+            ownNeed[ln] = 1;
+            if (!hasName(model.code.data, 'values')) {
+                model.code.data = addEntry(model.code.data, '    values: {},');
+            }
+            if (!hasName(model.code.data, 'busy')) {
+                model.code.data = addEntry(model.code.data, '    busy: false,');
+            }
+            /* written out again every time: the object and the property are inside
+               the text, and both come from the editor, where they do change */
+            model.code.computed = replaceEntry(model.code.computed, it._ico,
+                '    ' + it._ico + ': function () {\n' +
+                '        var v = this.values[' + jsStr(pr.prop) + '];\n' +
+                '        if (v === undefined || v === null) return \'\';\n' +
+                '        return String(v).trim();\n' +
+                '    },');
+            model.code.methods = replaceEntry(model.code.methods, ln,
+                '    ' + ln + ': function () {\n' +
+                '        var self = this;\n' +
+                '        this.busy = true;\n' +
+                '        return dpAPI(\'getProperty?object=\' + encodeURIComponent(' + jsStr(pr.obj) + ') + \'&property=\' + encodeURIComponent(' + jsStr(pr.prop) + '))\n' +
+                '            .then(function (r) { if (r && !r.error) self.values[' + jsStr(pr.prop) + '] = r.value; })\n' +
+                '            .catch(function (e) { console.error(\'[dpb] ' + ln + '\', e); })\n' +
+                '            .then(function () { self.busy = false; });\n' +
+                '    },');
+            var call = '    this.' + ln + '();';
+            if (String(model.code.mounted || '').indexOf(call.trim()) < 0) {
+                model.code.mounted = addEntry(model.code.mounted, call, false);
+            }
+        });
+        /* what an earlier generation left for an icon that no longer follows a
+           property of its own goes away with it, names and calls alike */
+        var gone = function (name) {
+            var mine = /^dpbIco[0-9]+$/.test(name) || /^loadDpbIco[0-9]+$/.test(name);
+            if (mine) return !ownNeed[name];
+            /* the helper of an icon that no longer follows the switch of the panel: dead
+               code in the file is not harmless, and a widget that keeps it reads a
+               setting nobody looks at any more */
+            if (name === 'dpbWidgetIcon') return !followNeed;
+            /* the loader of the icon of the module itself. It asks for the object and
+               the property that were in the panel at some earlier moment, so once the
+               panel names another pair it overwrites with a stale value what load()
+               has just fetched correctly - the icon then shows a number from an object
+               nobody picked any more. And the helper that reads it belongs to the same
+               pair. Both go away with the pair. */
+            if (name === 'loadDpbIcon' || name === 'dpbIconSrc') return !iconNeeds(m);
+            /* the reader of a property the icon is bound to directly. Only such an
+               icon has dpbPic() in its markup - one that goes after the switch asks
+               dpbIsPic() and never touches this, so the icon row alone does not
+               keep it alive */
+            if (name === 'dpbPic') return !wantProp || !!rowProp;
+            return false;
+        };
+        model.code.computed = dropEntries(model.code.computed, gone);
+        model.code.methods = dropEntries(model.code.methods, gone);
+        model.code.mounted = dropCalls(model.code.mounted, gone);
+    }
+
+    /* a body written by hand may leave out the last comma, so one is put back
+       before the entry is appended */
+    /* adds one entry to a generated section. The sections of the options are an
+       object literal, so they are separated by a comma; "mounted" is a list of
+       statements, and a comma there is not punctuation but a syntax error. */
+    function addEntry(body, entry, sep) {
+        var head = String(body || '').replace(/\s+$/, '');
+        if (!head.trim()) return entry;
+        if (sep !== false && !/,\s*$/.test(head)) head += ',';
+        return head + '\n' + entry;
+    }
+
+    /* Replaces one whole entry by its name. A model that was saved already carries
+       the object and the property inside the code, so when either of them changes
+       the entry has to be written out again: appending a second one would leave the
+       widget with two loaders, and the first would keep asking about the property
+       the icon no longer follows. Entries are put back one by one, so a hand
+       written neighbour around it is not touched. */
+    /* The names the generator writes for itself. A model saved before an improvement
+       keeps the older copy of one of them forever: the sections are merged by adding
+       what is missing, never by taking the newer text of a name that is already
+       there. A widget generated before the fix therefore could not be healed by
+       regenerating it - the new code was there and simply never arrived. Anything
+       named this way is machine text and is rewritten from the wizard; a name of the
+       user's own is left exactly as it is. */
+    function ownedName(n) {
+        return /^dpb[A-Z0-9_$]/.test(n) || /^load[A-Z0-9_$]/.test(n) || /^set[A-Z0-9_$]/.test(n) ||
+            n === 'load' || n === 'set';
+    }
+
+    function replaceEntry(body, name, text) {
+        var es = entriesOf(body), at = -1, i;
+        for (i = 0; i < es.length; i++) if (es[i].name === name) { at = i; break; }
+        if (at < 0) return addEntry(body, text);
+        var out = '';
+        for (i = 0; i < es.length; i++) {
+            if (i === at) continue;
+            out = addEntry(out, es[i].text);
+        }
+        return addEntry(out, text);
+    }
+
+    /* Drops the entries a name turns true for. Used to take out what an earlier
+       generation left behind when the icon does not follow a property any more:
+       dead code in the file is not harmless, a loader for a pair nothing reads
+       still asks the object on every start. */
+    function dropEntries(body, drop) {
+        var es = entriesOf(body), out = '', any = false;
+        es.forEach(function (e) {
+            if (drop(e.name)) { any = true; return; }
+            out = addEntry(out, e.text);
+        });
+        return any ? out : body;
+    }
+
+    /* The calls in mounted are statements, not entries, so they are taken out line
+       by line. A call to a loader that is no longer there would fail on every start
+       with "not a function" and take the whole widget down with it. */
+    function dropCalls(body, drop) {
+        var lines = String(body == null ? '' : body).split('\n'), out = [], any = false;
+        lines.forEach(function (l) {
+            var m = /^\s*this\.(load[A-Za-z0-9_$]*)\s*\(\s*\)\s*;?\s*$/.exec(l);
+            if (m && drop(m[1])) { any = true; return; }
+            out.push(l);
+        });
+        return any ? out.join('\n') : body;
+    }
+
+    /* splits a generated section into whole entries: the line that opens a name and
+       every line up to and including the line where its braces close again. Braces
+       inside a string or a regular expression do not count. */
+    function entriesOf(text) {
+        var out = [], name = '', buf = [], depth = 0, opened = false;
+        String(text || '').split('\n').forEach(function (l) {
+            if (!opened) {
+                var k = /^\s*([A-Za-z_$][\w$]*)\s*:/.exec(l);
+                if (!k) return;
+                name = k[1];
+                buf = [l];
+                opened = true;
+                depth = 0;
+            } else {
+                buf.push(l);
+            }
+            depth += bracesIn(l);
+            /* one line entry "name: function () { return x; }," - no brace balance
+               to wait for, the line itself ends the name */
+            if (depth <= 0) {
+                out.push({ name: name, text: buf.join('\n') });
+                opened = false;
+                buf = [];
+            }
+        });
+        if (opened) out.push({ name: name, text: buf.join('\n') });
+        return out;
+    }
+
+    function bracesIn(line) {
+        var d = 0, q = null;
+        for (var i = 0; i < line.length; i++) {
+            var c = line[i];
+            if (q) {
+                if (c === '\\') { i++; continue; }
+                if (c === q) q = null;
+                continue;
+            }
+            if (c === '\'' || c === '"') { q = c; continue; }
+            /* a line comment runs to the end of the line */
+            if (c === '/' && line[i + 1] === '/') break;
+            if (c === '{') d++;
+            else if (c === '}') d--;
+        }
+        return d;
+    }
+
+    function hasName(body, name) {
+        return new RegExp('(^|[\\s{,])' + name + '\\s*:').test(String(body || ''));
+    }
+
+    function jsStr(s) { return '\'' + String(s).replace(/\\/g, '\\\\').replace(/'/g, '\\\'') + '\''; }
+
+    /* the object and the property the icon of the module follows */
+    function iconNeeds(m) {
+        var a = m && m.appearance;
+        if (!a || String(a.iconType || '') !== 'property') return null;
+        if (!a.iconObject || !a.iconProperty) return null;
+        return { obj: String(a.iconObject), prop: String(a.iconProperty) };
+    }
+
     function genSource(model) {
+        ensureComputed(model);
         var m = normalizeModel(model);
         var vn = (m.imported && m.srcVar) ? m.srcVar : varName(m.type);
         var c = m.code;
@@ -1791,7 +2551,17 @@
             if (mm) obj = readObject(mm[1], 0);
         }
 
-        return (obj && typeof obj === 'object') ? normalizeModel(obj) : null;
+        var model = (obj && typeof obj === 'object') ? normalizeModel(obj) : null;
+        /* The markup of the canvas calls helpers of the builder: dpbIsPic() tells a glyph
+           from a picture, the loaders of a property read what an icon is bound to. They
+           are written by genSource() when the code is generated, so a file saved before
+           them - or one whose code was written by hand - carries the markup without the
+           method. The render then throws on the missing name and the preview of the code
+           mode comes out empty, while the visual canvas still shows everything. The same
+           repair the save does, run while the model is read, so the code the editor shows
+           is the code the widget really runs. */
+        if (model) ensureComputed(model);
+        return model;
     }
 
     /* ---- balanced block reader (works for ready made widget files too) ---- */
@@ -2059,10 +2829,18 @@
         /* the file may come with windows line endings - remember them and work with \n */
         var eol = /\r\n/.test(js) ? '\r\n' : '\n';
         js = js.replace(/\r\n/g, '\n');
-        var tpl = readTemplateStr(js);
-        if (!tpl) return null;
-        var m = newModel(opts.type || 'widget');
-        m.imported = true;
+var tpl = readTemplateStr(js);
+   if (!tpl) return null;
+   var m = newModel(opts.type || 'widget');
+   /* The starter comes with its two standard blocks: an icon and a name next to it.
+      A widget brought in from a file has no such blocks - its markup is its own, and
+      it is put into appearance.html right below. So the starter's blocks are dropped
+      here: while they stood, the canvas was not empty, and the live preview of the
+      widget is shown only while the canvas is empty - what was on screen was two
+      blocks to edit instead of the widget itself, and saving wrote those two blocks
+      where the file's own template had been. */
+   m.appearance.items = [];
+   m.imported = true;
         if (opts.title) m.title = opts.title;
         if (opts.icon) m.icon = opts.icon;
         m.description = opts.description || '';
@@ -2199,10 +2977,19 @@
         });
 
         /* --- 2. the appearance --- */
-        var binds = [], controls = [], actions = [];
+        var binds = [], controls = [], actions = [], dxeys = [], mPic = false, mPicProp = false;
         m.appearance.items.forEach(function (it) {
             var k = bkey(it);
             if (k && binds.indexOf(k) < 0) binds.push(k);
+            /* an icon component that takes its value from the widget has to tell a
+               glyph from a picture once the browser runs, so the test has to be in
+               the code: it is drawn from isPicValue(), the very function used here */
+            if (it._t === 'icon' && (k || safeExpr(it.expr) || iconOwnPair(it) || iconFollowsWidget(it))) mPic = true;
+            /* a field of type "property" keeps a name, and the icon needs the value
+               behind it - that is read into values[<key>] by the pair loader. The
+               field is looked up here and not taken from the item: the code is built
+               before the markup, so the mark the markup leaves may not exist yet */
+            if (it._t === 'icon' && (it._prop || propertyKeyOf(m, k))) mPicProp = true;
             if (CONTROL[it._t] && k) {
                 var known = false;
                 controls.forEach(function (c) { if (c.key === k) known = true; });
@@ -2212,6 +2999,10 @@
                 var a = String(it.action || '').trim();
                 if (a && actions.indexOf(a) < 0) actions.push(a);
             }
+            /* the names a coordinate expression leans on have to exist in the code too */
+            exprRoots(it.dx).concat(exprRoots(it.dy)).forEach(function (n) {
+                if (dxeys.indexOf(n) < 0) dxeys.push(n);
+            });
         });
 
         /* --- the icon of the module itself: the object and the property are written
@@ -2232,8 +3023,10 @@
         }
 
         /* --- data --- */
-        if (pairs.length || controls.length || mIcon) data.push('    busy: false,');
-        if (pairs.length || controls.length || mIcon) data.push('    values: {},');
+        /* an icon on the switch of the settings panel resolves the choice at runtime */
+        var mFollow = m.appearance.items.some(function (it) { return it && it._t === 'icon' && iconFollowsWidget(it); });
+        if (pairs.length || controls.length || mIcon || mPicProp || mFollow) data.push('    busy: false,');
+        if (pairs.length || controls.length || mIcon || mPicProp || mFollow) data.push('    values: {},');
         controls.forEach(function (c) {
             if (pairs.some(function (p) { return p.prop === c.key; })) return;
             data.push('    ' + c.key + ': null,');
@@ -2250,41 +3043,83 @@
         pairs.forEach(function (p) { acc(p.obj); acc(p.prop); });
         scripts.forEach(function (f) { acc(f.key); });
         methodFields.forEach(function (f) { acc(f.key); });
+        dxeys.forEach(acc);
+        /* every field of the row the icon switch sits in is a value the template may
+           ask for, so all of them are declared - the icon reads icon_type, icon,
+           icon_object, icon_property and icon_url at once */
+        iconRowFields(m).forEach(function (f) { acc(f.key); });
 
-        /* --- computed: the class of the icon of the module --- */
+        /* --- computed: the picture the icon of the module shows --- */
         if (mIcon) {
-            computed.push('    dpbIconCls: function () {');
+            /* the property holds the path to the picture, so the whole value goes
+               to src: it used to be cut down to the first word and applied as a
+               class, which showed nothing - a path is not a Font Awesome name */
+            computed.push('    dpbIconSrc: function () {');
             computed.push('        var v = this.values[' + qs(mIcon.prop) + '];');
-            computed.push('        if (!v) return \'\';');
-            /* the property may carry the class alone or together with a colour: take the first word */
-            computed.push('        return String(v).split(/[|,;\\s]/)[0];');
+            computed.push('        if (v === undefined || v === null) return \'\';');
+            computed.push('        return String(v).trim();');
+                        computed.push('    },');
+        }
+
+        /* --- computed: the icon that follows the choice in the settings panel --- */
+        if (mFollow) {
+            /* the field icon_type says WHERE the icon comes from, so its own value is
+               never drawn. The same three cases the header of the module has, read from
+               the settings of the running widget, which is what lets the panel change
+               the icon without the file being written again */
+            computed.push('    dpbWidgetIcon: function () {');
+            computed.push('        var w = this.widget || {}, t = String(w.icon_type || \'icon\');');
+            computed.push('        if (t === \'url\') return String(w.icon_url == null ? \'\' : w.icon_url).trim();');
+            computed.push('        if (t === \'property\') {');
+            computed.push('            var n = String(w.icon_property == null ? \'\' : w.icon_property).trim();');
+            computed.push('            var v = (n && this.values) ? this.values[n] : \'\';');
+            computed.push('            if (v === undefined || v === null || String(v).trim() === \'\') v = n;');
+            computed.push('            return String(v == null ? \'\' : v).trim();');
+            computed.push('        }');
+            computed.push('        return String(w.icon == null ? \'\' : w.icon).trim();');
             computed.push('    },');
         }
+
+
         /* --- methods: read and write every paired property --- */
+        /* the loaders are kept aside as well: a model whose code is already written
+           needs the very same loader, and it is handed over by name so that both
+           places cannot drift apart */
+        var loaders = [];
         pairs.forEach(function (p, pi) {
             var lp = fname(pi ? 'load' + cap(p.prop) : 'load');
             var sp = fname(pi ? 'set' + cap(p.prop) : 'set');
-            methods.push('    ' + lp + ': function () {');
-            methods.push('        var self = this;');
-            methods.push('        var object = ' + path(p.obj) + ' || \'\';');
-            methods.push('        var property = ' + path(p.prop) + ' || \'\';');
-            methods.push('        if (!object || !property) return;');
-            methods.push('        this.busy = true;');
-            methods.push('        return dpAPI(\'getProperty?object=\' + encodeURIComponent(object) + \'&property=\' + encodeURIComponent(property))');
-            methods.push('            .then(function (r) { if (r && !r.error) self.values[property] = r.value; })');
-            methods.push('            .catch(function (e) { console.error(\'[dpb] ' + lp + '\', e); })');
-            methods.push('            .then(function () { self.busy = false; });');
-            methods.push('    },');
-            methods.push('    ' + sp + ': function (v) {');
-            methods.push('        var object = ' + path(p.obj) + ' || \'\';');
-            methods.push('        var property = ' + path(p.prop) + ' || \'\';');
-            methods.push('        if (!object || !property) return;');
-            methods.push('        this.values[property] = v;');
-            methods.push('        return dpAPI(\'setProperty?object=\' + encodeURIComponent(object) + \'&property=\' + encodeURIComponent(property) + \'&value=\' + encodeURIComponent(v));');
-            methods.push('    },');
-            mounted.push('    this.$watch(\'' + p.obj + '\', this.' + lp + ');');
-            mounted.push('    this.$watch(\'' + p.prop + '\', this.' + lp + ');');
-            mounted.push('    this.' + lp + '();');
+            var lt = [
+                '    ' + lp + ': function () {',
+                '        var self = this;',
+                '        var object = ' + path(p.obj) + ' || \'\';',
+                '        var property = ' + path(p.prop) + ' || \'\';',
+                '        if (!object || !property) return;',
+                '        this.busy = true;',
+                '        return dpAPI(\'getProperty?object=\' + encodeURIComponent(object) + \'&property=\' + encodeURIComponent(property))',
+                '            .then(function (r) { if (r && !r.error) self.values[property] = r.value; })',
+                '            .catch(function (e) { console.error(\'[dpb] ' + lp + '\', e); })',
+                '            .then(function () { self.busy = false; });',
+                '    },'
+            ];
+            var st = [
+                '    ' + sp + ': function (v) {',
+                '        var object = ' + path(p.obj) + ' || \'\';',
+                '        var property = ' + path(p.prop) + ' || \'\';',
+                '        if (!object || !property) return;',
+                '        this.values[property] = v;',
+                '        return dpAPI(\'setProperty?object=\' + encodeURIComponent(object) + \'&property=\' + encodeURIComponent(property) + \'&value=\' + encodeURIComponent(v));',
+                '    },'
+            ];
+            lt.forEach(function (t) { methods.push(t); });
+            st.forEach(function (t) { methods.push(t); });
+            var mo = [
+                '    this.$watch(\'' + p.obj + '\', this.' + lp + ');',
+                '    this.$watch(\'' + p.prop + '\', this.' + lp + ');',
+                '    this.' + lp + '();'
+            ];
+            mo.forEach(function (t) { mounted.push(t); });
+            loaders.push({ obj: p.obj, prop: p.prop, name: lp, set: sp, code: lt, mounted: mo });
         });
 
         /* --- methods: the icon of the module --- */
@@ -2298,6 +3133,35 @@
             methods.push('            .then(function () { self.busy = false; });');
             methods.push('    },');
             mounted.push('    this.loadDpbIcon();');
+        }
+
+        /* --- methods: telling a glyph from a picture --- */
+        if (mPic) {
+            methods.push('    dpbIsPic: function (v) {');
+            methods.push('        var s = String(v == null ? "" : v).trim();');
+            methods.push('        if (!s) return false;');
+            methods.push('        if (s.indexOf("/") >= 0 || s.indexOf("\\\\") >= 0) return true;');
+            methods.push('        return /\\.(png|jpe?g|gif|svg|webp|bmp|ico|avif)$/i.test(s);');
+            methods.push('    },');
+        }
+
+        /* --- methods: the value behind a property the icon is bound to --- */
+        if (mPicProp) {
+            methods.push('    dpbPic: function (p) {');
+            /* values is keyed by the NAME of the property, not by the key of the
+               field: the loader of the pair writes values[property]. Asking for
+               values["icon_property"] therefore found nothing at all and the icon
+               fell back to the name of the property, which draws nothing */
+            methods.push('        var name = this.widget ? this.widget[p] : "";');
+            methods.push('        var v = (this.values && name) ? this.values[name] : "";');
+            methods.push('        if (v === undefined || v === null || String(v).trim() === "") {');
+            /* nothing was read: either the object is not named yet, or the field holds
+               the path outright. What was typed is then all there is, and dropping it
+               would take away an icon that used to show */
+            methods.push('            v = this.widget && this.widget[p] != null ? this.widget[p] : "";');
+            methods.push('        }');
+            methods.push('        return String(v).trim();');
+            methods.push('    },');
         }
 
         /* --- methods: the elements the user can change --- */
@@ -2390,6 +3254,7 @@
             computed: computed.join('\n'),
             methods: methods.join('\n'),
             mounted: mounted.join('\n'),
+            loaders: loaders,
             beforeUnmount: cleanup.join('\n'),
             summary: {
                 settings: fields.length,
@@ -2572,10 +3437,41 @@
     /* preview helper                                                      */
     /* ------------------------------------------------------------------ */
 
-    function previewHtml(item, widget) {
-        var html = itemHtml(item, true);
+    /* The canvas of the builder. An icon bound to a field of type "property" is fed
+       with "props": the value read from the object, keyed by the field. Without it the
+       canvas would show the NAME of the property in the class - "Press" is not a font
+       class, so the canvas showed an empty icon while the written widget worked. */
+    function previewHtml(item, widget, model, props) {
+        /* the name a component reads its value under is put on the model here as
+           well: the canvas draws before any code was written out for it */
+        if (model) markIconProps(model);
+        var it = item;
+        var w = widget;
+            if (model && item) {
+                var p = propertyKeyOf(model, bkey(item));
+                if (p) {
+                    it = Object.assign({}, item, { _prop: '' });
+                    var got = props ? props[p] : '';
+                    /* the value read from the object stands in for what the field holds.
+                       Until it arrives the field is left empty on purpose: the name of a
+                       property in a font class shows nothing anyway, and putting it there
+                       only makes the canvas look as if the icon were named "Press" */
+                    w = Object.assign({}, widget || {}, { [p]: String(got == null ? '' : got).trim() });
+                } else if (item._ico) {
+                    /* an icon with a property of its own reads the value under the name
+                       it was given; the canvas hands it over the same way */
+                    var own = props ? props[item._ico] : '';
+                    w = Object.assign({}, widget || {}, { [item._ico]: String(own == null ? '' : own).trim() });
+                } else if (iconFollowsWidget(item)) {
+                    /* an icon on the switch of the settings panel needs the values the
+                       object reported, exactly as the running widget reads them - the
+                       canvas has to answer the same way the panel will */
+                    w = Object.assign({}, widget || {}, { dpb_icon_vals: props || {} });
+                }
+            }
+        var html = itemHtml(it, true, w);
         return html.replace(BIND, function (_, key) {
-            var v = widget ? widget[key] : undefined;
+            var v = w ? w[key] : undefined;
             if (v === undefined || v === null || v === '') return '<span style="opacity:.4">{{' + esc(key) + '}}</span>';
             return esc(v);
         });
@@ -2591,6 +3487,7 @@
         systemField: systemField,
         systemTabOf: systemTabOf,
         newModel: newModel,
+    emptyModel: emptyModel,
         newItem: newItem,
         newField: newField,
         stdFields: stdFields,
@@ -2607,6 +3504,7 @@
         codeToOptions: codeToOptions,
         defaultsOf: defaultsOf,
         wizard: wizard,
+    ensureComputed: ensureComputed,
         funcsOf: funcsOf,
         funcsText: funcsText,
         methodsTextOf: methodsTextOf,
@@ -2626,6 +3524,8 @@
         clampPos: clampPos,
         anchorCss: anchorCss,
         canStretch: canStretch,
+        safeExpr: safeExpr,
+        exprRoots: exprRoots,
 
         autoPos: autoPos,
         clampAll: clampAll,

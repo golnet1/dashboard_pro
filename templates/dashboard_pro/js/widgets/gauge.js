@@ -29,16 +29,21 @@ const GaugeWidget = {
     },
     defaults: { icon: 'fas fa-gauge-high', icon_type: 'icon', minValue: 0, maxValue: 100, round: 0, height: 180, colors: JSON.stringify([{color:'#a9d70b'},{color:'#f9c802'},{color:'#ff0000'}]) },
     template: `
-        <div class="widget-v-card" :style="cardStyle" style="display:flex;flex-direction:column;align-items:center;justify-content:center">
-            <svg viewBox="0 0 120 120" style="width:80%;max-width:200px;flex:1">
-                <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="10"/>
-                <circle cx="60" cy="60" r="50" fill="none" :stroke="gaugeColor" stroke-width="10" stroke-linecap="round"
-                    :stroke-dasharray="circumference" :stroke-dashoffset="dashOffset"
-                    transform="rotate(-90, 60, 60)" style="transition: stroke-dashoffset .5s"/>
-                <text x="60" :y="valueY" text-anchor="middle" fill="rgba(255,255,255,.87)" font-size="14" font-weight="700">{{ displayValue }}</text>
-                <text x="60" :y="unitY" text-anchor="middle" fill="rgba(255,255,255,.5)" font-size="6" v-if="widget.unit">{{ widget.unit }}</text>
-                <text x="60" y="78" text-anchor="middle" fill="rgba(255,255,255,.6)" font-size="7" v-if="hasTitle">{{ widget.title }}</text>
-            </svg>
+        <div class="widget-v-card" :style="cardStyle" style="display:flex;flex-direction:column;align-items:center">
+            <div v-if="iconSrc" class="widget-v-card__header" style="align-self:stretch">
+                <img class="widget-v-card__icon widget-v-card__icon--img" :src="iconSrc" alt="">
+            </div>
+            <div class="widget-v-card__body" style="align-items:center;justify-content:center">
+                <svg viewBox="0 0 120 120" style="width:80%;max-width:200px;flex:1">
+                    <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="10"/>
+                    <circle cx="60" cy="60" r="50" fill="none" :stroke="gaugeColor" stroke-width="10" stroke-linecap="round"
+                        :stroke-dasharray="circumference" :stroke-dashoffset="dashOffset"
+                        transform="rotate(-90, 60, 60)" style="transition: stroke-dashoffset .5s"/>
+                    <text x="60" :y="valueY" text-anchor="middle" fill="rgba(255,255,255,.87)" font-size="14" font-weight="700">{{ displayValue }}</text>
+                    <text x="60" :y="unitY" text-anchor="middle" fill="rgba(255,255,255,.5)" font-size="6" v-if="widget.unit">{{ widget.unit }}</text>
+                    <text x="60" y="78" text-anchor="middle" fill="rgba(255,255,255,.6)" font-size="7" v-if="hasTitle">{{ widget.title }}</text>
+                </svg>
+            </div>
         </div>`,
     data() {
         return { value: null, timer: null, circumference: 2 * Math.PI * 50 };
