@@ -11,12 +11,24 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Ubuntu">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Arimo:400,600,700">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700">
-    <link rel="stylesheet" href="css/app.css?v=113">
+    <link rel="stylesheet" href="css/app.css?v=114">
     <link rel="stylesheet" href="css/leaflet.css?v=1">
     <script src="js/lib/vue.global.prod.js"></script>
+<style>
+/* До монтирования Vue шаблон лежит в DOM как есть: директивы v-if/v-else ещё не
+   посчитаны, поэтому видны все ветви сразу - вместе с карточкой входа и её
+   неотрендеренными подстановками. Скрываем сырую разметку, а на её время
+   показываем обычную загрузку; Vue снимает v-cloak при монтировании. */
+[v-cloak] { display: none !important; }
+#app-preload {
+    position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    background: var(--bg-primary, #0f172a); color: var(--text-secondary, #94a3b8); z-index: 9999;
+}
+</style>
 </head>
 <body>
-    <div id="app">
+    <div id="app-preload"><i class="fas fa-spinner fa-spin"></i></div>
+    <div id="app" v-cloak>
         <!-- The sign in screen is only ever drawn on a plain "not authorised" from the
              server: authDenied. While the answer is unknown, or the language has
              not arrived yet, the wait is shown instead - otherwise a user who is
@@ -2169,7 +2181,7 @@
                 <div class="modal-body" style="text-align:center;padding:2rem 1.5rem">
                     <i class="fas fa-chart-line" style="font-size:3rem;color:var(--primary);margin-bottom:1rem"></i>
                     <h3 style="margin-bottom:.3rem">Dashboard Pro</h3>
-                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 01.17.11</p>
+                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 01.17.13</p>
                     <p style="color:var(--text-secondary);font-size:.8rem">{{ t('app_desc') }}</p>
                     <div class="about-links" style="margin-top:1rem;font-size:.85rem;color:var(--text-secondary);line-height:1.8">
                         <div>{{ t('about_telegram') }}: <a href="https://t.me/+9ZFQaxs_Ukw4NmMy" target="_blank" rel="noopener">Telegram</a></div>
@@ -2189,14 +2201,14 @@
     </div>
 
     <script src="js/api.js?v=19"></script>
-    <script src="js/auth.js?v=12"></script>
+    <script src="js/auth.js?v=14"></script>
     <script src="js/sidebar.js?v=10"></script>
 <script src="js/widget-config.js?v=11"></script>
 <script src="js/lib/leaflet.js?v=1"></script>
 <script src="js/lib/hls.min.js?v=1"></script>
 <script src="js/dpbuilder.js?v=67"></script>
     <script src="js/dpbuilder-ui.js?v=51"></script>
-    <script src="js/app.js?v=268"></script>
+    <script src="js/app.js?v=270"></script>
 </body>
 </html>
 

@@ -100,10 +100,32 @@ function widgetName(w) {
     return type;
 }
 
+let langRetryTimer = null;
+
+/* The wording is what the sign in screen is written in, so the screen is not
+   allowed to come up before it. That holds whatever the request does: no answer,
+   an empty one, or a failure - the screen waits, and the wording is asked for
+   again until it arrives. Open the form on an empty dictionary and it stands
+   there spelled out in keys - sign_in, login, password - which is exactly what
+   the user should never be shown. */
+function keepAskingLang() {
+    if (langRetryTimer) return;
+    langRetryTimer = setInterval(async () => {
+        if (langReady.value) { clearInterval(langRetryTimer); langRetryTimer = null; return; }
+        try {
+            const d = await dpAPI('lang');
+            if (d && typeof d === 'object' && !d.error && Object.keys(d).length > 0) {
+                translations.value = d;
+                langReady.value = true;
+                clearInterval(langRetryTimer);
+                langRetryTimer = null;
+            }
+        } catch(e) {}
+    }, 2000);
+}
+
 async function loadTranslations() {
-    /* one try, then one more. The screen waits for the dictionary, and a single
-       refused request would either leave it waiting for good or let it through to
-       show the keys. */
+    if (langReady.value) return true;
     for (let i = 0; i < 3; i++) {
         try {
             const d = await dpAPI('lang');
@@ -115,14 +137,14 @@ async function loadTranslations() {
             if (d && typeof d === 'object' && !d.error && Object.keys(d).length > 0) {
                 translations.value = d;
                 langReady.value = true;
+                if (langRetryTimer) { clearInterval(langRetryTimer); langRetryTimer = null; }
                 return true;
             }
         } catch(e) {}
         if (i < 2) await new Promise(r => setTimeout(r, 400));
     }
-    /* the api itself is down: there is no wording to show either way, and waiting
-       here for good would leave an empty screen with no way out */
-    langReady.value = true;
+    /* no wording yet - langReady stays false and the sign in screen stays shut */
+    keepAskingLang();
     return false;
 }
 
@@ -3138,8 +3160,11 @@ if (f.key) {
         }, { deep: true });
 
 onMounted(() => {
-            document.addEventListener('click', handleClickOutside);
-            loadTranslations();
+    document.addEventListener('click', handleClickOutside);
+    /* Vue снял v-cloak - загрузка до монтирования больше не нужна */
+    const pre = document.getElementById('app-preload');
+    if (pre && pre.parentNode) pre.parentNode.removeChild(pre);
+    loadTranslations();
             initAuth();
             setInterval(() => headerNow.value = new Date(), 1000);
             setInterval(() => refreshHeaderStatus(), 5000);
