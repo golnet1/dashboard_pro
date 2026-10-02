@@ -3,40 +3,73 @@ const Auth = (function() {
 
     const authenticated = ref(false);
     const authChecking = ref(true);
+    /* The server has said "not authorised" - and nothing else opens the sign in
+       screen. While the answer is still unknown the screen must not be there: a
+       request that failed or came back with an error in it says nothing about the
+       session, and showing the form to somebody who is authorised is exactly the
+       thing that must not happen. */
+    const authDenied = ref(false);
     const login = ref('');
     const password = ref('');
     const loginError = ref('');
     const loginLoading = ref(false);
+    let retryTimer = null;
+
+    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+    /* one question, one answer: "yes", "no", or "not answered". dpHttp never rejects,
+       it hands a request that did not come through back as an object carrying the
+       error - that is not the server refusing, it is the server not heard from. */
+    async function ask() {
+        try {
+            const res = await dpAPI('checkAuth');
+            if (res && res.authenticated) return { how: 'yes', res: res };
+            if (res && !res.error) return { how: 'no' };
+            return { how: 'silent' };
+        } catch (e) {
+            return { how: 'silent' };
+        }
+    }
+
+    /* The api kept quiet. The session may well be there, so the form stays closed and
+       the question is asked again in the background: an authorised user walks into the
+       dashboard the moment the server answers, and one who is not sees the form then
+       too - neither of them is left looking at a form that was never warranted. */
+    function keepAsking(onAuth) {
+        if (retryTimer) return;
+        retryTimer = setInterval(async () => {
+            if (authenticated.value || authDenied.value) { clearInterval(retryTimer); retryTimer = null; return; }
+            const a = await ask();
+            if (a.how === 'yes') {
+                clearInterval(retryTimer); retryTimer = null;
+                authenticated.value = true;
+                if (onAuth) await onAuth(a.res);
+            } else if (a.how === 'no') {
+                clearInterval(retryTimer); retryTimer = null;
+                authDenied.value = true;
+            }
+        }, 1500);
+    }
 
     async function checkAuth(onAuth) {
         authChecking.value = true;
-        /* The session lives on the server, so a request that did not get through says
-           nothing about it. Without the retry one refused or half finished request put
-           the sign in screen in front of a user who is in fact authorised, and it
-           stayed there - nothing asked again. An answer that says "not authorised" is
-           the one that is taken at once, because that is the server talking. */
-        for (let i = 0; i < 3; i++) {
-            try {
-                const res = await dpAPI('checkAuth');
-                if (res && res.authenticated) {
+        try {
+            for (let i = 0; i < 3; i++) {
+                const a = await ask();
+                if (a.how === 'yes') {
                     authenticated.value = true;
-                    if (onAuth) await onAuth(res);
-                    authChecking.value = false;
+                    authDenied.value = false;
+                    if (retryTimer) { clearInterval(retryTimer); retryTimer = null; }
+                    if (onAuth) await onAuth(a.res);
                     return;
                 }
-                /* dpHttp never rejects: a request that did not come through comes
-                   back as a plain object with an error in it. That is not the server
-                   saying "not authorised", it is a question that was not answered, so
-                   it is asked again. Only a clean answer is taken at once - otherwise
-                   one bad request put the sign in screen in front of a user who is in
-                   fact authorised, and it stayed there, because nothing asked again. */
-                if (res && !res.error) break;
-            } catch (e) {
-                if (i === 2) console.error(e);
+                if (a.how === 'no') { authDenied.value = true; return; }
+                if (i < 2) await sleep(500);
             }
-            if (i < 2) await new Promise(r => setTimeout(r, 500));
+            keepAsking(onAuth);
+        } finally {
+            authChecking.value = false;
         }
-        authChecking.value = false;
     }
 
     async function doLogin(onAuth) {
@@ -49,6 +82,8 @@ const Auth = (function() {
             });
             if (res.success) {
                 authenticated.value = true;
+                authDenied.value = false;
+                if (retryTimer) { clearInterval(retryTimer); retryTimer = null; }
                 if (onAuth) await onAuth(res);
             } else {
                 loginError.value = res.error || t('login_error');
@@ -72,10 +107,12 @@ const Auth = (function() {
     function doLogout() {
         dpAPI('logout');
         authenticated.value = false;
+        /* leaving on purpose: the form is what is wanted now */
+        authDenied.value = true;
         login.value = '';
         password.value = '';
         loginError.value = '';
     }
 
-    return { authenticated, authChecking, login, password, loginError, loginLoading, checkAuth, doLogin, doLogout, testAPI };
+    return { authenticated, authChecking, authDenied, login, password, loginError, loginLoading, checkAuth, doLogin, doLogout, testAPI };
 })();

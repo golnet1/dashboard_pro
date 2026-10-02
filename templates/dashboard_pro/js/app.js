@@ -3139,7 +3139,7 @@ onMounted(() => {
         });
 
         return {
-            authenticated, authChecking, langReady, login, password, loginError, loginLoading, doLogin, doLogout, testAPI: Auth.testAPI,
+            authenticated, authChecking, authDenied, langReady, login, password, loginError, loginLoading, doLogin, doLogout, testAPI: Auth.testAPI,
             headerTime, headerDate, headerStatusSectionOn, headerStatusList, headerStatusItems, headerStatusMaxReached,
             showHeaderStatusEditor, hsForm, hsProperties, hsEditIdx, openHeaderStatusEditor, loadHsProperties, clearHsObject, editHeaderStatusItem, saveHeaderStatusItem, removeHeaderStatusItem, hsMapArr, headerStatusImages: HEADER_STATUS_IMAGES,
             panels, currentPanel, selectPanel, selectHomePanel, loading, editMode,
