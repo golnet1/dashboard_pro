@@ -1799,20 +1799,87 @@
 
     /* top level blocks of a component literal, in the order of the file */
     var SRC_BLOCKS = ['props', 'tabs', 'fields', 'defaults', 'template', 'data', 'computed', 'watch', 'mounted', 'beforeUnmount', 'methods'];
-    function blockOrderOf(js) {
+        /* The properties that sit directly in the body of the component literal, with the
+       place each one starts at. Indentation is what told them apart before, and that
+       is not enough: an entry the generator writes into data() or methods is put
+       there with its own indent, and by name alone "    values: {}," reads exactly
+       like a property of the component. The blocks of the file were then taken from
+       those entries, the real ones were left out, and the widget was written out
+       without props, tabs and fields - a file the panel cannot load at all. Counting
+       braces asks the one question that has an answer here: is this position directly
+       inside the literal, or two levels down in a section. The walk is character by
+       character and skips strings, template literals, comments and regex literals for
+       the same reason: the braces of a template literal are not the braces of the
+       object, and the template of a widget is a long one. */
+    function topLevelProps(js) {
         var s = String(js || '');
-        /* the block of a component is at the top level, but a few files indent it deeper
-           (stream.js writes beforeUnmount with 8 spaces), so the shallowest match wins */
-        var pos = {}, names = [], mm, re;
-        SRC_BLOCKS.forEach(function (n) {
-            re = new RegExp('(?:^|\\n)([ \\t]{4,})' + n + '[ \\t]*[:(]', 'g');
-            var best = -1, bestInd = 1e9;
-            while ((mm = re.exec(s)) !== null) {
-                var ind2 = mm[1].replace(/\t/g, '    ').length;
-                if (ind2 < bestInd) { bestInd = ind2; best = mm.index; }
+        var head = /(?:^|\n)[ \t]*(?:const|let|var)[ \t]+[A-Za-z_$][\w$]*[ \t]*=[ \t]*\{/.exec(s);
+        if (!head) return null;
+        var open = s.indexOf('{', head.index + head[0].lastIndexOf('{'));
+        var end = blockEnd(s, open);
+        var out = [], depth = 0, atLine = true, q = '', last = '', i = open + 1;
+        for (; i < end; i++) {
+            var ch = s.charAt(i);
+            if (q) {
+                if (ch === '\\') { i++; atLine = false; continue; }
+                if (ch === q) { q = ''; last = ch; }
+                atLine = (ch === '\n');
+                continue;
             }
-            if (best >= 0) { pos[n] = best; names.push(n); }
-        });
+            if (ch === '"' || ch === "'" || ch === '`') { q = ch; atLine = false; continue; }
+            if (ch === '/' && s.charAt(i + 1) === '/') { var e = s.indexOf('\n', i); i = (e < 0 ? end : e); atLine = true; continue; }
+            if (ch === '/' && s.charAt(i + 1) === '*') { var e2 = s.indexOf('*/', i); i = (e2 < 0 ? end : e2 + 1); atLine = false; continue; }
+            if (ch === '/' && last && !/[)\]}A-Za-z0-9_$]/.test(last)) {
+                /* a regex literal: skip it, or its braces and brackets count as code */
+                var k = i + 1, cls = false;
+                while (k < end) {
+                    var rc = s.charAt(k);
+                    if (rc === '\\') { k += 2; continue; }
+                    if (rc === '[') cls = true;
+                    else if (rc === ']') cls = false;
+                    else if (rc === '/' && !cls) break;
+                    else if (rc === '\n') break;
+                    k++;
+                }
+                i = (k < end && s.charAt(k) === '/') ? k : i;
+                last = '/';
+                continue;
+            }
+            if (ch === '\n') { atLine = true; continue; }
+            if (/\s/.test(ch)) continue;
+            if (depth === 0 && atLine) {
+                var mm = /^([A-Za-z_$][\w$]*)[ \t]*[:(]/.exec(s.slice(i, i + 80));
+                if (mm) out.push({ name: mm[1], from: i });
+            }
+            atLine = false;
+            if (ch === '{') depth++;
+            else if (ch === '}') depth--;
+            last = ch;
+        }
+        out.end = end;
+        return out;
+    }
+
+    function blockOrderOf(js) {
+        var hits = topLevelProps(js), pos = {}, names = [];
+        if (hits) {
+            hits.forEach(function (h) {
+                if (SRC_BLOCKS.indexOf(h.name) < 0) return;
+                if (pos[h.name] === undefined) { pos[h.name] = h.from; names.push(h.name); }
+            });
+        } else {
+            /* a file the literal of which was not found: fall back to the indent alone */
+            var s = String(js || ''), mm, re;
+            SRC_BLOCKS.forEach(function (n) {
+                re = new RegExp('(?:^|\\n)([ \\t]{4,})' + n + '[ \\t]*[:(]', 'g');
+                var best = -1, bestInd = 1e9;
+                while ((mm = re.exec(s)) !== null) {
+                    var ind2 = mm[1].replace(/\t/g, '    ').length;
+                    if (ind2 < bestInd) { bestInd = ind2; best = mm.index; }
+                }
+                if (best >= 0) { pos[n] = best; names.push(n); }
+            });
+        }
         names.sort(function (a, b) { return pos[a] - pos[b]; });
         return names;
     }
@@ -1820,20 +1887,24 @@
     /* blocks of the file the builder does not know, kept as they are (map.js: MOSCOW, GEO_TIMEOUT) */
     function extraBlocksOf(js) {
         var s = String(js || '');
-        var head = /^const\s+[A-Za-z_$][\w$]*\s*=\s*\{/m.exec(s);
-        if (!head) return null;
-        var i = s.indexOf('{', head.index) + 1, end = blockEnd(s, i - 1);
-        /* every top level property of the literal, in order */
-        var re = /(?:^|\n) {4}([A-Za-z_$][\w$]*)\s*[:(]/g, hits = [], m;
-        re.lastIndex = i;
-        while ((m = re.exec(s)) !== null && m.index < end) {
-            hits.push({ name: m[1], from: m.index + (m[0].charAt(0) === '\n' ? 1 : 0), known: SRC_BLOCKS.indexOf(m[1]) >= 0 });
+        var hits = topLevelProps(js);
+        if (!hits) {
+            var head = /^const\s+[A-Za-z_$][\w$]*\s*=\s*\{/m.exec(s);
+            if (!head) return null;
+            var i = s.indexOf('{', head.index) + 1, end = blockEnd(s, i - 1);
+            var re = /(?:^|\n) {4}([A-Za-z_$][\w$]*)\s*[:(]/g, m;
+            re.lastIndex = i;
+            hits = [];
+            while ((m = re.exec(s)) !== null && m.index < end) {
+                hits.push({ name: m[1], from: m.index + (m[0].charAt(0) === '\n' ? 1 : 0) });
+            }
+            hits.end = end;
         }
-        var ex = [];
-        for (var k = 0; k < hits.length; k++) {
-            if (hits[k].known) continue;
-            var to = end;
-            for (var n = k + 1; n < hits.length; n++) { to = hits[n].from; break; }
+        var ex = [], k, n;
+        for (k = 0; k < hits.length; k++) {
+            if (SRC_BLOCKS.indexOf(hits[k].name) >= 0) continue;
+            var to = hits.end;
+            for (n = k + 1; n < hits.length; n++) { to = hits[n].from; break; }
             ex.push({ name: hits[k].name, text: s.slice(hits[k].from, to).replace(/\s+$/, '') });
         }
         return ex.length ? ex : null;
@@ -2144,10 +2215,27 @@
             }
             (wiz.loaders || []).forEach(function (ld) {
                 if (ld.prop !== wantProp) return;
+                /* The first pair is loaded by a method simply called "load", and the
+                   name belongs to whoever wrote it first. A widget that reads its own
+                   value has an "async load()" of its own, and writing the loader over
+                   that name took the widget's method away: after a save the method was
+                   gone and the widget stopped reading anything. So a name that is
+                   already taken by something else is not taken here - the loader is
+                   written under a name of its own, and the calls in mounted follow it. */
+                var ldName = ld.name, ldCode = ld.code, ldMounted = ld.mounted;
+                if (takenByOther(model.code.methods, ldName)) {
+                    ldName = freeName(model.code.methods, 'dpbLoad' + String(wantProp).replace(/[^A-Za-z0-9_$]/g, '_'));
+                    ldCode = ldCode.map(function (t) {
+                        return t.replace(ld.name + ':', ldName + ':');
+                    });
+                    ldMounted = ldMounted.map(function (t) {
+                        return t.split('this.' + ld.name).join('this.' + ldName);
+                    });
+                }
                 /* the object and the property are baked into the text of the loader,
                    so a model saved under different ones is refreshed too */
-                model.code.methods = replaceEntry(model.code.methods, ld.name, ld.code.join('\n'));
-                ld.mounted.forEach(function (t) {
+                model.code.methods = replaceEntry(model.code.methods, ldName, ldCode.join('\n'));
+                ldMounted.forEach(function (t) {
                     if (String(model.code.mounted || '').indexOf(t) < 0) {
                         model.code.mounted = addEntry(model.code.mounted, t, false);
                     }
@@ -2257,11 +2345,13 @@
         var es = entriesOf(body), at = -1, i;
         for (i = 0; i < es.length; i++) if (es[i].name === name) { at = i; break; }
         if (at < 0) return addEntry(body, text);
-        var out = '';
-        for (i = 0; i < es.length; i++) {
-            if (i === at) continue;
-            out = addEntry(out, es[i].text);
-        }
+        /* The one entry is cut out of the text as it stands and the rest is left
+           byte for byte. Writing the block back from the parsed entries instead
+           would quietly drop everything the parser did not recognise - and then the
+           file lost its async methods on every save, because the entry being
+           replaced was already there from the previous one. */
+        var lines = String(body || '').split('\n');
+        var out = lines.slice(0, es[at].start).concat(lines.slice(es[at].end)).join('\n');
         return addEntry(out, text);
     }
 
@@ -2294,15 +2384,27 @@
     /* splits a generated section into whole entries: the line that opens a name and
        every line up to and including the line where its braces close again. Braces
        inside a string or a regular expression do not count. */
+    /* An entry of an object written as a method, not as "name: value":
+         async toggle() { ... }
+       is a normal way to write methods, and every ready made widget uses it. Reading
+       only "name:" left those lines unrecognised, and replaceEntry() rebuilds a block
+       from what it recognised - so the methods it did not know were dropped from the
+       file on save, silently, while the widget kept every name the template calls.
+       start/end are the lines the entry occupies, so a caller can cut it out of the
+       original text and leave everything it could not parse exactly as it was. */
+    var ENTRY_OPEN = /^\s*(?:async\s+)?([A-Za-z_$][\w$]*)\s*(?::|\(\s*\)\s*\{)/;
+
     function entriesOf(text) {
-        var out = [], name = '', buf = [], depth = 0, opened = false;
+        var out = [], name = '', buf = [], depth = 0, opened = false, start = 0, li = 0;
         String(text || '').split('\n').forEach(function (l) {
+            var at = li++;
             if (!opened) {
-                var k = /^\s*([A-Za-z_$][\w$]*)\s*:/.exec(l);
+                var k = ENTRY_OPEN.exec(l);
                 if (!k) return;
                 name = k[1];
                 buf = [l];
                 opened = true;
+                start = at;
                 depth = 0;
             } else {
                 buf.push(l);
@@ -2311,12 +2413,12 @@
             /* one line entry "name: function () { return x; }," - no brace balance
                to wait for, the line itself ends the name */
             if (depth <= 0) {
-                out.push({ name: name, text: buf.join('\n') });
+                out.push({ name: name, text: buf.join('\n'), start: start, end: at + 1 });
                 opened = false;
                 buf = [];
             }
         });
-        if (opened) out.push({ name: name, text: buf.join('\n') });
+        if (opened) out.push({ name: name, text: buf.join('\n'), start: start, end: li });
         return out;
     }
 
@@ -2340,6 +2442,34 @@
 
     function hasName(body, name) {
         return new RegExp('(^|[\\s{,])' + name + '\\s*:').test(String(body || ''));
+    }
+
+    /* A name for a loader the generator has to add where the plain one is spoken for.
+       The name of a method in a widget is free text and the property it reads can be
+       named anything, so the name is built from the property and then made to be a
+       name that is not in use yet. */
+    function freeName(body, base) {
+        var n = base.replace(/[^A-Za-z0-9_$]/g, '_'), i = 2, e;
+        while (hasName(body, n)) n = base.replace(/[^A-Za-z0-9_$]/g, '_') + (i++);
+        if (hasName(body, n)) { e = entriesOf(body).length; n = 'dpbLoad' + e; }
+        return n;
+    }
+
+    /* Whether a name in the file is used by something the generator did not write.
+       The generator takes a name for itself when nothing else in the widget has it,
+       and looks for it by name alone - which is why "load", a name an ordinary widget
+       gives its own method, has to be checked before it is written over. An entry
+       that only mentions the value and the object the way a loader does is one the
+       generator wrote earlier and may be refreshed; anything else belongs to the
+       widget and is left alone. */
+    function takenByOther(body, name) {
+        var es = entriesOf(body), i, e;
+        for (i = 0; i < es.length; i++) {
+            e = es[i];
+            if (e.name !== name) continue;
+            return !/this\.values\[|self\.values\[/.test(e.text);
+        }
+        return false;
     }
 
     function jsStr(s) { return '\'' + String(s).replace(/\\/g, '\\\\').replace(/'/g, '\\\'') + '\''; }

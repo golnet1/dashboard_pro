@@ -1296,8 +1296,12 @@ function loadScript(src, version) {
                         builderReady.value = true;
                         return m;
                     }
-                    /* ready made widget: take its HTML, fields, defaults and code from the file */
-                    const comp = getWidgetComponent(cur);
+                    /* ready made widget: take its HTML, fields, defaults and code from the file.
+                       when the component itself is not loaded, the same four come from the
+                       text of the file - otherwise the builder would open one empty tab and
+                       saving would write that emptiness over the real fields */
+                    const comp = getWidgetComponent(cur) ||
+                        (window.DpBuilder.componentOf ? window.DpBuilder.componentOf(res.js || '') : null);
                     const im = window.DpBuilder.importSource(res.js || '', {
                         type: cur,
                         title: meta.TITLE || '',
