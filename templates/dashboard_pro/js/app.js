@@ -104,21 +104,31 @@ async function loadTranslations() {
     /* one try, then one more. The screen waits for the dictionary, and a single
        refused request would either leave it waiting for good or let it through to
        show the keys. */
-    for (let i = 0; i < 2; i++) {
+    for (let i = 0; i < 3; i++) {
         try {
             const d = await dpAPI('lang');
-            if (d && typeof d === 'object') { translations.value = d; langReady.value = true; return; }
+            /* dpHttp hands a request that did not come through back as a plain object
+               carrying the error, so "an object" is not a dictionary: taking it as one
+               let the form in with sign_in and password standing in for the wording,
+               and nothing asked again. A dictionary is an object without an error in
+               it and with wording in it. */
+            if (d && typeof d === 'object' && !d.error && Object.keys(d).length > 0) {
+                translations.value = d;
+                langReady.value = true;
+                return true;
+            }
         } catch(e) {}
-        if (i === 0) await new Promise(r => setTimeout(r, 400));
+        if (i < 2) await new Promise(r => setTimeout(r, 400));
     }
     /* the api itself is down: there is no wording to show either way, and waiting
        here for good would leave an empty screen with no way out */
     langReady.value = true;
+    return false;
 }
 
 const app = createApp({
     setup() {
-        const { authenticated, authChecking, login, password, loginError, loginLoading } = Auth;
+        const { authenticated, authChecking, authDenied, login, password, loginError, loginLoading } = Auth;
 
         const { currentPanel, sidebarOpen, sidebarMini, expandedGroups, childPanels, toggleGroup, selectPanel, selectHomePanel, toggleSidebar } = Sidebar;
 
