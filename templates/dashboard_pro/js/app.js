@@ -985,6 +985,33 @@ const widgetUsage = computed(() => {
             return 'widget-' + type;
         }
 
+        function injectVoiceScript(src) {
+            if (!src) return;
+            if (document.querySelector('script[src^="' + src.split('?')[0] + '"]')) return;
+            const s = document.createElement('script');
+            s.src = src;
+            document.body.appendChild(s);
+        }
+
+        async function loadVoiceScripts() {
+            let d;
+            try { d = await dpAPI('voiceScripts'); } catch (e) { return; }
+            if (!d || d.error) return;
+            if (d.vosk && d.vosk.src) {
+                if (!window.VOSK_CONFIG) {
+                    const cfg = document.createElement('script');
+                    cfg.textContent = 'window.VOSK_CONFIG=window.VOSK_CONFIG||{};'
+                        + 'window.VOSK_CONFIG.triggerPhrases=' + JSON.stringify(d.vosk.triggerPhrases || []) + ';'
+                        + 'window.VOSK_CONFIG.apiUrl=' + JSON.stringify(d.vosk.apiUrl || '/api.php/module/vosk/') + ';';
+                    document.body.appendChild(cfg);
+                }
+                injectVoiceScript(d.vosk.src);
+            }
+            if (d.piper_tts && d.piper_tts.src && window.top === window.self) {
+                injectVoiceScript(d.piper_tts.src);
+            }
+        }
+
         async function initAuth() {
             await Auth.checkAuth(async (res) => {
                 authenticated.value = true;
@@ -993,6 +1020,7 @@ const widgetUsage = computed(() => {
                 if (!isAdmin.value) editMode.value = false;
                 await loadData();
                 checkNotifications();
+                loadVoiceScripts();
             });
         }
 
@@ -1004,6 +1032,7 @@ const widgetUsage = computed(() => {
                 if (!isAdmin.value) editMode.value = false;
                 await loadData();
                 checkNotifications();
+                loadVoiceScripts();
             });
         }
 

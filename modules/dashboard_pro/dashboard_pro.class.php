@@ -199,6 +199,36 @@ class dashboard_pro extends module
             return $this->loadDashboardSettings();
         }
 
+        if ($params['request'][0] == 'voiceScripts') {
+            $login = $this->getUserLogin();
+            if (!$login) {
+                return ['error' => LANG_DASHBOARD_PRO_LOGIN_REQUIRED];
+            }
+            $out = [];
+            $voskModule = DIR_MODULES . 'vosk/';
+            $voskPrepend = $voskModule . 'prepend.php';
+            $voskJs = DIR_TEMPLATES . 'vosk/js/vosk.js';
+            if (is_file($voskPrepend) && is_file($voskJs)) {
+                $cfg = [];
+                $cfgFile = $voskModule . 'prepend_config.json';
+                if (is_file($cfgFile)) {
+                    $decoded = json_decode((string)file_get_contents($cfgFile), true);
+                    if (is_array($decoded)) $cfg = $decoded;
+                }
+                $out['vosk'] = [
+                    'triggerPhrases' => !empty($cfg['phrases']) ? array_values($cfg['phrases']) : [],
+                    'apiUrl' => !empty($cfg['apiUrl']) ? $cfg['apiUrl'] : '/api.php/module/vosk/',
+                    'src' => '/templates/vosk/js/vosk.js?' . filemtime($voskPrepend),
+                ];
+            }
+            $piperPrepend = DIR_MODULES . 'piper_tts/prepend.php';
+            $piperJs = DIR_TEMPLATES . 'piper_tts/js/piper_tts.js';
+            if (is_file($piperPrepend) && is_file($piperJs)) {
+                $out['piper_tts'] = ['src' => '/templates/piper_tts/js/piper_tts.js?' . filemtime($piperJs)];
+            }
+            return $out;
+        }
+
         if ($params['request'][0] == 'chat') {
             $login = $this->getUserLogin();
             if (!$login) {
