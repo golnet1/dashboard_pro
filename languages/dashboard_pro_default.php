@@ -927,6 +927,7 @@ $frontend = array(
     'dpb_mod_width' => 'Width',
     'dpb_mod_height' => 'Height',
     'dpb_mod_gap' => 'Gap',
+'dpb_module_look_hint' => 'Padding, background, colour, root class, alignment, title and module icon apply to the markup the builder assembles. This widget has its own markup - they appear once it is rebuilt.',
     'dpb_pad' => 'Padding',
 	'dpb_radius' => 'Radius',
 	'dpb_root_cls' => 'Root class',

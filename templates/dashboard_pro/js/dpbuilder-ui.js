@@ -442,31 +442,32 @@
             /* --- module look --- */
             '        <div class="dpb-block">' +
             '          <div class="dpb-block__title"><i class="fas fa-palette"></i>{{ t(\'dpb_blk_module\') }}</div>' +
+            '          <div class="dpb-hint" v-if="htmlKept">{{ t(\'dpb_module_look_hint\') }}</div>' +
             '          <div class="dpb-row2">' +
-            '            <div class="dpb-f"><label>{{ t(\'dpb_pad\') }}</label><input type="number" v-model.number="model.appearance.pad" min="0"></div>' +
+            '            <div class="dpb-f" v-if="!htmlKept"><label>{{ t(\'dpb_pad\') }}</label><input type="number" v-model.number="model.appearance.pad" min="0"></div>' +
             '            <div class="dpb-f"><label>{{ t(\'dpb_radius\') }}</label><input type="number" v-model.number="model.appearance.radius" min="0"></div>' +
             '          </div>' +
-            '          <div class="dpb-row2">' +
+            '          <div class="dpb-row2" v-if="!htmlKept">' +
             '            <div class="dpb-f"><label>{{ t(\'dpb_bg\') }}</label><input type="color" v-model="model.appearance.bg"></div>' +
             '            <div class="dpb-f"><label>{{ t(\'dpb_color\') }}</label><input type="color" v-model="model.appearance.color"></div>' +
             '          </div>' +
-            '          <div class="dpb-f"><label>{{ t(\'dpb_root_cls\') }}</label><input type="text" spellcheck="false" v-model="model.appearance.cls" placeholder="widget-v-card"></div>' +
-            '          <div class="dpb-f"><label>{{ t(\'dpb_align\') }}</label>' +
+            '          <div class="dpb-f" v-if="!htmlKept"><label>{{ t(\'dpb_root_cls\') }}</label><input type="text" spellcheck="false" v-model="model.appearance.cls" placeholder="widget-v-card"></div>' +
+            '          <div class="dpb-f" v-if="!htmlKept"><label>{{ t(\'dpb_align\') }}</label>' +
             '            <select v-model="model.appearance.align">' +
             '              <option v-for="o in [\'stretch\', \'flex-start\', \'center\', \'flex-end\']" :key="o" :value="o">{{ valLabel(o) }}</option></select></div>' +
-            '          <div class="dpb-chk"><input type="checkbox" id="dpbShowTitle" v-model="model.appearance.showTitle"><label for="dpbShowTitle">{{ t(\'dpb_showtitle\') }}</label></div>' +
-            '          <div class="dpb-f" v-if="model.appearance.showTitle"><label>{{ t(\'field_title\') }}</label><input type="text" v-model="model.appearance.title"></div>' +
+            '          <div class="dpb-chk" v-if="!htmlKept"><input type="checkbox" id="dpbShowTitle" v-model="model.appearance.showTitle"><label for="dpbShowTitle">{{ t(\'dpb_showtitle\') }}</label></div>' +
+            '          <div class="dpb-f" v-if="!htmlKept && model.appearance.showTitle"><label>{{ t(\'field_title\') }}</label><input type="text" v-model="model.appearance.title"></div>' +
             /* the icon of the module itself: the same set the settings panel offers */
-            '          <div class="dpb-f"><label>{{ t(\'field_icon_type\') }}</label><select v-model="model.appearance.iconType">' +
+            '          <div class="dpb-f" v-if="!htmlKept"><label>{{ t(\'field_icon_type\') }}</label><select v-model="model.appearance.iconType">' +
             '            <option value="icon">{{ t(\'opt_icon\') }}</option>' +
             '            <option value="property">{{ t(\'opt_property\') }}</option>' +
             '            <option value="url">{{ t(\'opt_url\') }}</option></select></div>' +
-            '          <div class="dpb-f" v-if="model.appearance.iconType === \'icon\'"><label>{{ t(\'field_icon\') }}</label><icon-picker v-model="model.appearance.icon"></icon-picker></div>' +
-            '          <div class="dpb-row2" v-if="model.appearance.iconType === \'property\'">' +
+            '          <div class="dpb-f" v-if="!htmlKept && model.appearance.iconType === \'icon\'"><label>{{ t(\'field_icon\') }}</label><icon-picker v-model="model.appearance.icon"></icon-picker></div>' +
+            '          <div class="dpb-row2" v-if="!htmlKept && model.appearance.iconType === \'property\'">' +
             '            <div class="dpb-f"><label>{{ t(\'field_icon_object\') }}</label><input type="text" spellcheck="false" v-model="model.appearance.iconObject" placeholder="MegaCC"></div>' +
             '            <div class="dpb-f"><label>{{ t(\'field_icon_property\') }}</label><input type="text" spellcheck="false" v-model="model.appearance.iconProperty" placeholder="Status"></div>' +
             '          </div>' +
-            '          <div class="dpb-f" v-if="model.appearance.iconType === \'url\'"><label>{{ t(\'field_icon_url\') }}</label><input type="text" spellcheck="false" v-model="model.appearance.iconUrl" placeholder="https://..."></div>' +
+            '          <div class="dpb-f" v-if="!htmlKept && model.appearance.iconType === \'url\'"><label>{{ t(\'field_icon_url\') }}</label><input type="text" spellcheck="false" v-model="model.appearance.iconUrl" placeholder="https://..."></div>' +
             '        </div>' +
             /* --- selected component --- */
             '        <div class="dpb-block" v-if="cur">' +

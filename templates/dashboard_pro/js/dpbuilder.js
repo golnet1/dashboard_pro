@@ -1286,6 +1286,8 @@
         d.oneLine = (m.oneLine && typeof m.oneLine === 'object') ? m.oneLine : {};
         d.indent = (m.indent && typeof m.indent === 'object') ? m.indent : {};
         d.headIndent = (m.headIndent && typeof m.headIndent === 'object') ? m.headIndent : {};
+        /* the size and the radius the constructor showed when the file was opened */
+        d.srcLook = (m.srcLook && typeof m.srcLook === 'object') ? JSON.parse(JSON.stringify(m.srcLook)) : null;
         return d;
     }
 
@@ -1647,9 +1649,27 @@
            A ready made widget keeps the size its own file already declares, and a file
            whose defaults could not be read is written back exactly as it is. */
         var a = m.appearance || {};
+        /* The size and the radius of the constructor are the size and the radius of the
+           widget on the panel: a new widget takes width, height and radius from the
+           defaults of the file (see addWidget in app.js, the defaults of the file are
+           spread over the instance last). They are read back out of the file when it is
+           opened, so a widget saved without being touched keeps the values it had, and a
+           changed one writes the new values. A key the file does not have yet is only
+           written when the value in the constructor was really changed. */
+        var look = (m && m.srcLook) || null;
+        function putLook(k, v) {
+            if (!locked) { out[k] = v; return; }
+            if (Object.prototype.hasOwnProperty.call(out, k) ||
+                (look && Number(a[k]) !== Number(look[k]))) out[k] = v;
+        }
         var canAdd = !locked || !m.defaultsRaw;
-        if (canAdd && (!locked || !Object.prototype.hasOwnProperty.call(out, 'width'))) out.width = val(a.width, 320) || 320;
-        if (canAdd && (!locked || !Object.prototype.hasOwnProperty.call(out, 'height'))) out.height = val(a.height, 200) || 200;
+        if (canAdd) {
+            putLook('width', val(a.width, 320) || 320);
+            putLook('height', val(a.height, 200) || 200);
+            var rr = Number(a.radius) || 0;
+            if (rr > 0 || Object.prototype.hasOwnProperty.call(out, 'radius') ||
+                (look && Number(a.radius) !== Number(look.radius))) out.radius = rr;
+        }
         return out;
     }
 
@@ -2059,7 +2079,12 @@
            keep its text until the model gets a key that the file does not have */
         if (m.defaultsRaw) {
             var ex0 = m.defaultsExtra || {}, w0 = defaultsOf(m);
-            return Object.keys(w0).some(function (k) { return !Object.prototype.hasOwnProperty.call(ex0, k); });
+            return Object.keys(w0).some(function (k) {
+                if (!Object.prototype.hasOwnProperty.call(ex0, k)) return true;
+                var nv = w0[k], ov = ex0[k];
+                if (nv && ov && typeof nv === 'object') return false;
+                return String(nv) !== String(ov);
+            });
         }
         var want = defaultsOf(m), txt = String(raw).replace(/^\s*defaults\s*:\s*/, '').replace(/;$/, '');
         var got;
@@ -2498,7 +2523,15 @@
     }
 
     function genSource(model) {
-        ensureComputed(model);
+        /* The code the generator owns - the loader of the icon, the proxies of the
+           fields, the watchers - belongs to a widget made here. Written into a ready
+           made file it grew on every save with nothing edited, and because the
+           generator takes the names load*, set* and dpb* for its own it could replace
+           a method the widget already had. A file that came from the module is
+           therefore written back as it stands, until the canvas is really in use. */
+        var appear = (model && model.appearance) || {};
+        var canvasUsed = !model || !model.imported || (Array.isArray(appear.items) && appear.items.length > 0);
+        if (canvasUsed) ensureComputed(model);
         var m = normalizeModel(model);
         var vn = (m.imported && m.srcVar) ? m.srcVar : varName(m.type);
         var c = m.code;
@@ -2522,7 +2555,7 @@
             var ord = Array.isArray(tb._ord) ? tb._ord : [];
             /* a tab of the file keeps exactly the keys it had - some of them have no "fields" */
             var o = { key: tb.key, label: tb.label };
-            if (!imported || ord.indexOf('fields') >= 0) o.fields = tb.fields || tb.key;
+            if (!imported || ord.indexOf('fields') >= 0 || !ord.length) o.fields = tb.fields || tb.key;
             ord.forEach(function (n) {
                 if ((n === 'key' || n === 'label' || n === 'fields') && o[n] !== undefined) return;
                 if (tb[n] !== undefined && o[n] === undefined) o[n] = tb[n];
@@ -2540,7 +2573,8 @@
         var fld = fieldsOf(m);
         var gk = Object.keys(fld);
         if (imported && Array.isArray(m.srcGroups) && m.srcGroups.length) {
-            gk = m.srcGroups.filter(function (g) { return gk.indexOf(g) >= 0; });
+            var added = gk.filter(function (g) { return m.srcGroups.indexOf(g) < 0; });
+            gk = m.srcGroups.filter(function (g) { return gk.indexOf(g) >= 0; }).concat(added);
             gk.forEach(function (g) { if (fld[g] === undefined) fld[g] = []; });
         }
         var openGroups = (imported && Array.isArray(m.srcOpenGroups)) ? m.srcOpenGroups : [];
@@ -3070,10 +3104,24 @@ var tpl = readTemplateStr(js);
         var last = null, lastKey = '', re = /window\.DpWidgets(\.[A-Za-z_$][\w$]*|\[['"][^'"]+['"]\])\s*=\s*([A-Za-z_$][\w$]*)\s*;/g, mm;
         while ((mm = re.exec(js)) !== null) { last = mm[2]; lastKey = mm[1]; }
         if (last) { m.srcVar = last; m.srcKey = lastKey; }
-        if (defs && defs.height) m.appearance.height = Number(defs.height) || m.appearance.height;
-        /* the widget brings its own layout: no builder padding/radius around it */
+        /* the size and the radius of the constructor are the size and the radius of the
+           widget on the panel, and the panel takes them from the defaults of the file:
+           read them from there, otherwise the constructor would show the size of an empty
+           canvas and every save would write that size into the file */
+        ['width', 'height', 'radius'].forEach(function (k) {
+            if (!defs || !(k in defs)) return;
+            var v = Number(defs[k]);
+            if (isFinite(v) && v >= 0) m.appearance[k] = v;
+        });
+        /* the widget brings its own layout: no builder padding around it */
         m.appearance.pad = 0;
-        m.appearance.radius = 0;
+        /* what the constructor showed when the file was opened: a key the file does not
+           have is written only when this value was changed */
+        m.srcLook = {
+            width: m.appearance.width,
+            height: m.appearance.height,
+            radius: m.appearance.radius
+        };
         return m;
     }
 

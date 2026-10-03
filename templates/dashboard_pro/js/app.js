@@ -1398,12 +1398,15 @@ function loadScript(src, version) {
                         builderReady.value = true;
                         return m;
                     }
-                    /* ready made widget: take its HTML, fields, defaults and code from the file.
-                       when the component itself is not loaded, the same four come from the
-                       text of the file - otherwise the builder would open one empty tab and
-                       saving would write that emptiness over the real fields */
-                    const comp = getWidgetComponent(cur) ||
-                        (window.DpBuilder.componentOf ? window.DpBuilder.componentOf(res.js || '') : null);
+                    /* ready made widget: take its HTML, fields, defaults and code from the file */
+                    /* The text of the file that was just fetched is the truth: the component
+                       registered in the page still carries the fields the widget had before
+                       the save, and with it the builder opened the old settings again. The
+                       registered component is only a fallback for a file that cannot be
+                       read here, and the fresh one takes its place right away. */
+                    const fresh = (window.DpBuilder.componentOf && res.js) ? window.DpBuilder.componentOf(res.js) : null;
+                    const comp = fresh || getWidgetComponent(cur);
+                    if (fresh) { try { window.DpWidgets[cur] = fresh; } catch (e) { /* ignore */ } }
                     const im = window.DpBuilder.importSource(res.js || '', {
                         type: cur,
                         title: meta.TITLE || '',
@@ -1507,6 +1510,7 @@ function loadScript(src, version) {
                     return;
                 }
                 await loadWidgetDefs();
+                try { bumpWidgetToken(); } catch (e) { /* ignore */ }
                 widgetConfirm.value = {
                     built: true,
                     type: res.type,
