@@ -114,7 +114,8 @@ function keepAskingLang() {
         if (langReady.value) { clearInterval(langRetryTimer); langRetryTimer = null; return; }
         try {
             const d = await dpAPI('lang');
-            if (d && typeof d === 'object' && !d.error && Object.keys(d).length > 0) {
+            const isDict = d && typeof d === 'object' && !Array.isArray(d) && Object.keys(d).length > 20;
+            if (isDict) {
                 translations.value = d;
                 langReady.value = true;
                 clearInterval(langRetryTimer);
@@ -129,12 +130,14 @@ async function loadTranslations() {
     for (let i = 0; i < 3; i++) {
         try {
             const d = await dpAPI('lang');
-            /* dpHttp hands a request that did not come through back as a plain object
-               carrying the error, so "an object" is not a dictionary: taking it as one
-               let the form in with sign_in and password standing in for the wording,
-               and nothing asked again. A dictionary is an object without an error in
-               it and with wording in it. */
-            if (d && typeof d === 'object' && !d.error && Object.keys(d).length > 0) {
+            /* "error" as a translation key is legitimate (e.g. translation for "connection error").
+               The only thing that means "no translation dictionary arrived" is when the
+               request failed at transport level and dpHttp returned an object that has
+               its own 'error' property AND has no translation keys except possibly
+               one or two. The real dictionary has many keys (over a thousand). Treat as
+               valid dictionary if there are many keys, even if 'error' is present. */
+            const isDict = d && typeof d === 'object' && !Array.isArray(d) && Object.keys(d).length > 20;
+            if (isDict) {
                 translations.value = d;
                 langReady.value = true;
                 if (langRetryTimer) { clearInterval(langRetryTimer); langRetryTimer = null; }
