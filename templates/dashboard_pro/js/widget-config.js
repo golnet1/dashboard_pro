@@ -8,6 +8,9 @@ window.W = window.W || {};
 W.fields = {
   // ---- Position (common fields for all types) ----
   _common: {
+    advanced: [
+      { key: 'radius', label: 'field_radius', type: 'number', placeholder: '0' },
+    ],
     position: [
       { key: 'x', label: 'x_px', type: 'number' },
       { key: 'y', label: 'y_px', type: 'number' },

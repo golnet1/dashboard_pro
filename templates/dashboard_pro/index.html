@@ -566,6 +566,32 @@
                                                 </div>
                                             </div>
                                         </div>
+                                        <div class="v-list-item theme--dark">
+                                            <div class="v-list-item__action">
+                                                <div class="v-input theme--dark v-input--selection-controls v-input--switch primary--text" :class="{ 'input--is-checked': settings.roundedWidgets }">
+                                                    <div class="v-input__control"><div class="v-input__slot v-input__slot--switch"><div class="v-input--switch__track" @click.stop="settings.roundedWidgets = !settings.roundedWidgets; savePanels()"><div class="v-input--switch__thumb"></div></div></div></div>
+                                                </div>
+                                            </div>
+                                            <div class="v-list-item__content py-0">
+                                                <div class="v-list-item__title">{{ t('field_rounded_widgets') }}</div>
+                                                <div class="v-list-item__subtitle">{{ t('field_rounded_widgets_desc') }}</div>
+                                            </div>
+                                        </div>
+                                        <div class="v-list-item theme--dark">
+                                            <div class="v-list-item__content">
+                                                <div class="v-input theme--dark v-text-field">
+                                                    <div class="v-input__control">
+                                                        <div class="v-input__slot">
+                                                            <div class="v-text-field__slot">
+                                                                <label class="v-label theme--dark" :class="{ 'v-label--active': settings.widgetRadius !== undefined && settings.widgetRadius !== null && settings.widgetRadius !== '' }" style="left:0;right:auto;position:absolute">{{ t('field_widget_radius') }}</label>
+                                                                <input type="number" v-model.number="settings.widgetRadius" @change="savePanels()" min="0" max="60" style="background:transparent;border:none;color:#fff;outline:none;width:100%;padding:18px 0 4px;font-size:16px">
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="v-text-field__details"><div class="v-messages theme--dark"><div class="v-messages__wrapper"><div class="v-messages__message">{{ t('field_widget_radius_desc') }}</div></div></div></div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="v-card v-sheet theme--dark" style="background:rgba(48,48,48,var(--card-alpha,1));border-color:rgba(48,48,48,.56)">
@@ -2211,12 +2237,12 @@
 <script src="js/api.js?v=19"></script>
     <script src="js/auth.js?v=16"></script>
     <script src="js/sidebar.js?v=10"></script>
-<script src="js/widget-config.js?v=11"></script>
+<script src="js/widget-config.js?v=12"></script>
 <script src="js/lib/leaflet.js?v=1"></script>
 <script src="js/lib/hls.min.js?v=1"></script>
 <script src="js/dpbuilder.js?v=67"></script>
     <script src="js/dpbuilder-ui.js?v=51"></script>
-    <script src="js/app.js?v=277"></script>
+    <script src="js/app.js?v=279"></script>
 </body>
 </html>
 

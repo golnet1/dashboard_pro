@@ -252,7 +252,7 @@ const widgetUsage = computed(() => {
         const wsStatus = ref(null);
         const wsRev = reactive({});
         const bgColorMap = reactive({});
-        const settings = ref({ appTitle: '', theme: 'light', defaultPanel: '', debug: false, font: 'Roboto', hideMenu: false, hideChat: false, menuBg: '', panelBg: '', usePanelImage: true, useHeaderImage: false, cardsOpacity: 44, menuOpacity: 16, dialogOpacity: 12, primaryColor: '#1976d2', lightThemeColor: '#ffffff', darkThemeColor: '#303030', iconSize: 0, titleSize: 0, subtitleSize: 0, widgetSize: 0, grid: false, noOverlap: false, gridStep: 10, compactHeader: false, showHeaderClock: true, showHeaderStatus: true, headerStatusItems: [] });
+        const settings = ref({ appTitle: '', theme: 'light', defaultPanel: '', debug: false, font: 'Roboto', hideMenu: false, hideChat: false, menuBg: '', panelBg: '', usePanelImage: true, useHeaderImage: false, cardsOpacity: 44, menuOpacity: 16, dialogOpacity: 12, primaryColor: '#1976d2', lightThemeColor: '#ffffff', darkThemeColor: '#303030', iconSize: 0, titleSize: 0, subtitleSize: 0, widgetSize: 0, grid: false, noOverlap: false, gridStep: 10, roundedWidgets: false, widgetRadius: 12, compactHeader: false, showHeaderClock: true, showHeaderStatus: true, headerStatusItems: [] });
 
         const headerNow = ref(new Date());
         const headerTime = computed(() => headerNow.value.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
@@ -487,7 +487,8 @@ const widgetUsage = computed(() => {
             if (typeof W === 'undefined' || !W.fields) return [];
             const comp = getWidgetComponent(type);
             const component = (comp && comp.fields && comp.fields[tab]) || [];
-            const all = tab === 'position' ? (W.fields._common.position || []) : component;
+            const common = (W.fields._common && W.fields._common[tab]) || [];
+            const all = tab === 'position' ? common : common.concat(component);
             const seen = new Set();
             return all.filter(f => {
                 const key = f.key || f.type;
@@ -904,6 +905,11 @@ const widgetUsage = computed(() => {
             } else if (mode === 'property') {
                 const bgVal = bgColorMap[w.id];
                 if (bgVal) s.backgroundColor = bgVal;
+            }
+            if (settings.value.roundedWidgets) {
+                const own = Number(w.radius);
+                const radius = own > 0 ? own : Number(settings.value.widgetRadius);
+                if (radius > 0) s.borderRadius = radius + 'px';
             }
             return s;
         }
@@ -3102,6 +3108,8 @@ if (f.key) {
                     return;
                 }
                 await loadWidgetDefs();
+                const copied = res.title || res.type || (w.title || w.type);
+                dpToast(t('widget_editor_copied') + ': ' + copied, 'success', 5000);
             } catch (e) {
                 alert(t('error_label') + (e.message || e));
             }
