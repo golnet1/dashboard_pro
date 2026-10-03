@@ -165,6 +165,9 @@ a.user-menu__item { text-decoration: none; color: inherit; }
 .content { flex: 1; overflow-y: auto; padding: 1.5rem; }
 .widgets-canvas { position: relative; min-height: 500px; }
 .widget { background: transparent; }
+/* общий выключатель закругления выключен: у виджета не должно быть скругления,
+   даже если оно задано в самом виджете или в его пользовательском CSS */
+.widget--flat > :where(*) { border-radius: 0 !important; }
 .widget--abs { position: absolute; cursor: default; transition: none; z-index: 1; touch-action: manipulation; }
 .widget--abs:hover { z-index: 5; box-shadow: none; }
 .edit-mode .widget--abs { cursor: move; }
@@ -452,8 +455,16 @@ a.user-menu__item { text-decoration: none; color: inherit; }
 .gap-2 { gap: 8px; }
 .flex-wrap { flex-wrap: wrap; }
 
+/* Widget radius row */
+.dp-radius-row { display:flex; align-items:center; gap:12px; }
+.dp-radius-row input[type="range"] { flex:1; min-width:0; }
+.dp-radius-row__num { width:64px; flex-shrink:0; padding:6px 8px; border:1px solid var(--border); border-radius:6px; background:rgba(255,255,255,.06); color:#fff; font-size:.9rem; text-align:center; outline:none; }
+.dp-radius-row__num:focus { border-color:var(--primary); }
+.dp-radius-hint { font-size:.78rem; color:var(--on-theme-dim); padding:2px 0 0; }
+.dp-radius-hint b { color:var(--on-theme-high); font-weight:500; }
+
 /* Widget Card component */
-.widget-v-card { display:flex; flex-direction:column; height:100%; width:100%; background:rgba(var(--theme-bg-rgb), var(--card-alpha, 1)); overflow:hidden; position:relative; transition:background .2s, box-shadow .2s; }
+.widget-v-card { display:flex; flex-direction:column; height:100%; width:100%; background:rgba(var(--theme-bg-rgb), var(--card-alpha, 1)); overflow:hidden; position:relative; transition:background .2s, box-shadow .2s; border-radius:var(--wpb-radius, var(--wpb-radius-default, 0px)); }
 .widget-v-card__header { display:flex; align-items:center; gap:8px; padding:10px 12px 4px; min-height:40px; }
 .widget-v-card__icon { font-size:var(--widget-icon-size, 23px); color:var(--on-theme-mid); text-align:center; flex-shrink:0; }
 /* иконка типа url или property - это картинка, а не класс Font Awesome:
@@ -470,6 +481,10 @@ a.user-menu__item { text-decoration: none; color: inherit; }
 
 /* widgets made in the visual builder: the root must look like a standard card */
 .dpb-root { display:block; position:relative; background:rgba(var(--theme-bg-rgb), var(--card-alpha, 1)); color:var(--on-theme-high); }
+/* радиус из общих настроек подставляется только тем виджетам, у которых своего
+   значения нет: у корня оно зашито инлайном, поэтому перебить его можно лишь
+   принудительно — но лишь когда в виджете стоит 0 или пусто */
+.widget--global-radius .dpb-root { border-radius: var(--wpb-radius, 0px) !important; }
 .dpb-title { color:var(--on-theme-high); }
 /* the header of the module: the icon and the name stand in one line, the icon keeps
    the size of the text and never grows when the value of the property is long */

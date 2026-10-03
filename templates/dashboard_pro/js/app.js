@@ -892,6 +892,17 @@ const widgetUsage = computed(() => {
             return Array.isArray(depVal) ? depVal.includes(val) : val === depVal;
         }
 
+        /* своё закругление виджета: сначала поле настроек, у виджета визуального
+           конструктора радиус лежит в его макете. ноль или пусто — значит своего
+           значения нет и тогда берётся радиус из общих настроек */
+        function ownWidgetRadius(w) {
+            const own = Number(w && w.radius);
+            if (own > 0) return own;
+            const model = window.DpBuilderModels && w && window.DpBuilderModels[w.type];
+            const modelRadius = Number(model && model.appearance && model.appearance.radius);
+            return modelRadius > 0 ? modelRadius : 0;
+        }
+
         function widgetBgStyle(w) {
             const s = {};
             const mode = w.bg_mode || (w.color ? 'color' : 'default');
@@ -907,9 +918,17 @@ const widgetUsage = computed(() => {
                 if (bgVal) s.backgroundColor = bgVal;
             }
             if (settings.value.roundedWidgets) {
-                const own = Number(w.radius);
-                const radius = own > 0 ? own : Number(settings.value.widgetRadius);
-                if (radius > 0) s.borderRadius = radius + 'px';
+                /* приоритет: своё значение виджета, иначе общее; 0 или пусто — как есть.
+                   значение только передаётся в переменную: встроенные карточки
+                   берут его из .widget-v-card, а у самописных виджетов своё
+                   закругление в разметке — обрезкой обёртки его перебивать нельзя */
+                const own = ownWidgetRadius(w);
+                const gen = Number(settings.value.widgetRadius);
+                s['--wpb-radius'] = (own > 0 ? own : (gen > 0 ? gen : 0)) + 'px';
+            } else {
+                /* выключатель закругления выключен — радиус ноль принудительно,
+                   даже если он прописан в самом виджете */
+                s['--wpb-radius'] = '0px';
             }
             return s;
         }
@@ -1060,7 +1079,7 @@ function loadScript(src, version) {
            reached the panel. The token changes on every install, and the base follows the
            module, so a module update also refreshes the widgets. */
         const WIDGET_TOKEN_KEY = 'dp_widget_token';
-        const WIDGET_TOKEN_BASE = 170;
+        const WIDGET_TOKEN_BASE = 171;
         function widgetToken() {
             let token = 0;
             try { token = parseInt(localStorage.getItem(WIDGET_TOKEN_KEY) || '0', 10) || 0; } catch (e) { token = 0; }
@@ -2491,6 +2510,10 @@ if (f.key) {
             // theme
             root.classList.toggle('dark', isDark);
 
+            // global widget card radius (per-widget radius overrides it inline)
+            const gRadius = s.roundedWidgets ? Number(s.widgetRadius) : 0;
+            root.style.setProperty('--wpb-radius-default', (gRadius > 0 ? gRadius : 0) + 'px');
+
             const fontFamily = String(s.font || '').trim();
             const interfaceFont = fontFamily ? (INTERFACE_FONT_STACKS[fontFamily] || fontFamily + ', sans-serif') : '';
             root.style.fontFamily = interfaceFont;
@@ -3263,7 +3286,7 @@ onMounted(() => {
             showCleanupDialog, cleanupReport, cleanupBusy, cleanupReasons, applyCleanup, restorePanels, runWizard,
             showAddPanel, editPanelData, panelForm, panelTab, panelTabPos, panelError, createPanel, editPanel, openPanelForm, deletePanel, deleteCurrentPanel, movePanel, showAbout, toggleField,
             showIconPicker, iconTarget, iconSearch, iconCategory, iconCategorySearch, iconPage, iconCategories, filteredIconCategories, filteredIcons, totalPages, paginatedIcons, openIconPicker, selectIcon, iconPicked,
-            objects, iconProperties, infoProperties, widgetProperties, bgProperties, extraProperties, scripts, methodCache, loadObjects, loadScripts, loadIconProperties, loadInfoProperties, loadWidgetProperties, loadBgProperties, loadObjectMethods, widgetBgStyle,
+            objects, iconProperties, infoProperties, widgetProperties, bgProperties, extraProperties, scripts, methodCache, loadObjects, loadScripts, loadIconProperties, loadInfoProperties, loadWidgetProperties, loadBgProperties, loadObjectMethods, widgetBgStyle, ownWidgetRadius,
             isAdmin, toggleEditMode, wsConnected, wsTooltip, wsStatus, wsPulse, wsBytesSent, wsBytesReceived, wsRev, user, userMenuOpen, sidebarMini, toggleSidebar, expandedGroups, childPanels, toggleGroup, forceRefresh, formatBytes,
             showNotifications, notifications, unreadCount, checkNotifications, markNotificationsRead, notifAvatarUrl, notifAvatarFallback,
             chatOpen, chatMessages, chatText, chatLoading, loadChat, sendChat, toggleChat, formatTime,

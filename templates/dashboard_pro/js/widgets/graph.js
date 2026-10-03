@@ -2,7 +2,8 @@ const GraphWidget = {
     props: ['widget'],
     tabs: [
         { key: 'main', label: 'tab_main' },
-        { key: 'graphs', label: 'tab_graphs' }
+        { key: 'graphs', label: 'tab_graphs' },
+        { key: 'advanced', label: 'tab_advanced' }
     ],
     fields: {
         main: [
@@ -22,6 +23,7 @@ const GraphWidget = {
             { key: 'bg_property', label: 'field_bg_property', type: 'property', row: 'bg_row', showIf: { bg_mode: 'property' } },
         ],
         graphs: [],
+        advanced: [],
     },
     defaults: { icon: 'fas fa-chart-line', icon_type: 'icon', period: 24, chart_type: 'line', enableZoom: true, height: 180, series: '[]' },
     template: `

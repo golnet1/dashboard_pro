@@ -2,6 +2,7 @@ const ButtonWidget = {
     props: ['widget'],
     tabs: [
         { key: 'main', label: 'tab_main', fields: 'params' },
+        { key: 'advanced', label: 'tab_advanced', fields: 'advanced' },
     ],
     fields: {
         params: [
@@ -18,6 +19,7 @@ const ButtonWidget = {
             { key: 'alive_timeout', label: 'field_alive_timeout', type: 'number', step: 1 },
             { key: 'color', label: 'field_color', type: 'color', default: '#1565c0' },
         ],
+        advanced: [],
     },
     defaults: { icon: 'fas fa-play', button_type: 'script', script: '', method: '', panel: '', param: '', color: '#1565c0', height: 90 },
     template: `

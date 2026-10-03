@@ -2,6 +2,7 @@ const ChatWidget = {
     props: ['widget'],
     tabs: [
         { key: 'main', label: 'tab_main', fields: 'params' },
+        { key: 'advanced', label: 'tab_advanced', fields: 'advanced' },
     ],
     fields: {
         params: [
@@ -10,6 +11,7 @@ const ChatWidget = {
             { key: 'showName', label: 'field_show_name', type: 'checkbox', default: true },
             { key: 'sizeImage', label: 'field_chat_image_size', type: 'number', default: 150 },
         ],
+        advanced: [],
     },
     defaults: { icon: 'fas fa-comments', hideTitle: false, hideSend: false, showName: true, sizeImage: 150, height: 300 },
     template: `
