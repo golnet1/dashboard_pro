@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Ubuntu">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Arimo:400,600,700">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700">
-    <link rel="stylesheet" href="css/app.css?v=114">
+    <link rel="stylesheet" href="css/app.css?v=117">
     <link rel="stylesheet" href="css/leaflet.css?v=1">
     <script src="js/lib/vue.global.prod.js"></script>
 <style>
@@ -646,8 +646,12 @@
                                             <div class="widget-editor__item-type">{{ w.type }}</div>
                                         </div>
                                         <span v-if="widgetUsage.total[w.type]" class="widget-editor__usage" :title="t('widget_editor_usage_desc') + ': ' + widgetUsage.total[w.type] + (widgetUsage.here[w.type] ? ' / ' + t('widget_editor_usage_here') + ': ' + widgetUsage.here[w.type] : '')"><i class="fas fa-layer-group"></i> {{ widgetUsage.total[w.type] }}</span>
+                                        <span class="widget-editor__src" :class="w.isSystem ? 'widget-editor__src--system' : 'widget-editor__src--built'" :title="t(w.isSystem ? 'widget_editor_src_system_desc' : 'widget_editor_src_built_desc')"><i class="fas" :class="w.isSystem ? 'fa-shield-halved' : 'fa-wand-magic-sparkles'"></i></span>
                                         <button type="button" class="widget-editor__btn" @click="openBuilder(w.type)" :title="t('dpb_edit_desc')" draggable="false">
                                             <i class="fas fa-magic"></i> {{ t('dpb_edit') }}
+                                        </button>
+                                        <button type="button" class="widget-editor__btn" @click="copyWidgetDef(w)" :title="t('widget_editor_copy_desc')" draggable="false">
+                                            <i class="fas fa-copy"></i> {{ t('widget_editor_copy') }}
                                         </button>
                                         <button type="button" class="widget-editor__btn" @click="exportWidgetZip(w)" :title="t('widget_editor_export_desc')" draggable="false">
                                             <i class="fas fa-file-export"></i> {{ t('widget_editor_export') }}
@@ -2184,7 +2188,7 @@
                 <div class="modal-body" style="text-align:center;padding:2rem 1.5rem">
                     <i class="fas fa-chart-line" style="font-size:3rem;color:var(--primary);margin-bottom:1rem"></i>
                     <h3 style="margin-bottom:.3rem">Dashboard Pro</h3>
-                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 01.17.15</p>
+                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 01.18.01</p>
                     <p style="color:var(--text-secondary);font-size:.8rem">{{ t('app_desc') }}</p>
                     <div class="about-links" style="margin-top:1rem;font-size:.85rem;color:var(--text-secondary);line-height:1.8">
                         <div>{{ t('about_telegram') }}: <a href="https://t.me/+9ZFQaxs_Ukw4NmMy" target="_blank" rel="noopener">Telegram</a></div>
@@ -2203,7 +2207,8 @@
         </div>
     </div>
 
-    <script src="js/api.js?v=19"></script>
+    <script src="js/dpdialog.js?v=1"></script>
+<script src="js/api.js?v=19"></script>
     <script src="js/auth.js?v=16"></script>
     <script src="js/sidebar.js?v=10"></script>
 <script src="js/widget-config.js?v=11"></script>
@@ -2211,7 +2216,7 @@
 <script src="js/lib/hls.min.js?v=1"></script>
 <script src="js/dpbuilder.js?v=67"></script>
     <script src="js/dpbuilder-ui.js?v=51"></script>
-    <script src="js/app.js?v=272"></script>
+    <script src="js/app.js?v=277"></script>
 </body>
 </html>
 

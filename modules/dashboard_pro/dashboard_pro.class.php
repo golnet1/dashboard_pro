@@ -784,6 +784,14 @@ class dashboard_pro extends module
         if ($params['request'][0] == 'widgets') {
             $this->ensureWidgetsTable();
             $widgets = SQLSelect("SELECT TYPE, ICON, TITLE, DESCRIPTION, PRIORITY, FILE, ENABLED FROM dashboard_widgets ORDER BY PRIORITY, ID");
+            $systemTypes = array();
+            foreach ($this->widgetDefaults() as $sd) {
+                $systemTypes[strtolower($sd[0])] = true;
+            }
+            foreach ($widgets as &$row) {
+                $row['IS_SYSTEM'] = isset($systemTypes[strtolower((string)$row['TYPE'])]) ? 1 : 0;
+            }
+            unset($row);
             return ['items' => $widgets];
         }
 
@@ -803,9 +811,9 @@ class dashboard_pro extends module
 
             $enabled = ((int)($input['enabled'] ?? 1)) ? 1 : 0;
             if (!$enabled) {
-                $usage = $this->countWidgetUsage($type);
-                if ($usage > 0) {
-                    return ['error' => 'widget_in_use', 'type' => $type, 'count' => $usage];
+                $info = $this->widgetUsageInfo($type);
+                if ($info['count'] > 0) {
+                    return ['error' => 'widget_in_use', 'type' => $type, 'count' => $info['count'], 'used_by' => $info['accounts']];
                 }
             }
 
@@ -881,6 +889,109 @@ class dashboard_pro extends module
             return ['success' => true, 'type' => $type];
         }
 
+        if ($params['request'][0] == 'widgetCopy') {
+            if (empty($session->data['DP_PRO_USERNAME']) || !empty($session->data['DP_PRO_LOGGED_OUT'])) return ['error' => 'not authorized'];
+            $this->ensureWidgetsTable();
+            $method = $_SERVER['REQUEST_METHOD'];
+            if ($method != 'POST') return ['error' => 'POST required'];
+
+            $input = $this->bodyInput();
+            if (!is_array($input)) $input = array();
+            $type = trim((string)($input['type'] ?? ''));
+            if ($type === '') return ['error' => 'type is required'];
+            if (!preg_match('/^[a-z0-9_\-]{1,40}$/i', $type)) return ['error' => 'invalid widget type'];
+
+            $src = SQLSelectOne("SELECT ID, TYPE, ICON, TITLE, DESCRIPTION, PRIORITY, FILE, ENABLED FROM dashboard_widgets WHERE TYPE = '" . DBSafe($type) . "'");
+            if (!$src) return ['error' => 'widget "' . $type . '" not found'];
+
+            $taken = array();
+            foreach (SQLSelect("SELECT TYPE FROM dashboard_widgets") as $r) {
+                $taken[strtolower(trim((string)$r['TYPE']))] = true;
+            }
+
+            /* the copy number: dimmer becomes dimmer_1, dimmer_1 becomes dimmer_2 and so on */
+            $base = $type;
+            $last = 0;
+            if (preg_match('/^(.*)_(\d+)$/', $type, $m)) {
+                $base = $m[1];
+                $last = (int)$m[2];
+            }
+            $newType = '';
+            $num = $last;
+            for ($i = 0; $i < 999; $i++) {
+                $num++;
+                $cand = $base . '_' . $num;
+                if (!isset($taken[strtolower($cand)])) { $newType = $cand; break; }
+            }
+            if ($newType === '') return ['error' => 'cannot find a free name for the copy'];
+
+            /* the title: "Relay" becomes "Relay (Копия 1)", "Relay (Копия 1)" becomes "Relay (Копия 2)" */
+            $suffix = trim((string)($input['suffix'] ?? ''));
+            if ($suffix === '') $suffix = 'Copy';
+            $srcTitle = trim((string)$src['TITLE']);
+            if ($srcTitle === '') $srcTitle = $type;
+            if (preg_match('/^(.*)\s*\(([^()]*?)\s+(\d+)\)$/u', $srcTitle, $m)) {
+                $newTitle = trim($m[1]) . ' (' . trim($m[2]) . ' ' . ((int)$m[3] + 1) . ')';
+            } else {
+                $newTitle = $srcTitle . ' (' . $suffix . ' 1)';
+            }
+
+            $targetDir = DIR_TEMPLATES . $this->name . '/js/widgets';
+            if (!is_dir($targetDir)) @mkdir($targetDir, 0755, true);
+            if (!is_dir($targetDir)) return ['error' => 'cannot create widgets directory'];
+
+            $srcFile = DIR_TEMPLATES . $this->name . '/' . ltrim(str_replace('..', '', (string)$src['FILE']), '/');
+            if ($srcFile === '' || !is_file($srcFile)) $srcFile = $targetDir . '/' . $type . '.js';
+            if (!is_file($srcFile)) return ['error' => 'cannot find the source file of widget "' . $type . '"'];
+
+            $js = file_get_contents($srcFile);
+            if ($js === false) return ['error' => 'cannot read the source file of widget "' . $type . '"'];
+
+            /* every mention of the type has to point to the copy */
+            $js = str_replace('DpWidgets.' . $type, 'DpWidgets.' . $newType, $js);
+            $js = str_replace('DpBuilderModels["' . $type . '"]', 'DpBuilderModels["' . $newType . '"]', $js);
+            $js = str_replace("DpBuilderModels['" . $type . "']", "DpBuilderModels['" . $newType . "']", $js);
+            $js = str_replace('"type":"' . $type . '"', '"type":"' . $newType . '"', $js);
+            $js = str_replace("'type':'" . $type . "'", "'type':'" . $newType . "'", $js);
+
+            /* the design model keeps its own title, it has to follow the new one */
+            $rawTitle = json_encode($srcTitle, JSON_UNESCAPED_UNICODE);
+            $rawNew = json_encode($newTitle, JSON_UNESCAPED_UNICODE);
+            if ($rawTitle !== false && $rawNew !== false) {
+                $js = str_replace('"title":' . $rawTitle, '"title":' . $rawNew, $js);
+                $js = str_replace('"title":' . json_encode($srcTitle), '"title":' . json_encode($newTitle), $js);
+            }
+
+            /* the top level const of the widget would clash with the original file in the global scope */
+            if (preg_match('/^const\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*=/m', $js, $cm)) {
+                $oldIdent = $cm[1];
+                $newIdent = $oldIdent . '_copy' . $num;
+                $js = preg_replace('/\b' . preg_quote($oldIdent, '/') . '\b/', $newIdent, $js);
+            }
+
+            $relFile = 'js/widgets/' . $newType . '.js';
+            if (@file_put_contents($targetDir . '/' . $newType . '.js', $js) === false) {
+                return ['error' => 'cannot write widget file "' . basename($relFile) . '"'];
+            }
+
+            $priority = 0;
+            $mx = SQLSelectOne("SELECT MAX(PRIORITY) as MX FROM dashboard_widgets");
+            if (isset($mx['MX']) && $mx['MX'] !== null) $priority = (int)$mx['MX'] + 1;
+
+            $rec = array(
+                'TYPE' => $newType,
+                'ICON' => $src['ICON'],
+                'TITLE' => $newTitle,
+                'DESCRIPTION' => $src['DESCRIPTION'],
+                'PRIORITY' => $priority,
+                'FILE' => $relFile,
+                'ENABLED' => 1
+            );
+            SQLInsert('dashboard_widgets', $rec);
+
+            return ['success' => true, 'type' => $newType, 'title' => $newTitle];
+        }
+
         if ($params['request'][0] == 'widgetDelete') {
             $this->ensureWidgetsTable();
             $method = $_SERVER['REQUEST_METHOD'];
@@ -895,9 +1006,9 @@ class dashboard_pro extends module
             $w = SQLSelectOne("SELECT ID, TYPE FROM dashboard_widgets WHERE TYPE LIKE '" . DBSafe($type) . "'");
             if (!$w) return ['error' => 'widget "' . $type . '" not found'];
 
-            $usage = $this->countWidgetUsage($type);
-            if ($usage > 0) {
-                return ['error' => 'widget_in_use', 'type' => $type, 'count' => $usage];
+            $usage = $this->widgetUsageInfo($type);
+            if ($usage['count'] > 0) {
+                return ['error' => 'widget_in_use', 'type' => $type, 'count' => $usage['count'], 'used_by' => $usage['accounts']];
             }
 
             SQLExec("DELETE FROM dashboard_widgets WHERE ID=" . (int)$w['ID']);
@@ -1567,43 +1678,55 @@ class dashboard_pro extends module
         }
     }
 
-    function countWidgetUsage($type)
-    {
-        $count = 0;
-        $collections = array();
+function countWidgetUsage($type)
+{
+    $info = $this->widgetUsageInfo($type);
+    return $info['count'];
+}
 
-        $global = gg('dashboard_pro_panels');
-        if ($global !== '' && $global !== false) $collections[] = $global;
+function widgetUsageInfo($type)
+{
+    $accounts = array();
+    $count = 0;
+    $collections = array();
 
-        $class = SQLSelectOne("SELECT ID FROM classes WHERE TITLE='DashBoard_Pro'");
-        if ($class && $class['ID']) {
-            $objs = SQLSelect("SELECT TITLE FROM objects WHERE CLASS_ID=" . (int)$class['ID']);
-            if (is_array($objs)) {
-                foreach ($objs as $obj) {
-                    $title = trim((string)($obj['TITLE'] ?? ''));
-                    if (preg_match('/^DashBoard_(.+)$/i', $title, $m)) {
-                        $login = trim($m[1]);
-                        if ($login === '') continue;
-                        $data = $this->loadShardedProperty($login, 'panels');
-                        if ($data !== null && $data !== '') $collections[] = $data;
-                    }
+    $global = gg('dashboard_pro_panels');
+    /* the shared panels belong to nobody, they come without a login */
+    if ($global !== '' && $global !== false) $collections[] = array('', $global);
+
+    $class = SQLSelectOne("SELECT ID FROM classes WHERE TITLE='DashBoard_Pro'");
+    if ($class && $class['ID']) {
+        $objs = SQLSelect("SELECT TITLE FROM objects WHERE CLASS_ID=" . (int)$class['ID']);
+        if (is_array($objs)) {
+            foreach ($objs as $obj) {
+                $title = trim((string)($obj['TITLE'] ?? ''));
+                if (preg_match('/^DashBoard_(.+)$/i', $title, $m)) {
+                    $login = trim($m[1]);
+                    if ($login === '') continue;
+                    $data = $this->loadShardedProperty($login, 'panels');
+                    if ($data !== null && $data !== '') $collections[] = array($login, $data);
                 }
             }
         }
-
-        foreach ($collections as $json) {
-            $panels = json_decode($json, true);
-            if (!is_array($panels)) continue;
-            foreach ($panels as $panel) {
-                if (!is_array($panel) || empty($panel['widgets']) || !is_array($panel['widgets'])) continue;
-                foreach ($panel['widgets'] as $w) {
-                    if (is_array($w) && isset($w['type']) && $w['type'] === $type) $count++;
-                }
-            }
-        }
-
-        return $count;
     }
+
+    foreach ($collections as $entry) {
+        $login = $entry[0];
+        $panels = json_decode($entry[1], true);
+        if (!is_array($panels)) continue;
+        foreach ($panels as $panel) {
+            if (!is_array($panel) || empty($panel['widgets']) || !is_array($panel['widgets'])) continue;
+            foreach ($panel['widgets'] as $w) {
+                if (is_array($w) && isset($w['type']) && $w['type'] === $type) {
+                    $count++;
+                    $accounts[$login] = isset($accounts[$login]) ? $accounts[$login] + 1 : 1;
+                }
+            }
+        }
+    }
+
+    return array('count' => $count, 'accounts' => $accounts);
+}
 
     function widgetRefKeys()
     {

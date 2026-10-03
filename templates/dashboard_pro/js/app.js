@@ -1044,7 +1044,7 @@ function loadScript(src, version) {
             const widgets = await dpAPI('widgets');
             if (!widgets || !widgets.items) return;
             widgetDefs.value = widgets.items.map(w => ({
-                type: w.TYPE, icon: w.ICON, title: w.TITLE, desc: w.DESCRIPTION, file: w.FILE, priority: w.PRIORITY, enabled: (w.ENABLED === null || w.ENABLED === undefined || w.ENABLED === '' ? 1 : (parseInt(w.ENABLED, 10) === 0 ? 0 : 1))
+                type: w.TYPE, icon: w.ICON, title: w.TITLE, desc: w.DESCRIPTION, file: w.FILE, priority: w.PRIORITY, isSystem: (parseInt(w.IS_SYSTEM, 10) === 1), enabled: (w.ENABLED === null || w.ENABLED === undefined || w.ENABLED === '' ? 1 : (parseInt(w.ENABLED, 10) === 0 ? 0 : 1))
             }));
             widgetList.value = [...widgetDefs.value].sort((a, b) => (a.priority || 0) - (b.priority || 0));
             for (const w of widgets.items) {
@@ -2317,10 +2317,10 @@ if (f.key) {
             savePanels();
         }
 
-        function deleteCurrentPanel(p) {
+        async function deleteCurrentPanel(p) {
             p = p || currentPanel.value;
             if (!p) return;
-            if (!confirm(t('delete_panel_confirm') + ' «' + p.title + '»?')) return;
+            if (!await dpConfirm(t('delete_panel_confirm') + ' «' + p.title + '»?', { danger: true, okText: t('delete') })) return;
             const idx = panels.value.indexOf(p);
             if (idx >= 0) {
                 panels.value.splice(idx, 1);
@@ -2593,7 +2593,7 @@ if (f.key) {
 
         async function runWizard() {
             if (panels.value && panels.value.length) {
-                if (!confirm(t('wizard_confirm'))) return;
+                if (!await dpConfirm(t('wizard_confirm'), { danger: true })) return;
             }
             try {
                 const res = await dpAPI('wizard', { method: 'POST', body: '{}' });
@@ -2614,8 +2614,8 @@ if (f.key) {
             }
         }
 
-        function resetAll() {
-            if (!confirm(t('confirm_delete_all'))) return;
+        async function resetAll() {
+            if (!await dpConfirm(t('confirm_delete_all'), { danger: true, okText: t('delete') })) return;
             panels.value = [];
             currentPanel.value = null;
             savePanels();
@@ -2658,7 +2658,7 @@ if (f.key) {
                         body: JSON.stringify({ targetUser: exportSelectedUser.value })
                     });
                     if (res.warn) {
-                        if (confirm(res.message || t('confirm_overwrite_user'))) {
+                        if (await dpConfirm(res.message || t('confirm_overwrite_user'), { danger: true, okText: t('yes') })) {
                             const res2 = await dpAPI('exportToUser', {
                                 method: 'POST',
                                 body: JSON.stringify({ targetUser: exportSelectedUser.value, confirmed: true })
@@ -3063,17 +3063,25 @@ if (f.key) {
             input.click();
         }
 
+        function widgetUsageText(res) {
+            const used = res.used_by || {};
+            const names = Object.keys(used).map(k => (k === '' ? t('widget_editor_in_use_global') : k) + ' — ' + used[k]);
+            let s = t('widget_editor_in_use') + ': ' + res.count;
+            if (names.length) s += '\n' + t('widget_editor_in_use_at') + ': ' + names.join(', ');
+            return s;
+        }
+
         async function setWidgetEnabled(w, enabled) {
             if (enabled === false) {
-                if (!confirm(t('widget_editor_disable_confirm') + ' «' + (w.title || w.type) + '»?')) return;
+                if (!await dpConfirm(t('widget_editor_disable_confirm') + ' «' + (w.title || w.type) + '»?', { okText: t('yes') })) return;
             } else {
-                if (!confirm(t('widget_editor_enable_confirm') + ' «' + (w.title || w.type) + '»?')) return;
+                if (!await dpConfirm(t('widget_editor_enable_confirm') + ' «' + (w.title || w.type) + '»?', { okText: t('yes') })) return;
             }
             try {
                 const res = await dpAPI('widgetSetEnabled', { method: 'POST', body: JSON.stringify({ type: w.type, enabled: enabled ? 1 : 0 }) });
                 if (res.error) {
                     if (res.error === 'widget_in_use') {
-                        alert(t('widget_editor_in_use') + ': ' + res.count);
+                        alert(widgetUsageText(res));
                     } else {
                         alert(t('error_label') + ' ' + res.error);
                     }
@@ -3086,13 +3094,26 @@ if (f.key) {
             }
         }
 
+        async function copyWidgetDef(w) {
+            try {
+                const res = await dpAPI('widgetCopy', { method: 'POST', body: JSON.stringify({ type: w.type, suffix: t('widget_editor_copy_suffix') }) });
+                if (res.error) {
+                    alert(t('error_label') + ' ' + res.error);
+                    return;
+                }
+                await loadWidgetDefs();
+            } catch (e) {
+                alert(t('error_label') + (e.message || e));
+            }
+        }
+
         async function deleteWidgetDef(w) {
-            if (!confirm(t('widget_editor_delete_confirm') + ' «' + (w.title || w.type) + '»?')) return;
+            if (!await dpConfirm(t('widget_editor_delete_confirm') + ' «' + (w.title || w.type) + '»?', { danger: true, okText: t('delete') })) return;
             try {
                 const res = await dpAPI('widgetDelete', { method: 'POST', body: JSON.stringify({ type: w.type }) });
                 if (res.error) {
                     if (res.error === 'widget_in_use') {
-                        alert(t('widget_editor_in_use') + ': ' + res.count);
+                        alert(widgetUsageText(res));
                     } else {
                         alert(t('error_label') + ' ' + res.error);
                     }
@@ -3209,7 +3230,7 @@ onMounted(() => {
             isAdmin, toggleEditMode, wsConnected, wsTooltip, wsStatus, wsPulse, wsBytesSent, wsBytesReceived, wsRev, user, userMenuOpen, sidebarMini, toggleSidebar, expandedGroups, childPanels, toggleGroup, forceRefresh, formatBytes,
             showNotifications, notifications, unreadCount, checkNotifications, markNotificationsRead, notifAvatarUrl, notifAvatarFallback,
             chatOpen, chatMessages, chatText, chatLoading, loadChat, sendChat, toggleChat, formatTime,
-            widgetList, widgetUsage, exportWidgetZip, setWidgetEnabled, deleteWidgetDef, pickWidgetZip, widgetName,
+            widgetList, widgetUsage, exportWidgetZip, setWidgetEnabled, copyWidgetDef, deleteWidgetDef, pickWidgetZip, widgetName,
             widgetDefMouseDown, widgetDefMouseMove, widgetDefMouseUp, dragWidgetDefId, dragWidgetDefOverId,
             t
         };
