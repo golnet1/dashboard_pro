@@ -209,6 +209,7 @@ const widgetUsage = computed(() => {
         const unreadCount = ref(0);
         const showSettingsPanel = ref(false);
         const showWidgetEditorPanel = ref(false);
+        const showHeaderPanel = ref(false);
         const showAddPanel = ref(false);
         const showAbout = ref(false);
         const showExportDialog = ref(false);
@@ -252,7 +253,7 @@ const widgetUsage = computed(() => {
         const wsStatus = ref(null);
         const wsRev = reactive({});
         const bgColorMap = reactive({});
-        const settings = ref({ appTitle: '', theme: 'light', defaultPanel: '', debug: false, font: 'Roboto', hideMenu: false, hideChat: false, menuBg: '', panelBg: '', usePanelImage: true, useHeaderImage: false, cardsOpacity: 44, menuOpacity: 16, dialogOpacity: 12, primaryColor: '#1976d2', lightThemeColor: '#ffffff', darkThemeColor: '#303030', iconSize: 0, titleSize: 0, subtitleSize: 0, widgetSize: 0, grid: false, noOverlap: false, gridStep: 10, roundedWidgets: false, widgetRadius: 12, compactHeader: false, showHeaderClock: true, showHeaderStatus: true, headerStatusItems: [] });
+        const settings = ref({ appTitle: '', theme: 'light', defaultPanel: '', debug: false, font: 'Roboto', hideMenu: false, hideChat: false, menuBg: '', panelBg: '', usePanelImage: true, useHeaderImage: false, cardsOpacity: 44, menuOpacity: 16, dialogOpacity: 12, primaryColor: '#1976d2', lightThemeColor: '#ffffff', darkThemeColor: '#303030', iconSize: 0, titleSize: 0, subtitleSize: 0, widgetSize: 0, grid: false, noOverlap: false, gridStep: 10, roundedWidgets: false, widgetRadius: 12, compactHeader: false, headerStatusItems: [] });
 
         const headerNow = ref(new Date());
         const headerTime = computed(() => headerNow.value.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
@@ -278,7 +279,8 @@ const widgetUsage = computed(() => {
         const hdrStatusStore = reactive({});
 
         const headerStatusItems = computed(() => settings.value.headerStatusItems || []);
-        const headerStatusSectionOn = computed(() => settings.value.showHeaderStatus !== false);
+        /* Видимость индикаторов служб задаёт сам элемент "Индикаторы служб" в шапке. */
+const headerStatusSectionOn = computed(() => headerHas('status'));
         const headerStatusMaxReached = computed(() => (settings.value.headerStatusItems || []).length >= 7);
 
         function hsParseStatus(value) {
@@ -389,6 +391,19 @@ const widgetUsage = computed(() => {
             });
         }
 
+        /* Значения объектов в шапке живут в headerValueTexts под ключом object.property
+           в том же регистре, что и настройка, а WebSocket присылает PROPERTY в нижнем.
+           Поэтому ищем по нижнему регистру, а кладём под исходным ключом - тогда
+           карта остаётся единой и headerValueTextOf() ничего не теряет. */
+        function wsApplyHeaderValue(keyLower, value) {
+            const txt = (value === undefined || value === null) ? '' : String(value);
+            headerItems.value.forEach(it => {
+                if (it.t !== 'value') return;
+                const k = headerValueKey(it.cfg);
+                if (k && k.toLowerCase() === keyLower) headerValueTexts[k] = txt;
+            });
+        }
+
         const showHeaderStatusEditor = ref(false);
         const hsEditIdx = ref(-1);
         const hsProperties = ref([]);
@@ -426,6 +441,8 @@ const widgetUsage = computed(() => {
 
         watch(() => hsForm.icon_type, (val) => { if (val === 'icon') hsEnsureFaIcon(); });
 
+        /* Редактор индикаторов служб открывается как окно, доступ к нему —
+           карандаш в элементе "Индикаторы служб" настроек заголовка. */
         function openHeaderStatusEditor() {
             hsDefaultForm(); hsEditIdx.value = -1; showHeaderStatusEditor.value = true;
             hsEnsureFaIcon();
@@ -470,6 +487,385 @@ const widgetUsage = computed(() => {
             wsSubscribeProperties();
             refreshHeaderStatus();
         }
+
+        function openHeaderSettings() {
+            showHeaderPanel.value = true;
+            showSettingsPanel.value = false;
+            showWidgetEditorPanel.value = false;
+        }
+
+/* ---- Шапка: состав и порядок элементов ---- */
+        const HEADER_UNLIMITED = 99;
+        const HEADER_ITEM_TYPES = ['navigator', 'title', 'spacer', 'divider', 'status', 'time', 'updater', 'events', 'theme', 'edit', 'panel', 'value', 'menu'];
+        const HEADER_ITEM_DEFS = [
+            { type: 'navigator', icon: 'fas fa-bars', key: 'hdr_item_navigator', max: 1 },
+            { type: 'title', icon: 'fas fa-font', key: 'hdr_item_title', max: 1 },
+            { type: 'spacer', icon: 'fas fa-arrows-alt-h', key: 'hdr_item_spacer', max: 2 },
+            { type: 'divider', icon: 'fas fa-grip-lines-vertical', key: 'hdr_item_divider', max: HEADER_UNLIMITED },
+            { type: 'status', icon: 'fas fa-heartbeat', key: 'hdr_item_status', max: 1 },
+            { type: 'time', icon: 'far fa-clock', key: 'hdr_item_time', max: 1 },
+            { type: 'updater', icon: 'fas fa-sync', key: 'hdr_item_updater', max: 1 },
+            { type: 'events', icon: 'fas fa-bell', key: 'hdr_item_events', max: 1 },
+            { type: 'theme', icon: 'fas fa-adjust', key: 'hdr_item_theme', max: 1 },
+            { type: 'edit', icon: 'fas fa-edit', key: 'hdr_item_edit', max: 1, min: 1 },
+            { type: 'panel', icon: 'fas fa-caret-square-down', key: 'hdr_item_panel', max: HEADER_UNLIMITED },
+            { type: 'value', icon: 'fas fa-bold', key: 'hdr_item_value', max: HEADER_UNLIMITED },
+            { type: 'link', icon: 'fas fa-link', key: 'hdr_item_link', max: HEADER_UNLIMITED },
+            { type: 'menu', icon: 'far fa-user-circle', key: 'hdr_item_menu', max: 1, min: 1 }
+        ];
+        const HEADER_DEFAULT_ITEMS = ['navigator', 'title', 'spacer', 'status', 'divider', 'time', 'divider', 'updater', 'events', 'theme', 'edit', 'menu'];
+
+        const headerDef = (ty) => HEADER_ITEM_DEFS.find(d => d.type === ty) || null;
+        const headerMax = (ty) => { const d = headerDef(ty); return d ? (d.max || 1) : 1; };
+        const headerMin = (ty) => { const d = headerDef(ty); return d ? (d.min || 0) : 0; };
+
+        function headerItemOf(entry) {
+            if (typeof entry === 'string') return { t: entry, cfg: {} };
+            if (entry && typeof entry === 'object' && typeof entry.t === 'string')
+                return { t: entry.t, cfg: (entry.cfg && typeof entry.cfg === 'object') ? entry.cfg : {} };
+            return null;
+        }
+        const headerItems = computed(() => {
+            const raw = settings.value.headerItems;
+            const list = Array.isArray(raw) ? raw : HEADER_DEFAULT_ITEMS;
+            const out = [];
+            list.forEach(entry => {
+                const it = headerItemOf(entry);
+                if (!it) return;
+                const d = headerDef(it.t);
+                if (!d) return;
+                if (out.filter(x => x.t === it.t).length >= headerMax(it.t)) return;
+                out.push(it);
+            });
+            return out;
+        });
+        const headerHas = (ty) => headerItems.value.some(x => x.t === ty);
+        const headerCount = (ty) => headerItems.value.reduce((n, x) => n + (x.t === ty ? 1 : 0), 0);
+        const headerAtLimit = (ty) => headerCount(ty) >= headerMax(ty);
+        const headerCanRemove = (ty) => headerCount(ty) > headerMin(ty);
+        const headerInst = (ty) => {
+            const out = [];
+            headerItems.value.forEach((it, idx) => { if (it.t === ty) out.push({ type: it.t, key: it.t + '#' + idx, idx: idx, cfg: it.cfg }); });
+            return out;
+        };
+        const headerSpacers = computed(() => headerItems.value.reduce((a, it, i) => { if (it.t === 'spacer') a.push(i); return a; }, []));
+        const headerCenterRange = computed(() => {
+            const sp = headerSpacers.value;
+            if (sp.length < 2) return null;
+            const first = sp[0] + 1;
+            const last = sp[sp.length - 1] - 1;
+            return { first: first, last: last, center: first <= last };
+        });
+        function headerStyleAt(idx, ty) {
+            const st = { order: idx + 1 };
+            const r = headerCenterRange.value;
+            if (r) {
+                if (ty === 'spacer') { st.display = 'none'; return st; }
+                if (idx === r.first) st.marginLeft = 'auto';
+                if (idx === r.last) st.marginRight = 'auto';
+            }
+            return st;
+        }
+        function headerSlotStyle(ty) {
+            const idx = headerItems.value.findIndex(x => x.t === ty);
+            return idx < 0 ? { order: 999 } : headerStyleAt(idx, ty);
+        }
+        /* Обязательные элементы (min) всегда присутствуют в заголовке, поэтому
+           в меню добавления они не предлагаются. */
+        const headerDefs = HEADER_ITEM_DEFS.filter(d => !(d.min > 0));
+        const headerItemLabel = (ty) => t(headerDef(ty).key);
+        const headerSpacerHint = computed(() => headerSpacers.value.length >= 2 ? t('hdr_spacer_hint2') : t('hdr_spacer_hint1'));
+        const headerValueTexts = reactive({});
+        function headerValueKey(cfg) {
+            return (cfg && cfg.object && cfg.property) ? (cfg.object + '.' + cfg.property) : '';
+        }
+        function headerValueHint(cfg) {
+            return (cfg && cfg.object) ? (cfg.object + '.' + (cfg.property || '')) : '';
+        }
+        function headerValueTextOf(cfg) {
+            const k = headerValueKey(cfg);
+            return k ? (headerValueTexts[k] || '') : '';
+        }
+        /* Режим показа элемента шапки: только иконка, только надпись или и то и другое */
+        function headerDisplayOf(cfg, def) {
+            const d = cfg && cfg.display;
+            return (d === 'icon' || d === 'label' || d === 'both') ? d : (def || 'both');
+        }
+        function headerShowsIcon(cfg, def) { const d = headerDisplayOf(cfg, def); return d === 'icon' || d === 'both'; }
+        function headerShowsLabel(cfg, def) { const d = headerDisplayOf(cfg, def); return d === 'label' || d === 'both'; }
+        function headerPanelItemOf(cfg) {
+            const name = cfg && cfg.name;
+            if (!name) return null;
+            return panels.value.find(p => p.name === name && p.panelType !== 'group') || null;
+        }
+        function headerPanelHint(cfg) {
+            const p = headerPanelItemOf(cfg);
+            return p ? (p.title || p.name) : '';
+        }
+        const headerPanelSlots = computed(() => headerInst('panel').map(it => ({
+            type: it.type, key: it.key, idx: it.idx, cfg: it.cfg, panel: headerPanelItemOf(it.cfg),
+            showIcon: headerShowsIcon(it.cfg, 'icon'), showLabel: headerShowsLabel(it.cfg, 'icon'),
+            label: headerPanelHint(it.cfg)
+        })));
+        const headerValueSlots = computed(() => headerInst('value').map(it => ({
+            type: it.type, key: it.key, idx: it.idx, cfg: it.cfg,
+            text: headerValueTextOf(it.cfg), hint: headerValueHint(it.cfg)
+        })));
+        function headerItemsWrite(list, save) {
+            settings.value.headerItems = list;
+            if (save !== false) savePanels();
+            /* Состав объектов в шапке изменился - сервер должен начать слать
+               и эти свойства, иначе значения в шапке застынут. */
+            wsSubscribeProperties();
+        }
+        function headerMigrateLegacy() {
+            const list = headerItems.value.slice();
+            let touched = false;
+            const legacyPanel = settings.value.headerPanel;
+            if (legacyPanel) {
+                const it = list.find(x => x.t === 'panel');
+                if (it && !it.cfg.name) { it.cfg.name = legacyPanel; touched = true; }
+                delete settings.value.headerPanel;
+            }
+            const legacyValue = settings.value.headerValue;
+            if (legacyValue && legacyValue.object) {
+                const it = list.find(x => x.t === 'value');
+                if (it && !it.cfg.object) { it.cfg.object = legacyValue.object; it.cfg.property = legacyValue.property || ''; touched = true; }
+                delete settings.value.headerValue;
+            }
+            /* Разделители вокруг часов раньше были частью блоков "Статус служб" и
+               "Время". Теперь это обычные элементы шапки, поэтому ставим их один раз
+               при загрузке; флаг нужен, чтобы потом их можно было свободно удалить. */
+            if (!settings.value.headerDividersAroundTime) {
+                const ti = list.findIndex(x => x.t === 'time');
+                if (ti >= 0) {
+                    const hasBefore = ti > 0 && list[ti - 1].t === 'divider';
+                    const hasAfter = ti + 1 < list.length && list[ti + 1].t === 'divider';
+                    if (!hasBefore) list.splice(ti, 0, { t: 'divider', cfg: {} });
+                    if (!hasAfter) list.splice(ti + (hasBefore ? 1 : 2), 0, { t: 'divider', cfg: {} });
+                }
+                settings.value.headerDividersAroundTime = true;
+                touched = true;
+            }
+            if (touched) headerItemsWrite(list, false);
+        }
+
+const headerAddOpen = ref(false);
+const headerDragIndex = ref(-1);
+        const headerValueOpen = ref(false);
+        const headerValueProps = ref([]);
+        const headerValueTarget = ref(-1);
+        const headerValueForm = reactive({ object: '', property: '' });
+
+        function headerItemAdd(ty) {
+            if (!headerDef(ty) || headerAtLimit(ty)) return;
+            const list = headerItems.value.slice();
+            list.push({ t: ty, cfg: {} });
+            headerItemsWrite(list);
+            headerAddOpen.value = false;
+            if (ty === 'value') openHeaderValueDialog(list.length - 1);
+            else if (ty === 'link') openHeaderLinkDialog(list.length - 1);
+            else if (ty === 'panel') openHeaderPanelDialog(list.length - 1);
+        }
+
+        function headerItemRemove(idx) {
+            const list = headerItems.value.slice();
+            const it = list[idx];
+            if (!it || !headerCanRemove(it.t)) return;
+            list.splice(idx, 1);
+            headerItemsWrite(list);
+        }
+
+        function headerItemsClear() {
+            const keep = HEADER_ITEM_DEFS.filter(d => (d.min || 0) > 0).map(d => d.type);
+            headerItemsWrite(keep.map(t => ({ t: t, cfg: {} })));
+        }
+
+        function headerItemsDefaults() {
+            headerItemsWrite(HEADER_DEFAULT_ITEMS.map(t => ({ t: t, cfg: {} })));
+        }
+
+        function headerDragStart(idx) { headerDragIndex.value = idx; }
+
+        function headerDragOver(idx) {
+            const from = headerDragIndex.value;
+            if (from < 0 || idx === from) return;
+            const list = headerItems.value.slice();
+            const [moved] = list.splice(from, 1);
+            list.splice(idx, 0, moved);
+            settings.value.headerItems = list;
+            headerDragIndex.value = idx;
+        }
+
+        function headerDragEnd() {
+            headerDragIndex.value = -1;
+            savePanels();
+        }
+
+        function openHeaderValueDialog(idx) {
+            const it = headerItems.value[idx];
+            if (!it) return;
+            headerValueTarget.value = idx;
+            const cfg = it.cfg || {};
+            headerValueForm.object = cfg.object || '';
+            headerValueForm.property = cfg.property || '';
+            headerValueProps.value = [];
+            headerValueOpen.value = true;
+            if (!objects.value.length) loadObjects();
+            if (headerValueForm.object) headerValueLoadProps();
+        }
+
+        async function headerValueLoadProps() {
+            if (!headerValueForm.object) { headerValueProps.value = []; return; }
+            const res = await dpAPI('properties?object_id=' + encodeURIComponent(headerValueForm.object));
+            headerValueProps.value = res.items || [];
+        }
+
+        function headerValueSave() {
+            const list = headerItems.value.slice();
+            const it = list[headerValueTarget.value];
+            if (!it || !headerValueForm.object || !headerValueForm.property) return;
+            it.cfg = { object: headerValueForm.object, property: headerValueForm.property };
+            headerItemsWrite(list);
+            headerValueOpen.value = false;
+            headerValueRefresh();
+        }
+
+        async function headerValueRefresh() {
+            const wanted = new Map();
+            headerItems.value.forEach(it => {
+                if (it.t !== 'value') return;
+                const key = headerValueKey(it.cfg);
+                if (!key || wanted.has(key)) return;
+                wanted.set(key, it.cfg);
+            });
+            Object.keys(headerValueTexts).forEach(k => { if (!wanted.has(k)) delete headerValueTexts[k]; });
+            for (const key of Array.from(wanted.keys())) {
+                const cfg = wanted.get(key);
+                try {
+                    const r = await dpAPI('getProperty?object=' + encodeURIComponent(cfg.object) + '&property=' + encodeURIComponent(cfg.property));
+                    headerValueTexts[key] = (r && r.value !== undefined && r.value !== null) ? String(r.value) : '';
+                } catch (e) {
+                    headerValueTexts[key] = '';
+                }
+            }
+        }
+
+/* ---- Шапка: ссылка ---- */
+/* Адрес приходит от человека, поэтому приводим его к виду, который можно
+   безопасно отдать в iframe или в window.open. Схему дописываем, если её нет,
+   но всё, что не http/https (javascript:, data:, file:), отбрасываем - иначе
+   в сохранённых настройках окажется код, который выполнится при клике. */
+function headerLinkNormalize(raw) {
+    let s = String(raw == null ? '' : raw).trim();
+    if (!s) return '';
+    if (s.startsWith('//')) return 'https:' + s;
+    if (/^https?:\/\//i.test(s)) return s;
+    if (/^[a-z][a-z0-9+.\-]*:/i.test(s)) return '';
+    if (s.startsWith('/')) return window.location.origin + s;
+    return 'https://' + s;
+}
+function headerLinkUrl(cfg) { return (cfg && typeof cfg.url === 'string') ? cfg.url : ''; }
+function headerLinkTitle(cfg) { return (cfg && cfg.title) ? cfg.title : headerLinkUrl(cfg); }
+function headerLinkMode(cfg) { return (cfg && cfg.mode === 'window') ? 'window' : 'panel'; }
+function headerLinkHint(cfg) {
+    const u = headerLinkUrl(cfg);
+    return u ? (headerLinkTitle(cfg) + ' - ' + u) : '';
+}
+/* Значок ссылки в шапке - как у панели в меню: своя картинка или иконка Font Awesome.
+   Картинка/иконка берётся из cfg ссылки, иначе из текущей панели, иначе из заголовка. */
+const HEADER_LINK_FALLBACK_ICON = 'fas fa-link';
+function headerLinkThumb(cfg) {
+    const c = (cfg && typeof cfg === 'object') ? cfg : {};
+    const cur = currentPanel.value;
+    if (c.image) return { image: c.image, icon: '' };
+    if (c.icon) return { image: '', icon: c.icon };
+    if (cur && cur.image) return { image: cur.image, icon: '' };
+    return { image: '', icon: (cur && cur.icon) || HEADER_LINK_FALLBACK_ICON };
+}
+const headerLinkSlots = computed(() => headerInst('link').map(it => {
+    const th = headerLinkThumb(it.cfg);
+    return {
+        type: it.type, key: it.key, idx: it.idx, cfg: it.cfg,
+        url: headerLinkUrl(it.cfg), label: headerLinkTitle(it.cfg),
+        image: th.image, icon: th.icon,
+        showIcon: headerShowsIcon(it.cfg, 'icon'), showLabel: headerShowsLabel(it.cfg, 'icon'),
+        circle: !!(it.cfg && it.cfg.circle)
+    };
+}));
+/* Режим "в области панели" показывает адрес в основной области под шапкой,
+   поэтому дашборд и меню остаются на месте. */
+const linkView = ref(null);
+function headerLinkGo(inst) {
+    const u = headerLinkUrl(inst && inst.cfg);
+    if (!u) { openHeaderLinkDialog(inst ? inst.idx : -1); return; }
+    if (headerLinkMode(inst.cfg) === 'window') { window.open(u, '_blank', 'noopener'); return; }
+    linkView.value = { url: u, title: headerLinkTitle(inst.cfg) };
+    sidebarOpen.value = false;
+}
+function closeLinkView() { linkView.value = null; }
+const headerLinkOpen = ref(false);
+const headerLinkTarget = ref(-1);
+const headerLinkForm = reactive({ title: '', url: '', mode: 'panel', display: 'icon', icon: '', image: '', shape: 'square' });
+function openHeaderLinkDialog(idx) {
+    const it = headerItems.value[idx];
+    if (!it) return;
+    headerLinkTarget.value = idx;
+    headerLinkForm.title = (it.cfg && it.cfg.title) || '';
+    headerLinkForm.url = headerLinkUrl(it.cfg);
+    headerLinkForm.mode = headerLinkMode(it.cfg);
+    headerLinkForm.display = headerDisplayOf(it.cfg, 'icon');
+    headerLinkForm.icon = (it.cfg && it.cfg.icon) || '';
+    headerLinkForm.image = (it.cfg && it.cfg.image) || '';
+    headerLinkForm.shape = (it.cfg && it.cfg.circle) ? 'circle' : 'square';
+    headerLinkOpen.value = true;
+}
+function headerLinkSave() {
+    const list = headerItems.value.slice();
+    const it = list[headerLinkTarget.value];
+    if (!it) return;
+    const url = headerLinkNormalize(headerLinkForm.url);
+    it.cfg = {
+        title: headerLinkForm.title.trim(), url: url,
+        mode: headerLinkMode(headerLinkForm), display: headerLinkForm.display,
+        icon: headerLinkForm.icon.trim(), image: headerLinkForm.image.trim(),
+        circle: headerLinkForm.shape === 'circle'
+    };
+    headerItemsWrite(list);
+    headerLinkOpen.value = false;
+    headerLinkForm.url = url;
+    /* Открытая в панели ссылка показывает старый адрес - закрываем её. */
+    if (linkView.value && linkView.value.url !== url) closeLinkView();
+}
+
+/* ---- Шапка: выбор панели (по образцу значения объекта) ---- */
+const headerPanelList = computed(() => panels.value.filter(p => p.panelType !== 'group' && !p.hideNav));
+const headerPanelOpen = ref(false);
+const headerPanelTarget = ref(-1);
+const headerPanelForm = reactive({ name: '', display: 'icon' });
+function openHeaderPanelDialog(idx) {
+    const it = headerItems.value[idx];
+    if (!it) return;
+    headerPanelTarget.value = idx;
+    headerPanelForm.name = (it.cfg && it.cfg.name) || '';
+    headerPanelForm.display = headerDisplayOf(it.cfg, 'icon');
+    headerPanelOpen.value = true;
+}
+function headerPanelGo(inst) {
+    const cfg = (inst && inst.cfg) || {};
+    const p = headerPanelItemOf(cfg);
+    if (!p) { openHeaderPanelDialog(inst ? inst.idx : -1); return; }
+    selectPanel(p);
+    sidebarOpen.value = false;
+}
+function headerPanelSave() {
+    const list = headerItems.value.slice();
+    const it = list[headerPanelTarget.value];
+    if (!it) return;
+    it.cfg = { name: headerPanelForm.name || '', display: headerPanelForm.display };
+    headerItemsWrite(list);
+    headerPanelOpen.value = false;
+}
 
         const filteredDefs = computed(() => {
             const q = widgetSearch.value.trim().toLowerCase();
@@ -1140,6 +1536,8 @@ function loadScript(src, version) {
                 const s = await dpAPI('settings');
                 if (!s.error) Object.assign(settings.value, s);
                 applySettings();
+                headerMigrateLegacy();
+                headerValueRefresh();
             } catch (e) {
                 console.error('loadData error', e);
             }
@@ -1433,6 +1831,7 @@ function loadScript(src, version) {
             widgetEditorTab.value = 'build';
             showWidgetEditorPanel.value = true;
             showSettingsPanel.value = false;
+            showHeaderPanel.value = false;
             builderReady.value = false;
             builderModel.value = null;
             ensureBuilder(type || '', true);
@@ -2454,12 +2853,14 @@ if (f.key) {
         function selectIcon(ic) {
             if (iconTarget.value === 'panel' && panelForm.value) {
                 panelForm.value.icon = ic;
-            } else if (iconTarget.value === 'hs') {
-                hsForm.icon = ic;
-            } else if (typeof iconTarget.value === 'string' && iconTarget.value.startsWith('si:')) {
-                const idx = parseInt(iconTarget.value.slice(3), 10);
-                setSelectItemField(idx, 'icon', ic);
-            } else if (typeof iconTarget.value === 'string' && iconTarget.value.startsWith('st:')) {
+} else if (iconTarget.value === 'hs') {
+            hsForm.icon = ic;
+        } else if (iconTarget.value === 'hl') {
+            headerLinkForm.icon = ic;
+        } else if (typeof iconTarget.value === 'string' && iconTarget.value.startsWith('si:')) {
+            const idx = parseInt(iconTarget.value.slice(3), 10);
+            setSelectItemField(idx, 'icon', ic);
+        } else if (typeof iconTarget.value === 'string' && iconTarget.value.startsWith('st:')) {
                 const idx = parseInt(iconTarget.value.slice(3), 10);
                 setStatusItemField(idx, 'icon', ic);
             } else if (editWidgetForm.value) {
@@ -2474,6 +2875,9 @@ if (f.key) {
             }
             if (iconTarget.value === 'hs') {
                 return hsForm.icon === ic;
+            }
+            if (iconTarget.value === 'hl') {
+                return headerLinkForm.icon === ic;
             }
             if (typeof iconTarget.value === 'string' && iconTarget.value.startsWith('si:')) {
                 const idx = parseInt(iconTarget.value.slice(3), 10);
@@ -2885,6 +3289,10 @@ if (f.key) {
             (settings.value.headerStatusItems || []).forEach(it => {
                 if (it.source === 'object' && it.object) props.add((it.object + '.' + (it.property || 'status')).toLowerCase());
             });
+            headerItems.value.forEach(it => {
+                const k = it.t === 'value' ? headerValueKey(it.cfg) : '';
+                if (k) props.add(k.toLowerCase());
+            });
             return Array.from(props);
         }
 
@@ -2969,6 +3377,7 @@ if (f.key) {
                                 const key = String(u.PROPERTY).toLowerCase();
                                 window.__dpWsCache[key] = { seeded: true, value: u.VALUE };
                                 wsApplyHeaderStatus(key, u.VALUE);
+                                wsApplyHeaderValue(key, u.VALUE);
                                 if (window.__dpWsLive) wsRefreshWidgets(key);
                             });
                         }
@@ -3057,6 +3466,7 @@ if (f.key) {
 
         function forceRefresh() {
             wsRemountWidgets();
+            headerValueRefresh();
             if (wsSocket && wsConnected.value) {
                 const payload = JSON.stringify({ action: 'status' });
                 wsBytesSent.value += payload.length;
@@ -3237,9 +3647,18 @@ if (f.key) {
             }
         }
 
-        window.__closeSettings = () => { showSettingsPanel.value = false; showWidgetEditorPanel.value = false; };
+        window.__closeSettings = () => { showSettingsPanel.value = false; showWidgetEditorPanel.value = false; showHeaderPanel.value = false; };
 
         watch(currentPanel, () => wsSubscribeProperties(), { deep: true });
+
+/* Выбор панели в меню возвращает к панелям, поэтому открытая в области ссылка
+   закрывается - иначе панель была бы выбрана, но её не видно.
+   Обновление данных той же панели (WebSocket PostProperty/UpdateData подменяют
+   currentPanel новым объектом) ссылку закрывать не должно. */
+watch(currentPanel, (np, op) => {
+    if (!linkView.value) return;
+    if ((np && np.name) !== (op && op.name)) linkView.value = null;
+});
 
         watch(settings, (s) => {
             applySettings();
@@ -3285,7 +3704,12 @@ onMounted(() => {
             resizingWidget, startResize, onResize, stopResize,
             widgetMenuTarget, widgetPanelSubmenu, widgetGroupSubmenu, widgetConfirm, copyWidget, exportWidget, changeWidgetPanel, selectMoveTarget, confirmMoveWidget, moveWidgetToGroup, confirmMoveToGroup,
             showChangeObject, changeObjectGroups, openChangeObject, saveChangeObject, widgetHasChangeObjects,
-            showSettingsPanel, showWidgetEditorPanel, settings, savePanels, saveSettingsNow, commitChanges, hasUnsavedChanges, toggleTheme, cleanupOrphanWidgets, resetAll,
+            showSettingsPanel, showWidgetEditorPanel, showHeaderPanel, openHeaderSettings, settings, savePanels, saveSettingsNow, commitChanges, hasUnsavedChanges, toggleTheme, cleanupOrphanWidgets, resetAll,
+            headerItems, headerDefs, headerHas, headerCount, headerAtLimit, headerCanRemove, headerInst, headerPanelSlots, headerValueSlots, headerSlotStyle, headerStyleAt, headerSpacerHint, headerDef, headerItemLabel, headerAddOpen, headerDragIndex,
+            headerPanelList, headerPanelOpen, headerPanelForm, headerPanelItemOf, headerPanelHint, openHeaderPanelDialog, headerPanelGo, headerPanelSave,
+            headerItemAdd, headerItemRemove, headerItemsClear, headerItemsDefaults, headerDragStart, headerDragOver, headerDragEnd,
+            headerValueOpen, headerValueProps, headerValueForm, headerValueTexts, headerValueHint, headerValueTextOf, openHeaderValueDialog, headerValueLoadProps, headerValueSave, headerValueRefresh,
+            headerLinkSlots, linkView, closeLinkView, headerLinkOpen, headerLinkTarget, headerLinkForm, headerLinkHint, openHeaderLinkDialog, headerLinkGo, headerLinkSave, HEADER_LINK_FALLBACK_ICON,
             showExportDialog, exportMode, exportSelectedPanel, exportUsers, exportSelectedUser, loadExportUsers, doExport, doImport,
             showCleanupDialog, cleanupReport, cleanupBusy, cleanupReasons, applyCleanup, restorePanels, runWizard,
             showAddPanel, editPanelData, panelForm, panelTab, panelTabPos, panelError, createPanel, editPanel, openPanelForm, deletePanel, deleteCurrentPanel, movePanel, showAbout, toggleField,

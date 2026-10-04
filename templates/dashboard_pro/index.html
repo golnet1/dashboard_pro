@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Ubuntu">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Arimo:400,600,700">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700">
-    <link rel="stylesheet" href="css/app.css?v=126">
+    <link rel="stylesheet" href="css/app.css?v=150">
     <link rel="stylesheet" href="css/leaflet.css?v=1">
     <script src="js/lib/vue.global.prod.js"></script>
 <style>
@@ -78,68 +78,106 @@
                 <i class="fas fa-spinner fa-spin"></i><br><br>{{ t('loading') }}
             </div>
             <template v-else>
-                <header class="app-bar" :class="{ 'app-bar--mini': sidebarMini }">
-                    <button class="app-bar__menu" @click="toggleSidebar">
+<header class="app-bar" :class="{ 'app-bar--mini': sidebarMini }">
+                    <button v-if="headerHas('navigator')" class="app-bar__menu" :style="headerSlotStyle('navigator')" @click="toggleSidebar">
                         <i class="fas fa-bars"></i>
                         <span class="app-bar__menu-tooltip">{{ sidebarMini ? t('show_sidebar') : t('hide_sidebar') }}</span>
                     </button>
-                    <span class="app-bar__title">{{ showSettingsPanel ? t('settings') : (showWidgetEditorPanel ? t('widget_editor') : (currentPanel?.title || t('home_panel'))) }}</span>
-                    <div class="app-bar__spacer"></div>
-                    <div class="app-bar__actions">
+                    <span v-if="headerHas('title')" class="app-bar__title" :style="headerSlotStyle('title')">{{ showHeaderPanel ? t('header_settings') : (showSettingsPanel ? t('settings') : (showWidgetEditorPanel ? t('widget_editor') : (currentPanel?.title || t('home_panel')))) }}</span>
+                    <template v-for="it in headerInst('spacer')" :key="it.key"><div class="app-bar__spacer" :style="headerStyleAt(it.idx, it.type)"></div></template>
+                    <template v-for="it in headerInst('divider')" :key="it.key"><div class="app-bar__divider" :style="headerStyleAt(it.idx, it.type)"></div></template>
+                    <div v-if="headerHas('status')" class="app-bar__actions" :style="headerSlotStyle('status')">
                         <div v-if="headerStatusSectionOn" class="app-bar__status">
                             <template v-for="it in headerStatusList" :key="it.key">
                                 <div class="app-bar__status-item" :title="it.title">
                                     <img v-if="it.imgOk" :src="it.img" class="app-bar__status-icon" :alt="it.title">
-                                    <i v-else :class="it.faIcon || 'fas fa-circle'" class="app-bar__status-icon" :title="it.title" :style="'color:' + (it.color || 'rgba(255,255,255,.6)')"></i>
+                                    <i v-else :class="it.faIcon || 'fas fa-circle'" class="app-bar__status-icon" :title="it.title" :style="'color:' + (it.color || '#fff')"></i>
                                 </div>
                             </template>
-                            <button v-if="isAdmin && editMode" class="app-bar__status-add" @click="openHeaderStatusEditor" :title="t('add_header_status')"><i class="fas fa-circle-plus"></i></button>
                         </div>
-                        <div class="app-bar__clock" v-if="settings.showHeaderClock !== false">
+                    </div>
+                    <div v-if="headerHas('time')" class="app-bar__actions" :style="headerSlotStyle('time')">
+                        <div class="app-bar__clock">
                             <span class="app-bar__clock-time">{{ headerTime }}</span>
                             <span class="app-bar__clock-date">{{ headerDate }}</span>
                         </div>
-                        <button @click="forceRefresh" :title="wsTooltip" :class="{ 'ws-online': wsConnected, 'ws-offline': !wsConnected, 'ws-pulse': wsPulse }">
+                    </div>
+                    <div v-if="headerHas('updater')" class="app-bar__actions" :style="headerSlotStyle('updater')">
+                        <button @click="forceRefresh" :title="wsTooltip" :class="{ 'ws-online': wsConnected, 'ws-offline': !wsConnected, 'ws-pulse': wsBytesSent > 0 }">
                             <i class="fas fa-satellite-dish"></i>
                         </button>
-                        <div style="position:relative" data-notif>
-                            <button @click="showNotifications = !showNotifications; if(showNotifications) checkNotifications()" :title="t('notifications')">
-                                <i class="fas fa-bell"></i>
-                                <span class="notif-badge" v-if="unreadCount">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
-                            </button>
-                            <div class="notif-dropdown" v-if="showNotifications" @click.stop>
-                                <div class="notif-dropdown__item notif-dropdown__mark" @click="markNotificationsRead" v-if="notifications.length">
-                                    {{ t('mark_read') }} <i class="fas fa-flag ml-2"></i>
-                                </div>
-                                <hr class="notif-dropdown__divider" v-if="notifications.length">
-                                <div class="notif-dropdown__list">
-                                    <div v-if="!notifications.length" class="notif-dropdown__empty">{{ t('no_notifications') }}</div>
-                                    <template v-for="n in notifications" :key="n.ID">
-                                        <div class="notif-dropdown__item notif-dropdown__msg-item">
-                                            <div class="notif-dropdown__avatar">
-                                                <img :src="notifAvatarUrl()" @error="notifAvatarFallback($event)">
-                                            </div>
-                                            <div class="notif-dropdown__body">
-                                                <div class="notif-dropdown__title">{{ n.MESSAGE }}</div>
-                                                <div class="notif-dropdown__subtitle">{{ n.MODULE_NAME }}</div>
-                                            </div>
-                                            <div class="notif-dropdown__meta">
-                                                <i class="fas fa-bell" :style="{ color: n.TYPE === 'danger' ? '#f44336' : n.TYPE === 'warning' ? '#ff9800' : '#4caf50' }"></i>
-                                                <span class="notif-dropdown__time">{{ n.ADDED ? n.ADDED.slice(11, 16) : '' }}</span>
-                                            </div>
+                    </div>
+                    <div v-if="headerHas('events')" class="app-bar__actions" style="position:relative" data-notif :style="headerSlotStyle('events')">
+                        <button @click="showNotifications = !showNotifications; if(showNotifications) checkNotifications()" :title="t('notifications')">
+                            <i class="fas fa-bell"></i>
+                            <span class="notif-badge" v-if="unreadCount">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
+                        </button>
+                        <div class="notif-dropdown" v-if="showNotifications" @click.stop>
+                            <div class="notif-dropdown__item notif-dropdown__mark" @click="markNotificationsRead" v-if="notifications.length">
+                                {{ t('mark_read') }} <i class="fas fa-flag ml-2"></i>
+                            </div>
+                            <hr class="notif-dropdown__divider" v-if="notifications.length">
+                            <div class="notif-dropdown__list">
+                                <div v-if="!notifications.length" class="notif-dropdown__empty">{{ t('no_notifications') }}</div>
+                                <template v-for="n in notifications" :key="n.ID">
+                                    <div class="notif-dropdown__item notif-dropdown__msg-item">
+                                        <div class="notif-dropdown__avatar">
+                                            <img :src="notifAvatarUrl()" @error="notifAvatarFallback($event)">
                                         </div>
-                                        <hr class="notif-dropdown__divider">
-                                    </template>
-                                </div>
-                                <div class="notif-dropdown__item notif-dropdown__show-all" @click="showNotifications = false; toggleChat()" v-if="notifications.length">
-                                    {{ t('show_all') }}
-                                </div>
+                                        <div class="notif-dropdown__body">
+                                            <div class="notif-dropdown__title">{{ n.MESSAGE }}</div>
+                                            <div class="notif-dropdown__subtitle">{{ n.MODULE_NAME }}</div>
+                                        </div>
+                                        <div class="notif-dropdown__meta">
+                                            <i class="fas fa-bell" :style="{ color: n.TYPE === 'danger' ? '#f44336' : n.TYPE === 'warning' ? '#ff9800' : '#2196f3' }"></i>
+                                            <span class="notif-dropdown__time">{{ n.ADDED ? n.ADDED.slice(11, 16) : '' }}</span>
+                                        </div>
+                                    </div>
+                                    <hr class="notif-dropdown__divider">
+                                </template>
+                            </div>
+                            <div class="notif-dropdown__item notif-dropdown__show-all" @click="showNotifications = false; toggleChat()" v-if="notifications.length">
+                                {{ t('show_all') }}
                             </div>
                         </div>
-                        <button v-if="isAdmin" @click="toggleTheme" :title="settings.theme === 'dark' ? t('light_theme') : t('dark_theme')"><i :class="settings.theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon'"></i></button>
-                        <button v-if="isAdmin" @click="toggleEditMode" :title="editMode ? t('save') : t('edit_mode')" :class="{ active: editMode, 'has-unsaved': hasUnsavedChanges }"><i :class="editMode ? 'fas fa-save' : 'fas fa-pen'"></i></button>
-                        <button v-if="isAdmin && editMode" @click="addPlusButton" :title="plusTooltip"><i class="fas fa-plus"></i></button>
-                        <div style="position:relative">
+                    </div>
+                    <div v-if="headerHas('theme') && isAdmin" class="app-bar__actions" :style="headerSlotStyle('theme')">
+                        <button @click="toggleTheme" :title="settings.theme === 'dark' ? t('light_theme') : t('dark_theme')"><i :class="settings.theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon'"></i></button>
+                    </div>
+                    <div v-if="headerHas('edit') && isAdmin" class="app-bar__actions" :style="headerSlotStyle('edit')">
+                        <button @click="toggleEditMode" :title="editMode ? t('save') : t('edit_mode')" :class="{ active: editMode, 'has-unsaved': hasUnsavedChanges }"><i :class="editMode ? 'fas fa-save' : 'fas fa-pen'"></i></button>
+                        <button v-if="editMode" @click="addPlusButton" :title="plusTooltip"><i class="fas fa-plus"></i></button>
+                    </div>
+                    <template v-for="it in headerPanelSlots" :key="it.key">
+                        <div class="app-bar__actions" :style="headerStyleAt(it.idx, it.type)">
+                            <a v-if="it.panel" class="app-bar__panel-link" href="#" :title="it.panel.title || it.panel.name" :aria-label="it.panel.title || it.panel.name" @click.prevent="headerPanelGo(it)">
+                                <span v-if="it.showIcon" class="app-bar__panel-thumb" :class="{ 'app-bar__panel-thumb--circle': it.panel.circle }">
+                                    <img v-if="it.panel.image" :src="it.panel.image" :alt="it.panel.title || it.panel.name">
+                                    <i v-else :class="it.panel.icon || 'fas fa-folder'"></i>
+                                </span>
+                                <span v-if="it.showLabel" class="app-bar__value app-bar__value--plain">{{ it.label || '—' }}</span>
+                            </a>
+                            <span v-else class="app-bar__value" :title="t('hdr_panel_none')" @click="openHeaderPanelDialog(it.idx)">{{ t('hdr_panel_none') }}</span>
+                        </div>
+                    </template>
+                    <template v-for="it in headerValueSlots" :key="it.key">
+                        <div class="app-bar__actions" :style="headerStyleAt(it.idx, it.type)">
+                            <span class="app-bar__value app-bar__value--plain" :title="it.hint || t('hdr_value_hint')">{{ it.text || '—' }}</span>
+                        </div>
+                    </template>
+                    <template v-for="it in headerLinkSlots" :key="it.key">
+                        <div class="app-bar__actions" :style="headerStyleAt(it.idx, it.type)">
+                            <a v-if="it.url" class="app-bar__panel-link app-bar__link-thumb" href="#" :title="it.label || it.url" :aria-label="it.label || it.url" @click.prevent="headerLinkGo(it)">
+                                <span v-if="it.showIcon" class="app-bar__panel-thumb" :class="{ 'app-bar__panel-thumb--circle': it.circle }">
+                                    <img v-if="it.image" :src="it.image" :alt="it.label || it.url">
+                                    <i v-else :class="it.icon"></i>
+                                </span>
+                                <span v-if="it.showLabel" class="app-bar__value app-bar__value--plain">{{ it.label }}</span>
+                            </a>
+                            <span v-else class="app-bar__value" :title="t('hdr_link_empty')" @click="openHeaderLinkDialog(it.idx)">{{ t('hdr_link_empty') }}</span>
+                        </div>
+                    </template>
+                    <div v-if="headerHas('menu')" class="app-bar__actions" style="position:relative" :style="headerSlotStyle('menu')">
                             <button class="user-avatar-btn" @click.stop="userMenuOpen = !userMenuOpen" :title="t('user')">
                                 <img v-if="user.avatar" :src="user.avatar" class="user-avatar-img">
                                 <i v-else class="fas fa-user-circle"></i>
@@ -158,10 +196,13 @@
                                     {{ user.is_admin ? t('admin') : t('user') }}
                                 </div>
                                 <div class="user-menu__divider"></div>
-                                <div class="user-menu__item" v-if="isAdmin" @click="userMenuOpen = false; showSettingsPanel = true; showWidgetEditorPanel = false">
+                                <div class="user-menu__item" v-if="isAdmin" @click="userMenuOpen = false; showSettingsPanel = true; showWidgetEditorPanel = false; showHeaderPanel = false">
                                     <i class="fas fa-cog"></i> {{ t('settings') }}
                                 </div>
-								<div class="user-menu__item" v-if="isAdmin" @click="userMenuOpen = false; showWidgetEditorPanel = true; showSettingsPanel = false">
+                                <div class="user-menu__item" v-if="isAdmin" @click="userMenuOpen = false; openHeaderSettings()">
+                                    <i class="fas fa-heading"></i> {{ t('header_settings') }}
+                                </div>
+                                <div class="user-menu__item" v-if="isAdmin" @click="userMenuOpen = false; showWidgetEditorPanel = true; showSettingsPanel = false; showHeaderPanel = false">
                                     <i class="fas fa-puzzle-piece"></i> {{ t('widget_editor') }}
                                 </div>
                                 <a class="user-menu__item" v-if="isAdmin" href="help/index.html" target="_blank" rel="noopener" @click="userMenuOpen = false">
@@ -175,7 +216,6 @@
                                     <i class="fas fa-sign-out-alt"></i> {{ t('logout') }}
                                 </div>
                             </div>
-                        </div>
                     </div>
                 </header>
                 <aside class="sidebar" :class="{ 'sidebar--open': sidebarOpen, 'sidebar--mini': sidebarMini }">
@@ -423,28 +463,6 @@
                                             </div>
                                         </div>
                                         <div class="v-list-item theme--dark">
-                                            <div class="v-list-item__action">
-                                                <div class="v-input theme--dark v-input--selection-controls v-input--switch" :class="{ 'input--is-checked': settings.showHeaderClock }">
-                                                    <div class="v-input__control"><div class="v-input__slot v-input__slot--switch"><div class="v-input--switch__track" @click.stop="settings.showHeaderClock = !settings.showHeaderClock; savePanels()"><div class="v-input--switch__thumb"></div></div></div></div>
-                                                </div>
-                                            </div>
-                                            <div class="v-list-item__content py-0">
-                                                <div class="v-list-item__title">{{ t('show_header_clock') }}</div>
-                                                <div class="v-list-item__subtitle">{{ t('show_header_clock_desc') }}</div>
-                                            </div>
-                                        </div>
-                                        <div class="v-list-item theme--dark">
-                                            <div class="v-list-item__action">
-                                                <div class="v-input theme--dark v-input--selection-controls v-input--switch" :class="{ 'input--is-checked': settings.showHeaderStatus }">
-                                                    <div class="v-input__control"><div class="v-input__slot v-input__slot--switch"><div class="v-input--switch__track" @click.stop="settings.showHeaderStatus = !settings.showHeaderStatus; savePanels()"><div class="v-input--switch__thumb"></div></div></div></div>
-                                                </div>
-                                            </div>
-                                            <div class="v-list-item__content py-0">
-                                                <div class="v-list-item__title">{{ t('show_header_status') }}</div>
-                                                <div class="v-list-item__subtitle">{{ t('show_header_status_desc') }}</div>
-                                            </div>
-                                        </div>
-                                        <div class="v-list-item theme--dark">
                                             <div class="v-list-item__content">
                                                 <div class="v-input theme--dark v-text-field">
                                                     <div class="v-input__control">
@@ -634,6 +652,52 @@
                                 </div>
                             </div>
                         </div>
+<div v-else-if="showHeaderPanel" class="settings-page">
+                            <div style="margin-bottom:8px">
+                                <button @click="showHeaderPanel = false" style="background:none;border:none;color:rgba(255,255,255,.7);cursor:pointer;font-size:1.2rem;padding:4px 8px;margin:4px 8px"><i class="fas fa-arrow-left"></i></button>
+                            </div>
+                            <div class="hsb">
+                                <div class="hsb__bar">
+                                    <div style="position:relative">
+                                        <button type="button" class="btn-primary" @click.stop="headerAddOpen = !headerAddOpen">
+                                            <i class="fas fa-plus"></i> {{ t('hdr_add_item') }}
+                                        </button>
+                                        <div class="hsb__menu" v-if="headerAddOpen" @click.stop>
+                                            <div class="hsb__menu-item" v-for="d in headerDefs" :key="d.type" :class="{ 'hsb__menu-item--off': headerAtLimit(d.type) }" @click="headerItemAdd(d.type)">
+                                                <i :class="d.icon"></i>
+                                                <span>{{ headerItemLabel(d.type) }}</span>
+                                                <span class="hsb__menu-count" v-if="headerDef(d.type).max < 99">{{ headerCount(d.type) }}/{{ d.max }}</span>
+                                                <i v-if="headerHas(d.type)" class="fas fa-check hsb__menu-check"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn" style="margin-left:8px" @click="headerItemsClear()">{{ t('hdr_clear') }}</button>
+                                    <button type="button" class="btn" style="margin-left:8px" @click="headerItemsDefaults()">{{ t('hdr_defaults') }}</button>
+                                    <div class="hsb__hint">{{ t('hdr_hint') }}</div>
+                                </div>
+<div class="hsb__list" v-if="headerItems.length">
+                                     <div v-for="(it, idx) in headerItems" :key="it.t + '#' + idx" class="hsb__card" :class="{ 'hsb__card--drag': headerDragIndex === idx }"
+                                          draggable="true" @dragstart="headerDragStart(idx)" @dragover.prevent="headerDragOver(idx)" @dragend="headerDragEnd" @drop.prevent="headerDragEnd">
+                                         <i class="hsb__card-icon" :class="headerDef(it.t).icon"></i>
+                                         <div class="hsb__card-title">{{ headerItemLabel(it.t) }}</div>
+                                         <div class="hsb__card-hint" v-if="it.t === 'value'">{{ headerValueHint(it.cfg) || t('hdr_value_hint') }}</div>
+                                         <div class="hsb__card-hint" v-else-if="it.t === 'panel'">{{ headerPanelHint(it.cfg) || t('hdr_panel_none') }}</div>
+                                          <div class="hsb__card-hint" v-else-if="it.t === 'link'">{{ headerLinkHint(it.cfg) || t('hdr_link_empty') }}</div>
+                                         <div class="hsb__card-hint" v-else-if="it.t === 'status'">{{ headerStatusItems.length }}/7</div>
+                                         <div class="hsb__card-hint" v-else-if="it.t === 'spacer'">{{ headerSpacerHint }}</div>
+                                         <div class="hsb__card-actions">
+                                             <button v-if="it.t === 'value'" class="icon-btn" @click="openHeaderValueDialog(idx)" :title="t('edit')"><i class="fas fa-pen"></i></button>
+                                             <button v-if="it.t === 'panel'" class="icon-btn" @click="openHeaderPanelDialog(idx)" :title="t('edit')"><i class="fas fa-pen"></i></button>
+                                              <button v-if="it.t === 'link'" class="icon-btn" @click="openHeaderLinkDialog(idx)" :title="t('edit')"><i class="fas fa-pen"></i></button>
+                                             <button v-if="it.t === 'status'" class="icon-btn" @click="openHeaderStatusEditor" :title="t('edit')"><i class="fas fa-pen"></i></button>
+                                             <i v-if="!headerCanRemove(it.t)" class="fas fa-lock hsb__card-lock" :title="t('hdr_cant_remove')"></i>
+                                             <button v-else class="icon-btn" @click="headerItemRemove(idx)" :title="t('delete_widget')"><i class="fas fa-trash"></i></button>
+                                         </div>
+                                     </div>
+                                 </div>
+<div class="hsb__empty" v-else>{{ t('hdr_empty') }}</div>
+                             </div>
+                        </div>
                         <div v-else-if="showWidgetEditorPanel" class="settings-page">
                             <div style="margin-bottom:8px">
                                 <button @click="showWidgetEditorPanel = false" style="background:none;border:none;color:rgba(255,255,255,.7);cursor:pointer;font-size:1.2rem;padding:4px 8px;margin:4px 8px"><i class="fas fa-arrow-left"></i></button>
@@ -715,6 +779,14 @@
                                 </div>
                             </div>
 						</div>
+                        <div v-else-if="linkView" class="link-view">
+                            <div class="link-view__bar">
+                                <button class="link-view__btn" @click="closeLinkView()" :title="t('hdr_link_back')"><i class="fas fa-arrow-left"></i></button>
+                                <span class="link-view__title">{{ linkView.title || linkView.url }}</span>
+                                <a class="link-view__btn" :href="linkView.url" target="_blank" rel="noopener noreferrer" :title="t('hdr_link_new_window')"><i class="fas fa-external-link-alt"></i></a>
+                            </div>
+                            <iframe class="link-view__frame" :src="linkView.url" :title="linkView.title || linkView.url" referrerpolicy="no-referrer"></iframe>
+                        </div>
                         <div v-else-if="!currentPanel" class="home-panels">
                             <div class="home-panels__grid">
                                 <div v-for="p in panels.filter(p => (p.panelType === 'group' || !p.parentGroup || p.parentGroup === 'root') && !p.hideHome)" :key="p.name" class="home-panel-card" @click="selectPanel(p); expandedGroups[p.name] = true">
@@ -838,6 +910,170 @@
                 </div>
             </div>
         </div>
+
+        <!-- ===== Header Panel Selector (same pattern as object value) ===== -->
+        <div id="hp-edit" class="v-dialog__content v-dialog__content--active" v-if="headerPanelOpen" style="z-index:202">
+            <div class="v-dialog v-dialog--active v-dialog--persistent" style="width:520px" tabindex="0">
+                <div class="v-card v-sheet theme--dark" style="background-color:rgba(48,48,48,var(--dialog-alpha,1));border-color:#303030">
+                    <div class="v-card__title">
+                        <span class="headline_m">{{ t('hdr_panel_dialog') }}</span>
+                    </div>
+                    <hr role="separator" class="v-divider theme--dark">
+                    <div class="v-card__text pa-4">
+                        <div class="v-input v-text-field v-select">
+                            <div class="v-input__control">
+                                <div class="v-input__slot"><label class="v-label v-label--active">{{ t('hdr_item_panel') }}</label>
+                                    <select v-model="headerPanelForm.name">
+                                        <option value="" style="background:#1e1e1e;color:#fff">{{ t('hdr_panel_none') }}</option>
+                                        <option v-for="p in headerPanelList" :key="p.name" :value="p.name" style="background:#1e1e1e;color:#fff">{{ p.title || p.name }}</option>
+                                    </select>
+                                    <div class="v-input__append-inner"><i class="fas fa-caret-down"></i></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="v-input v-text-field v-select">
+                            <div class="v-input__control">
+                                <div class="v-input__slot"><label class="v-label v-label--active">{{ t('hdr_display') }}</label>
+                                    <select v-model="headerPanelForm.display">
+                                        <option value="icon" style="background:#1e1e1e;color:#fff">{{ t('hdr_display_icon') }}</option>
+                                        <option value="label" style="background:#1e1e1e;color:#fff">{{ t('hdr_display_label') }}</option>
+                                        <option value="both" style="background:#1e1e1e;color:#fff">{{ t('hdr_display_both') }}</option>
+                                    </select>
+                                    <div class="v-input__append-inner"><i class="fas fa-caret-down"></i></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="hsb__card-hint" style="margin-top:.5rem">{{ headerPanelForm.name ? t('hdr_panel_hint') : t('hdr_panel_none') }}</div>
+                    </div>
+                    <div class="v-card__actions">
+                        <button type="button" class="v-btn v-btn--text theme--dark v-size--default primary--text" @click="headerPanelOpen = false">{{ t('cancel') }}</button>
+                        <button type="button" class="btn-primary" @click="headerPanelSave()">{{ t('save') }}</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+                            <div id="hv-edit" class="v-dialog__content v-dialog__content--active" v-if="headerValueOpen" style="z-index:202">
+                                <div class="v-dialog v-dialog--active v-dialog--persistent" style="width:520px" tabindex="0">
+                                    <div class="v-card v-sheet theme--dark" style="background-color:rgba(48,48,48,var(--dialog-alpha,1));border-color:#303030">
+                                        <div class="v-card__title">
+                                            <span class="headline_m">{{ t('hdr_value_dialog') }}</span>
+                                        </div>
+                                        <hr role="separator" class="v-divider theme--dark">
+                                        <div class="v-card__text pa-4">
+                                            <div class="v-input v-text-field v-select">
+                                                <div class="v-input__control">
+                                                    <div class="v-input__slot"><label class="v-label v-label--active">{{ t('object') }}</label>
+                                                        <select v-model="headerValueForm.object" @change="headerValueForm.property = ''; headerValueLoadProps()">
+                                                            <option value="" style="background:#1e1e1e;color:#fff">{{ t('select_default') }}</option>
+                                                            <option v-for="o in objects" :key="o.ID" :value="o.TITLE" style="background:#1e1e1e;color:#fff">{{ itemLabel(o) }}</option>
+                                                        </select>
+                                                        <div class="v-input__append-inner"><i class="fas fa-caret-down"></i></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="v-input v-text-field v-select">
+                                                <div class="v-input__control">
+                                                    <div class="v-input__slot"><label class="v-label v-label--active">{{ t('property') }}</label>
+                                                        <select v-model="headerValueForm.property">
+                                                            <option value="" style="background:#1e1e1e;color:#fff">{{ t('select_default') }}</option>
+                                                            <option v-for="prop in headerValueProps" :key="prop.ID" :value="prop.TITLE" style="background:#1e1e1e;color:#fff">{{ itemLabel(prop) }}</option>
+                                                        </select>
+                                                        <div class="v-input__append-inner"><i class="fas fa-caret-down"></i></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="v-card__actions">
+                                            <button type="button" class="v-btn v-btn--text theme--dark v-size--default primary--text" @click="headerValueOpen = false">{{ t('cancel') }}</button>
+                                            <button type="button" class="btn-primary" @click="headerValueSave()">{{ t('save') }}</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+        <!-- ===== Header Link Editor ===== -->
+        <div id="hl-edit" class="v-dialog__content v-dialog__content--active" v-if="headerLinkOpen" style="z-index:202">
+            <div class="v-dialog v-dialog--active v-dialog--persistent" style="width:520px" tabindex="0">
+                <div class="v-card v-sheet theme--dark" style="background-color:rgba(48,48,48,var(--dialog-alpha,1));border-color:#303030">
+                    <div class="v-card__title">
+                        <span class="headline_m">{{ t('hdr_link_dialog') }}</span>
+                    </div>
+                    <hr role="separator" class="v-divider theme--dark">
+                    <div class="v-card__text pa-4">
+                        <div class="v-input v-text-field">
+                            <div class="v-input__control">
+                                <div class="v-input__slot"><label class="v-label v-label--active">{{ t('title') }}</label>
+                                    <input v-model="headerLinkForm.title" :placeholder="t('hdr_item_link')" style="background:transparent;border:none;color:#fff;outline:none;width:100%;padding:16px 0 4px;font-size:16px">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="v-input v-text-field">
+                            <div class="v-input__control">
+                                <div class="v-input__slot"><label class="v-label v-label--active">{{ t('url') }}</label>
+                                    <input v-model="headerLinkForm.url" :placeholder="'https://'" style="background:transparent;border:none;color:#fff;outline:none;width:100%;padding:16px 0 4px;font-size:16px">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="v-input v-input--selection-controls v-input--switch" :class="{ 'input--is-checked': headerLinkForm.mode === 'window' }">
+                            <div class="v-input__control">
+                                <div class="v-input__slot v-input__slot--switch">
+                                    <div class="v-input--switch__track" @click.stop="headerLinkForm.mode = (headerLinkForm.mode === 'window' ? 'panel' : 'window')"><div class="v-input--switch__thumb"></div></div>
+                                    <span class="v-label">{{ t('hdr_link_open') }}: {{ headerLinkForm.mode === 'window' ? t('hdr_link_open_window') : t('hdr_link_open_panel') }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="v-input v-text-field">
+                            <div class="v-input__control">
+                                <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': headerLinkForm.icon }">{{ t('icon') }}</label><input v-model="headerLinkForm.icon" :placeholder="HEADER_LINK_FALLBACK_ICON"></div>
+                                <div class="v-input__details"><div class="v-messages"></div></div>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2" style="align-items:center">
+                            <button class="icon-btn" :title="t('pick_icon')" @click="openIconPicker('hl')"><i :class="headerLinkForm.icon || HEADER_LINK_FALLBACK_ICON"></i></button>
+                            <button class="icon-btn" @click="headerLinkForm.icon=''" :title="t('clear')"><i class="fas fa-backspace"></i></button>
+                        </div>
+                        <div class="v-input v-text-field v-select">
+                            <div class="v-input__control">
+                                <div class="v-input__slot"><label class="v-label v-label--active">{{ t('hdr_link_shape') }}</label>
+                                    <select v-model="headerLinkForm.shape">
+                                        <option value="square" style="background:#1e1e1e;color:#fff">{{ t('hdr_link_shape_square') }}</option>
+                                        <option value="circle" style="background:#1e1e1e;color:#fff">{{ t('hdr_link_shape_circle') }}</option>
+                                    </select>
+                                    <div class="v-input__append-inner"><i class="fas fa-caret-down"></i></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="v-input v-text-field">
+                            <div class="v-input__control">
+                                <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': headerLinkForm.image }">{{ t('hdr_link_image') }}</label><input v-model="headerLinkForm.image" :placeholder="t('hdr_link_image_placeholder')"></div>
+                                <div class="v-input__details"><div class="v-messages"></div></div>
+                            </div>
+                        </div>
+                        <div class="v-input v-text-field v-select">
+                            <div class="v-input__control">
+                                <div class="v-input__slot"><label class="v-label v-label--active">{{ t('hdr_display') }}</label>
+                                    <select v-model="headerLinkForm.display">
+                                        <option value="icon" style="background:#1e1e1e;color:#fff">{{ t('hdr_display_icon') }}</option>
+                                        <option value="label" style="background:#1e1e1e;color:#fff">{{ t('hdr_display_label') }}</option>
+                                        <option value="both" style="background:#1e1e1e;color:#fff">{{ t('hdr_display_both') }}</option>
+                                    </select>
+                                    <div class="v-input__append-inner"><i class="fas fa-caret-down"></i></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="hsb__card-hint" style="margin-top:.5rem">{{ t('hdr_link_hint') }}</div>
+                    </div>
+                    <div class="v-card__actions">
+                        <button type="button" class="v-btn v-btn--text theme--dark v-size--default primary--text" @click="headerLinkOpen = false">{{ t('cancel') }}</button>
+                        <button type="button" class="btn-primary" @click="headerLinkSave()">{{ t('save') }}</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+
 
         <!-- ===== Header Status Editor Modal ===== -->
         <div id="hs-edit" class="v-dialog__content v-dialog__content--active" v-if="showHeaderStatusEditor" style="z-index:202">
@@ -2208,7 +2444,7 @@
                 <div class="modal-body" style="text-align:center;padding:2rem 1.5rem">
                     <i class="fas fa-chart-line" style="font-size:3rem;color:var(--primary);margin-bottom:1rem"></i>
                     <h3 style="margin-bottom:.3rem">Dashboard Pro</h3>
-                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 01.18.04</p>
+                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 01.19.01</p>
                     <p style="color:var(--text-secondary);font-size:.8rem">{{ t('app_desc') }}</p>
                     <div class="about-links" style="margin-top:1rem;font-size:.85rem;color:var(--text-secondary);line-height:1.8">
                         <div>{{ t('about_telegram') }}: <a href="https://t.me/+9ZFQaxs_Ukw4NmMy" target="_blank" rel="noopener">Telegram</a></div>
@@ -2236,7 +2472,6 @@
 <script src="js/lib/hls.min.js?v=1"></script>
 <script src="js/dpbuilder.js?v=69"></script>
     <script src="js/dpbuilder-ui.js?v=52"></script>
-    <script src="js/app.js?v=290"></script>
+    <script src="js/app.js?v=313"></script>
 </body>
 </html>
-
