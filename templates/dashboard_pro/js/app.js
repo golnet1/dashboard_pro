@@ -230,7 +230,7 @@ const widgetUsage = computed(() => {
         const iconCategorySearch = ref('');
         const iconPage = ref(1);
         const iconPageSize = 63;
-        const panelForm = ref({ title: '', iconType: 'icon', icon: 'fas fa-folder', iconObject: '', iconProperty: '', image: '', hideNav: false, hideHome: false, panelType: 'group', parentGroup: 'root', dropdownNav: false, openOnClick: false, infoObject: '', infoProperty: '', infoPrefix: '', infoPostfix: '', background: false, circle: false, iconColor: 'default', showImageNav: false, individualSettings: false, showImageBg: false, bgSize: 'cover', verticalCompact: false });
+        const panelForm = ref({ title: '', iconType: 'icon', icon: 'fas fa-folder', iconObject: '', iconProperty: '', image: '', hideNav: false, hideHome: false, panelType: 'panel', parentGroup: 'root', dropdownNav: false, openOnClick: false, infoObject: '', infoProperty: '', infoPrefix: '', infoPostfix: '', background: false, circle: false, iconColor: 'default', showImageNav: false, individualSettings: false, showImageBg: false, bgSize: 'cover', verticalCompact: false });
         const objects = ref([]);
         const scripts = ref([]);
         const iconProperties = ref([]);
@@ -596,7 +596,7 @@ const headerStatusSectionOn = computed(() => headerHas('status'));
         function headerPanelItemOf(cfg) {
             const name = cfg && cfg.name;
             if (!name) return null;
-            return panels.value.find(p => p.name === name && p.panelType !== 'group') || null;
+            return panels.value.find(p => p.name === name && isPanel(p)) || null;
         }
         function headerPanelHint(cfg) {
             const p = headerPanelItemOf(cfg);
@@ -839,7 +839,7 @@ function headerLinkSave() {
 }
 
 /* ---- Шапка: выбор панели (по образцу значения объекта) ---- */
-const headerPanelList = computed(() => panels.value.filter(p => p.panelType !== 'group' && !p.hideNav));
+const headerPanelList = computed(() => panels.value.filter(p => isPanel(p) && !p.hideNav));
 const headerPanelOpen = ref(false);
 const headerPanelTarget = ref(-1);
 const headerPanelForm = reactive({ name: '', display: 'icon' });
@@ -1370,14 +1370,20 @@ function headerPanelSave() {
         watch(panelTab, () => nextTick(updatePanelTabSlider));
 
         const plusTooltip = computed(() => {
-            if (!currentPanel.value || currentPanel.value.panelType === 'group') {
+            /* Открытая страница по адресу не содержит виджетов: клик по <+>
+               уводит на домашний экран, где добавляется панель, поэтому
+               подпись должна совпадать с этим, а не звать виджеты. */
+            if (linkView.value || !isPanel(currentPanel.value)) {
                 return t('add_panel');
             }
             return t('add_widget');
         });
 
         function addPlusButton() {
-            if (!currentPanel.value || currentPanel.value.panelType === 'group') {
+            /* Пока открыт адрес в области, виджеты добавлять некуда: кнопка «+»
+               в шапке должна вести в панель, а не открывать список виджетов. */
+            if (linkView.value) { selectHomePanel(); return; }
+            if (!isPanel(currentPanel.value)) {
                 openPanelForm(null);
             } else {
                 showAddWidget.value = true;
@@ -1525,9 +1531,13 @@ function loadScript(src, version) {
                 // restore last selected panel
                 if (!currentPanel.value && panels.value.length) {
                     const last = localStorage.getItem('dp_lastPanel');
-                    if (last) currentPanel.value = panels.value.find(p => p.name === last);
+                    /* По имени, а не по факту клика: тип записи могли поменять
+                       после того, как её открывали, и в localStorage осталась
+                       группа или страница. Такую запись восстанавливать нельзя -
+                       открывать её надо кликом, а не показом пустой панели. */
+                    if (last) currentPanel.value = panels.value.find(p => p.name === last && isPanel(p));
                     if (!currentPanel.value)
-                        currentPanel.value = panels.value.find(p => p.panelType !== 'group') || panels.value[0];
+                        currentPanel.value = panels.value.find(p => isPanel(p)) || panels.value[0];
                 }
                 // auto-edit mode when no panels exist
                 if (isAdmin.value && !panels.value.length) {
@@ -1536,6 +1546,17 @@ function loadScript(src, version) {
                 const s = await dpAPI('settings');
                 if (!s.error) Object.assign(settings.value, s);
                 applySettings();
+                /* Панель по умолчанию из настроек открывается при запуске и имеет
+                   приоритет над запомненной: её выбрал администратор, и каждый
+                   вход должен начинаться с неё. Настройки читаются позже панелей,
+                   поэтому выбор делается здесь, а не в восстановлении выше.
+                   Страницу по адресу открыть как панель нельзя - она открывается
+                   кликом по меню. */
+                const def = settings.value.defaultPanel;
+                if (def) {
+                    const target = panels.value.find(p => p.name === def && p.panelType !== 'url');
+                    if (target) selectPanel(target);
+                }
                 headerMigrateLegacy();
                 headerValueRefresh();
             } catch (e) {
@@ -2605,7 +2626,24 @@ if (f.key) {
         async function saveSettingsNow() {
             applySettings();
             const s = await dpAPI('settings', { method: 'POST', body: JSON.stringify(settings.value) });
-            if (s && !s.error) Object.assign(settings.value, s);
+            if (s && !s.error) {
+                /* Ответ на запись настроек несёт ещё и состояние .htaccess: правило
+                   могло не записаться (файл не доступен веб-серверу), и об этом надо
+                   сказать прямо, а не тихо оставить переключатель включённым. Ключ
+                   забираем из ответа, чтобы в настройки он не попал обратно. */
+                const mp = s.mainPage;
+                delete s.mainPage;
+                Object.assign(settings.value, s);
+                if (mp) {
+                    if (mp.ok) {
+                        settings.value.mainPageRedirect = mp.enabled ? 1 : 0;
+                        dpToast(mp.enabled ? t('main_page_redirect_on') : t('main_page_redirect_off'), 'success', 5000);
+                    } else {
+                        settings.value.mainPageRedirect = mp.enabled ? 0 : 1;
+                        dpToast(t('main_page_redirect') + ': ' + (mp.error || '?'), 'error', 9000);
+                    }
+                }
+            }
             applySettings();
         }
 
@@ -2619,6 +2657,42 @@ if (f.key) {
             settingsSaveTimer = setTimeout(() => { settingsSaveTimer = null; saveSettingsNow(); }, 400);
         }
 
+        /* Панель - запись с виджетами. Группа только раскрывает меню, а запись
+           типа 'url' ведёт на внешнюю страницу: виджетов в ней нет, и открывать
+           её надо переходом по адресу, а не показом пустой панели. Всё, где
+           дальше речь о панели с виджетами, берёт isPanel(), а не сравнение
+           с 'group': иначе запись-страница проскакивала бы в списки выбора. */
+        function isPanel(p) {
+            return !!p && p.panelType !== 'group' && p.panelType !== 'url';
+        }
+
+        /* Пока открыт адрес, подсвечен только он: панель, открытая до него, остаётся
+           выбранной (к ней возвращается левое меню), но подсветка уходит на
+           страницу, иначе в меню горит сразу два пункта. */
+        function isNavActive(p) {
+            if (!p) return false;
+            if (p.panelType === 'url') return !!linkView.value && linkView.value.url === headerLinkNormalize(p.url);
+            return !linkView.value && !!currentPanel.value && currentPanel.value.name === p.name;
+        }
+
+        function navItemClick(p, expand) {
+            if (!p) return;
+            if (p.panelType === 'url') {
+                const url = headerLinkNormalize(p.url);
+                if (!url) return;
+                /* Адрес открывается в основной области под шапкой, браузер остаётся на
+                   дашборде, и страница выглядит обычным окном: полосы-заголовка
+                   с кнопками у неё нет (bare), выход - левое меню. У ссылки из
+                   шапки такая полоса остаётся - там она и была придумана. */
+                linkView.value = { url: url, title: p.title || url, bare: true };
+                sidebarOpen.value = false;
+                return;
+            }
+            selectPanel(p);
+            if (expand) expandedGroups.value = { ...expandedGroups.value, [p.name]: true };
+            sidebarOpen.value = false;
+        }
+
         async function openPanelForm(p) {
             if (p) {
                 panelForm.value = {
@@ -2630,8 +2704,9 @@ if (f.key) {
                     image: p.image || '',
                     hideNav: p.hideNav || false,
                     hideHome: p.hideHome || false,
-                    panelType: p.panelType || 'group',
+                    panelType: p.panelType || 'panel',
                     parentGroup: p.parentGroup || 'root',
+                    url: p.url || '',
                     dropdownNav: p.dropdownNav || false,
                     openOnClick: p.openOnClick || false,
                     infoObject: p.infoObject || '',
@@ -2648,7 +2723,10 @@ if (f.key) {
                     verticalCompact: p.verticalCompact || false
                 };
             } else {
-                panelForm.value = { title: '', iconType: 'icon', icon: 'fas fa-folder', iconObject: '', iconProperty: '', image: '', hideNav: false, hideHome: false, panelType: 'group', parentGroup: 'root', dropdownNav: false, openOnClick: false, infoObject: '', infoProperty: '', infoPrefix: '', infoPostfix: '', background: false, circle: false, iconColor: 'default', showImageNav: false, individualSettings: false, showImageBg: false, bgSize: 'cover', verticalCompact: false };
+                /* Новая запись в меню по умолчанию - панель: группу в левое меню
+                   обычно кладут осознанно, а пустую группу создают по кнопке
+                   «Добавить» и сразу наполняют. Прежним default был 'group'. */
+                panelForm.value = { title: '', iconType: 'icon', icon: 'fas fa-folder', iconObject: '', iconProperty: '', image: '', hideNav: false, hideHome: false, panelType: 'panel', parentGroup: 'root', url: '', dropdownNav: false, openOnClick: false, infoObject: '', infoProperty: '', infoPrefix: '', infoPostfix: '', background: false, circle: false, iconColor: 'default', showImageNav: false, individualSettings: false, showImageBg: false, bgSize: 'cover', verticalCompact: false };
             }
             iconProperties.value = [];
             infoProperties.value = [];
@@ -2729,11 +2807,16 @@ if (f.key) {
             const f = panelForm.value;
             panelError.value = '';
             if (!f.title) return;
-            if (editPanelData.value && editPanelData.value.widgets?.length && f.panelType === 'group' && editPanelData.value.panelType !== 'group') {
-                panelError.value = t('panel_error_group_change');
+            if (editPanelData.value && editPanelData.value.widgets?.length && f.panelType !== editPanelData.value.panelType && (f.panelType === 'group' || f.panelType === 'url')) {
+                panelError.value = f.panelType === 'url' ? t('panel_error_url_change') : t('panel_error_group_change');
                 return;
             }
-            if (f.panelType === 'panel' && f.parentGroup !== 'root' && !panels.value.find(p => p.name === f.parentGroup && p.panelType === 'group')) {
+            const panelUrl = f.panelType === 'url' ? headerLinkNormalize(f.url) : '';
+            if (f.panelType === 'url' && !panelUrl) {
+                panelError.value = t('panel_error_url');
+                return;
+            }
+            if (f.panelType !== 'group' && f.parentGroup !== 'root' && !panels.value.find(p => p.name === f.parentGroup && p.panelType === 'group')) {
                 f.parentGroup = 'root';
             }
             if (f.panelType === 'group') f.parentGroup = 'root';
@@ -2747,7 +2830,7 @@ if (f.key) {
             const data = {
                 title: f.title, iconType: f.iconType, icon: f.icon, iconObject: f.iconObject, iconProperty: f.iconProperty,
                 image: f.image, hideNav: f.hideNav, hideHome: f.hideHome,
-                panelType: f.panelType, parentGroup: f.parentGroup, dropdownNav: f.dropdownNav, openOnClick: f.openOnClick,
+                panelType: f.panelType, parentGroup: f.parentGroup, url: panelUrl, dropdownNav: f.dropdownNav, openOnClick: f.openOnClick,
                 infoObject: f.infoObject, infoProperty: f.infoProperty,
                 infoPrefix: f.infoPrefix, infoPostfix: f.infoPostfix,
                 background: f.background, circle: f.circle, iconColor: f.iconColor,
@@ -2777,7 +2860,7 @@ if (f.key) {
             const idx = panels.value.indexOf(editPanelData.value);
             if (idx >= 0) {
                 panels.value.splice(idx, 1);
-                if (currentPanel.value === editPanelData.value) currentPanel.value = panels.value.find(p => p.panelType !== 'group') || panels.value[0] || null;
+                if (currentPanel.value === editPanelData.value) currentPanel.value = panels.value.find(p => isPanel(p)) || panels.value[0] || null;
             }
             editPanelData.value = null;
             showAddPanel.value = false;
@@ -2792,7 +2875,7 @@ if (f.key) {
             if (idx >= 0) {
                 panels.value.splice(idx, 1);
                 if (currentPanel.value === p) {
-                    currentPanel.value = panels.value.find(pp => pp.panelType !== 'group') || panels.value[0] || null;
+                    currentPanel.value = panels.value.find(pp => isPanel(pp)) || panels.value[0] || null;
                 }
             }
             savePanels();
@@ -3078,7 +3161,7 @@ if (f.key) {
                     panels.value = res.panels;
                     currentPanel.value = null;
                     savePanels();
-                    selectPanel(panels.value.find(p => p.panelType !== 'group') || panels.value[0] || null);
+                    selectPanel(panels.value.find(p => isPanel(p)) || panels.value[0] || null);
                 }
                 if (res && typeof res === 'object' && res.panelsCount !== undefined) {
                     alert(t('wizard_done').replace('%p', String(Number(res.panelsCount) || 0)).replace('%d', String(Number(res.devices) || 0)).replace('%w', String(Number(res.widgets) || 0)));
@@ -3181,7 +3264,7 @@ if (f.key) {
                     if (data.panels && Array.isArray(data.panels)) {
                         panels.value = data.panels;
                         if (data.settings) Object.assign(settings.value, data.settings);
-                        currentPanel.value = panels.value.find(p => p.panelType !== 'group') || panels.value[0] || null;
+                        currentPanel.value = panels.value.find(p => isPanel(p)) || panels.value[0] || null;
                         savePanels();
                         alert(t('import_complete'));
                     } else {
@@ -3722,7 +3805,7 @@ onMounted(() => {
             headerLinkSlots, linkView, closeLinkView, headerLinkOpen, headerLinkTarget, headerLinkForm, headerLinkHint, openHeaderLinkDialog, headerLinkGo, headerLinkSave, HEADER_LINK_FALLBACK_ICON,
             showExportDialog, exportMode, exportSelectedPanel, exportUsers, exportSelectedUser, loadExportUsers, doExport, doImport,
             showCleanupDialog, cleanupReport, cleanupBusy, cleanupReasons, applyCleanup, restorePanels, runWizard,
-            showAddPanel, editPanelData, panelForm, panelTab, panelTabPos, panelError, createPanel, editPanel, openPanelForm, deletePanel, deleteCurrentPanel, movePanel, showAbout, toggleField,
+            showAddPanel, editPanelData, panelForm, panelTab, panelTabPos, panelError, createPanel, editPanel, openPanelForm, deletePanel, deleteCurrentPanel, movePanel, isPanel, isNavActive, navItemClick, showAbout, toggleField,
             showIconPicker, iconTarget, iconSearch, iconCategory, iconCategorySearch, iconPage, iconCategories, filteredIconCategories, filteredIcons, totalPages, paginatedIcons, openIconPicker, selectIcon, iconPicked,
             objects, iconProperties, infoProperties, widgetProperties, bgProperties, extraProperties, scripts, methodCache, loadObjects, loadScripts, loadIconProperties, loadInfoProperties, loadWidgetProperties, loadBgProperties, loadObjectMethods, widgetBgStyle, ownWidgetRadius,
             isAdmin, toggleEditMode, wsConnected, wsTooltip, wsStatus, wsPulse, wsBytesSent, wsBytesReceived, wsRev, user, userMenuOpen, sidebarMini, toggleSidebar, expandedGroups, childPanels, toggleGroup, forceRefresh, formatBytes,

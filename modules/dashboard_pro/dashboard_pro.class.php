@@ -78,7 +78,7 @@ class dashboard_pro extends module
             $ws_host = ($_SERVER['HTTPS'] ? 'wss://' : 'ws://') . $_SERVER['HTTP_HOST'];
         }
         $out['WS_HOST'] = $ws_host;
-        $out['DASHBOARD_SETTINGS'] = json_encode($this->loadDashboardSettings());
+        $out['DASHBOARD_SETTINGS'] = json_encode($this->settingsForUi());
         $out['PANELS'] = json_encode($this->loadPanels());
     }
 
@@ -193,10 +193,30 @@ class dashboard_pro extends module
             if ($method == 'POST') {
                 $input = $this->bodyInput();
                 $settings = $input['settings'] ?? $input['data'] ?? $input;
+                /* Переадресация главной страницы - свойство всего сайта, а не
+                   одного пользователя, поэтому в личные настройки она не пишется.
+                   Состояние живёт в самом .htaccess, и каждый раз, когда настройки
+                   сохраняются, блок сверяется с желаемым: если файл правили руками,
+                   следующая правка настроек его вернёт к нужному виду. */
+                $mainPage = null;
+                if (is_array($settings) && array_key_exists('mainPageRedirect', $settings)) {
+                    $mainPage = !empty($settings['mainPageRedirect']);
+                    unset($settings['mainPageRedirect']);
+                }
                 $this->saveDashboardSettings($settings);
-                return ['success' => true];
+                $out = ['success' => true];
+                if ($mainPage !== null) {
+                    /* Отчёт и запись - только когда состояние действительно
+                       меняется. Ключ сидит в объекте настроек, значит приходит с
+                       каждым сохранением, и без этой проверки любое движение
+                       ползунка отвечало бы ещё и про главную страницу. */
+                    if ($this->mainPageRedirectState()['enabled'] !== $mainPage) {
+                        $out['mainPage'] = $this->applyMainPageRedirect($mainPage);
+                    }
+                }
+                return $out;
             }
-            return $this->loadDashboardSettings();
+            return $this->settingsForUi();
         }
 
         if ($params['request'][0] == 'voiceScripts') {
@@ -2495,6 +2515,143 @@ function widgetUsageInfo($type)
             'language' => 'ru',
             'notifAvatar' => ''
         );
+    }
+
+    /* --- Главная страница сайта открывает дашборд ---------------------------
+
+       Правило пишется в .htaccess в корне сайта. Модуль не правит файл целиком,
+       а держит свой блок между метками BEGIN/END и трогает только его, так что
+       чужое правило рядом (а их там несколько: pda, api, nf) остаётся целым.
+       Состояние читается из самого файла: переключатель в настройках показывает
+       то, что реально записано, даже если .htaccess правили мимо модуля.
+
+       Адрес дашборда собирается из ROOTHTML, чтобы сработало и при установке
+       сайта не в корень домена. 302, а не 301: браузеры держат 301 в кэше годами,
+       и выключенный переключатель иначе не сразу даст себя знать. */
+
+    /* Настройки для интерфейса: личные плюс фактическое состояние .htaccess,
+       чтобы переключатель сразу показывал то, что записано, а не что записано
+       в личных настройках (лишние ключи оттуда вычищаются при сохранении). */
+    function settingsForUi()
+    {
+        $out = $this->loadDashboardSettings();
+        $out['mainPageRedirect'] = $this->mainPageRedirectState()['enabled'] ? 1 : 0;
+        return $out;
+    }
+
+    function mainPageHtaccessFile()
+    {
+        return dirname(__DIR__, 2) . '/.htaccess';
+    }
+
+    function mainPageRedirectUrl()
+    {
+        $base = defined('ROOTHTML') ? ROOTHTML : '/';
+        return rtrim($base, '/') . '/templates/dashboard_pro/';
+    }
+
+    function mainPageRedirectBlock()
+    {
+        $lines = array(
+            '# BEGIN dashboard_pro main page',
+            '<IfModule mod_rewrite.c>',
+            'RewriteEngine on',
+            'RewriteRule ^$ ' . $this->mainPageRedirectUrl() . ' [R=302,L]',
+            '</IfModule>',
+            '# END dashboard_pro main page'
+        );
+        return implode("\n", $lines) . "\n";
+    }
+
+    function mainPageBlockIn($text)
+    {
+        return strpos($text, '# BEGIN dashboard_pro main page') !== false
+            && strpos($text, '# END dashboard_pro main page') !== false;
+    }
+
+    /* Вырезается только блок модуля, остальные строки и порядок сохраняются. */
+    function mainPageStripBlock($text)
+    {
+        $eol = strpos($text, "\r\n") !== false ? "\r\n" : "\n";
+        $lines = preg_split("/\r\n|\n|\r/", $text);
+        $out = array();
+        $inside = false;
+        foreach ($lines as $line) {
+            if (!$inside && strpos($line, '# BEGIN dashboard_pro main page') !== false) {
+                $inside = true;
+                continue;
+            }
+            if ($inside) {
+                if (strpos($line, '# END dashboard_pro main page') !== false) $inside = false;
+                continue;
+            }
+            $out[] = $line;
+        }
+        while (count($out) && trim(end($out)) === '') array_pop($out);
+        return implode($eol, $out) . $eol;
+    }
+
+    function mainPageRedirectState()
+    {
+        $file = $this->mainPageHtaccessFile();
+        $text = is_file($file) ? (string)file_get_contents($file) : '';
+        return array(
+            'file' => $file,
+            'enabled' => $this->mainPageBlockIn($text),
+            'exists' => is_file($file)
+        );
+    }
+
+    function applyMainPageRedirect($enable)
+    {
+        $enable = (bool)$enable;
+        $file = $this->mainPageHtaccessFile();
+        $out = array(
+            'file' => $file,
+            'enabled' => $enable,
+            'ok' => false,
+            'changed' => false,
+            'error' => ''
+        );
+        if (is_file($file)) {
+            if (!is_writable($file)) {
+                $out['error'] = LANG_DASHBOARD_PRO_HTACCESS_DENIED . ': ' . $file;
+                return $out;
+            }
+            $text = (string)file_get_contents($file);
+        } elseif (!$enable) {
+            /* Выключать нечего: файла нет, значит и правила в нём нет. Создавать
+               пустой .htaccess ради этого не надо - ничего бы не изменилось. */
+            $out['ok'] = true;
+            return $out;
+        } elseif (!is_dir(dirname($file)) || !is_writable(dirname($file))) {
+            $out['error'] = LANG_DASHBOARD_PRO_HTACCESS_DENIED . ': ' . $file;
+            return $out;
+        } else {
+            $text = '';
+        }
+        $stripped = $this->mainPageStripBlock($text);
+        $base = trim($stripped) === '' ? '' : rtrim($stripped, "\r\n") . "\n\n";
+        $wanted = $enable ? $base . $this->mainPageRedirectBlock() : $stripped;
+        if ($wanted === $text) {
+            $out['ok'] = true;
+            return $out;
+        }
+        /* Копия прежнего содержимого - на случай, если файл дописывали руками.
+           Свою метку модуль снимает сам, но лишняя страховка не мешает. */
+        if (is_file($file)) @copy($file, sys_get_temp_dir() . '/dashboard_pro_htaccess_' . date('Ymd_His') . '.bak');
+        if (@file_put_contents($file, $wanted, LOCK_EX) === false) {
+            $out['error'] = LANG_DASHBOARD_PRO_HTACCESS_DENIED . ': ' . $file;
+            return $out;
+        }
+        clearstatcache(true, $file);
+        $check = (string)file_get_contents($file);
+        $out['ok'] = $this->mainPageBlockIn($check) === $enable;
+        $out['changed'] = true;
+        if (!$out['ok']) {
+            $out['error'] = LANG_DASHBOARD_PRO_HTACCESS_FAILED;
+        }
+        return $out;
     }
 
     function widgetDefaults()
