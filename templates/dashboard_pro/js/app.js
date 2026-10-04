@@ -473,7 +473,7 @@ const headerStatusSectionOn = computed(() => headerHas('status'));
             if (hsEditIdx.value >= 0 && items[hsEditIdx.value]) items[hsEditIdx.value] = item;
             else items.push(item);
             settings.value.headerStatusItems = items;
-            savePanels();
+            settingsChanged();
             wsSubscribeProperties();
             refreshHeaderStatus();
             showHeaderStatusEditor.value = false;
@@ -483,7 +483,7 @@ const headerStatusSectionOn = computed(() => headerHas('status'));
             const items = (settings.value.headerStatusItems || []).slice();
             items.splice(idx, 1);
             settings.value.headerStatusItems = items;
-            savePanels();
+            settingsChanged();
             wsSubscribeProperties();
             refreshHeaderStatus();
         }
@@ -613,7 +613,7 @@ const headerStatusSectionOn = computed(() => headerHas('status'));
         })));
         function headerItemsWrite(list, save) {
             settings.value.headerItems = list;
-            if (save !== false) savePanels();
+            if (save !== false) settingsChanged();
             /* Состав объектов в шапке изменился - сервер должен начать слать
                и эти свойства, иначе значения в шапке застынут. */
             wsSubscribeProperties();
@@ -699,7 +699,7 @@ const headerDragIndex = ref(-1);
 
         function headerDragEnd() {
             headerDragIndex.value = -1;
-            savePanels();
+            settingsChanged();
         }
 
         function openHeaderValueDialog(idx) {
@@ -2609,6 +2609,16 @@ if (f.key) {
             applySettings();
         }
 
+        /* Настройки сохраняются сами, сразу после изменения: ждать кнопку
+           со дискетой не нужно. Повторы гасятся таймером, чтобы протяжка
+           ползунка или набор текста не слали запрос на каждое движение. */
+        let settingsSaveTimer = null;
+        function settingsChanged() {
+            applySettings();
+            if (settingsSaveTimer) { clearTimeout(settingsSaveTimer); settingsSaveTimer = null; }
+            settingsSaveTimer = setTimeout(() => { settingsSaveTimer = null; saveSettingsNow(); }, 400);
+        }
+
         async function openPanelForm(p) {
             if (p) {
                 panelForm.value = {
@@ -3704,7 +3714,7 @@ onMounted(() => {
             resizingWidget, startResize, onResize, stopResize,
             widgetMenuTarget, widgetPanelSubmenu, widgetGroupSubmenu, widgetConfirm, copyWidget, exportWidget, changeWidgetPanel, selectMoveTarget, confirmMoveWidget, moveWidgetToGroup, confirmMoveToGroup,
             showChangeObject, changeObjectGroups, openChangeObject, saveChangeObject, widgetHasChangeObjects,
-            showSettingsPanel, showWidgetEditorPanel, showHeaderPanel, openHeaderSettings, settings, savePanels, saveSettingsNow, commitChanges, hasUnsavedChanges, toggleTheme, cleanupOrphanWidgets, resetAll,
+            showSettingsPanel, showWidgetEditorPanel, showHeaderPanel, openHeaderSettings, settings, savePanels, saveSettingsNow, settingsChanged, commitChanges, hasUnsavedChanges, toggleTheme, cleanupOrphanWidgets, resetAll,
             headerItems, headerDefs, headerHas, headerCount, headerAtLimit, headerCanRemove, headerInst, headerPanelSlots, headerValueSlots, headerSlotStyle, headerStyleAt, headerSpacerHint, headerDef, headerItemLabel, headerAddOpen, headerDragIndex,
             headerPanelList, headerPanelOpen, headerPanelForm, headerPanelItemOf, headerPanelHint, openHeaderPanelDialog, headerPanelGo, headerPanelSave,
             headerItemAdd, headerItemRemove, headerItemsClear, headerItemsDefaults, headerDragStart, headerDragOver, headerDragEnd,

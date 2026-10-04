@@ -273,7 +273,7 @@
                                                     <div class="v-input__control">
                                                         <div class="v-input__slot">
                                                             <div class="v-text-field__slot">
-                                                                <input v-model="settings.appTitle" @change="savePanels()" :placeholder="t('app_title_default')" style="background:transparent;border:none;color:#fff;outline:none;width:100%;padding:16px 0 4px;font-size:16px">
+                                                                <input v-model="settings.appTitle" @input="settingsChanged()" @change="settingsChanged()" :placeholder="t('app_title_default')" style="background:transparent;border:none;color:#fff;outline:none;width:100%;padding:16px 0 4px;font-size:16px">
                                                             </div>
                                                         </div>
                                                     </div>
@@ -292,7 +292,7 @@
                                                         <div class="v-input__slot">
                                                              <div class="v-select__slot">
                                                                  <label class="v-label theme--dark" style="left:0;right:auto;position:absolute">{{ t('default_panel') }}</label>
-                                                                 <select v-model="settings.defaultPanel" @change="savePanels()" style="background:transparent;border:none;color:#fff;outline:none;width:100%;padding:18px 0 4px;font-size:16px">
+                                                                 <select v-model="settings.defaultPanel" @change="settingsChanged()" style="background:transparent;border:none;color:#fff;outline:none;width:100%;padding:18px 0 4px;font-size:16px">
                                                                     <option value="" style="background:#1e1e1e;color:#fff">{{ t('home') }}</option>
                                                                     <option v-for="p in panels" :key="p.name" :value="p.name" style="background:#1e1e1e;color:#fff">{{ p.title }}</option>
                                                                 </select>
@@ -310,7 +310,7 @@
                                         <div class="v-list-item theme--dark">
                                             <div class="v-list-item__action">
                                                 <div class="v-input theme--dark v-input--selection-controls v-input--switch primary--text" :class="{ 'input--is-checked': settings.debug }">
-                                                    <div class="v-input__control"><div class="v-input__slot v-input__slot--switch"><div class="v-input--switch__track" @click.stop="settings.debug = !settings.debug; savePanels()"><div class="v-input--switch__thumb"></div></div></div></div>
+                                                    <div class="v-input__control"><div class="v-input__slot v-input__slot--switch"><div class="v-input--switch__track" @click.stop="settings.debug = !settings.debug; settingsChanged()"><div class="v-input--switch__thumb"></div></div></div></div>
                                                 </div>
                                             </div>
                                             <div class="v-list-item__content py-0">
@@ -346,34 +346,34 @@
                                         <div class="v-list-item theme--dark">
                                             <div class="v-list-item__content">
                                                 <div class="v-list-item__title mb-2">{{ t('icon_size') }}</div>
-                                                <input type="range" v-model.number="settings.iconSize" @change="savePanels()" min="-40" max="40">
+                                                <input type="range" v-model.number="settings.iconSize" @change="settingsChanged()" min="-40" max="40">
                                             </div>
                                         </div>
                                         <div class="v-list-item theme--dark">
                                             <div class="v-list-item__content">
                                                 <div class="v-list-item__title mb-2">{{ t('title_font_size') }}</div>
-                                                <input type="range" v-model.number="settings.titleSize" @change="savePanels()" min="-100" max="100">
+                                                <input type="range" v-model.number="settings.titleSize" @change="settingsChanged()" min="-100" max="100">
                                             </div>
                                         </div>
                                         <div class="v-list-item theme--dark">
                                             <div class="v-list-item__content">
                                                 <div class="v-list-item__title mb-2">{{ t('subtitle_font_size') }}</div>
-                                                <input type="range" v-model.number="settings.subtitleSize" @change="savePanels()" min="-100" max="100">
+                                                <input type="range" v-model.number="settings.subtitleSize" @change="settingsChanged()" min="-100" max="100">
                                             </div>
                                         </div>
                                         <div class="v-list-item theme--dark">
                                             <div class="v-list-item__content">
                                                 <div class="v-list-item__title mb-2">{{ t('widget_size') }}</div>
-<input type="range" v-model.number="settings.widgetSize" @change="savePanels()" min="-40" max="40">
+<input type="range" v-model.number="settings.widgetSize" @change="settingsChanged()" min="-40" max="40">
                                             </div>
                                         </div>
                                         <div class="v-list-item theme--dark">
                                             <div class="v-list-item__action">
                                                 <div class="v-input theme--dark v-input--selection-controls v-input--switch primary--text" :class="{ 'input--is-checked': settings.roundedWidgets }">
-                                                    <div class="v-input__control"><div class="v-input__slot v-input__slot--switch"><div class="v-input--switch__track" @click.stop="settings.roundedWidgets = !settings.roundedWidgets; savePanels()"><div class="v-input--switch__thumb"></div></div></div></div>
+                                                    <div class="v-input__control"><div class="v-input__slot v-input__slot--switch"><div class="v-input--switch__track" @click.stop="settings.roundedWidgets = !settings.roundedWidgets; settingsChanged()"><div class="v-input--switch__thumb"></div></div></div></div>
                                                 </div>
                                             </div>
-                                            <div class="v-list-item__content" @click="settings.roundedWidgets = !settings.roundedWidgets; savePanels()" style="cursor:pointer">
+                                            <div class="v-list-item__content" @click="settings.roundedWidgets = !settings.roundedWidgets; settingsChanged()" style="cursor:pointer">
                                                 <div class="v-list-item__title">{{ t('field_rounded_widgets') }}</div>
                                             </div>
                                         </div>
@@ -381,8 +381,8 @@
                                             <div class="v-list-item__content">
                                                 <div class="v-list-item__title mb-2">{{ t('field_widget_radius') }} — {{ settings.widgetRadius }} px</div>
                                                 <div class="dp-radius-row">
-                                                    <input type="range" v-model.number="settings.widgetRadius" @change="savePanels()" min="0" max="60">
-                                                    <input type="number" class="dp-radius-row__num" v-model.number="settings.widgetRadius" @change="savePanels()" min="0" max="60">
+                                                    <input type="range" v-model.number="settings.widgetRadius" @change="settingsChanged()" min="0" max="60">
+                                                    <input type="number" class="dp-radius-row__num" v-model.number="settings.widgetRadius" @change="settingsChanged()" min="0" max="60">
                                                 </div>
                                             </div>
                                         </div>
@@ -400,7 +400,7 @@
                                                         <div class="v-input__slot">
                                                              <div class="v-select__slot">
                                                                  <label class="v-label v-label--active theme--dark" style="left:0;right:auto;position:absolute">{{ t('interface_font') }}</label>
-                                                                 <select v-model="settings.font" @change="saveSettingsNow()" style="background:transparent;border:none;color:#fff;outline:none;width:100%;padding:18px 0 4px;font-size:16px">
+                                                                 <select v-model="settings.font" @change="settingsChanged()" style="background:transparent;border:none;color:#fff;outline:none;width:100%;padding:18px 0 4px;font-size:16px">
                                                                      <option value="Roboto" style="background:#1e1e1e;color:#fff">Roboto</option>
                                                                      <option value="Ubuntu" style="background:#1e1e1e;color:#fff">Ubuntu</option>
                                                                      <option value="Arial" style="background:#1e1e1e;color:#fff">Arial</option>
@@ -417,7 +417,7 @@
                                         <div class="v-list-item theme--dark">
                                             <div class="v-list-item__action">
                                                 <div class="v-input theme--dark v-input--selection-controls v-input--switch" :class="{ 'input--is-checked': settings.hideMenu }">
-                                                    <div class="v-input__control"><div class="v-input__slot v-input__slot--switch"><div class="v-input--switch__track" @click.stop="settings.hideMenu = !settings.hideMenu; savePanels()"><div class="v-input--switch__thumb"></div></div></div></div>
+                                                    <div class="v-input__control"><div class="v-input__slot v-input__slot--switch"><div class="v-input--switch__track" @click.stop="settings.hideMenu = !settings.hideMenu; settingsChanged()"><div class="v-input--switch__thumb"></div></div></div></div>
                                                 </div>
                                             </div>
                                             <div class="v-list-item__content py-0">
@@ -428,7 +428,7 @@
                                         <div class="v-list-item theme--dark">
                                             <div class="v-list-item__action">
                                                 <div class="v-input theme--dark v-input--selection-controls v-input--switch" :class="{ 'input--is-checked': settings.hideChat }">
-                                                    <div class="v-input__control"><div class="v-input__slot v-input__slot--switch"><div class="v-input--switch__track" @click.stop="settings.hideChat = !settings.hideChat; savePanels()"><div class="v-input--switch__thumb"></div></div></div></div>
+                                                    <div class="v-input__control"><div class="v-input__slot v-input__slot--switch"><div class="v-input--switch__track" @click.stop="settings.hideChat = !settings.hideChat; settingsChanged()"><div class="v-input--switch__thumb"></div></div></div></div>
                                                 </div>
                                             </div>
                                             <div class="v-list-item__content py-0">
@@ -443,7 +443,7 @@
                                                         <div class="v-input__slot">
                                                             <div class="v-text-field__slot">
                                                                 <label class="v-label theme--dark" :class="{ 'v-label--active': settings.notifAvatar }" style="left:0;right:auto;position:absolute">{{ t('notif_avatar') }}</label>
-                                                                <input v-model="settings.notifAvatar" @change="saveSettingsNow()" :placeholder="t('notif_avatar_placeholder')" style="background:transparent;border:none;color:#fff;outline:none;width:100%;padding:18px 0 4px;font-size:16px">
+                                                                <input v-model="settings.notifAvatar" @input="settingsChanged()" @change="settingsChanged()" :placeholder="t('notif_avatar_placeholder')" style="background:transparent;border:none;color:#fff;outline:none;width:100%;padding:18px 0 4px;font-size:16px">
                                                             </div>
                                                         </div>
                                                     </div>
@@ -454,7 +454,7 @@
                                         <div class="v-list-item theme--dark">
                                             <div class="v-list-item__action">
                                                 <div class="v-input theme--dark v-input--selection-controls v-input--switch" :class="{ 'input--is-checked': settings.compactHeader }">
-                                                    <div class="v-input__control"><div class="v-input__slot v-input__slot--switch"><div class="v-input--switch__track" @click.stop="settings.compactHeader = !settings.compactHeader; saveSettingsNow()"><div class="v-input--switch__thumb"></div></div></div></div>
+                                                    <div class="v-input__control"><div class="v-input__slot v-input__slot--switch"><div class="v-input--switch__track" @click.stop="settings.compactHeader = !settings.compactHeader; settingsChanged()"><div class="v-input--switch__thumb"></div></div></div></div>
                                                 </div>
                                             </div>
                                             <div class="v-list-item__content py-0">
@@ -469,7 +469,7 @@
                                                         <div class="v-input__slot">
                                                             <div class="v-text-field__slot">
                                                                 <label class="v-label theme--dark" :class="{ 'v-label--active': settings.menuBg }" style="left:0;right:auto;position:absolute">{{ t('menu_bg') }}</label>
-                                                                 <input v-model="settings.menuBg" @change="savePanels()" style="background:transparent;border:none;color:#fff;outline:none;width:100%;padding:18px 0 4px;font-size:16px">
+                                                                 <input v-model="settings.menuBg" @change="settingsChanged()" style="background:transparent;border:none;color:#fff;outline:none;width:100%;padding:18px 0 4px;font-size:16px">
                                                             </div>
                                                         </div>
                                                     </div>
@@ -484,7 +484,7 @@
                                                         <div class="v-input__slot">
                                                             <div class="v-text-field__slot">
                                                                 <label class="v-label theme--dark" :class="{ 'v-label--active': settings.panelBg }" style="left:0;right:auto;position:absolute">{{ t('panel_bg') }}</label>
-                                                                 <input v-model="settings.panelBg" @change="savePanels()" style="background:transparent;border:none;color:#fff;outline:none;width:100%;padding:18px 0 4px;font-size:16px">
+                                                                 <input v-model="settings.panelBg" @change="settingsChanged()" style="background:transparent;border:none;color:#fff;outline:none;width:100%;padding:18px 0 4px;font-size:16px">
                                                             </div>
                                                         </div>
                                                     </div>
@@ -495,7 +495,7 @@
                                         <div class="v-list-item theme--dark">
                                             <div class="v-list-item__action">
                                                 <div class="v-input v-input--is-label-active v-input--is-dirty theme--dark v-input--selection-controls v-input--switch primary--text" :class="{ 'input--is-checked': settings.usePanelImage }">
-                                                    <div class="v-input__control"><div class="v-input__slot v-input__slot--switch"><div class="v-input--switch__track" @click.stop="settings.usePanelImage = !settings.usePanelImage; savePanels()"><div class="v-input--switch__thumb"></div></div></div></div>
+                                                    <div class="v-input__control"><div class="v-input__slot v-input__slot--switch"><div class="v-input--switch__track" @click.stop="settings.usePanelImage = !settings.usePanelImage; settingsChanged()"><div class="v-input--switch__thumb"></div></div></div></div>
                                                 </div>
                                             </div>
                                             <div class="v-list-item__content py-0">
@@ -506,7 +506,7 @@
                                         <div class="v-list-item theme--dark">
                                             <div class="v-list-item__action">
                                                 <div class="v-input theme--dark v-input--selection-controls v-input--switch" :class="{ 'input--is-checked': settings.useHeaderImage }">
-                                                    <div class="v-input__control"><div class="v-input__slot v-input__slot--switch"><div class="v-input--switch__track" @click.stop="settings.useHeaderImage = !settings.useHeaderImage; savePanels()"><div class="v-input--switch__thumb"></div></div></div></div>
+                                                    <div class="v-input__control"><div class="v-input__slot v-input__slot--switch"><div class="v-input--switch__track" @click.stop="settings.useHeaderImage = !settings.useHeaderImage; settingsChanged()"><div class="v-input--switch__thumb"></div></div></div></div>
                                                 </div>
                                             </div>
                                             <div class="v-list-item__content py-0">
@@ -517,26 +517,26 @@
                                         <div class="v-list-item theme--dark">
                                             <div class="v-list-item__content">
                                                 <div class="v-list-item__title mb-2">{{ t('card_opacity') }}</div>
-                                                <input type="range" v-model.number="settings.cardsOpacity" @change="savePanels()" min="0" max="100">
+                                                <input type="range" v-model.number="settings.cardsOpacity" @change="settingsChanged()" min="0" max="100">
                                             </div>
                                         </div>
                                         <div class="v-list-item theme--dark">
                                             <div class="v-list-item__content">
                                                 <div class="v-list-item__title mb-2">{{ t('menu_opacity') }}</div>
-                                                <input type="range" v-model.number="settings.menuOpacity" @change="savePanels()" min="0" max="100">
+                                                <input type="range" v-model.number="settings.menuOpacity" @change="settingsChanged()" min="0" max="100">
                                             </div>
                                         </div>
                                         <div class="v-list-item theme--dark">
                                             <div class="v-list-item__content">
                                                 <div class="v-list-item__title mb-2">{{ t('dialog_opacity') }}</div>
-                                                <input type="range" v-model.number="settings.dialogOpacity" @change="savePanels()" min="0" max="100">
+                                                <input type="range" v-model.number="settings.dialogOpacity" @change="settingsChanged()" min="0" max="100">
                                             </div>
                                         </div>
                                         <div class="v-list-item theme--dark">
                                             <div class="v-list-item__content">
                                                 <div style="display:flex;align-items:center;gap:12px">
                                                     <span class="v-list-item__title" style="flex:1">{{ t('primary_color') }}</span>
-                                                     <input type="color" v-model="settings.primaryColor" @change="savePanels()" style="width:36px;height:36px;padding:2px;background:transparent;border:1px solid rgba(255,255,255,.2);border-radius:4px;cursor:pointer">
+                                                     <input type="color" v-model="settings.primaryColor" @change="settingsChanged()" style="width:36px;height:36px;padding:2px;background:transparent;border:1px solid rgba(255,255,255,.2);border-radius:4px;cursor:pointer">
                                                     <span style="font-size:.8rem;color:rgba(255,255,255,.5);font-family:monospace">{{ settings.primaryColor }}</span>
                                                 </div>
                                             </div>
@@ -545,7 +545,7 @@
                                             <div class="v-list-item__content">
                                                 <div style="display:flex;align-items:center;gap:12px">
                                                     <span class="v-list-item__title" style="flex:1">{{ t('light_theme_color') }}</span>
-                                                     <input type="color" v-model="settings.lightThemeColor" @change="savePanels()" style="width:36px;height:36px;padding:2px;background:transparent;border:1px solid rgba(255,255,255,.2);border-radius:4px;cursor:pointer">
+                                                     <input type="color" v-model="settings.lightThemeColor" @change="settingsChanged()" style="width:36px;height:36px;padding:2px;background:transparent;border:1px solid rgba(255,255,255,.2);border-radius:4px;cursor:pointer">
                                                     <span style="font-size:.8rem;color:rgba(255,255,255,.5);font-family:monospace">{{ settings.lightThemeColor }}</span>
                                                 </div>
                                             </div>
@@ -554,7 +554,7 @@
                                             <div class="v-list-item__content">
                                                 <div style="display:flex;align-items:center;gap:12px">
                                                     <span class="v-list-item__title" style="flex:1">{{ t('dark_theme_color') }}</span>
-                                                     <input type="color" v-model="settings.darkThemeColor" @change="savePanels()" style="width:36px;height:36px;padding:2px;background:transparent;border:1px solid rgba(255,255,255,.2);border-radius:4px;cursor:pointer">
+                                                     <input type="color" v-model="settings.darkThemeColor" @change="settingsChanged()" style="width:36px;height:36px;padding:2px;background:transparent;border:1px solid rgba(255,255,255,.2);border-radius:4px;cursor:pointer">
                                                     <span style="font-size:.8rem;color:rgba(255,255,255,.5);font-family:monospace">{{ settings.darkThemeColor }}</span>
                                                 </div>
                                             </div>
@@ -569,7 +569,7 @@
                                         <div class="v-list-item theme--dark">
                                             <div class="v-list-item__action">
                                                 <div class="v-input theme--dark v-input--selection-controls v-input--switch primary--text" :class="{ 'input--is-checked': settings.grid }">
-                                                    <div class="v-input__control"><div class="v-input__slot v-input__slot--switch"><div class="v-input--switch__track" @click.stop="settings.grid = !settings.grid; savePanels()"><div class="v-input--switch__thumb"></div></div></div></div>
+                                                    <div class="v-input__control"><div class="v-input__slot v-input__slot--switch"><div class="v-input--switch__track" @click.stop="settings.grid = !settings.grid; settingsChanged()"><div class="v-input--switch__thumb"></div></div></div></div>
                                                 </div>
                                             </div>
                                             <div class="v-list-item__content py-0">
@@ -580,7 +580,7 @@
                                         <div class="v-list-item theme--dark">
                                             <div class="v-list-item__action">
                                                 <div class="v-input theme--dark v-input--selection-controls v-input--switch primary--text" :class="{ 'input--is-checked': settings.noOverlap }">
-                                                    <div class="v-input__control"><div class="v-input__slot v-input__slot--switch"><div class="v-input--switch__track" @click.stop="settings.noOverlap = !settings.noOverlap; savePanels()"><div class="v-input--switch__thumb"></div></div></div></div>
+                                                    <div class="v-input__control"><div class="v-input__slot v-input__slot--switch"><div class="v-input--switch__track" @click.stop="settings.noOverlap = !settings.noOverlap; settingsChanged()"><div class="v-input--switch__thumb"></div></div></div></div>
                                                 </div>
                                             </div>
                                             <div class="v-list-item__content py-0">
@@ -595,7 +595,7 @@
                                                         <div class="v-input__slot">
                                                             <div class="v-text-field__slot">
                                                                 <label class="v-label theme--dark" :class="{ 'v-label--active': settings.gridStep !== undefined && settings.gridStep !== null && settings.gridStep !== '' }" style="left:0;right:auto;position:absolute">{{ t('field_grid_step') }}</label>
-                                                                 <input type="number" v-model.number="settings.gridStep" @change="savePanels()" min="1" style="background:transparent;border:none;color:#fff;outline:none;width:100%;padding:18px 0 4px;font-size:16px">
+                                                                 <input type="number" v-model.number="settings.gridStep" @change="settingsChanged()" min="1" style="background:transparent;border:none;color:#fff;outline:none;width:100%;padding:18px 0 4px;font-size:16px">
                                                             </div>
                                                         </div>
                                                     </div>
@@ -2444,7 +2444,7 @@
                 <div class="modal-body" style="text-align:center;padding:2rem 1.5rem">
                     <i class="fas fa-chart-line" style="font-size:3rem;color:var(--primary);margin-bottom:1rem"></i>
                     <h3 style="margin-bottom:.3rem">Dashboard Pro</h3>
-                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 01.19.01</p>
+                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 01.19.02</p>
                     <p style="color:var(--text-secondary);font-size:.8rem">{{ t('app_desc') }}</p>
                     <div class="about-links" style="margin-top:1rem;font-size:.85rem;color:var(--text-secondary);line-height:1.8">
                         <div>{{ t('about_telegram') }}: <a href="https://t.me/+9ZFQaxs_Ukw4NmMy" target="_blank" rel="noopener">Telegram</a></div>
@@ -2472,6 +2472,6 @@
 <script src="js/lib/hls.min.js?v=1"></script>
 <script src="js/dpbuilder.js?v=69"></script>
     <script src="js/dpbuilder-ui.js?v=52"></script>
-    <script src="js/app.js?v=313"></script>
+    <script src="js/app.js?v=314"></script>
 </body>
 </html>
