@@ -74,6 +74,7 @@ $frontend = array(
     'hdr_link_image' => 'Картинка ссылки',
     'hdr_link_image_placeholder' => 'https:// путь к картинке — имеет приоритет над иконкой',
     'hdr_link_shape' => 'Форма значка',
+    'hdr_link_shape_none' => 'Без фона',
     'hdr_link_shape_square' => 'В квадрате',
     'hdr_link_shape_circle' => 'В кругу',
     'hdr_link_empty' => '— адрес не задан —',

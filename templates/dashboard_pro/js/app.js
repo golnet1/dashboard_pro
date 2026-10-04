@@ -790,7 +790,7 @@ const headerLinkSlots = computed(() => headerInst('link').map(it => {
         url: headerLinkUrl(it.cfg), label: headerLinkTitle(it.cfg),
         image: th.image, icon: th.icon,
         showIcon: headerShowsIcon(it.cfg, 'icon'), showLabel: headerShowsLabel(it.cfg, 'icon'),
-        circle: !!(it.cfg && it.cfg.circle)
+        shape: headerLinkShapeOf(it.cfg)
     };
 }));
 /* Режим "в области панели" показывает адрес в основной области под шапкой,
@@ -806,7 +806,15 @@ function headerLinkGo(inst) {
 function closeLinkView() { linkView.value = null; }
 const headerLinkOpen = ref(false);
 const headerLinkTarget = ref(-1);
-const headerLinkForm = reactive({ title: '', url: '', mode: 'panel', display: 'icon', icon: '', image: '', shape: 'square' });
+const headerLinkForm = reactive({ title: '', url: '', mode: 'panel', display: 'icon', icon: '', image: '', shape: 'none' });
+/* Форма значка хранится строкой: none (без фона), square, circle.
+   Старые записи хранили булево cfg.circle - без shape их надо читать
+   как circle/square, иначе значок у всех старых ссычек потерял бы вид. */
+function headerLinkShapeOf(cfg) {
+    const s = cfg && cfg.shape;
+    if (s === 'none' || s === 'square' || s === 'circle') return s;
+    return (cfg && cfg.circle) ? 'circle' : 'square';
+}
 function openHeaderLinkDialog(idx) {
     const it = headerItems.value[idx];
     if (!it) return;
@@ -817,7 +825,7 @@ function openHeaderLinkDialog(idx) {
     headerLinkForm.display = headerDisplayOf(it.cfg, 'icon');
     headerLinkForm.icon = (it.cfg && it.cfg.icon) || '';
     headerLinkForm.image = (it.cfg && it.cfg.image) || '';
-    headerLinkForm.shape = (it.cfg && it.cfg.circle) ? 'circle' : 'square';
+    headerLinkForm.shape = headerLinkShapeOf(it.cfg);
     headerLinkOpen.value = true;
 }
 function headerLinkSave() {
@@ -829,7 +837,7 @@ function headerLinkSave() {
         title: headerLinkForm.title.trim(), url: url,
         mode: headerLinkMode(headerLinkForm), display: headerLinkForm.display,
         icon: headerLinkForm.icon.trim(), image: headerLinkForm.image.trim(),
-        circle: headerLinkForm.shape === 'circle'
+        shape: headerLinkForm.shape
     };
     headerItemsWrite(list);
     headerLinkOpen.value = false;

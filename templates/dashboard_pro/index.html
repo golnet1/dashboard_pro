@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Ubuntu">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Arimo:400,600,700">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700">
-    <link rel="stylesheet" href="css/app.css?v=153">
+    <link rel="stylesheet" href="css/app.css?v=154">
     <link rel="stylesheet" href="css/leaflet.css?v=1">
     <script src="js/lib/vue.global.prod.js"></script>
 <style>
@@ -168,7 +168,7 @@
                     <template v-for="it in headerLinkSlots" :key="it.key">
                         <div class="app-bar__actions" :style="headerStyleAt(it.idx, it.type)">
                             <a v-if="it.url" class="app-bar__panel-link app-bar__link-thumb" href="#" :title="it.label || it.url" :aria-label="it.label || it.url" @click.prevent="headerLinkGo(it)">
-                                <span v-if="it.showIcon" class="app-bar__panel-thumb" :class="{ 'app-bar__panel-thumb--circle': it.circle }">
+                                <span v-if="it.showIcon" class="app-bar__panel-thumb" :class="{ 'app-bar__panel-thumb--circle': it.shape === 'circle', 'app-bar__panel-thumb--none': it.shape === 'none' }">
                                     <img v-if="it.image" :src="it.image" :alt="it.label || it.url">
                                     <i v-else :class="it.icon"></i>
                                 </span>
@@ -1034,20 +1034,21 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="v-input v-text-field">
-                            <div class="v-input__control">
-                                <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': headerLinkForm.icon }">{{ t('icon') }}</label><input v-model="headerLinkForm.icon" :placeholder="HEADER_LINK_FALLBACK_ICON"></div>
-                                <div class="v-input__details"><div class="v-messages"></div></div>
-                            </div>
-                        </div>
                         <div class="d-flex gap-2" style="align-items:center">
-                            <button class="icon-btn" :title="t('pick_icon')" @click="openIconPicker('hl')"><i :class="headerLinkForm.icon || HEADER_LINK_FALLBACK_ICON"></i></button>
-                            <button class="icon-btn" @click="headerLinkForm.icon=''" :title="t('clear')"><i class="fas fa-backspace"></i></button>
+                            <div class="v-input v-text-field" style="flex:1 1 auto;min-width:0">
+                                <div class="v-input__control">
+                                    <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': headerLinkForm.icon }">{{ t('icon') }}</label><input v-model="headerLinkForm.icon" :placeholder="HEADER_LINK_FALLBACK_ICON"></div>
+                                    <div class="v-input__details"><div class="v-messages"></div></div>
+                                </div>
+                            </div>
+                            <button class="icon-btn" :title="t('pick_icon')" @click="openIconPicker('hl')" style="flex-shrink:0"><i :class="headerLinkForm.icon || HEADER_LINK_FALLBACK_ICON"></i></button>
+                            <button class="icon-btn" :title="t('clear')" @click="headerLinkForm.icon=''" style="flex-shrink:0"><i class="fas fa-backspace"></i></button>
                         </div>
                         <div class="v-input v-text-field v-select">
                             <div class="v-input__control">
                                 <div class="v-input__slot"><label class="v-label v-label--active">{{ t('hdr_link_shape') }}</label>
                                     <select v-model="headerLinkForm.shape">
+                                        <option value="none" style="background:#1e1e1e;color:#fff">{{ t('hdr_link_shape_none') }}</option>
                                         <option value="square" style="background:#1e1e1e;color:#fff">{{ t('hdr_link_shape_square') }}</option>
                                         <option value="circle" style="background:#1e1e1e;color:#fff">{{ t('hdr_link_shape_circle') }}</option>
                                     </select>
@@ -2465,7 +2466,7 @@
                 <div class="modal-body" style="text-align:center;padding:2rem 1.5rem">
                     <i class="fas fa-chart-line" style="font-size:3rem;color:var(--primary);margin-bottom:1rem"></i>
                     <h3 style="margin-bottom:.3rem">Dashboard Pro</h3>
-                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 01.20.00</p>
+                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 01.20.01</p>
                     <p style="color:var(--text-secondary);font-size:.8rem">{{ t('app_desc') }}</p>
                     <div class="about-links" style="margin-top:1rem;font-size:.85rem;color:var(--text-secondary);line-height:1.8">
                         <div>{{ t('about_telegram') }}: <a href="https://t.me/+9ZFQaxs_Ukw4NmMy" target="_blank" rel="noopener">Telegram</a></div>
@@ -2493,6 +2494,6 @@
 <script src="js/lib/hls.min.js?v=1"></script>
 <script src="js/dpbuilder.js?v=69"></script>
     <script src="js/dpbuilder-ui.js?v=52"></script>
-    <script src="js/app.js?v=321"></script>
+    <script src="js/app.js?v=322"></script>
 </body>
 </html>

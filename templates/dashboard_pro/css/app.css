@@ -1218,6 +1218,12 @@ body.widget-dragging, body.widget-dragging * { cursor: grabbing !important; }
 .app-bar__panel-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .app-bar__panel-thumb i { font-size: .95rem; }
 .app-bar__panel-thumb--circle { border-radius: 50%; }
+/* Без фона: значок сам по себе, без подложки и рамки. Размер не задаём,
+   иначе вокруг иконки остаётся пустой квадрат. Картинку всё же ограничиваем,
+   чтобы она не растянулась на всю шапку. */
+.app-bar__panel-thumb--none { width: auto; height: auto; background: none; overflow: visible; }
+.app-bar__panel-thumb--none img { width: auto; height: auto; max-width: 28px; max-height: 28px; object-fit: contain; }
+.app-bar__panel-thumb--none i { font-size: 1.05rem; }
 .app-bar__panel-link:focus-visible { outline: 2px solid #fff; outline-offset: 1px; }
 
 .hsb { padding: 0 16px 24px; }

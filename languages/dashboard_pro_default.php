@@ -74,6 +74,7 @@ $frontend = array(
     'hdr_link_image' => 'Link image',
     'hdr_link_image_placeholder' => 'https:// path to the image - takes priority over the icon',
     'hdr_link_shape' => 'Icon shape',
+    'hdr_link_shape_none' => 'No background',
     'hdr_link_shape_square' => 'Square',
     'hdr_link_shape_circle' => 'Circle',
     'hdr_link_empty' => '- no address -',
