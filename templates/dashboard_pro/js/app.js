@@ -618,6 +618,22 @@ const headerStatusSectionOn = computed(() => headerHas('status'));
                и эти свойства, иначе значения в шапке застынут. */
             wsSubscribeProperties();
         }
+        /* target < 0 - это новый элемент, его надо добавить в конец; иначе
+           обновляется существующий. Одна точка записи для всех трёх диалогов:
+           проверка лимита и запись в настройки не должны разойтись. */
+        function headerItemPut(target, ty, cfg) {
+            const list = headerItems.value.slice();
+            if (target < 0) {
+                if (headerAtLimit(ty)) return false;
+                list.push({ t: ty, cfg: cfg });
+            } else {
+                const it = list[target];
+                if (!it || it.t !== ty) return false;
+                it.cfg = cfg;
+            }
+            headerItemsWrite(list);
+            return true;
+        }
         function headerMigrateLegacy() {
             const list = headerItems.value.slice();
             let touched = false;
@@ -659,13 +675,16 @@ const headerDragIndex = ref(-1);
 
         function headerItemAdd(ty) {
             if (!headerDef(ty) || headerAtLimit(ty)) return;
+            headerAddOpen.value = false;
+            /* Ссылка, значение объекта и выбор панели без своих значений ничего не
+               показывают, поэтому сначала диалог, и только «Сохранить» кладёт
+               элемент в шапку: «Отмена» не должна оставлять после себя запись. */
+            if (ty === 'value') { openHeaderValueDialog(-1); return; }
+            if (ty === 'link') { openHeaderLinkDialog(-1); return; }
+            if (ty === 'panel') { openHeaderPanelDialog(-1); return; }
             const list = headerItems.value.slice();
             list.push({ t: ty, cfg: {} });
             headerItemsWrite(list);
-            headerAddOpen.value = false;
-            if (ty === 'value') openHeaderValueDialog(list.length - 1);
-            else if (ty === 'link') openHeaderLinkDialog(list.length - 1);
-            else if (ty === 'panel') openHeaderPanelDialog(list.length - 1);
         }
 
         function headerItemRemove(idx) {
@@ -703,10 +722,9 @@ const headerDragIndex = ref(-1);
         }
 
         function openHeaderValueDialog(idx) {
-            const it = headerItems.value[idx];
-            if (!it) return;
+            const it = (idx >= 0) ? headerItems.value[idx] : null;
             headerValueTarget.value = idx;
-            const cfg = it.cfg || {};
+            const cfg = (it && it.cfg) || {};
             headerValueForm.object = cfg.object || '';
             headerValueForm.property = cfg.property || '';
             headerValueProps.value = [];
@@ -721,12 +739,13 @@ const headerDragIndex = ref(-1);
             headerValueProps.value = res.items || [];
         }
 
+        function headerValueCanSave() {
+            return !!headerValueForm.object && !!headerValueForm.property;
+        }
         function headerValueSave() {
-            const list = headerItems.value.slice();
-            const it = list[headerValueTarget.value];
-            if (!it || !headerValueForm.object || !headerValueForm.property) return;
-            it.cfg = { object: headerValueForm.object, property: headerValueForm.property };
-            headerItemsWrite(list);
+            if (!headerValueCanSave()) return;
+            const cfg = { object: headerValueForm.object, property: headerValueForm.property };
+            if (!headerItemPut(headerValueTarget.value, 'value', cfg)) return;
             headerValueOpen.value = false;
             headerValueRefresh();
         }
@@ -797,6 +816,7 @@ const headerLinkSlots = computed(() => headerInst('link').map(it => {
    поэтому дашборд и меню остаются на месте. */
 const linkView = ref(null);
 function headerLinkGo(inst) {
+    if (!inst) return;
     const u = headerLinkUrl(inst && inst.cfg);
     if (!u) { openHeaderLinkDialog(inst ? inst.idx : -1); return; }
     if (headerLinkMode(inst.cfg) === 'window') { window.open(u, '_blank', 'noopener'); return; }
@@ -816,30 +836,30 @@ function headerLinkShapeOf(cfg) {
     return (cfg && cfg.circle) ? 'circle' : 'square';
 }
 function openHeaderLinkDialog(idx) {
-    const it = headerItems.value[idx];
-    if (!it) return;
+    const it = (idx >= 0) ? headerItems.value[idx] : null;
     headerLinkTarget.value = idx;
-    headerLinkForm.title = (it.cfg && it.cfg.title) || '';
-    headerLinkForm.url = headerLinkUrl(it.cfg);
-    headerLinkForm.mode = headerLinkMode(it.cfg);
-    headerLinkForm.display = headerDisplayOf(it.cfg, 'icon');
-    headerLinkForm.icon = (it.cfg && it.cfg.icon) || '';
-    headerLinkForm.image = (it.cfg && it.cfg.image) || '';
-    headerLinkForm.shape = headerLinkShapeOf(it.cfg);
+    headerLinkForm.title = (it && it.cfg && it.cfg.title) || '';
+    headerLinkForm.url = headerLinkUrl(it && it.cfg);
+    headerLinkForm.mode = headerLinkMode(it && it.cfg);
+    headerLinkForm.display = headerDisplayOf(it && it.cfg, 'icon');
+    headerLinkForm.icon = (it && it.cfg && it.cfg.icon) || '';
+    headerLinkForm.image = (it && it.cfg && it.cfg.image) || '';
+    headerLinkForm.shape = headerLinkShapeOf(it && it.cfg);
     headerLinkOpen.value = true;
 }
+function headerLinkCanSave() {
+    return !!headerLinkNormalize(headerLinkForm.url);
+}
 function headerLinkSave() {
-    const list = headerItems.value.slice();
-    const it = list[headerLinkTarget.value];
-    if (!it) return;
     const url = headerLinkNormalize(headerLinkForm.url);
-    it.cfg = {
+    if (!url) return;
+    const cfg = {
         title: headerLinkForm.title.trim(), url: url,
         mode: headerLinkMode(headerLinkForm), display: headerLinkForm.display,
         icon: headerLinkForm.icon.trim(), image: headerLinkForm.image.trim(),
         shape: headerLinkForm.shape
     };
-    headerItemsWrite(list);
+    if (!headerItemPut(headerLinkTarget.value, 'link', cfg)) return;
     headerLinkOpen.value = false;
     headerLinkForm.url = url;
     /* Открытая в панели ссылка показывает старый адрес - закрываем её. */
@@ -852,26 +872,27 @@ const headerPanelOpen = ref(false);
 const headerPanelTarget = ref(-1);
 const headerPanelForm = reactive({ name: '', display: 'icon' });
 function openHeaderPanelDialog(idx) {
-    const it = headerItems.value[idx];
-    if (!it) return;
+    const it = (idx >= 0) ? headerItems.value[idx] : null;
     headerPanelTarget.value = idx;
-    headerPanelForm.name = (it.cfg && it.cfg.name) || '';
-    headerPanelForm.display = headerDisplayOf(it.cfg, 'icon');
+    headerPanelForm.name = (it && it.cfg && it.cfg.name) || '';
+    headerPanelForm.display = headerDisplayOf(it && it.cfg, 'icon');
     headerPanelOpen.value = true;
 }
 function headerPanelGo(inst) {
+    if (!inst) return;
     const cfg = (inst && inst.cfg) || {};
     const p = headerPanelItemOf(cfg);
-    if (!p) { openHeaderPanelDialog(inst ? inst.idx : -1); return; }
+    if (!p) { openHeaderPanelDialog(inst.idx); return; }
     selectPanel(p);
     sidebarOpen.value = false;
 }
+function headerPanelCanSave() {
+    return !!headerPanelForm.name;
+}
 function headerPanelSave() {
-    const list = headerItems.value.slice();
-    const it = list[headerPanelTarget.value];
-    if (!it) return;
-    it.cfg = { name: headerPanelForm.name || '', display: headerPanelForm.display };
-    headerItemsWrite(list);
+    if (!headerPanelCanSave()) return;
+    const cfg = { name: headerPanelForm.name, display: headerPanelForm.display };
+    if (!headerItemPut(headerPanelTarget.value, 'panel', cfg)) return;
     headerPanelOpen.value = false;
 }
 
@@ -3807,10 +3828,10 @@ onMounted(() => {
             showChangeObject, changeObjectGroups, openChangeObject, saveChangeObject, widgetHasChangeObjects,
             showSettingsPanel, showWidgetEditorPanel, showHeaderPanel, openHeaderSettings, settings, savePanels, saveSettingsNow, settingsChanged, commitChanges, hasUnsavedChanges, toggleTheme, cleanupOrphanWidgets, resetAll,
             headerItems, headerDefs, headerHas, headerCount, headerAtLimit, headerCanRemove, headerInst, headerPanelSlots, headerValueSlots, headerSlotStyle, headerStyleAt, headerSpacerHint, headerDef, headerItemLabel, headerAddOpen, headerDragIndex,
-            headerPanelList, headerPanelOpen, headerPanelForm, headerPanelItemOf, headerPanelHint, openHeaderPanelDialog, headerPanelGo, headerPanelSave,
-            headerItemAdd, headerItemRemove, headerItemsClear, headerItemsDefaults, headerDragStart, headerDragOver, headerDragEnd,
-            headerValueOpen, headerValueProps, headerValueForm, headerValueTexts, headerValueHint, headerValueTextOf, openHeaderValueDialog, headerValueLoadProps, headerValueSave, headerValueRefresh,
-            headerLinkSlots, linkView, closeLinkView, headerLinkOpen, headerLinkTarget, headerLinkForm, headerLinkHint, openHeaderLinkDialog, headerLinkGo, headerLinkSave, HEADER_LINK_FALLBACK_ICON,
+            headerPanelList, headerPanelOpen, headerPanelForm, headerPanelCanSave, headerPanelItemOf, headerPanelHint, openHeaderPanelDialog, headerPanelGo, headerPanelSave,
+            headerItemAdd, headerItemPut, headerItemRemove, headerItemsClear, headerItemsDefaults, headerDragStart, headerDragOver, headerDragEnd,
+            headerValueOpen, headerValueProps, headerValueForm, headerValueCanSave, headerValueTexts, headerValueHint, headerValueTextOf, openHeaderValueDialog, headerValueLoadProps, headerValueSave, headerValueRefresh,
+            headerLinkSlots, linkView, closeLinkView, headerLinkOpen, headerLinkTarget, headerLinkForm, headerLinkCanSave, headerLinkHint, openHeaderLinkDialog, headerLinkGo, headerLinkSave, HEADER_LINK_FALLBACK_ICON,
             showExportDialog, exportMode, exportSelectedPanel, exportUsers, exportSelectedUser, loadExportUsers, doExport, doImport,
             showCleanupDialog, cleanupReport, cleanupBusy, cleanupReasons, applyCleanup, restorePanels, runWizard,
             showAddPanel, editPanelData, panelForm, panelTab, panelTabPos, panelError, createPanel, editPanel, openPanelForm, deletePanel, deleteCurrentPanel, movePanel, isPanel, isNavActive, navItemClick, showAbout, toggleField,

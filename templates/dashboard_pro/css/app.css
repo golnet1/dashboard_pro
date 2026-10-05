@@ -225,6 +225,8 @@ a.user-menu__item { text-decoration: none; color: inherit; }
 .icon-picker__page.active { background: #1976d2; color: #fff; }
 .btn-primary { padding: .6rem 1.2rem; background: var(--primary); color: #fff; border: none; border-radius: var(--wpb-radius-default, 0px); cursor: pointer; font-size: .85rem; }
 .btn-primary:hover { opacity: .85; }
+.btn-primary[disabled], .btn-primary:disabled { opacity: .4; cursor: not-allowed; }
+.btn-primary[disabled]:hover, .btn-primary:disabled:hover { opacity: .4; }
 
 .search-box { position: relative; margin-bottom: 1rem; }
 .search-box i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); }
