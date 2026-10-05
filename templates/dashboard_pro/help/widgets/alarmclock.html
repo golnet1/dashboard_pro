@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Будильник — Dashboard Pro Справка</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="../css/help.css">
+</head>
+<body>
+<header class="help-header">
+    <i class="fas fa-book" style="font-size:1.4rem"></i>
+    <h1>Dashboard Pro <span class="subtitle">— справка и документация</span></h1>
+    <a href="../../index.html"><i class="fas fa-external-link-alt"></i> Открыть панель</a>
+</header>
+<div class="help-layout">
+    <aside class="help-side">
+        <div class="help-side__title">Разделы справки</div>
+        <nav>
+            <a href="../index.html"><i class="fas fa-home"></i> Обзор</a>
+            <a href="../panels.html"><i class="fas fa-th-large"></i> Панели</a>
+            <a href="../widgets.html" class="help-side__toggle" aria-expanded="false"><i class="fas fa-puzzle-piece"></i> Виджеты</a><div class="help-side__sub">
+                <a href="acremote.html">Пульт кондиционера</a>
+                <a href="alarmclock.html" class="active">Будильник</a>
+                <a href="analogclock.html">Аналоговые часы</a>
+                <a href="button.html">Кнопка</a>
+                <a href="calendar.html">Календарь</a>
+                <a href="chat.html">Чат</a>
+                <a href="clock.html">Часы</a>
+                <a href="colorslider.html">Слайдер цвета</a>
+                <a href="datepicker.html">Выбор даты</a>
+                <a href="dimmer.html">Диммер</a>
+                <a href="empty.html">Пустой</a>
+                <a href="gauge.html">Индикатор</a>
+                <a href="gradient-slider.html">gradient-slider</a>
+                <a href="graph.html">График</a>
+                <a href="group.html">Группа</a>
+                <a href="iframe.html">iFrame</a>
+                <a href="image.html">Изображение</a>
+                <a href="keypad.html">Клавиатура</a>
+                <a href="map.html">Карта</a>
+                <a href="musicremote.html">Пульт музыки</a>
+                <a href="panellink.html">Ссылка на панель</a>
+                <a href="progressbar.html">Прогресс-бар</a>
+                <a href="relay.html">Реле</a>
+                <a href="rgb.html">RGB</a>
+                <a href="roominfo.html">Помещение</a>
+                <a href="roundslider.html">Круглый слайдер</a>
+                <a href="select.html">Выбор</a>
+                <a href="sendtext.html">Отправка текста</a>
+                <a href="slider.html">Слайдер</a>
+                <a href="sliderbuttons.html">Слайдер с кнопками</a>
+                <a href="slideshow.html">Слайд-шоу</a>
+                <a href="status.html">Статус</a>
+                <a href="stream.html">Потоковое видео</a>
+                <a href="table.html">Таблица</a>
+                <a href="test.html">Тест</a>
+                <a href="text.html">Текст</a>
+                <a href="thermostat.html">Термостат</a>
+                <a href="timeline.html">Таймлайн</a>
+                <a href="timepicker.html">Выбор времени</a>
+                <a href="trend.html">Тренд</a>
+                <a href="tvremote.html">Пульт ТВ</a>
+                <a href="unknown.html">Неизвестный</a>
+                <a href="value.html">Значение</a>
+                <a href="video.html">Видео</a>
+                <a href="weather.html">Погода</a>
+            </div>
+            <a href="../editor.html"><i class="fas fa-edit"></i> Редактор виджетов</a>
+            <a href="../builder.html"><i class="fas fa-wand-magic-sparkles"></i> Конструктор</a>
+            <a href="../settings.html"><i class="fas fa-cog"></i> Настройки</a>
+            <a href="../users.html"><i class="fas fa-users"></i> Пользователи и права</a>
+            <a href="../faq.html"><i class="fas fa-question-circle"></i> Частые вопросы</a>
+        </nav>
+    </aside>
+    <main class="help-main" id="top">
+        <p class="help-breadcrumb"><a href="../widgets.html"><i class="fas fa-arrow-left"></i> Виджеты</a></p>
+        <h2>Будильник</h2>
+        <div class="help-card" id="alarmclock">
+            <div class="help-card__head"><h3>Будильник</h3><span class="badge">alarmclock</span><a class="help-top" href="../widgets.html">↑ к списку виджетов</a></div>
+            <p>Виджет показывает время ближайшего срабатывающего будильника из модуля <b>Будильник</b> и даёт прямо из карточки создавать, менять и удалять расписания. Звуковые будильники проигрываются прямо в браузере: под временем появляется регулятор громкости и круглая кнопка остановки.</p>
+            <h4>Все поля</h4>
+            <p>Ниже — полный список полей настройки виджета: каждое поле, его ключ в файле виджета, тип и значение по умолчанию. Ключ нужен, если вы правите код виджета вручную или собираете свой виджет в конструкторе.</p>
+            <h5>Основное <span class="badge">main</span></h5>
+            <table>
+                <tr><th>Поле</th><th>Тип</th><th>По умолчанию</th><th>Описание</th></tr>
+                <tr><td>Название<br><code>title</code></td><td><code>text</code></td><td>—</td><td>Заголовок карточки. Если пусто, виджет подставляет своё название.</td></tr>
+                <tr><td>Тип иконки<br><code>icon_type</code></td><td><code>select</code></td><td><code>icon</code></td><td>Откуда берётся иконка: из набора Font Awesome, из свойства объекта или по ссылке на картинку. От этой настройки зависит, какие из трёх полей ниже показываются.</td></tr>
+                <tr><td>Иконка<br><code>icon</code></td><td><code>icon_picker</code></td><td><code>fas fa-bell</code></td><td>Класс иконки Font Awesome, например <code>fas fa-bell</code>. <span class="help-note-inline">Показывается: пока <b>Тип иконки</b> = <code>icon</code>.</span></td></tr>
+                <tr><td>Объект (иконка)<br><code>icon_object</code></td><td><code>object</code></td><td>—</td><td>Объект, свойство которого даёт иконку. Показывается, когда выбран тип «Свойство». <span class="help-note-inline">Показывается: пока <b>Тип иконки</b> = <code>property</code>.</span></td></tr>
+                <tr><td>Свойство (иконка)<br><code>icon_property</code></td><td><code>property</code></td><td>—</td><td>Свойство объекта, значение которого используется как иконка. <span class="help-note-inline">Показывается: пока <b>Тип иконки</b> = <code>property</code>.</span></td></tr>
+                <tr><td>URL иконки<br><code>icon_url</code></td><td><code>text</code></td><td>—</td><td>Адрес картинки, которая показывается как иконка: <code>https://…</code> либо путь внутри модуля. <span class="help-note-inline">Показывается: пока <b>Тип иконки</b> = <code>url</code>.</span></td></tr>
+                <tr><td>Класс объектов<br><code>class_name</code></td><td><code>text</code></td><td><code>AlarmClock</code></td><td>Имя класса, из которого виджет берёт расписания. Поменяйте, если ваши будильники лежат в другом классе.</td></tr>
+                <tr><td>Сортировка<br><code>sort_by</code></td><td><code>select</code></td><td><code>time</code></td><td>Порядок расписаний в выпадающем списке: по времени срабатывания или по названию.</td></tr>
+                <tr><td>Фон виджета<br><code>bg_mode</code></td><td><code>select</code></td><td>—</td><td>Откуда берётся фон карточки: тема виджета, картинка, свой цвет или цвет из свойства объекта.</td></tr>
+                <tr><td>Цвет<br><code>color</code></td><td><code>color</code></td><td>—</td><td>Цвет фона карточки. Применяется, когда выбран режим «Свой цвет». <span class="help-note-inline">Показывается: пока <b>Фон виджета</b> = <code>color</code>.</span></td></tr>
+                <tr><td>URL изображения<br><code>bg_image</code></td><td><code>text</code></td><td>—</td><td>Адрес фоновой картинки. Показывается, когда выбран режим «Картинка». <span class="help-note-inline">Показывается: пока <b>Фон виджета</b> = <code>image</code>.</span></td></tr>
+                <tr><td>Объект (цвет)<br><code>bg_object</code></td><td><code>object</code></td><td>—</td><td>Объект, свойство которого задаёт цвет фона. Показывается, когда выбран режим «Цвет из свойства». <span class="help-note-inline">Показывается: пока <b>Фон виджета</b> = <code>property</code>.</span></td></tr>
+                <tr><td>Свойство (цвет)<br><code>bg_property</code></td><td><code>property</code></td><td>—</td><td>Свойство объекта, значение которого используется как цвет фона. <span class="help-note-inline">Показывается: пока <b>Фон виджета</b> = <code>property</code>.</span></td></tr>
+            </table>
+            <h5>Параметры <span class="badge">params</span></h5>
+            <table>
+                <tr><th>Поле</th><th>Тип</th><th>По умолчанию</th><th>Описание</th></tr>
+                <tr><td>Показывать название<br><code>show_name</code></td><td><code>checkbox</code></td><td>да</td><td>Показывать под временем название ближайшего расписания.</td></tr>
+                <tr><td>Показывать действие<br><code>show_method</code></td><td><code>checkbox</code></td><td>нет</td><td>Показывать метку действия (звук, сценарий, код, метод) в списке расписаний.</td></tr>
+                <tr><td>Поля текста<br><code>show_labels</code></td><td><code>checkbox</code></td><td>да</td><td>Показывать в форме расписания поля своих текстов для включения и выключения.</td></tr>
+                <tr><td>Разрешить добавление<br><code>allow_add</code></td><td><code>checkbox</code></td><td>да</td><td>Показывать пункт «Добавить расписание» в меню виджета.</td></tr>
+                <tr><td>Разрешить удаление<br><code>allow_delete</code></td><td><code>checkbox</code></td><td>да</td><td>Показывать кнопку удаления в форме расписания.</td></tr>
+            </table>
+            <h5>Дополнительно <span class="badge">advanced</span></h5>
+            <table>
+                <tr><th>Поле</th><th>Тип</th><th>По умолчанию</th><th>Описание</th></tr>
+                <tr><td>Интервал опроса (сек)<br><code>timeout</code></td><td><code>number</code></td><td>30</td><td>Как часто виджет перечитывает расписания с сервера. Минимальное значение — 5 секунд.</td></tr>
+                <tr><td>Следить за циклом<br><code>loop_watch</code></td><td><code>checkbox</code></td><td>да</td><td>Показывать бейдж состояния цикла модуля: работает цикл или упал.</td></tr>
+                <tr><td>Имя цикла<br><code>loop_object</code></td><td><code>text</code></td><td><code>cycle_alarmclock</code></td><td>Имя цикла, состояние которого показывает бейдж.</td></tr>
+                <tr><td>Допустимая задержка (сек)<br><code>loop_timeout</code></td><td><code>number</code></td><td>30</td><td>После какого молчания цикла бейдж считается тревожным и краснеет.</td></tr>
+            </table>
+            <h4>Как это работает</h4>
+            <p><b>Ближайший будильник.</b> Виджет перебирает расписания и выбирает то, до которого осталось меньше всего времени. Переключение на следующее расписание происходит в момент срабатывания текущего, а не заранее: пока время ещё не наступило, в карточке остаётся текущий будильник. Если будильник выключен или ни одного дня не выбрано, он не участвует в выборе.</p>
+            <p><b>Список расписаний.</b> Кнопка в нижней части карточки открывает меню всех расписаний. Клик по строке открывает форму редактирования. Если расписаний нет, вместо времени выводится соответствующая надпись.</p>
+            <p><b>Форма расписания.</b> Задаются время, название, дни недели, повтор (ежедневно или разово) и действие при срабатывании:</p>
+            <table>
+                <tr><th>Действие</th><th>Что происходит</th></tr>
+                <tr><td>Свой код PHP</td><td>Код из поля сохраняется в метод <code>AlarmRun</code> объекта и выполняется на сервере.</td></tr>
+                <tr><td>Звук</td><td>Имя файла из папки <code>/cms/sounds/</code>. Звук проигрывается в браузере, панель управления показывается под временем.</td></tr>
+                <tr><td>Сценарий</td><td>Имя сценария Majordomo запускается на сервере.</td></tr>
+                <tr><td>Метод объекта</td><td>Вызывается метод у выбранного объекта, например <code>Lamp.TurnOn</code>.</td></tr>
+            </table>
+            <p><b>Звук в браузере.</b> Виджет сам проверяет наступившую минуту и запускает звуковые расписания без кнопок и без запроса к серверу. Как только звук пошёл, под временем появляется ползунок громкости и круглая кнопка с квадратиком — она останавливает звук. Ползунок меняет громкость текущего воспроизведения. Панель исчезает после остановки или после того, как файл дозвучал до конца.</p>
+            <p><b>Ограничения звука.</b> Воспроизведение идёт в той вкладке, где открыта панель: закрытая или свёрнутая вкладка событие пропустит, а звук заработает в каждой открытой вкладке сразу. Если браузер запретил автозапуск, звук доиграется после первого клика или нажатия клавиши на странице. Действия «Свой код PHP», «Сценарий» и «Метод объекта» — серверные, в браузере они не озвучиваются.</p>
+            <h4>Свойства расписания</h4>
+            <p>Каждое расписание хранится в объекте класса, указанного в поле <b>Класс объектов</b>. Имена технические, в карточке показываются только описания объектов.</p>
+            <table>
+                <tr><th>Свойство</th><th>Значение</th></tr>
+                <tr><td><code>AlarmTime</code></td><td>Время срабатывания в формате <code>ЧЧ:ММ</code>.</td></tr>
+                <tr><td><code>days</code></td><td>Маска дней недели семью символами, где <code>1</code> — день включён. Первый символ — понедельник.</td></tr>
+                <tr><td><code>AlarmOn</code></td><td><code>1</code> — расписание включено, <code>0</code> — выключено.</td></tr>
+                <tr><td><code>once</code></td><td><code>1</code> — разово, <code>0</code> — ежедневно по выбранным дням.</td></tr>
+                <tr><td><code>method</code></td><td>Действие: <code>code</code>, <code>sound</code>, <code>script</code> или <code>method</code>.</td></tr>
+                <tr><td><code>code</code></td><td>Код PHP, имя звукового файла, имя сценария или пара «объект.метод» — в зависимости от действия.</td></tr>
+                <tr><td><code>custom_on</code>, <code>custom_off</code></td><td>Свои тексты для включённого и выключенного расписания.</td></tr>
+                <tr><td><code>linked_object</code>, <code>linked_method</code></td><td>Объект и метод для действия «Метод объекта».</td></tr>
+            </table>
+            <h4>Подсказки и частые проблемы</h4>
+            <p><b>Виджет пишет, что модуль не установлен.</b> В системе нет класса, имя которого указано в поле <b>Класс объектов</b>. Установите модуль «Будильник» или укажите правильное имя класса.</p>
+            <p><b>Бейдж цикла красный.</b> Серверный цикл модуля перестал отвечать. Значение рядом с бейджем показывает, сколько секунд прошло с последнего успешного прохода. Свои тексты ошибки виджет берёт из служебного значения цикла.</p>
+            <p><b>Время в карточке переключилось на другой будильник.</b> Это штатное поведение: карточка показывает следующее расписание сразу после срабатывания предыдущего. Если расписание включено, но в поле <b>Класс объектов</b> другой класс, проверьте имя класса.</p>
+            <p><b>Звук не слышно, а панель управления не появилась.</b> Проверьте, что файл лежит в <code>/cms/sounds/</code> и открывается по HTTP, а вкладка с панелью открыта в момент срабатывания. Звуковые карточки сервера в этом не участвуют — воспроизведение идёт в браузере.</p>
+        </div>
+    </main>
+</div>
+<footer class="help-footer">Dashboard Pro · Справка модуля · <a href="https://github.com/golnet1/dashboard_pro" target="_blank" rel="noopener">GitHub</a></footer>
+<script>
+(function () {
+    function closeAll() {
+        document.querySelectorAll('.help-side__sub--open').forEach(function (el) { el.classList.remove('help-side__sub--open'); });
+        document.querySelectorAll('.help-side__toggle').forEach(function (t) { t.setAttribute('aria-expanded', 'false'); });
+    }
+    document.querySelectorAll('.help-side__toggle').forEach(function (toggle) {
+        toggle.addEventListener('click', function (e) {
+            var sub = toggle.nextElementSibling;
+            var wasOpen = sub && sub.classList.contains('help-side__sub--open');
+            closeAll();
+            if (sub && !wasOpen) {
+                sub.classList.add('help-side__sub--open');
+                toggle.setAttribute('aria-expanded', 'true');
+                e.preventDefault();
+            }
+        });
+    }
+    document.querySelectorAll('.help-side nav a').forEach(function (a) {
+        if (!a.classList.contains('help-side__toggle')) a.addEventListener('click', closeAll);
+    });
+})();
+</script>
+<script src="../js/help-search.js"></script>
+</body>
+</html>

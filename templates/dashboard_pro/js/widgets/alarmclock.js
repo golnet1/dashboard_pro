@@ -68,6 +68,14 @@ const AlarmClockWidget = {
                     <div :style="{ fontSize: '2.5rem', lineHeight: '1.05', fontWeight: 300, color: ink.high, fontVariantNumeric: 'tabular-nums' }">{{ nearest.time }}</div>
                     <div :style="{ fontSize: '.74rem', color: ink.mid, textAlign: 'center' }">{{ nextLabel }}</div>
                     <div v-if="flags.name" :style="{ maxWidth: '100%', fontSize: '.68rem', color: ink.dim, textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }">{{ dispName(nearest) }}</div>
+                    <div v-if="isPlaying" style="width:100%;max-width:160px;display:flex;align-items:center;gap:6px;margin-top:6px">
+                        <i class="fas fa-volume-down" :style="{ fontSize: '.65rem', color: ink.mid }"></i>
+                        <input type="range" min="0" max="1" step="0.05" :value="volume" @input.stop="setVolume($event)" :style="volumeStyle">
+                        <i class="fas fa-volume-up" :style="{ fontSize: '.65rem', color: ink.mid }"></i>
+                        <button type="button" @click.stop="stopSound" :style="stopBtnStyle">
+                            <i class="fas fa-square-full" style="font-size:.5rem"></i>
+                        </button>
+                    </div>
                 </template>
                 <div v-else :style="{ fontSize: '.78rem', color: ink.mid, textAlign: 'center', padding: '6px 0' }">
                     {{ loading ? t('loading') : t('ac_nothing') }}
@@ -222,7 +230,8 @@ const AlarmClockWidget = {
             items: [], loading: false, error: '', timer: null, tickTimer: null, now: Date.now(),
             loopAge: null, loopErr: '', menuOpen: false, menuPos: null, modalOpen: false, form: null,
             saving: false, scriptList: [], soundList: [], objectList: [], methodList: [], methodsFor: '', codeLoadedFor: '', raised: null,
-            bgLight: null, classMissing: null, measured: null,
+            bgLight: null, classMissing: null, measured: null, firedMin: { key: '', names: {} }, minTimer: null,
+            audio: null, isPlaying: false, volume: 0.9,
         };
     },
     mounted() {
@@ -245,6 +254,7 @@ const AlarmClockWidget = {
         const sec = Math.max(5, parseInt(this.widget.timeout, 10) || 30);
         this.timer = setInterval(() => this.load(), sec * 1000);
         this.tickTimer = setInterval(() => { this.now = Date.now(); }, 10000);
+        this.armMinuteCheck();
         this._docClick = (e) => {
             const el = this.$el;
             if (el && el.contains && el.contains(e.target)) return;
@@ -254,6 +264,10 @@ const AlarmClockWidget = {
     beforeUnmount() {
         if (this.timer) clearInterval(this.timer);
         if (this.tickTimer) clearInterval(this.tickTimer);
+        if (this.minTimer) clearTimeout(this.minTimer);
+        this.minTimer = null;
+        this.stopSound();
+        this.unarmSoundRetry();
         if (this._mo) { try { this._mo.disconnect(); } catch (e) { } this._mo = null; }
         if (this._moT) clearTimeout(this._moT);
         if (this.menuOpen) document.removeEventListener('click', this._docClick, true);
@@ -457,6 +471,18 @@ const AlarmClockWidget = {
             return {
                 padding: '7px 14px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '.78rem',
                 background: danger ? '#dc2626' : 'rgba(244,67,54,.18)', color: danger ? '#fff' : '#ef9a9a',
+            };
+        },
+        volumeStyle() {
+            return {
+                width: '100%', flex: 1, boxSizing: 'border-box', padding: '0', fontSize: '.8rem',
+            };
+        },
+        stopBtnStyle() {
+            return {
+                display: 'flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px',
+                border: '1px solid ' + this.ink.line, borderRadius: '50%',
+                background: this.ink.fill, color: this.ink.high, cursor: 'pointer', flexShrink: 0,
             };
         },
     },
@@ -704,6 +730,106 @@ const AlarmClockWidget = {
             }
             this.loading = false;
             if (manual || this.flags.loop) await this.loadLoop();
+        },
+        twoDigits(n) {
+            n = parseInt(n, 10) || 0;
+            return (n < 10 ? '0' : '') + n;
+        },
+        armMinuteCheck() {
+            if (this.minTimer) clearTimeout(this.minTimer);
+            const d = new Date();
+            const wait = (60 - d.getSeconds()) * 1000 - d.getMilliseconds() + 1500;
+            this.minTimer = setTimeout(() => { this.armMinuteCheck(); this.checkFire(); }, Math.max(2000, wait));
+        },
+        checkFire() {
+            const d = new Date();
+            const key = this.twoDigits(d.getHours()) + ':' + this.twoDigits(d.getMinutes());
+            if (!this.firedMin) this.firedMin = { key: '', names: {} };
+            if (this.firedMin.key !== key) this.firedMin = { key: key, names: {} };
+            const di = (d.getDay() + 6) % 7;
+            this.rows.forEach(a => {
+                if (!a || !a.on || a.time !== key) return;
+                if (String(a.mask || '').charAt(di) !== '1') return;
+                if (String(a.method || '') !== 'sound') return;
+                if (this.firedMin.names[a.name]) return;
+                this.firedMin.names[a.name] = 1;
+                this.playBrowserSound(a.props && a.props.code ? a.props.code : '');
+            });
+        },
+        soundUrl(name) {
+            const raw = String(name == null ? '' : name).trim();
+            if (!raw) return '';
+            if (/^https?:\/\//i.test(raw)) return raw;
+            const base = '/cms/sounds/';
+            return base + encodeURIComponent(raw) + (raw.toLowerCase().indexOf('.mp3') >= 0 ? '' : '.mp3');
+        },
+        setVolume(e) {
+            const v = parseFloat(e && e.target ? e.target.value : this.volume);
+            this.volume = isNaN(v) ? 0.9 : Math.max(0, Math.min(1, v));
+            if (this.audio) {
+                try { this.audio.volume = this.volume; } catch (e) {}
+            }
+        },
+        stopSound() {
+            try {
+                if (this.audio) {
+                    try { this.audio.pause(); } catch (e) {}
+                    try { this.audio.currentTime = 0; } catch (e) {}
+                    try { this.audio.remove(); } catch (e) {}
+                }
+            } catch (e) {}
+            this.audio = null;
+            this.isPlaying = false;
+            this.unarmSoundRetry();
+        },
+        playBrowserSound(name) {
+            const src = this.soundUrl(name);
+            if (!src) return;
+            this.stopSound();
+            let a;
+            try { a = new Audio(src); } catch (e) { return; }
+            if (!a) return;
+            this.audio = a;
+            a.volume = this.volume;
+            this.isPlaying = true;
+            const onEnd = () => { this.stopSound(); };
+            try { a.addEventListener('ended', onEnd, { once: true }); } catch (e) {}
+            try { a.addEventListener('error', onEnd, { once: true }); } catch (e) {}
+            try {
+                const p = a.play();
+                if (p && p.then) {
+                    p.then(() => { this.unarmSoundRetry(); }).catch(() => { this.unarmSoundRetry(); this.armSoundRetry(src); });
+                }
+            } catch (e) { this.unarmSoundRetry(); this.armSoundRetry(src); }
+        },
+        armSoundRetry(src) {
+            if (this._retrySrc || typeof document === 'undefined') return;
+            this._retrySrc = src;
+            const once = () => {
+                this.unarmSoundRetry();
+                this.stopSound();
+                let a;
+                try { a = new Audio(src); } catch (e) { a = null; }
+                if (!a) return;
+                this.audio = a;
+                a.volume = this.volume;
+                this.isPlaying = true;
+                const onEnd = () => { this.stopSound(); };
+                try { a.addEventListener('ended', onEnd, { once: true }); } catch (e) {}
+                try { a.addEventListener('error', onEnd, { once: true }); } catch (e) {}
+                try { a.play(); } catch (e) {}
+            };
+            this._retryOnce = once;
+            try { document.addEventListener('pointerdown', once, true); } catch (e) {}
+            try { document.addEventListener('keydown', once, true); } catch (e) {}
+        },
+        unarmSoundRetry() {
+            if (this._retryOnce && typeof document !== 'undefined') {
+                try { document.removeEventListener('pointerdown', this._retryOnce, true); } catch (e) {}
+                try { document.removeEventListener('keydown', this._retryOnce, true); } catch (e) {}
+                this._retryOnce = null;
+            }
+            this._retrySrc = null;
         },
         async loadLoop() {
             const raw = String(this.widget.loop_object || 'cycle_alarmclock').trim();
@@ -986,7 +1112,7 @@ const AlarmClockWidget = {
                 const idx = (today + add) % 7;
                 if (a.mask.charAt(idx) !== '1') continue;
                 const delta = add * 1440 + a.minutes - cur;
-                if (delta > 0.5) return { min: delta, dayIdx: idx };
+                if (delta > 0) return { min: delta, dayIdx: idx };
             }
             return null;
         },
