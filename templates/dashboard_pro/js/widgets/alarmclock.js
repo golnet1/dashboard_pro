@@ -1,8 +1,3 @@
-/* Поля окна задаются строкой стилей, а не объектом: Vue при слиянии статического
-   style и :style оставляет только динамический объект, а !important в значении
-   объекта теряет смысл (style.color = 'x !important' браузер отбрасывает).
-   Плюс app.css перебивает цвет input внутри .widget-v-card через !important,
-   поэтому здесь цвет задан важным прямо в атрибуте style. */
 const AC_INPUT_CSS = 'width:100%;box-sizing:border-box;padding:6px 8px;font-size:.8rem;'
     + 'color:#e8eaed !important;-webkit-text-fill-color:#e8eaed !important;'
     + 'background:#1f242c !important;border:1px solid rgba(255,255,255,.16) !important;'
@@ -54,15 +49,15 @@ const AlarmClockWidget = {
     template: `
         <div class="widget-v-card" :style="[cardStyle, cardVars]">
             <div v-if="classMissing" class="ac-noclass" :style="noclassStyle">
-                {{ tr('ac_noclass', 'Модуль будильник не установлен. Установите из маркета.') }}
+                {{ t('ac_noclass') }}
             </div>
             <template v-else>
             <div style="display:flex;align-items:center;gap:6px;padding:7px 9px 0">
                 <i v-if="widget.icon" :class="widget.icon" :style="{ fontSize: '.85rem', flexShrink: '0', color: ink.mid }"></i>
-                <div :style="{ fontSize: '.9rem', fontWeight: 500, color: ink.high, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }">{{ widget.title || tr('widget_alarmclock', 'Будильники') }}</div>
+                <div :style="{ fontSize: '.9rem', fontWeight: 500, color: ink.high, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }">{{ widget.title || t('widget_alarmclock') }}</div>
                 <div style="flex:1"></div>
                 <span v-if="loopBadge" :style="loopBadge.style" :title="loopBadge.title">{{ loopBadge.text }}</span>
-                <button type="button" class="ac-refresh" style="color:var(--ac-ink-mid) !important" :title="tr('refresh', 'Обновить')" @click.stop="load(true)" :style="refreshStyle">
+                <button type="button" class="ac-refresh" style="color:var(--ac-ink-mid) !important" :title="t('refresh')" @click.stop="load(true)" :style="refreshStyle">
                     <i class="fas fa-refresh" :class="{ 'fa-spin': loading }"></i>
                 </button>
             </div>
@@ -75,14 +70,14 @@ const AlarmClockWidget = {
                     <div v-if="flags.name" :style="{ maxWidth: '100%', fontSize: '.68rem', color: ink.dim, textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }">{{ dispName(nearest) }}</div>
                 </template>
                 <div v-else :style="{ fontSize: '.78rem', color: ink.mid, textAlign: 'center', padding: '6px 0' }">
-                    {{ loading ? tr('loading', 'Загрузка') : tr('ac_nothing', 'Нет включённых будильников') }}
+                    {{ loading ? t('loading') : t('ac_nothing') }}
                 </div>
             </div>
 
             <div style="flex-shrink:0;padding:0 8px 8px">
                 <button ref="menuBtn" type="button" class="ac-menu-btn" style="color:var(--ac-ink-mid) !important" @click.stop="toggleMenu" :style="menuBtnStyle">
                     <i class="fas fa-clock" style="font-size:.65rem"></i>
-                    <span style="margin-left:6px">{{ tr('ac_all', 'Все будильники') }} ({{ rows.length }})</span>
+                    <span style="margin-left:6px">{{ t('ac_all') }} ({{ rows.length }})</span>
                     <i class="fas fa-chevron-down" style="margin-left:auto;font-size:.55rem"></i>
                 </button>
             </div>
@@ -90,17 +85,17 @@ const AlarmClockWidget = {
             <div v-if="menuOpen" class="ac-menu" :style="menuStyle" @click.stop>
                 <div v-if="flags.add" class="ac-menu-add" :style="addItemStyle" @click.stop="startNew">
                     <i class="fas fa-plus" style="width:14px;font-size:.7rem"></i>
-                    <span>{{ tr('ac_new', 'Добавить расписание') }}</span>
+                    <span>{{ t('ac_new') }}</span>
                 </div>
                 <div v-if="flags.add" style="height:1px;margin:2px 0;background:rgba(255,255,255,.12)"></div>
-                <div v-if="!rows.length" class="ac-menu-empty" style="padding:8px 12px;font-size:.78rem;color:#a7acb3">{{ tr('no_data', 'Нет данных') }}</div>
+                <div v-if="!rows.length" class="ac-menu-empty" style="padding:8px 12px;font-size:.78rem;color:#a7acb3">{{ t('no_data') }}</div>
                 <div v-for="a in rows" :key="a.name" :style="itemStyle" @click.stop="openModal(a)">
                     <span :style="dotStyle(a)"></span>
                     <span class="ac-menu-time" style="font-size:.82rem;color:#e8eaed;font-variant-numeric:tabular-nums;width:42px;flex-shrink:0">{{ a.time || '--:--' }}</span>
                     <span class="ac-menu-name" style="font-size:.76rem;color:#a7acb3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ dispName(a) }}</span>
                     <span v-if="flags.method && a.method" class="ac-menu-badge" style="flex-shrink:0;margin-left:auto;font-size:.64rem;padding:1px 6px;border-radius:8px;background:rgba(255,255,255,.14);color:#c9cdd1">{{ methodName(a.method) }}</span>
-                    <i v-else-if="a.once" class="fas fa-1" :title="tr('ac_once', 'разово')" style="flex-shrink:0;margin-left:auto;font-size:.6rem;opacity:.6"></i>
-                    <i v-if="a.badTime" class="fas fa-triangle-exclamation" :title="tr('ac_badtime', 'Время в неверном формате, модуль его не увидит')" style="flex-shrink:0;font-size:.62rem;color:#ef9a9a"></i>
+                    <i v-else-if="a.once" class="fas fa-1" :title="t('ac_once')" style="flex-shrink:0;margin-left:auto;font-size:.6rem;opacity:.6"></i>
+                    <i v-if="a.badTime" class="fas fa-triangle-exclamation" :title="t('ac_badtime')" style="flex-shrink:0;font-size:.62rem;color:#ef9a9a"></i>
                 </div>
             </div>
 
@@ -109,7 +104,7 @@ const AlarmClockWidget = {
                     <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
                         <i class="fas fa-bell" style="color:var(--primary);font-size:.9rem"></i>
                         <div style="font-size:.92rem;font-weight:600;color:var(--text, #e8eaed);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-                            {{ form.isNew ? tr('ac_new_alarm', 'Новое расписание') : dispName(form) }}
+                            {{ form.isNew ? t('ac_new_alarm') : dispName(form) }}
                         </div>
                         <div style="flex:1"></div>
                         <button type="button" @click="closeModal" style="flex-shrink:0;width:24px;height:24px;border:none;border-radius:50%;background:rgba(255,255,255,.08);color:#9aa0a6;cursor:pointer">✕</button>
@@ -118,80 +113,80 @@ const AlarmClockWidget = {
                     <div v-if="form.error" style="margin-bottom:8px;font-size:.72rem;color:#ef9a9a">{{ form.error }}</div>
 
                     <div :style="fieldStyle">
-                        <label :style="labelStyle">{{ tr('ac_name', 'Название') }}</label>
+                        <label :style="labelStyle">{{ t('ac_name') }}</label>
                         <input v-model="form.descr" type="text" :style="inputCss">
                     </div>
 
                     <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
                         <div :style="fieldStyle">
-                            <label :style="labelStyle">{{ tr('ac_time', 'Время') }}</label>
+                            <label :style="labelStyle">{{ t('ac_time') }}</label>
                             <input v-model="form.time" type="time" :style="inputCssTime">
                         </div>
                         <div :style="fieldStyle">
-                            <label :style="labelStyle">{{ tr('ac_repeat', 'Повтор') }}</label>
+                            <label :style="labelStyle">{{ t('ac_repeat') }}</label>
                             <select v-model="form.once" :style="inputCss">
-                                <option :value="0">{{ tr('ac_everyday', 'каждый раз') }}</option>
-                                <option :value="1">{{ tr('ac_once', 'разово') }}</option>
+                                <option :value="0">{{ t('ac_everyday') }}</option>
+                                <option :value="1">{{ t('ac_once') }}</option>
                             </select>
                         </div>
                         <div style="padding-bottom:2px">
-                            <label :style="labelStyle">{{ tr('ac_state', 'Состояние') }}</label>
+                            <label :style="labelStyle">{{ t('ac_state') }}</label>
                             <div style="height:30px;display:flex;align-items:center">
                                 <div class="v-input--switch" :class="{ 'input--is-checked': form.on }" @click="form.on = !form.on" style="cursor:pointer;pointer-events:auto">
                                     <div class="v-input--switch__track"><div class="v-input--switch__thumb"></div></div>
                                 </div>
-                                <span style="margin-left:8px;font-size:.76rem;color:#9aa0a6">{{ form.on ? tr('ac_on', 'Вкл') : tr('ac_off', 'Выкл') }}</span>
+                                <span style="margin-left:8px;font-size:.76rem;color:#9aa0a6">{{ form.on ? t('ac_on') : t('ac_off') }}</span>
                             </div>
                         </div>
                     </div>
 
                     <div :style="fieldStyle">
-                        <label :style="labelStyle">{{ tr('ac_days', 'Дни недели') }}</label>
+                        <label :style="labelStyle">{{ t('ac_days') }}</label>
                         <div style="display:flex;gap:4px">
                             <button v-for="(d, di) in weekDays" :key="di" type="button" class="ac-day" :class="{ 'ac-day-on': form.mask.charAt(di) === '1' }" @click="form.mask = flipDay(form.mask, di)" :style="dayStyle(di)">{{ d }}</button>
                         </div>
                     </div>
 
                     <div :style="fieldStyle">
-                        <label :style="labelStyle">{{ tr('ac_action', 'Что выполнять') }}</label>
+                        <label :style="labelStyle">{{ t('ac_action') }}</label>
                         <select v-model="form.method" @change="loadActionLists" :style="inputCss">
-                            <option value="code">{{ tr('ac_action_code', 'свой код PHP') }}</option>
-                            <option value="sound">{{ tr('ac_action_sound', 'звук') }}</option>
-                            <option value="script">{{ tr('ac_action_script', 'сценарий') }}</option>
-                            <option value="method">{{ tr('ac_action_method', 'метод объекта') }}</option>
+                            <option value="code">{{ t('ac_action_code') }}</option>
+                            <option value="sound">{{ t('ac_action_sound') }}</option>
+                            <option value="script">{{ t('ac_action_script') }}</option>
+                            <option value="method">{{ t('ac_action_method') }}</option>
                         </select>
                     </div>
 
                     <div v-if="form.method === 'code'" :style="fieldStyle">
-                        <label :style="labelStyle">{{ tr('ac_php_code', 'Свой код PHP') }}</label>
+                        <label :style="labelStyle">{{ t('ac_php_code') }}</label>
                         <textarea v-model="form.php" rows="4" :style="codeCss"></textarea>
                     </div>
                     <div v-else-if="form.method === 'sound'" :style="fieldStyle">
-                        <label :style="labelStyle">{{ tr('ac_sound_file', 'Файл из папки sounds') }}</label>
+                        <label :style="labelStyle">{{ t('ac_sound_file') }}</label>
                         <select v-model="form.sound" :style="inputCss">
-                            <option value="">{{ tr('ac_none', 'не выбран') }}</option>
+                            <option value="">{{ t('ac_none') }}</option>
                             <option v-for="s in soundNames" :key="'snd' + s" :value="s">{{ s }}</option>
                         </select>
                     </div>
                     <div v-else-if="form.method === 'script'" :style="fieldStyle">
-                        <label :style="labelStyle">{{ tr('ac_script_name', 'Сценарий') }}</label>
+                        <label :style="labelStyle">{{ t('ac_script_name') }}</label>
                         <select v-model="form.script" :style="inputCss">
-                            <option value="">{{ tr('ac_none', 'не выбран') }}</option>
+                            <option value="">{{ t('ac_none') }}</option>
                             <option v-for="s in scriptNames" :key="'s' + s" :value="s">{{ s }}</option>
                         </select>
                     </div>
                     <div v-else-if="form.method === 'method'" style="display:flex;gap:10px;flex-wrap:wrap">
                         <div :style="fieldStyle + ';flex:1;min-width:130px'">
-                            <label :style="labelStyle">{{ tr('ac_object', 'Объект') }}</label>
+                            <label :style="labelStyle">{{ t('ac_object') }}</label>
                             <select v-model="form.linkedObject" @change="onObjectChange" :style="inputCss">
-                                <option value="">{{ tr('ac_none', 'не выбран') }}</option>
+                                <option value="">{{ t('ac_none') }}</option>
                                 <option v-for="o in objectNames" :key="'o' + o" :value="o">{{ o }}</option>
                             </select>
                         </div>
                         <div :style="fieldStyle + ';flex:1;min-width:130px'">
-                            <label :style="labelStyle">{{ tr('ac_meth', 'Метод') }}</label>
+                            <label :style="labelStyle">{{ t('ac_meth') }}</label>
                             <select v-model="form.linkedMethod" :style="inputCss">
-                                <option value="">{{ tr('ac_none', 'не выбран') }}</option>
+                                <option value="">{{ t('ac_none') }}</option>
                                 <option v-for="m in methodNames" :key="'m' + m" :value="m">{{ m }}</option>
                             </select>
                         </div>
@@ -199,23 +194,23 @@ const AlarmClockWidget = {
 
                     <template v-if="flags.labels">
                         <div :style="fieldStyle">
-                            <label :style="labelStyle">{{ tr('ac_text_on', 'Текст при включении') }}</label>
+                            <label :style="labelStyle">{{ t('ac_text_on') }}</label>
                             <input v-model="form.customOn" type="text" :style="inputCss">
                         </div>
                         <div :style="fieldStyle">
-                            <label :style="labelStyle">{{ tr('ac_text_off', 'Текст при выключении') }}</label>
+                            <label :style="labelStyle">{{ t('ac_text_off') }}</label>
                             <input v-model="form.customOff" type="text" :style="inputCss">
                         </div>
                     </template>
 
                     <div style="display:flex;align-items:center;gap:8px;margin-top:12px">
                         <button v-if="!form.isNew && flags.del" type="button" class="ac-del" :class="{ 'ac-del-danger': form.confirmDelete }" @click="removeForm" :style="delBtnStyle">
-                            {{ form.confirmDelete ? tr('ac_confirm_del', 'Точно удалить?') : tr('ac_delete', 'Удалить') }}
+                            {{ form.confirmDelete ? t('ac_confirm_del') : t('ac_delete') }}
                         </button>
                         <div style="flex:1"></div>
-                        <button type="button" class="ac-cancel" @click="closeModal" style="padding:7px 14px;border:none;border-radius:6px;background:rgba(255,255,255,.08);color:#c9cdd1 !important;cursor:pointer;font-size:.78rem">{{ tr('cancel', 'Отмена') }}</button>
+                        <button type="button" class="ac-cancel" @click="closeModal" style="padding:7px 14px;border:none;border-radius:6px;background:rgba(255,255,255,.08);color:#c9cdd1 !important;cursor:pointer;font-size:.78rem">{{ t('cancel') }}</button>
                         <button type="button" @click="saveForm" style="padding:7px 16px;border:none;border-radius:6px;background:var(--primary);color:#fff !important;cursor:pointer;font-size:.78rem">
-                            {{ saving ? '…' : tr('save', 'Сохранить') }}
+                            {{ saving ? '…' : t('save') }}
                         </button>
                     </div>
                 </div>
@@ -282,12 +277,10 @@ const AlarmClockWidget = {
             };
         },
         weekDays() {
-            const own = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-            return own.map((d, i) => this.tr('ac_day_' + i, d));
+            return [0, 1, 2, 3, 4, 5, 6].map(i => this.t('ac_day_' + i));
         },
         weekFull() {
-            const own = ['понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота', 'воскресенье'];
-            return own.map((d, i) => this.tr('ac_weekday_' + i, d));
+            return [0, 1, 2, 3, 4, 5, 6].map(i => this.t('ac_weekday_' + i));
         },
         todayIdx() {
             return (new Date(this.now).getDay() + 6) % 7;
@@ -320,7 +313,7 @@ const AlarmClockWidget = {
             if (!n) return '';
             const info = this.nextInfo(n);
             if (!info) return '';
-            let out = this.tr('ac_in', 'через') + ' ' + this.fmtDelta(info.min);
+            let out = this.t('ac_in') + ' ' + this.fmtDelta(info.min);
             const day = this.weekFull[info.dayIdx];
             if (day) out += ' · ' + day.charAt(0).toUpperCase() + day.slice(1);
             return out;
@@ -342,8 +335,8 @@ const AlarmClockWidget = {
             const limit = Math.max(5, parseInt(this.widget.loop_timeout, 10) || 30);
             const ok = this.loopAge <= limit;
             const ago = this.loopAge < 60
-                ? (this.loopAge + ' ' + this.tr('ac_s', 'с'))
-                : (Math.round(this.loopAge / 60) + ' ' + this.tr('ac_min', 'мин'));
+                ? (this.loopAge + ' ' + this.t('ac_s'))
+                : (Math.round(this.loopAge / 60) + ' ' + this.t('ac_min'));
             const light = this.isLight;
             return {
                 style: {
@@ -354,8 +347,8 @@ const AlarmClockWidget = {
                         : (light ? 'rgba(198,40,40,.14)' : 'rgba(244,67,54,.2)'),
                     color: ok ? (light ? '#2e7d32' : '#a5d6a7') : (light ? '#c62828' : '#ef9a9a'),
                 },
-                text: ok ? (this.tr('ac_loop', 'цикл') + ' ' + ago) : this.tr('ac_loopdown', 'цикл молчит'),
-                title: this.loopErr ? (this.tr('ac_lasterr', 'ошибка цикла') + ': ' + this.loopErr) : '',
+                text: ok ? (this.t('ac_loop') + ' ' + ago) : this.t('ac_loopdown'),
+                title: this.loopErr ? (this.t('ac_lasterr') + ': ' + this.loopErr) : '',
             };
         },
         cardStyle() {
@@ -588,15 +581,6 @@ const AlarmClockWidget = {
             el.onerror = () => { };
             el.src = img;
         },
-        tr(key, fallback) {
-            if (typeof t === 'function') {
-                try {
-                    const v = t(key);
-                    if (v && v !== key) return v;
-                } catch (e) { }
-            }
-            return fallback;
-        },
         qText(v) {
             return String(v == null ? '' : v).replace(/\\/g, '\\\\').replace(/'/g, "''");
         },
@@ -636,15 +620,15 @@ const AlarmClockWidget = {
         },
         methodName(m) {
             const s = String(m || '').toLowerCase();
-            if (s === 'sound') return this.tr('ac_sound', 'звук');
-            if (s === 'method') return this.tr('ac_method', 'метод');
-            if (s === 'script') return this.tr('ac_script', 'сценарий');
-            if (s === 'code') return this.tr('ac_code', 'код');
+            if (s === 'sound') return this.t('ac_sound');
+            if (s === 'method') return this.t('ac_method');
+            if (s === 'script') return this.t('ac_script');
+            if (s === 'code') return this.t('ac_code');
             return s;
         },
         dispName(a) {
             const descr = String(a && a.descr != null ? a.descr : '').trim();
-            return descr || this.tr('ac_noname', 'Без названия');
+            return descr || this.t('ac_noname');
         },
         build(rows) {
             const map = {};
@@ -716,7 +700,7 @@ const AlarmClockWidget = {
                 this.items = this.build(d && Array.isArray(d.data) ? d.data : []);
                 this.error = '';
             } catch (e) {
-                this.error = this.tr('ac_error', 'Ошибка запроса') + ': ' + ((e && e.message) || e);
+                this.error = this.t('ac_error') + ': ' + ((e && e.message) || e);
             }
             this.loading = false;
             if (manual || this.flags.loop) await this.loadLoop();
@@ -929,7 +913,7 @@ const AlarmClockWidget = {
             const f = this.form;
             if (!f || this.saving) return;
             const tp = this.timeParts(f.time);
-            if (!tp) { f.error = this.tr('ac_need_time', 'Укажите время в формате ЧЧ:ММ'); return; }
+            if (!tp) { f.error = this.t('ac_need_time'); return; }
             this.saving = true;
             f.error = '';
             try {
@@ -1011,12 +995,12 @@ const AlarmClockWidget = {
             return n ? n.min : null;
         },
         fmtDelta(m) {
-            if (m < 1) return this.tr('ac_soon', 'меньше минуты');
+            if (m < 1) return this.t('ac_soon');
             const h = Math.floor(m / 60), mm = Math.round(m % 60);
             let out = '';
-            if (h > 0) out += h + ' ' + this.tr('ac_h', 'ч');
+            if (h > 0) out += h + ' ' + this.t('ac_h');
             if (h > 0 && mm > 0) out += ' ';
-            if (mm > 0 || h === 0) out += mm + ' ' + this.tr('ac_m', 'мин');
+            if (mm > 0 || h === 0) out += mm + ' ' + this.t('ac_m');
             return out;
         },
         dotStyle(a) {
@@ -1042,9 +1026,6 @@ const AlarmClockWidget = {
 
 window.DpWidgets = window.DpWidgets || {};
 
-/* app.css внутри .widget-v-card перебивает цвет input/button через !important
-   (--on-theme-high белый в тёмной теме), поэтому своим правилом с большей
-   специфичностью возвращаем виджету его собственные цвета. */
 (function injectAcWidgetStyle() {
     if (typeof document === 'undefined') return;
     try {
