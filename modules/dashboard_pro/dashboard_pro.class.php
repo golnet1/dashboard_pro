@@ -789,6 +789,106 @@ class dashboard_pro extends module
             return ['success' => true];
         }
 
+        if ($params['request'][0] == 'objectSave') {
+            $input = $this->bodyInput();
+            if (!is_array($input)) $input = array();
+            $class = trim((string)($params['class'] ?? ($input['class'] ?? '')));
+            $name = trim((string)($params['name'] ?? ($input['name'] ?? '')));
+            $descr = trim((string)($params['descr'] ?? ($input['descr'] ?? '')));
+            $props = $input['props'] ?? ($params['props'] ?? array());
+            if (is_string($props)) {
+                $decoded_props = json_decode($props, true);
+                $props = is_array($decoded_props) ? $decoded_props : array();
+            }
+            if (!is_array($props)) $props = array();
+
+            $existing = null;
+            if ($name !== '') {
+                if (!$this->isSafeObjectTitle($name)) return ['error' => 'invalid object name "' . $name . '"'];
+                $existing = SQLSelectOne("SELECT o.ID, o.TITLE, o.DESCRIPTION, c.TITLE as CLASS_TITLE FROM objects o LEFT JOIN classes c ON o.CLASS_ID=c.ID WHERE o.TITLE='" . DBSafe($name) . "'");
+                if ($existing && empty($existing['ID'])) $existing = null;
+                if ($existing && $class !== '' && (string)$existing['CLASS_TITLE'] !== $class) return ['error' => 'object "' . $name . '" does not belong to class "' . $class . '"'];
+            } else {
+                if ($class === '') return ['error' => 'class is required to create a new object'];
+                if (!$this->isSafeClassTitle($class)) return ['error' => 'invalid or not found class name "' . $class . '"'];
+                $class_row = SQLSelectOne("SELECT ID FROM classes WHERE TITLE='" . DBSafe($class) . "'");
+                if (!$class_row || empty($class_row['ID'])) return ['error' => 'class "' . $class . '" not found'];
+                $index = 0;
+                $rows = SQLSelect("SELECT o.TITLE FROM objects o JOIN classes c ON o.CLASS_ID=c.ID WHERE c.TITLE='" . DBSafe($class) . "'");
+                if (is_array($rows)) {
+                    foreach ($rows as $row) {
+                        if (preg_match('/(\d+)/', (string)$row['TITLE'], $m)) {
+                            $n = (int)$m[1];
+                            if ($n > $index) $index = $n;
+                        }
+                    }
+                }
+                $index++;
+                $name = $class . ($index < 10 ? '0' . $index : $index);
+                $existing = SQLSelectOne("SELECT ID FROM objects WHERE TITLE='" . DBSafe($name) . "'");
+                if ($existing && !empty($existing['ID'])) return ['error' => 'object "' . $name . '" already exists'];
+            }
+
+            $created = false;
+            if (!$existing) {
+                if ($class === '') return ['error' => 'class is required to create a new object'];
+                if (!$this->isSafeClassTitle($class)) return ['error' => 'invalid or not found class name "' . $class . '"'];
+                $class_row = SQLSelectOne("SELECT ID FROM classes WHERE TITLE='" . DBSafe($class) . "'");
+                if (!$class_row || empty($class_row['ID'])) return ['error' => 'class "' . $class . '" not found'];
+                $object_id = addClassObject($class, $name);
+                if (!$object_id) return ['error' => 'cannot create object "' . $name . '"'];
+                $created = true;
+            }
+
+            $has_descr = array_key_exists('descr', $input) || array_key_exists('descr', $params);
+            if ($has_descr || $created) {
+                SQLExec("UPDATE objects SET DESCRIPTION='" . DBSafe($descr) . "' WHERE TITLE='" . DBSafe($name) . "'");
+            }
+
+            $written = 0;
+            foreach ($props as $property => $value) {
+                $property = (string)$property;
+                if (!preg_match('/^[A-Za-z0-9_\-]{1,64}$/', $property)) continue;
+                if ($written >= 50) break;
+                $value = substr((string)$value, 0, self::MAX_PROPERTY_CHARS);
+                sg($name . '.' . $property, $value);
+                $written++;
+            }
+
+            $injected = null;
+            $inject = $input['inject'] ?? ($params['inject'] ?? null);
+            if (is_string($inject)) {
+                $decoded_inject = json_decode($inject, true);
+                $inject = is_array($decoded_inject) ? $decoded_inject : null;
+            }
+            if (is_array($inject) && array_key_exists('code', $inject)) {
+                $method = trim((string)($inject['method'] ?? 'AlarmRun'));
+                $key = trim((string)($inject['key'] ?? 'dashboard'));
+                if (!preg_match('/^[A-Za-z0-9_\-]{1,64}$/', $method)) $method = 'AlarmRun';
+                if (!preg_match('/^[A-Za-z0-9_\-]{1,64}$/', $key)) $key = 'dashboard';
+                injectObjectMethodCode($name . '.' . $method, $key, substr((string)$inject['code'], 0, self::MAX_PROPERTY_CHARS));
+                $injected = $method;
+            }
+
+            postToWebSocket("DASHBOARD_PRO", array('COMMAND' => 'UpdateData'), "PostEvent");
+            return ['success' => true, 'object' => $name, 'created' => $created, 'updated' => !$created, 'written' => $written, 'injected' => $injected];
+        }
+
+        if ($params['request'][0] == 'objectDelete') {
+            $input = $this->bodyInput();
+            if (!is_array($input)) $input = array();
+            $object = trim((string)($params['object'] ?? ($input['object'] ?? ($input['name'] ?? ''))));
+            $class = trim((string)($params['class'] ?? ($input['class'] ?? '')));
+            if ($object === '') return ['error' => 'object required'];
+            if ($class !== '' && !$this->isSafeClassTitle($class)) return ['error' => 'invalid class name "' . $class . '"'];
+            $rec = SQLSelectOne("SELECT o.ID, o.TITLE, c.TITLE as CLASS_TITLE FROM objects o LEFT JOIN classes c ON o.CLASS_ID=c.ID WHERE o.TITLE='" . DBSafe($object) . "' OR o.ID=" . (int)$object);
+            if (!$rec || empty($rec['ID'])) return ['error' => 'object "' . $object . '" not found'];
+            if ($class !== '' && (string)$rec['CLASS_TITLE'] !== $class) return ['error' => 'object "' . $object . '" does not belong to class "' . $class . '"'];
+            deleteObject($rec['ID']);
+            postToWebSocket("DASHBOARD_PRO", array('COMMAND' => 'UpdateData'), "PostEvent");
+            return ['success' => true, 'object' => $rec['TITLE'], 'class' => (string)($rec['CLASS_TITLE'] ?? '')];
+        }
+
         if ($params['request'][0] == 'query') {
             $method = $_SERVER['REQUEST_METHOD'];
             if ($method == 'POST') {
@@ -2779,6 +2879,18 @@ function widgetUsageInfo($type)
         if (is_array($GLOBALS['input'] ?? null)) return $GLOBALS['input'];
         $raw = file_get_contents('php://input');
         return $raw ? json_decode($raw, true) : array();
+    }
+
+    function isSafeClassTitle($title)
+    {
+        $title = (string)$title;
+        return $title !== '' && strlen($title) <= 64 && preg_match('/^[\p{L}\p{N}_\-. ]{1,64}$/u', $title) === 1;
+    }
+
+    function isSafeObjectTitle($title)
+    {
+        $title = (string)$title;
+        return $title !== '' && preg_match('/^[A-Za-z0-9_\-]{1,64}$/', $title) === 1;
     }
 
     function ensureRememberTable()
