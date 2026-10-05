@@ -1407,6 +1407,22 @@ class dashboard_pro extends module
             return ['items' => $scripts];
         }
 
+        if ($params['request'][0] == 'sounds') {
+            $dir = (defined('ROOT') ? ROOT : './') . 'cms/sounds';
+            $names = array();
+            $files = is_dir($dir) ? scandir($dir) : array();
+            if (is_array($files)) {
+                foreach ($files as $file) {
+                    if (preg_match('/^(.+)\.mp3$/i', (string)$file, $m)) $names[] = $m[1];
+                }
+            }
+            natcasesort($names);
+            $names = array_values($names);
+            $items = array();
+            foreach ($names as $name) $items[] = array('NAME' => $name);
+            return ['items' => $items];
+        }
+
         return ['error' => 'Unknown API endpoint'];
     }
 
@@ -2801,6 +2817,7 @@ function widgetUsageInfo($type)
             array('chat', 'fas fa-comments', 'Chat', 'Chat widget (SAY history)'),
             array('video', 'fas fa-video', 'Video', 'Video player (MP4, WebM, OGG, HLS)'),
             array('stream', 'fas fa-satellite-dish', 'Stream', 'Streaming video (go2rtc, ONVIF, RTSP)'),
+            array('alarmclock', 'fas fa-bell', 'Alarm clock', 'Alarm clock: time, days, sound, script, PHP code'),
         );
     }
 
