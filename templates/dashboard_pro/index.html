@@ -915,7 +915,7 @@
                         <div v-for="def in filteredDefs" :key="def.type" class="widget-def-item" @click="addWidget(def.type)">
                             <i :class="def.icon"></i>
                             <div class="widget-def-label"><div>{{ widgetName(def) }}</div><div v-if="t('widget_' + def.type + '_desc') !== ('widget_' + def.type + '_desc')" style="font-size:.8rem;color:var(--text-secondary)">{{ t('widget_' + def.type + '_desc') }}</div></div>
-                            <button class="widget-def-help" :title="t('help')" @click.stop="openWidgetHelp(def.type)"><i class="fas fa-circle-question"></i></button>
+                            <button class="widget-def-help" v-if="def.isSystem" :title="t('help')" @click.stop="openWidgetHelp(def.type)"><i class="fas fa-circle-question"></i></button>
                         </div>
                     </div>
                 </div>

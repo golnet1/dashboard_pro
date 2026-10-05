@@ -1423,6 +1423,50 @@ class dashboard_pro extends module
             return ['items' => $items];
         }
 
+        if ($params['request'][0] == 'media') {
+            $rootDir = defined('ROOT') ? ROOT : './';
+            $rel = str_replace('\\', '/', (string)($params['dir'] ?? 'cms/sounds'));
+            $rel = trim(trim($rel), '/');
+            if ($rel === '') $rel = 'cms/sounds';
+            $exts = array('mp3', 'ogg', 'oga', 'opus', 'wav', 'flac', 'm4a', 'aac', 'wma', 'webm', 'aif', 'aiff', 'mid', 'midi');
+            $maxFiles = 2000;
+            $maxDepth = 3;
+            $items = array();
+            $base = realpath($rootDir);
+            $target = realpath($rootDir . $rel);
+            if ($base === false || $target === false || !is_dir($target)) return ['error' => 'Folder not found', 'dir' => $rel, 'items' => array()];
+            $baseLen = strlen($base);
+            $tail = substr($target, $baseLen, 1);
+            if ($baseLen > 0 && strncmp($target, $base, $baseLen) !== 0) return ['error' => 'Folder not found', 'dir' => $rel, 'items' => array()];
+            if ($tail !== '' && $tail !== '/' && $tail !== '\\') return ['error' => 'Folder not found', 'dir' => $rel, 'items' => array()];
+            $stack = array(array($target, 0, ''));
+            while (!empty($stack) && count($items) < $maxFiles) {
+                list($dir, $depth, $prefix) = array_pop($stack);
+                if ($depth > $maxDepth) continue;
+                $files = @scandir($dir);
+                if (!is_array($files)) continue;
+                foreach ($files as $file) {
+                    if ($file === '.' || $file === '..') continue;
+                    if (substr($file, 0, 1) === '.') continue;
+                    $full = $dir . DIRECTORY_SEPARATOR . $file;
+                    if (is_dir($full)) {
+                        $stack[] = array($full, $depth + 1, $prefix . $file . '/');
+                        continue;
+                    }
+                    $ext = strtolower((string)pathinfo($file, PATHINFO_EXTENSION));
+                    if (!in_array($ext, $exts, true)) continue;
+                    $items[] = array(
+                        'NAME' => $prefix . $file,
+                        'PATH' => $rel . '/' . $prefix . $file,
+                        'SIZE' => (int)@filesize($full),
+                    );
+                    if (count($items) >= $maxFiles) break;
+                }
+            }
+            usort($items, function ($a, $b) { return strnatcasecmp($a['NAME'], $b['NAME']); });
+            return ['dir' => $rel, 'items' => $items];
+        }
+
         return ['error' => 'Unknown API endpoint'];
     }
 
@@ -2818,6 +2862,7 @@ function widgetUsageInfo($type)
             array('video', 'fas fa-video', 'Video', 'Video player (MP4, WebM, OGG, HLS)'),
             array('stream', 'fas fa-satellite-dish', 'Stream', 'Streaming video (go2rtc, ONVIF, RTSP)'),
             array('alarmclock', 'fas fa-bell', 'Alarm clock', 'Alarm clock: time, days, sound, script, PHP code'),
+            array('musicplayer', 'fas fa-music', 'Music player', 'Music player: playlist, spectrum analyzer, color output by frequency bands'),
         );
     }
 
