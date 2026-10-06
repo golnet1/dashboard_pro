@@ -150,3 +150,20 @@ const dpAPI = (path, opts) => {
         return res;
     });
 };
+
+/* batched property write for high-rate widgets (colour music).
+   When the live websocket is up the whole batch is one frame and Apache is not
+   touched; otherwise it falls back to the usual per-property HTTP calls. */
+function dpSendProperties(pairs) {
+    if (!Array.isArray(pairs) || !pairs.length) return Promise.resolve({ ok: true });
+    if (typeof window.__dpWsSend === 'function') {
+        const data = pairs.map(p => ({ NAME: p.object + '.' + p.property, VALUE: String(p.value) }));
+        if (window.__dpWsSend({ action: 'SetProperty', data: data })) {
+            if (window.__dpWsCache) {
+                data.forEach(d => { window.__dpWsCache[d.NAME.toLowerCase()] = { seeded: true, value: d.VALUE }; });
+            }
+            return Promise.resolve({ ok: true, via: 'ws' });
+        }
+    }
+    return Promise.all(pairs.map(p => dpAPI('setProperty?' + new URLSearchParams({ object: p.object, property: p.property, value: String(p.value) }))));
+}

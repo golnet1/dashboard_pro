@@ -996,6 +996,7 @@
         script: { icon: 'fas fa-file-code' },
         icon_picker: { icon: 'fas fa-icons' },
         panel_select: { icon: 'fas fa-th-large' },
+        dir_picker: { icon: 'fas fa-folder-open' },
         info: { icon: 'fas fa-info-circle' }
     };
 

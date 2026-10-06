@@ -1407,6 +1407,42 @@ class dashboard_pro extends module
             return ['items' => $scripts];
         }
 
+        /* the folders of the tree, for picking one on the server. The walk never leaves
+           the web root: the real path of the target has to start with the real path of the
+           root, otherwise a name like "../.." would hand out the whole filesystem */
+        if ($params['request'][0] == 'dirs') {
+            $rootDir = defined('ROOT') ? ROOT : './';
+            $rel = str_replace('\\', '/', (string)($params['dir'] ?? ''));
+            $rel = trim($rel, '/');
+            $base = realpath($rootDir);
+            $target = $rel === '' ? $base : realpath($rootDir . $rel);
+            $up = '';
+            if ($base !== false && $target !== false && is_dir($target)) {
+                $baseLen = strlen($base);
+                $inside = ($baseLen === 0) ? false : (strncmp($target, $base, $baseLen) === 0 && ($target === $base || $target[$baseLen] === '/' || $target[$baseLen] === '\\'));
+                if ($inside) {
+                    $items = array();
+                    $files = @scandir($target);
+                    if (is_array($files)) {
+                        foreach ($files as $file) {
+                            if ($file === '.' || $file === '..') continue;
+                            if (substr($file, 0, 1) === '.') continue;
+                            $full = $target . DIRECTORY_SEPARATOR . $file;
+                            if (!is_dir($full)) continue;
+                            $items[] = array('NAME' => $file, 'PATH' => ($rel === '' ? '' : $rel . '/') . $file);
+                        }
+                    }
+                    usort($items, function ($a, $b) { return strnatcasecmp($a['NAME'], $b['NAME']); });
+                    if ($rel !== '') {
+                        $slash = strrpos($rel, '/');
+                        $up = $slash === false ? '' : substr($rel, 0, $slash);
+                    }
+                    return ['dir' => $rel, 'up' => $up, 'items' => $items];
+                }
+            }
+            return ['error' => 'Folder not found', 'dir' => $rel, 'up' => '', 'items' => array()];
+        }
+
         if ($params['request'][0] == 'sounds') {
             $dir = (defined('ROOT') ? ROOT : './') . 'cms/sounds';
             $names = array();

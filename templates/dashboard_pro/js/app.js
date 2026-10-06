@@ -64,6 +64,13 @@ function wsWidgetPropKeys(w) {
         keys.add(String(obj).toLowerCase());
         if (prop) keys.add((obj + '.' + prop).toLowerCase());
     }
+    /* The colour of the background has the same object with the same property
+       behind it as any other pair of the list, but an empty property means
+       «status» and the pair has to be asked for exactly that way - the pair
+       without it is never built above. */
+    if (w.bg_mode === 'property' && w.bg_object) {
+        keys.add((w.bg_object + '.' + (w.bg_property || 'status')).toLowerCase());
+    }
     if (Array.isArray(w.sensors)) {
         w.sensors.forEach(s => {
             if (s && s.object) {
@@ -73,6 +80,37 @@ function wsWidgetPropKeys(w) {
         });
     }
     return keys;
+}
+
+/* An address is written into url() the way it arrived, but inside quotes: without
+   them an address with spaces or brackets is not a valid url() at all and the
+   picture simply never appears, while a backslash of a path has to stay the
+   character it stands for instead of escaping whatever follows it. */
+function dpCssUrl(raw) {
+    const s = String(raw == null ? '' : raw).trim().replace(/[\r\n\t]+/g, ' ');
+    return s ? '"' + s.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"' : '';
+}
+
+/* What a property may hold and still be a colour: #rrggbb with or without the
+   hash, a bare hex of three or six digits that carries at least one letter (so a
+   counter like 123 or 123456 stays a number) and an ordinary triplet. A status or a
+   temperature is none of that and must not be painted - the card would otherwise go
+   transparent over nothing. The browser gives the final word, so "red" passes and
+   "on" does not; where there is no CSS to ask, a well-formed hex is still accepted. */
+function dpCssColor(value) {
+    const s = String(value == null ? '' : value).trim();
+    if (!s) return '';
+    let cand = s;
+    if (/^(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{3})$/.test(s) && /[a-fA-F]/.test(s)) {
+        cand = '#' + s;
+    } else if (/^\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}(\s*,\s*(?:\d+(?:\.\d+)?|\.\d+))?$/.test(s)) {
+        const parts = s.split(/\s*,\s*/);
+        cand = (parts.length === 4 ? 'rgba(' : 'rgb(') + parts.join(',') + ')';
+    }
+    if (typeof CSS !== 'undefined' && CSS.supports && typeof CSS.supports === 'function') {
+        return CSS.supports('color', cand) ? cand : '';
+    }
+    return /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(cand) ? cand : '';
 }
 
 const widgetDefs = ref([]);
@@ -225,6 +263,16 @@ const widgetUsage = computed(() => {
         const panelError = ref('');
         const showIconPicker = ref(false);
         const iconTarget = ref('panel');
+        /* the folder picker of a dir_picker field: the value stays a plain string, the
+           dialog only walks the tree of the server and puts the path into that string */
+        const showDirPicker = ref(false);
+        const dirTarget = ref('');
+        const dirPickerPath = ref('');
+        const dirPickerItems = ref([]);
+        const dirPickerUp = ref(null);
+        const dirPickerLoading = ref(false);
+        const dirPickerError = ref('');
+        const dirPickerPicked = ref('');
         const iconSearch = ref('');
         const iconCategory = ref('all');
         const iconCategorySearch = ref('');
@@ -403,6 +451,59 @@ const headerStatusSectionOn = computed(() => headerHas('status'));
                 if (k && k.toLowerCase() === keyLower) headerValueTexts[k] = txt;
             });
         }
+
+        /* The colour of «по свойству» arrives with the socket under the lower-case
+           key of object.property, so the widget is found by that same key. Only a
+           value that is really a colour is kept: anything else takes the widget
+           back to its normal card instead of painting a status over it. */
+        function wsApplyBgColor(keyLower, value) {
+            (currentPanel.value?.widgets || []).forEach(w => {
+                if (w.bg_mode !== 'property' || !w.bg_object) return;
+                const key = (w.bg_object + '.' + (w.bg_property || 'status')).toLowerCase();
+                if (key !== keyLower) return;
+                const colour = dpCssColor(value);
+                if (colour) bgColorMap[w.id] = colour; else delete bgColorMap[w.id];
+            });
+        }
+
+        /* The socket reports only what changed after the subscription, so the value
+           the panel starts with has to be asked for once. Whatever the socket has
+           already seeded is used instead of a request - readProperty() in api.js
+           does the same while the channel is live. */
+        async function bgColorRefresh() {
+            const list = (currentPanel.value?.widgets || []).filter(w => w.bg_mode === 'property');
+            Object.keys(bgColorMap).forEach(id => {
+                if (!list.some(w => w.id === id)) delete bgColorMap[id];
+            });
+            for (const w of list) {
+                const object = String(w.bg_object || '').trim();
+                const property = String(w.bg_property || '').trim() || 'status';
+                if (!object) { delete bgColorMap[w.id]; continue; }
+                const key = (object + '.' + property).toLowerCase();
+                const seeded = window.__dpWsCache && window.__dpWsCache[key];
+                if (seeded && seeded.seeded) {
+                    const cached = dpCssColor(seeded.value);
+                    if (cached) bgColorMap[w.id] = cached; else delete bgColorMap[w.id];
+                    continue;
+                }
+                try {
+                    const r = await dpAPI('getProperty?' + new URLSearchParams({ object, property }));
+                    const colour = dpCssColor(r && r.value);
+                    if (colour) bgColorMap[w.id] = colour; else delete bgColorMap[w.id];
+                } catch (e) {
+                    /* an unreachable property leaves the widget on its normal card */
+                }
+            }
+        }
+
+        /* The source of the colour was rewritten in the editor: the new one has to be
+           read and the colour of the old one forgotten. The key changes only when the
+           source itself changes, so dragging the widget does not ask for anything. */
+        const propertyBgKey = computed(() => (currentPanel.value?.widgets || [])
+            .filter(w => w.bg_mode === 'property')
+            .map(w => w.id + ':' + w.bg_object + '.' + w.bg_property)
+            .join('|'));
+        watch(propertyBgKey, () => bgColorRefresh());
 
         const showHeaderStatusEditor = ref(false);
         const hsEditIdx = ref(-1);
@@ -915,12 +1016,26 @@ function headerPanelSave() {
             const common = (W.fields._common && W.fields._common[tab]) || [];
             const all = tab === 'position' ? common : common.concat(component);
             const seen = new Set();
-            return all.filter(f => {
+            const list = all.filter(f => {
                 const key = f.key || f.type;
                 if (seen.has(key)) return false;
                 seen.add(key);
                 return true;
             });
+            /* A list of options written into the file always starts on its first entry:
+               an empty value would show the «— выберите —» placeholder instead of a
+               real choice, while the first entry is the one the widget works with
+               anyway - «По умолчанию» for the background. The widget's own defaults
+               are spread over this later and still win. A list that is built after
+               the panel loads (a camera, a property, a script) has nothing to
+               preselect yet, so such a field keeps its empty entry and stays out. */
+            list.forEach(f => {
+                if (f.default === undefined && Array.isArray(f.options) && f.options.length &&
+                    f.options[0] && f.options[0].value !== undefined) {
+                    f.default = f.options[0].value;
+                }
+            });
+            return list;
         }
         function getWidgetComponent(type) {
             try {
@@ -980,9 +1095,14 @@ function headerPanelSave() {
         
         function fieldVisible(field) {
             if (!field.showIf || !editWidgetForm.value) return true;
-            const [depKey, depVal] = Object.entries(field.showIf)[0];
-            const val = editWidgetForm.value[depKey];
-            return Array.isArray(depVal) ? depVal.includes(val) : val === depVal;
+            const form = editWidgetForm.value;
+            /* every key of showIf has to hold, so a field can wait for more than one
+               pick: it is only relevant for one device type and one write mode at once */
+            return Object.keys(field.showIf).every(depKey => {
+                const depVal = field.showIf[depKey];
+                const val = form[depKey];
+                return Array.isArray(depVal) ? depVal.includes(val) : val === depVal;
+            });
         }
 
         /* the object a property is read from. A method carries its own object in the same
@@ -993,6 +1113,7 @@ function headerPanelSave() {
             if (key === 'icon_property') return 'icon_object';
             if (key === 'bg_property') return 'bg_object';
             if (key === 'property_info') return 'object_info';
+            if (key === 'state_property') return 'state_object';
             if (key.startsWith('property_')) return 'object_' + key.slice('property_'.length);
             return null;
         }
@@ -1331,17 +1452,33 @@ function headerPanelSave() {
         function widgetBgStyle(w) {
             const s = {};
             const mode = w.bg_mode || (w.color ? 'color' : 'default');
+            /* The card sits on top of the wrapper and washes it with the theme colour,
+               so whatever is painted here has to be seen through it: the card gives
+               way for this one widget. Widgets that paint their own card with the same
+               colour are not affected - the two layers then simply agree. */
             if (mode === 'color' && w.color) {
                 s.backgroundColor = w.color;
+                s['--card-alpha'] = 0;
             } else if (mode === 'image' && w.bg_image) {
-                s.backgroundImage = 'url(' + w.bg_image + ')';
-                s.backgroundSize = 'cover';
-                s.backgroundPosition = 'center';
-                s.backgroundRepeat = 'no-repeat';
+                const url = dpCssUrl(w.bg_image);
+                if (url) {
+                    s.backgroundImage = 'url(' + url + ')';
+                    s.backgroundSize = 'cover';
+                    s.backgroundPosition = 'center';
+                    s.backgroundRepeat = 'no-repeat';
+                    s.backgroundColor = 'transparent';
+                    s['--card-alpha'] = 0;
+                }
             } else if (mode === 'property') {
                 const bgVal = bgColorMap[w.id];
-                if (bgVal) s.backgroundColor = bgVal;
+                if (bgVal) {
+                    s.backgroundColor = bgVal;
+                    s['--card-alpha'] = 0;
+                }
             }
+            /* выключатель закругления выключен — радиус остаётся нулём принудительно,
+               даже если он прописан в самом виджете */
+            let radius = 0;
             if (settings.value.roundedWidgets) {
                 /* приоритет: своё значение виджета, иначе общее; 0 или пусто — как есть.
                    значение только передаётся в переменную: встроенные карточки
@@ -1349,12 +1486,14 @@ function headerPanelSave() {
                    закругление в разметке — обрезкой обёртки его перебивать нельзя */
                 const own = ownWidgetRadius(w);
                 const gen = Number(settings.value.widgetRadius);
-                s['--wpb-radius'] = (own > 0 ? own : (gen > 0 ? gen : 0)) + 'px';
-            } else {
-                /* выключатель закругления выключен — радиус ноль принудительно,
-                   даже если он прописан в самом виджете */
-                s['--wpb-radius'] = '0px';
+                radius = own > 0 ? own : (gen > 0 ? gen : 0);
             }
+            s['--wpb-radius'] = radius + 'px';
+            /* The wrapper is a plain rectangle: painted straight, its colour or its
+               picture fills the corners the rounded card leaves empty and a rounded
+               widget reads as a square one. The card keeps taking the radius from
+               the variable above - the two only have to be the same number. */
+            s.borderRadius = radius + 'px';
             return s;
         }
 
@@ -1510,7 +1649,7 @@ function loadScript(src, version) {
            reached the panel. The token changes on every install, and the base follows the
            module, so a module update also refreshes the widgets. */
         const WIDGET_TOKEN_KEY = 'dp_widget_token';
-        const WIDGET_TOKEN_BASE = 179;
+        const WIDGET_TOKEN_BASE = 180;
         function widgetToken() {
             let token = 0;
             try { token = parseInt(localStorage.getItem(WIDGET_TOKEN_KEY) || '0', 10) || 0; } catch (e) { token = 0; }
@@ -1588,6 +1727,7 @@ function loadScript(src, version) {
                 }
                 headerMigrateLegacy();
                 headerValueRefresh();
+                bgColorRefresh();
             } catch (e) {
                 console.error('loadData error', e);
             }
@@ -2077,6 +2217,15 @@ if (f.key) {
                     }
                 }
             }
+            /* A widget saved before its selector had a default carries an empty string
+               there, and an empty value matches no entry of the list - the field would
+               sit on a placeholder that is no longer drawn. A field that has a default
+               takes it; everything else keeps the saved value, empty or not. */
+            tabs.forEach(tab => getWidgetFields(w.type, tab.fields || tab.key).forEach(f => {
+                if (!f.key || f.default === undefined) return;
+                const cur = editWidgetForm.value[f.key];
+                if (cur === undefined || cur === null || cur === '') editWidgetForm.value[f.key] = f.default;
+            }));
             widgetProperties.value = [];
             infoProperties.value = [];
             await loadObjects();
@@ -2608,7 +2757,7 @@ if (f.key) {
             if (obj) loadIconProperties();
         });
         // Generic watcher for any object_* fields (alive, status, current, target, etc.)
-        const extraObjectKeys = ['object_alive', 'object_status', 'object_current', 'object_target', 'object_level'];
+        const extraObjectKeys = ['object_alive', 'object_status', 'object_current', 'object_target', 'object_level', 'state_object', 'object_p1', 'object_p2', 'object_p3', 'object_p4', 'object_p5', 'object_p6', 'object_p7', 'object_hex', 'object_r', 'object_g', 'object_b'];
         extraObjectKeys.forEach(key => {
             watch(() => editWidgetForm.value?.[key], async (obj) => {
                 if (!obj) { extraProperties.value[key] = []; return; }
@@ -2970,6 +3119,53 @@ if (f.key) {
             iconTarget.value = target;
             if (target === 'hs') hsEnsureFaIcon();
             showIconPicker.value = true;
+        }
+
+        /* Opening the folder dialog starts at the root and then walks down: the value of
+           the field is not changed while browsing, it is written when the dialog is
+           confirmed, so a click on the wrong folder costs nothing. */
+        async function openDirPicker(target) {
+            dirTarget.value = target;
+            dirPickerPicked.value = '';
+            showDirPicker.value = true;
+            await dirPickerGo('');
+        }
+
+        async function dirPickerGo(path) {
+            dirPickerLoading.value = true;
+            dirPickerError.value = '';
+            try {
+                const d = await dpAPI('dirs?' + new URLSearchParams({ dir: path || '' }));
+                if (d && !d.error) {
+                    dirPickerPath.value = String(d.dir || '');
+                    dirPickerItems.value = Array.isArray(d.items) ? d.items : [];
+                    dirPickerUp.value = String(d.dir || '') === '' ? null : String(d.up || '');
+                    dirPickerPicked.value = String(d.dir || '');
+                } else {
+                    dirPickerError.value = String((d && d.error) || t('dir_picker_fail'));
+                    dirPickerItems.value = [];
+                    dirPickerUp.value = null;
+                }
+            } catch (e) {
+                dirPickerError.value = String(t('dir_picker_fail'));
+                dirPickerItems.value = [];
+                dirPickerUp.value = null;
+            }
+            dirPickerLoading.value = false;
+        }
+
+        function closeDirPicker() {
+            showDirPicker.value = false;
+            dirTarget.value = '';
+            dirPickerItems.value = [];
+            dirPickerError.value = '';
+            dirPickerUp.value = null;
+        }
+
+        function dirPickerOk() {
+            if (!dirTarget.value || dirPickerError.value) return;
+            if (editWidgetForm.value) editWidgetForm.value[dirTarget.value] = dirPickerPicked.value;
+            closeDirPicker();
         }
 
         function selectIcon(ic) {
@@ -3402,6 +3598,19 @@ if (f.key) {
             window.__dpWsLive = !!live;
         }
 
+        /* raw send for high-rate widgets (colour music): their writes go over the
+           already open websocket instead of one Apache/php request per frame.
+           Returns false when the channel is down so the caller can fall back. */
+        window.__dpWsSend = function (payload) {
+            if (!wsSocket || wsSocket.readyState !== 1) return false;
+            try {
+                const s = JSON.stringify(payload);
+                wsSocket.send(s);
+                wsBytesSent.value += s.length;
+                return true;
+            } catch (e) { return false; }
+        };
+
         function wsCollectProps() {
             const props = new Set();
             (currentPanel.value?.widgets || []).forEach(w => {
@@ -3473,6 +3682,9 @@ if (f.key) {
                 wsSocket.send(subEvents);
                 wsSubscribeProperties();
                 wsRemountWidgets();
+                /* the channel was down, so the colour from a property may be the one
+                   the socket has never reported: ask for it again */
+                bgColorRefresh();
             };
             wsSocket.onerror = function(e) {
                 console.error('WS error', e);
@@ -3500,6 +3712,7 @@ if (f.key) {
                                 window.__dpWsCache[key] = { seeded: true, value: u.VALUE };
                                 wsApplyHeaderStatus(key, u.VALUE);
                                 wsApplyHeaderValue(key, u.VALUE);
+                                wsApplyBgColor(key, u.VALUE);
                                 if (window.__dpWsLive) wsRefreshWidgets(key);
                             });
                         }
@@ -3589,6 +3802,7 @@ if (f.key) {
         function forceRefresh() {
             wsRemountWidgets();
             headerValueRefresh();
+            bgColorRefresh();
             if (wsSocket && wsConnected.value) {
                 const payload = JSON.stringify({ action: 'status' });
                 wsBytesSent.value += payload.length;
@@ -3836,6 +4050,7 @@ onMounted(() => {
             showCleanupDialog, cleanupReport, cleanupBusy, cleanupReasons, applyCleanup, restorePanels, runWizard,
             showAddPanel, editPanelData, panelForm, panelTab, panelTabPos, panelError, createPanel, editPanel, openPanelForm, deletePanel, deleteCurrentPanel, movePanel, isPanel, isNavActive, navItemClick, showAbout, toggleField,
             showIconPicker, iconTarget, iconSearch, iconCategory, iconCategorySearch, iconPage, iconCategories, filteredIconCategories, filteredIcons, totalPages, paginatedIcons, openIconPicker, selectIcon, iconPicked,
+            showDirPicker, dirTarget, dirPickerPath, dirPickerItems, dirPickerUp, dirPickerLoading, dirPickerError, dirPickerPicked, openDirPicker, dirPickerGo, closeDirPicker, dirPickerOk,
             objects, iconProperties, infoProperties, widgetProperties, bgProperties, extraProperties, scripts, methodCache, loadObjects, loadScripts, loadIconProperties, loadInfoProperties, loadWidgetProperties, loadBgProperties, loadObjectMethods, widgetBgStyle, ownWidgetRadius,
             isAdmin, toggleEditMode, wsConnected, wsTooltip, wsStatus, wsPulse, wsBytesSent, wsBytesReceived, wsRev, user, userMenuOpen, sidebarMini, toggleSidebar, expandedGroups, childPanels, toggleGroup, forceRefresh, formatBytes,
             showNotifications, notifications, unreadCount, checkNotifications, markNotificationsRead, notifAvatarUrl, notifAvatarFallback,
