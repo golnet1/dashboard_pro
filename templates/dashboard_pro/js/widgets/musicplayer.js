@@ -102,7 +102,8 @@ const MusicplayerWidget = {
                         <div class="dp-music__seek-fill" :style="{ width: progressPct + '%' }"></div>
                     </div>
                 </div>
-                <div class="dp-music__empty" v-else>{{ t('mu_empty') }}</div>
+                <div class="dp-music__empty" v-else-if="!tracks.length">{{ t('mu_empty') }}</div>
+                <div class="dp-music__empty" v-else>{{ t('mu_pick') }}</div>
                 <div class="dp-music__transport">
                     <button class="dp-music__tbtn" :class="{ 'dp-music__tbtn--on': shuffleOn }" @click.stop="shuffleOn = !shuffleOn" :title="t('mu_shuffle')"><i class="fas fa-shuffle"></i></button>
                     <button class="dp-music__tbtn" @click.stop="prevTrack" :title="t('mu_prev')"><i class="fas fa-step-backward"></i></button>
@@ -159,6 +160,7 @@ const MusicplayerWidget = {
     },
     computed: {
         showSpectrum() { return this.widget.show_spectrum !== false; },
+        showPlaylist() { return this.widget.show_playlist !== false; },
         current() { return this.index >= 0 && this.index < this.tracks.length ? this.tracks[this.index] : null; },
         currentTitle() { return this.current ? (this.current.title || this.current.src) : ''; },
         posText() { return this.fmtTime(this.position); },

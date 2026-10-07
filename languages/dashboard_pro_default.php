@@ -854,6 +854,7 @@ $frontend = array(
     'mu_add_file' => 'Add file',
     'mu_clear' => 'Clear playlist',
     'mu_empty' => 'Playlist is empty',
+    'mu_pick' => 'Pick a track',
     'mu_play' => 'Play',
     'mu_pause' => 'Pause',
     'mu_prev' => 'Previous',
