@@ -345,15 +345,16 @@
             '      <i :class="s.icon"></i>{{ t(s.label) }}</button>' +
             '    <div style="flex:1"></div>' +
             '    <div class="dpb-modes" v-show="sub === \'view\'">' +
-            '      <button class="dpb-mode" :class="{ \'dpb-mode--on\': !viewIsCode }" @click="setViewMode(\'visual\')"><i class="fas fa-table-cells"></i>{{ t(\'dpb_view_visual\') }}</button>' +
+            '      <button class="dpb-mode" :class="{ \'dpb-mode--on\': viewIsVisual }" @click="setViewMode(\'visual\')"><i class="fas fa-table-cells"></i>{{ t(\'dpb_view_visual\') }}</button>' +
             '      <button class="dpb-mode" :class="{ \'dpb-mode--on\': viewIsCode }" @click="setViewMode(\'code\')"><i class="fas fa-code"></i>{{ t(\'dpb_view_code\') }}</button>' +
+            '      <button class="dpb-mode" :class="{ \'dpb-mode--on\': viewIsCss }" @click="setViewMode(\'css\')"><i class="fas fa-paint-brush"></i>{{ t(\'dpb_view_css\') }}</button>' +
             '    </div>' +
             '    <div style="flex:1"></div>' +
             '    <div class="dpb-wizstat" v-if="stats">{{ t(\'dpb_items\') }}: {{ stats.items }} · {{ t(\'dpb_fields\') }}: {{ stats.fields }}</div>' +
             '  </div>' +
 
             /* ================= 1. appearance ================= */
-            '  <div v-show="sub === \'view\' && !viewIsCode" class="dpb-panes">' +
+            '  <div v-show="sub === \'view\' && viewIsVisual" class="dpb-panes">' +
             '    <div class="dpb-pane dpb-pane--left">' +
             '      <div class="dpb-pane__title">{{ t(\'dpb_palette\') }}</div>' +
             '      <div class="dpb-pane__scroll">' +
@@ -556,6 +557,35 @@
             '    </div>' +
             '  </div>' +
 
+            /* ---- the stylesheet of the widget: rules the file puts into the page ---- */
+            '  <div v-show="sub === \'view\' && viewIsCss" class="dpb-panes dpb-panes--raw dpb-panes--css">' +
+            '    <div class="dpb-pane dpb-pane--center">' +
+            '      <div class="dpb-pane__title">{{ t(\'dpb_css_title\') }}</div>' +
+            '      <div class="dpb-pane__scroll">' +
+            '        <div class="dpb-hint"><i class="fas fa-info-circle"></i><span>{{ t(\'dpb_css_hint\') }}</span></div>' +
+            '        <code-editor v-model="cssText" />' +
+            '        <div class="dpb-err" v-if="cssErr"><i class="fas fa-exclamation-triangle"></i>{{ cssErr }}</div>' +
+            '      </div>' +
+            '    </div>' +
+            '    <div class="dpb-pane dpb-pane--right">' +
+            '      <div class="dpb-pane__title">{{ t(\'dpb_canvas\') }}</div>' +
+            '      <div class="dpb-canvas">' +
+            '        <div class="dpb-frame" :style="frameStyle()">' +
+            '          <div class="dpb-frame__size">{{ model.appearance.width }} &times; {{ model.appearance.height }} px</div>' +
+            '          <div class="dpb-frame__body" :style="frameBodyStyle()">' +
+            '            <component v-if="rawPreview" :is="rawPreview" :widget="previewWidget"></component>' +
+            '            <div v-else class="dpb-empty">{{ t(\'dpb_raw_nopreview\') }}</div>' +
+            '          </div>' +
+            '        </div>' +
+            '      </div>' +
+            '      <div class="dpb-modbar">' +
+            '        <span class="dpb-hint">{{ t(\'dpb_css_where\') }}</span>' +
+            '        <div style="flex:1"></div>' +
+            '        <button class="dpb-btn dpb-btn--ghost" @click="setViewMode(\'visual\')"><i class="fas fa-table-cells"></i>{{ t(\'dpb_raw_tovisual\') }}</button>' +
+            '      </div>' +
+            '    </div>' +
+            '  </div>' +
+
             /* ================= 2. settings panels ================= */
             '  <div v-show="sub === \'settings\'" class="dpb-panes">' +
             '    <div class="dpb-pane dpb-pane--left">' +
@@ -692,6 +722,7 @@
                 rawErr: '',
                 rawTpl: '',
                 rawTimer: null,
+                cssErr: '',
             iconPropValue: '',
             iconPropFor: '',
             /* the values read from the objects for the canvas: keyed by the key of the
@@ -729,8 +760,7 @@
                 var has = function (k) {
                     return String((this.model.code || {})[k] || '').trim() !== '';
                 }.bind(this);
-                var list = [{ key: 'data', label: 'data()', icon: 'fas fa-database' }];
-                if (has('dataPre')) list.push({ key: 'dataPre', label: 'data() (до return)', icon: 'fas fa-indent' });
+                var list = [{ key: 'data', label: 'data()', icon: 'fas fa-database' }, { key: 'dataPre', label: 'data() (до return)', icon: 'fas fa-indent' }];
                 if (has('computed')) list.push({ key: 'computed', label: 'computed', icon: 'fas fa-calculator' });
                 if (has('methods')) list.push({ key: 'methods', label: 'methods', icon: 'fas fa-cogs' });
                 if (has('mounted')) list.push({ key: 'mounted', label: 'mounted()', icon: 'fas fa-power-off' });
@@ -806,9 +836,22 @@
             /* 'auto' follows the model: a widget with own HTML opens in code mode,
                a widget made of blocks opens in the visual mode */
             viewIsCode: function () {
+                if (this.viewMode === 'css') return false;
                 if (this.viewMode === 'code') return true;
                 if (this.viewMode === 'visual') return false;
                 return this.hasRawHtml;
+            },
+            /* the stylesheet has a mode of its own: it belongs to the appearance
+               like the markup does, but it is not the markup */
+            viewIsCss: function () { return this.viewMode === 'css'; },
+            viewIsVisual: function () { return !this.viewIsCode && !this.viewIsCss; },
+            cssText: {
+                get: function () { return String(((this.model || {}).code || {}).css || ''); },
+                set: function (v) {
+                    if (!this.model.code) this.model.code = {};
+                    this.model.code.css = v;
+                    this.checkCss();
+                }
             },
             /* own markup is kept while the canvas is empty: nothing contradicts it yet */
             htmlKept: function () {
@@ -876,7 +919,11 @@
 
         watch: {
             /* another widget is opened: the mode follows the new model again */
-            modelValue: function () { this.viewMode = 'auto'; this.rawTpl = ''; this.rawErr = ''; this.fnMenu = false; this.fnren = -1; },
+            modelValue: function () { this.viewMode = 'auto'; this.rawTpl = ''; this.rawErr = ''; this.cssErr = ''; this.fnMenu = false; this.fnren = -1; this.syncCss(); },
+            /* the stylesheet is shown in the page while it is edited, so the rules
+               are seen where they will really stand */
+            viewMode: function () { this.syncCss(); },
+            'model.code.css': function () { this.checkCss(); this.syncCss(); },
             model: { deep: true, handler: function () { this.validate(); this.loadIconProps(); } },
             'model.appearance.width': function () { this.clampItems(); },
             'model.appearance.height': function () { this.clampItems(); },
@@ -897,6 +944,7 @@
          mounted: function () {
              /* a widget with own markup opens in the code mode, everything is checked once */
              if (this.hasRawHtml) this.checkRaw();
+             if (this.cssText) this.checkCss();
              /* a brand new widget starts in data(): it is the only section that is
                 there from the start, methods() and the rest are still empty */
              if (this.isBlank && this.code === 'methods') this.code = 'data';
@@ -916,7 +964,7 @@
               this._kb = function (e) {
                   /* the keys belong to the canvas only: in the code mode and in the other
                      sections they must keep their usual meaning */
-                  if (self.sub !== 'view' || self.viewIsCode) return;
+                  if (self.sub !== 'view' || self.viewIsCode || self.viewIsCss) return;
                   var tag = (e.target && e.target.tagName) || '';
                   if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
                   /* cur is a computed, so it holds the component itself - calling it
@@ -942,6 +990,10 @@
          beforeUnmount: function () {
              if (this._fnDoc) document.removeEventListener('click', this._fnDoc);
              if (this._kb) document.removeEventListener('keydown', this._kb, true);
+             /* the rules being edited are not written anywhere yet - they go away
+                with the editor, the file keeps only what was saved */
+             var live = document.getElementById('dpb-css-live');
+             if (live && live.parentNode) live.parentNode.removeChild(live);
          },
 
         methods: {
@@ -1072,29 +1124,103 @@
                 else if (txt) txt = '«' + txt.slice(0, 23).trim() + '…»';
                 return (idx + 1) + '. ' + kind + (txt ? ' ' + txt : '');
             },
+            /* a question with the look of the dashboard: the native confirm is
+               replaced where a styled dialog is available */
+            ask: function (text, danger) {
+                if (window.dpConfirm) return window.dpConfirm(text, danger ? { danger: true } : {});
+                return Promise.resolve(window.confirm(text));
+            },
+            /* the stylesheet of the widget is edited on its own: no markup is taken
+               away or put back by switching to it */
             setViewMode: function (m) {
+                var self = this;
                 var a = this.model.appearance;
+                if (m === 'css') {
+                    this.viewMode = 'css';
+                    this.checkCss();
+                    this.syncCss();
+                    return;
+                }
                 if (m === 'code') {
                     if (this.viewIsCode && this.hasRawHtml) return;
-                    if (!window.confirm(this.t('dpb_raw_warn_confirm'))) return;
-                    /* seed the editor with the markup the visual mode would generate */
-                    if (!this.hasRawHtml) a.html = B.templateOf ? B.templateOf(this.model) : '';
-                    this.viewMode = 'code';
-                    this.checkRaw();
+                    this.ask(this.t('dpb_raw_warn_confirm')).then(function (ok) {
+                        if (!ok) return;
+                        /* an empty canvas has nothing to seed: the markup of a free
+                           body written into the own markup would throw the canvas out
+                           of its empty state - leave the editor empty instead */
+                        if (!self.hasRawHtml && (a.items || []).length) a.html = B.templateOf ? B.templateOf(self.model) : '';
+                        self.viewMode = 'code';
+                        self.checkRaw();
+                    });
                     return;
                 }
                 /* visual */
                 if (!this.viewIsCode && !this.hasRawHtml) { this.viewMode = 'visual'; return; }
-                if ((a.items || []).length) {
-                    /* the canvas contradicts the markup: it wins, the markup goes away */
-                    if (!window.confirm(this.t('dpb_raw_drop_confirm'))) return;
-                    a.html = '';
-                    /* the file is no longer restored as is: the model now owns the widget */
-                    this.model.imported = false;
+                var drop = (a.items || []).length > 0;
+                var toVisual = function (ok) {
+                    if (!ok) return;
+                    if (drop) {
+                        /* the canvas contradicts the markup: it wins, the markup goes away */
+                        a.html = '';
+                        /* the file is no longer restored as is: the model now owns the widget */
+                        self.model.imported = false;
+                    }
+                    /* empty canvas: keep the markup, it still produces the same result */
+                    self.viewMode = 'visual';
+                    self.rawErr = '';
+                };
+                if (drop) this.ask(this.t('dpb_raw_drop_confirm'), true).then(toVisual);
+                else toVisual(true);
+            },
+            /* one tag carries the rules being edited: it follows the text and is
+               taken away when the mode or the widget is left, so no copy of an old
+               stylesheet stays on the page */
+            syncCss: function () {
+                if (typeof document === 'undefined') return;
+                var el = document.getElementById('dpb-css-live');
+                var css = this.viewIsCss ? this.cssText : '';
+                if (!String(css || '').trim()) {
+                    if (el && el.parentNode) el.parentNode.removeChild(el);
+                    return;
                 }
-                /* empty canvas: keep the markup, it still produces the same result */
-                this.viewMode = 'visual';
-                this.rawErr = '';
+                if (!el) {
+                    el = document.createElement('style');
+                    el.id = 'dpb-css-live';
+                    (document.head || document.documentElement).appendChild(el);
+                }
+                el.textContent = css;
+            },
+            /* the rules are watched as they are typed: an unclosed brace or quote
+               would swallow the rest of the page's styles */
+            checkCss: function () {
+                var s = this.cssText;
+                this.cssErr = '';
+                if (!s.trim()) return;
+                var d = 0, q = '', line = 1, open = false;
+                for (var i = 0; i < s.length; i++) {
+                    var ch = s.charAt(i);
+                    if (q) {
+                        if (ch === '\\') { i++; continue; }
+                        if (ch === q) q = '';
+                        if (ch === '\n') line++;
+                        continue;
+                    }
+                    if (ch === '"' || ch === '\'') { q = ch; continue; }
+                    if (ch === '/' && s.charAt(i + 1) === '*') {
+                        var e = s.indexOf('*/', i + 2);
+                        if (e < 0) { open = true; break; }
+                        for (var k = i; k < e; k++) if (s.charAt(k) === '\n') line++;
+                        i = e + 1;
+                        continue;
+                    }
+                    if (ch === '\n') { line++; continue; }
+                    if (ch === '{') d++;
+                    else if (ch === '}') {
+                        d--;
+                        if (d < 0) { this.cssErr = this.t('dpb_css_bad') + ' (' + line + ')'; return; }
+                    }
+                }
+                if (open || q || d > 0) this.cssErr = this.t('dpb_css_bad') + ' (' + line + ')';
             },
             checkRaw: function () {
                 var h = String((this.model.appearance || {}).html || '');
@@ -1334,25 +1460,33 @@
                 it.w = d.w || 160; it.h = d.h || 32;
                 if (t === 'widget' && wtype) it.type = wtype;
                 var a = this.model.appearance;
-                /* the first block on an empty canvas contradicts the kept markup */
+                var self = this;
+                var place = function () {
+                    if (at) {
+                        var p = B.clampPos(a, at.x - it.w / 2, at.y - it.h / 2, it.w, it.h);
+                        it.x = p.x; it.y = p.y; it.w = p.w; it.h = p.h;
+                    } else {
+                        var free = B.autoPos(a, a.items || [], it.w, it.h);
+                        it.x = free.x; it.y = free.y;
+                    }
+                    self.model.appearance.items.push(it);
+                    self.sel = it._i;
+                    if (t === 'widget' && !wtype) self.typeError = self.t('dpb_pick_widget');
+                    self.sub = 'view';
+                };
                 if (this.hasRawHtml) {
-                    if (!window.confirm(this.t('dpb_html_drop_confirm'))) return;
-                    a.html = '';
-                    /* the file is no longer restored as is: the model now owns the widget */
-                    this.model.imported = false;
-                    this.viewMode = 'visual';
+                    /* the first block on an empty canvas contradicts the kept markup */
+                    this.ask(this.t('dpb_html_drop_confirm'), true).then(function (ok) {
+                        if (!ok) return;
+                        a.html = '';
+                        /* the file is no longer restored as is: the model now owns the widget */
+                        self.model.imported = false;
+                        self.viewMode = 'visual';
+                        place();
+                    });
+                    return;
                 }
-                if (at) {
-                    var p = B.clampPos(a, at.x - it.w / 2, at.y - it.h / 2, it.w, it.h);
-                    it.x = p.x; it.y = p.y; it.w = p.w; it.h = p.h;
-                } else {
-                    var free = B.autoPos(a, a.items || [], it.w, it.h);
-                    it.x = free.x; it.y = free.y;
-                }
-                this.model.appearance.items.push(it);
-                this.sel = it._i;
-                if (t === 'widget' && !wtype) this.typeError = this.t('dpb_pick_widget');
-                this.sub = 'view';
+                place();
             },
             addWidgetItem: function (wt) { this.addItem('widget', wt); },
             delItem: function (i) {

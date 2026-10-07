@@ -922,6 +922,15 @@ body.widget-dragging, body.widget-dragging * { cursor: grabbing !important; }
 
 /* ready made widget: raw markup editor */
 .dpb-panes--raw .dpb-pane--center { background:#262626; }
+/* css mode: the editor column is bounded like the code tab. The pane keeps a
+   definite height, so a long stylesheet scrolls inside the editor instead of
+   growing the rows: with height:auto the centre column would push the page and
+   the right preview column would shrink to nothing next to the page scrollbar */
+.we-build .dpb-panes--css { height:min(62vh,780px); }
+.dpb-panes--css .dpb-pane--center .dpb-pane__scroll { display:flex; flex-direction:column; }
+.dpb-panes--css .dpb-pane--center .dpb-pane__scroll > .dpb-hint,
+.dpb-panes--css .dpb-pane--center .dpb-pane__scroll > .dpb-err { flex-shrink:0; }
+.dpb-panes--css .dpb-pane--center .dpb-pane__scroll .dpb-code { flex:1 1 auto; min-height:0; }
 .dpb-hint--raw { margin:0 0 6px; line-height:1.5; }
 .dpb-warn {
   display:flex; align-items:flex-start; gap:6px; margin:0 0 6px; padding:6px 8px;

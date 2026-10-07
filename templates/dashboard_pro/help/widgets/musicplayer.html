@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Музыкальный проигрыватель — Dashboard Pro Справка</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="../css/help.css">
+</head>
+<body>
+<header class="help-header">
+    <i class="fas fa-book" style="font-size:1.4rem"></i>
+    <h1>Dashboard Pro <span class="subtitle">— справка и документация</span></h1>
+    <a href="../../index.html"><i class="fas fa-external-link-alt"></i> Открыть панель</a>
+</header>
+<div class="help-layout">
+    <aside class="help-side">
+        <div class="help-side__title">Разделы справки</div>
+        <nav>
+            <a href="../index.html"><i class="fas fa-home"></i> Обзор</a>
+            <a href="../panels.html"><i class="fas fa-th-large"></i> Панели</a>
+            <a href="../widgets.html" class="help-side__toggle" aria-expanded="false"><i class="fas fa-puzzle-piece"></i> Виджеты</a><div class="help-side__sub">
+                <a href="acremote.html">Пульт кондиционера</a>
+                <a href="analogclock.html">Аналоговые часы</a>
+                <a href="alarmclock.html">Будильник</a>
+                <a href="button.html">Кнопка</a>
+                <a href="calendar.html">Календарь</a>
+                <a href="chat.html">Чат</a>
+                <a href="clock.html">Часы</a>
+                <a href="colorslider.html">Слайдер цвета</a>
+                <a href="datepicker.html">Выбор даты</a>
+                <a href="dimmer.html">Диммер</a>
+                <a href="empty.html">Пустой</a>
+                <a href="gauge.html">Индикатор</a>
+                <a href="gradient-slider.html">gradient-slider</a>
+                <a href="graph.html">График</a>
+                <a href="group.html">Группа</a>
+                <a href="iframe.html">iFrame</a>
+                <a href="image.html">Изображение</a>
+                <a href="keypad.html">Клавиатура</a>
+                <a href="map.html">Карта</a>
+                <a href="musicplayer.html" class="active">Музыкальный проигрыватель</a>
+                <a href="musicremote.html">Пульт музыки</a>
+                <a href="panellink.html">Ссылка на панель</a>
+                <a href="progressbar.html">Прогресс-бар</a>
+                <a href="relay.html">Реле</a>
+                <a href="rgb.html">RGB</a>
+                <a href="roominfo.html">Помещение</a>
+                <a href="roundslider.html">Круглый слайдер</a>
+                <a href="select.html">Выбор</a>
+                <a href="sendtext.html">Отправка текста</a>
+                <a href="slider.html">Слайдер</a>
+                <a href="sliderbuttons.html">Слайдер с кнопками</a>
+                <a href="slideshow.html">Слайд-шоу</a>
+                <a href="status.html">Статус</a>
+                <a href="stream.html">Потоковое видео</a>
+                <a href="table.html">Таблица</a>
+                <a href="test.html">Тест</a>
+                <a href="text.html">Текст</a>
+                <a href="thermostat.html">Термостат</a>
+                <a href="timeline.html">Таймлайн</a>
+                <a href="timepicker.html">Выбор времени</a>
+                <a href="trend.html">Тренд</a>
+                <a href="tvremote.html">Пульт ТВ</a>
+                <a href="unknown.html">Неизвестный</a>
+                <a href="value.html">Значение</a>
+                <a href="video.html">Видео</a>
+                <a href="weather.html">Погода</a>
+            </div>
+            <a href="../editor.html"><i class="fas fa-edit"></i> Редактор виджетов</a>
+            <a href="../builder.html"><i class="fas fa-wand-magic-sparkles"></i> Конструктор</a>
+            <a href="../settings.html"><i class="fas fa-cog"></i> Настройки</a>
+            <a href="../users.html"><i class="fas fa-users"></i> Пользователи и права</a>
+            <a href="../faq.html"><i class="fas fa-question-circle"></i> Частые вопросы</a>
+        </nav>
+    </aside>
+    <main class="help-main" id="top">
+        <p class="help-breadcrumb"><a href="../widgets.html"><i class="fas fa-arrow-left"></i> Виджеты</a></p>
+        <h2>Музыкальный проигрыватель</h2>
+        <div class="help-card" id="musicplayer">
+            <div class="help-card__head"><h3>Музыкальный проигрыватель</h3><span class="badge">musicplayer</span><a class="help-top" href="../widgets.html">↑ к списку виджетов</a></div>
+<p>Проигрыватель медиа из папки модуля: плейлист, управление воспроизведением, громкость, спектр в реальном времени и цветомузыка. Кнопка <code>+</code> в шапке добавляет файл из папки или по ссылке.</p>
+            <h4>Как работает</h4>
+            <p><b>Плейлист.</b> Начальный список берётся из поля <b>Плейлист по умолчанию</b> (JSON-массив вида <code>[{"src":"cms/sounds/a.mp3","title":"A"}]</code>). Если заданы <b>Объект плейлиста</b> и <b>Свойство плейлиста</b>, проигрыватель читает плейлист оттуда и сохраняет туда же каждую правку (с задержкой ~0,7 с). Если объект не задан, изменения плейлиста запоминаются в поле «Плейлист по умолчанию». Список можно записать и простым текстом — каждая строка или запятая становятся отдельным треком.</p>
+            <p><b>Файлы.</b> Поле <b>Папка с файлами</b> задаёт каталог медиа (по умолчанию <code>cms/sounds</code>). Кнопка <code>+</code> открывает список файлов этой папки: отметьте нужные галочками и нажмите «Добавить выбранные». Ниже есть поле для URL — так добавляется файл или интернет-поток, которых нет в папке.</p>
+            <p><b>Воспроизведение.</b> Плей/пауза, предыдущий и следующий трек, перемешивание и повтор (кнопка цикла — выкл / один трек / все треки). Ползунок громкости Ш выставляет громкость, клик по полосе прогресса перематывает. Название трека выводится из имени файла, пока оно не задано явно в плейлисте.</p>
+            <p><b>Спектр и цветомузыка.</b> Спектр считается из звука через Web Audio API, колонки раскрашиваются по списку <b>Полосы частот</b>. Кнопка-лампочка в шапке включает цветомузыку: спектр пишется в связанные свойства объекта в виде уровней 0–255 или сигналов вкл/выкл. Устройство не пишется из браузера напрямую — свойство объекта меняется, а про приём на порт заботится серверная часть (например модуль megad). Подробности — во вкладке «Цветомузыка» ниже.</p>
+            <h4>Все поля</h4>
+            <p>Ниже — полный список полей настройки виджета: каждое поле, его ключ в файле виджета, тип и значение по умолчанию. Ключ нужен, если вы правите код виджета вручную или собираете свой виджет в конструкторе.</p>
+            <h5>Основное <span class="badge">main</span></h5>
+            <table>
+                <tr><th>Поле</th><th>Тип</th><th>По умолчанию</th><th>Описание</th></tr>
+                <tr><td>Название<br><code>title</code></td><td><code>text</code></td><td>—</td><td>Заголовок карточки. Если пусто, виджет подставляет своё название.</td></tr>
+                <tr><td>Тип иконки<br><code>icon_type</code></td><td><code>select</code></td><td><code>icon</code></td><td>Откуда берётся иконка: из набора Font Awesome, из свойства объекта или по ссылке на картинку. От этой настройки зависит, какие из трёх полей ниже показываются.</td></tr>
+                <tr><td>Иконка<br><code>icon</code></td><td><code>icon_picker</code></td><td><code>fas fa-music</code></td><td>Класс иконки Font Awesome. <span class="help-note-inline">Показывается: пока <b>Тип иконки</b> = <code>icon</code>.</span></td></tr>
+                <tr><td>Объект (иконка)<br><code>icon_object</code></td><td><code>object</code></td><td>—</td><td>Объект, свойство которого даёт иконку. <span class="help-note-inline">Показывается: пока <b>Тип иконки</b> = <code>property</code>.</span></td></tr>
+                <tr><td>Свойство (иконка)<br><code>icon_property</code></td><td><code>property</code></td><td>—</td><td>Свойство объекта, значение которого используется как класс иконки. <span class="help-note-inline">Показывается: пока <b>Тип иконки</b> = <code>property</code>.</span></td></tr>
+                <tr><td>URL иконки<br><code>icon_url</code></td><td><code>text</code></td><td>—</td><td>Адрес картинки, которая показывается как иконка: <code>https://…</code> либо путь внутри модуля. <span class="help-note-inline">Показывается: пока <b>Тип иконки</b> = <code>url</code>.</span></td></tr>
+                <tr><td>Папка с файлами<br><code>folder</code></td><td><code>dir_picker</code></td><td><code>cms/sounds</code></td><td>Каталог медиа, из которого кнопка «+» показывает список файлов.</td></tr>
+                <tr><td>Объект плейлиста<br><code>state_object</code></td><td><code>object</code></td><td><code>DashboardProMusicplayer</code></td><td>Объект, в свойстве которого хранится плейлист. Пока не задан — плейлист живёт в поле «Плейлист по умолчанию».</td></tr>
+                <tr><td>Свойство плейлиста<br><code>state_property</code></td><td><code>property</code></td><td><code>Playlist</code></td><td>Свойство объекта плейлиста: проигрыватель читает его и сохраняет правки плейлиста туда же.</td></tr>
+                <tr><td>Плейлист по умолчанию<br><code>playlist</code></td><td><code>textarea</code></td><td><code>[]</code></td><td>Начальный плейлист: JSON-массив <code>[{"src":"cms/sounds/a.mp3","title":"A"}]</code> или простой список — каждая строка/запятая становится треком.</td></tr>
+            </table>
+            <h5>Воспроизведение <span class="badge">params</span></h5>
+            <p>Значения по умолчанию можно поменять прямо на панели; кнопки перемешивания и повтора в карточке переключаются независимо.</p>
+            <table>
+                <tr><th>Поле</th><th>Тип</th><th>По умолчанию</th><th>Описание</th></tr>
+                <tr><td>Автозапуск<br><code>autoplay</code></td><td><code>checkbox</code></td><td>выкл</td><td>Начать воспроизведение сразу. Зависит от разрешения браузера на автовоспроизведение звука.</td></tr>
+                <tr><td>Перемешивание<br><code>shuffle</code></td><td><code>checkbox</code></td><td>выкл</td><td>Треки идут в случайном порядке; кнопка-перемешивание в карточке включает это же на лету.</td></tr>
+                <tr><td>Повтор<br><code>repeat</code></td><td><code>select</code></td><td><code>off</code></td><td>Повтор после окончания трека: выключен / один трек / все треки.</td></tr>
+                <tr><td>Громкость<br><code>volume</code></td><td><code>number</code></td><td><code>0.8</code></td><td>Громкость от 0 до 1, шаг 0.05. Меняется ползунком в карточке.</td></tr>
+                <tr><td>Показывать плейлист<br><code>show_playlist</code></td><td><code>checkbox</code></td><td>вкл</td><td>Показывать список треков под управлением. Клик по треку запускает его, крестик убирает из списка.</td></tr>
+                <tr><td>Показывать спектр<br><code>show_spectrum</code></td><td><code>checkbox</code></td><td>вкл</td><td>Показывать столбцы спектра между управлением и списком.</td></tr>
+            </table>
+            <h5>Цветомузыка <span class="badge">light</span></h5>
+            <p>Вкладка связывает спектр с «лампой»: портами объекта (простые лампы и диммеры), RGB-лентами и адресными светодиодными лентами. Устройство выбирается полем <b>Тип устройства</b> — от него зависит, какие поля ниже показываются.</p>
+            <table>
+                <tr><th>Поле</th><th>Тип</th><th>По умолчанию</th><th>Описание</th></tr>
+                <tr><td>Тип устройства<br><code>dev_type</code></td><td><code>select</code></td><td><code>ports</code></td><td>Что пишет виджет: «Лампы на портах», «RGB-лампы и ленты» или «AI-ленты (адресные, WS2811 / WS2812)».</td></tr>
+                <tr><td>Количество каналов<br><code>port_ch</code></td><td><code>select</code></td><td><code>3</code></td><td>Сколько каналов (ламп) задействовано: от 3 до 7. Спектр режется на столько же полос по логарифмической шкале частот. <span class="help-note-inline">Показывается: пока <b>Тип устройства</b> = <code>ports</code>.</span></td></tr>
+                <tr><td>Канал 1 … Канал 3<br><code>object_p1</code>/<code>property_p1</code> … <code>object_p3</code>/<code>property_p3</code></td><td><code>object</code>/<code>property</code></td><td>—</td><td>Объект и свойство для каждого канала: то, во что записывается уровень/состояние. <span class="help-note-inline">Показывается: пока <b>Тип устройства</b> = <code>ports</code>.</span></td></tr>
+                <tr><td>Канал 4 … Канал 7<br><code>object_p4</code>/<code>property_p4</code> … <code>object_p7</code>/<code>property_p7</code></td><td><code>object</code>/<code>property</code></td><td>—</td><td>Дополнительные каналы. Каждый следующий показывается, когда «Количество каналов» больше: канал 4 — от 4, канал 5 — от 5 и так далее. <span class="help-note-inline">Показывается: пока <b>Тип устройства</b> = <code>ports</code> и «Количество каналов» позволяет.</span></td></tr>
+                <tr><td>Режим<br><code>port_mode</code></td><td><code>select</code></td><td><code>freq</code></td><td>«Каналы разбиты по частотам» — каждый канал держит свою полосу спектра; «Бегущая волна (по ритму)» — яркая точка-волна бежит по каналам в такт музыке. <span class="help-note-inline">Показывается: пока <b>Тип устройства</b> = <code>ports</code>.</span></td></tr>
+                <tr><td>Что писать в канал<br><code>port_out</code></td><td><code>select</code></td><td><code>onoff</code></td><td>Формат значения: «Яркость 0-255 (диммеры)» — пишется уровень как есть; «Вкл/выкл 0/1 (простые лампы)» — уровень сравнивается с порогом и пишется 1 или 0. <span class="help-note-inline">Показывается: пока <b>Тип устройства</b> = <code>ports</code>.</span></td></tr>
+                <tr><td>Уровень включения лампы<br><code>cm_on_level</code></td><td><code>number</code></td><td><code>90</code></td><td>Порог уровня, начиная с которого простая лампа (режим «Вкл/выкл 0/1») зажигается: <code>1</code>, если яркость полосы &ge; порога, иначе <code>0</code>. Диапазон 0–255, шаг 5. Чем выше порог — тем реже лампа вспыхивает: при пороге 90 лампа загорается примерно на ярком звуке, при 5 — почти всегда. Значения вне 0–255 не используются — берётся значение по умолчанию 90. <span class="help-note-inline">Показывается: пока <b>Тип устройства</b> = <code>ports</code> и «Что писать в канал» = <code>onoff</code>.</span></td></tr>
+                <tr><td>Как писать свет<br><code>wr_mode</code></td><td><code>select</code></td><td><code>hex</code></td><td>Формат записи цвета: строка <code>#rrggbb</code> в одно свойство или три значения R/G/B в три свойства. <span class="help-note-inline">Показывается: пока <b>Тип устройства</b> = <code>rgb</code> или <code>ic</code>.</span></td></tr>
+                <tr><td>Объект / Свойство (hex)<br><code>object_hex</code>/<code>property_hex</code></td><td><code>object</code>/<code>property</code></td><td>—</td><td>Куда пишется цвет в формате <code>#rrggbb</code>. <span class="help-note-inline">Показывается: пока <b>Как писать свет</b> = <code>hex</code>.</span></td></tr>
+                <tr><td>Объект R / G / B<br><code>object_r</code>/<code>property_r</code>, <code>object_g</code>/…, <code>object_b</code>/…</td><td><code>object</code>/<code>property</code></td><td>—</td><td>Три свойства для составляющих цвета, когда выбран формат <code>RGB</code>. <span class="help-note-inline">Показывается: пока <b>Как писать свет</b> = <code>rgb</code>.</span></td></tr>
+                <tr><td>Эффект<br><code>ic_mode</code></td><td><code>select</code></td><td><code>cm</code></td><td>Для адресных лент: «Цветомузыка (по частотам)», «Бегущая волна (по ритму музыки)», «Бегущая волна с разными оттенками», «Разнобой в ритме». <span class="help-note-inline">Показывается: пока <b>Тип устройства</b> = <code>ic</code>.</span></td></tr>
+                <tr><td>При окончании звучания<br><code>end_action</code></td><td><code>select</code></td><td><code>off</code></td><td>Что сделать по окончании трека: всё выключать / всё включать / оставлять последний цвет. <span class="help-note-inline">Показывается: пока <b>Тип устройства</b> = <code>rgb</code>.</span></td></tr>
+            </table>
+            <p class="help-note">«Цветомузыка» — это только запись свойств объекта: виджет не общается с контроллером напрямую. Свойства должно принимать то звено, которое реально пишет на порт (обычно megad-модуль по событию изменения связанного свойства).</p>
+            <h5>Дополнительно <span class="badge">advanced</span></h5>
+            <table>
+                <tr><th>Поле</th><th>Тип</th><th>По умолчанию</th><th>Описание</th></tr>
+                <tr><td>Фон виджета<br><code>bg_mode</code></td><td><code>select</code></td><td>—</td><td>Откуда берётся фон карточки: тема виджета, картинка, свой цвет или цвет из свойства объекта.</td></tr>
+                <tr><td>Цвет<br><code>color</code></td><td><code>color</code></td><td>—</td><td>Цвет фона карточки. <span class="help-note-inline">Показывается: пока <b>Фон виджета</b> = <code>color</code>.</span></td></tr>
+                <tr><td>URL изображения<br><code>bg_image</code></td><td><code>text</code></td><td>—</td><td>Адрес фоновой картинки. <span class="help-note-inline">Показывается: пока <b>Фон виджета</b> = <code>image</code>.</span></td></tr>
+                <tr><td>Объект (цвет)<br><code>bg_object</code></td><td><code>object</code></td><td>—</td><td>Объект, свойство которого задаёт цвет фона. <span class="help-note-inline">Показывается: пока <b>Фон виджета</b> = <code>property</code>.</span></td></tr>
+                <tr><td>Свойство (цвет)<br><code>bg_property</code></td><td><code>property</code></td><td>—</td><td>Свойство объекта, значение которого используется как цвет фона. <span class="help-note-inline">Показывается: пока <b>Фон виджета</b> = <code>property</code>.</span></td></tr>
+                <tr><td>Цвет по частотам<br><code>color_mode</code></td><td><code>select</code></td><td><code>dominant</code></td><td>Раскрашивание спектра: выключен / «Цвет главной полосы» (одним цветом, по самой громкой полосе) / «Отдельный цвет на полосу». Запись цвета идёт в «Объект/Свойство цвета» либо в сами полосы из «Полосы частот».</td></tr>
+                <tr><td>Объект цвета<br><code>color_object</code></td><td><code>text</code></td><td>—</td><td>Объект для цвета спектра при режиме «Цвет главной полосы». <span class="help-note-inline">Показывается: пока <b>Цвет по частотам</b> = <code>dominant</code>.</span></td></tr>
+                <tr><td>Свойство цвета<br><code>color_property</code></td><td><code>text</code></td><td>—</td><td>Свойство, в которое пишется цвет. Когда порог превышен, записывается цвет; когда громкость ниже порога — пустая строка (цвет сбрасывается). <span class="help-note-inline">Показывается: пока <b>Цвет по частотам</b> = <code>dominant</code>.</span></td></tr>
+                <tr><td>Полосы частот<br><code>bands</code></td><td><code>textarea</code></td><td>—</td><td>Список полос спектра в JSON: <code>[{"lo":20,"hi":150,"color":"#ff2200"}]</code>. Каждой — низ и верх частоты, цвет, а для «Отдельный цвет на полосу» ещё и объект/свойство. Если поле пустое или с ошибкой — используются полосы по умолчанию.</td></tr>
+                <tr><td>Порог цвета<br><code>color_threshold</code></td><td><code>number</code></td><td><code>90</code></td><td>Уровень (0–255), начиная с которого полоса считается «звучащей» и для неё отправляется цвет.</td></tr>
+                <tr><td>Интервал отправки, мс<br><code>color_interval</code></td><td><code>number</code></td><td><code>500</code></td><td>Как часто пересчитывать и писать цвет (не чаще раза в указанный интервал).</td></tr>
+                <tr><td>Признак доступности<br><code>object_alive</code></td><td><code>object</code></td><td>—</td><td>Объект, по которому проверяется «живость» виджета: если он не отвечает, карточка гаснет и перестаёт откликаться.</td></tr>
+                <tr><td>Свойство (доступность)<br><code>property_alive</code></td><td><code>property</code></td><td>—</td><td>Свойство объекта «живости», по которому виджет понимает, что связь жива.</td></tr>
+                <tr><td>Таймаут (сек)<br><code>alive_timeout</code></td><td><code>number</code></td><td><code>3</code></td><td>Сколько секунд ждать ответа, прежде чем считать объект недоступным.</td></tr>
+            </table>
+            <p class="help-note">Звук играет в той вкладке, где открыта панель. Если браузер запретил автозапуск, воспроизведение начнётся после первого клика или нажатия клавиши на странице.</p>
+        </div>
+    </main>
+</div>
+<footer class="help-footer">Dashboard Pro · Справка модуля · <a href="https://github.com/golnet1/dashboard_pro" target="_blank" rel="noopener">GitHub</a></footer>
+<script>
+(function () {
+    function closeAll() {
+        document.querySelectorAll('.help-side__sub--open').forEach(function (el) { el.classList.remove('help-side__sub--open'); });
+        document.querySelectorAll('.help-side__toggle').forEach(function (t) { t.setAttribute('aria-expanded', 'false'); });
+    }
+    document.querySelectorAll('.help-side__toggle').forEach(function (toggle) {
+        toggle.addEventListener('click', function (e) {
+            var sub = toggle.nextElementSibling;
+            var wasOpen = sub && sub.classList.contains('help-side__sub--open');
+            closeAll();
+            if (sub && !wasOpen) {
+                sub.classList.add('help-side__sub--open');
+                toggle.setAttribute('aria-expanded', 'true');
+                e.preventDefault();
+            }
+        });
+    });
+    document.querySelectorAll('.help-side nav a').forEach(function (a) {
+        if (!a.classList.contains('help-side__toggle')) a.addEventListener('click', closeAll);
+    });
+})();
+</script>
+<script src="../js/help-search.js"></script>
+</body>
+</html>

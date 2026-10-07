@@ -1149,7 +1149,7 @@
                 tabs: [{ key: 'main', label: 'tab_main', items: stdFields() }]
             },
             defaultsExtra: {},
-            code: { dataPre: '', data: '', computed: '', methods: '', mounted: '', watch: '', beforeUnmount: '', funcs: [] }
+            code: { dataPre: '', data: '', computed: '', methods: '', mounted: '', watch: '', beforeUnmount: '', css: '', funcs: [] }
         };
     }
 
@@ -1267,7 +1267,11 @@
         d.code.mounted = c.mounted || '';
         d.code.watch = c.watch || '';
         d.code.beforeUnmount = c.beforeUnmount || '';
+        d.code.css = c.css || '';
         d.code.funcs = Array.isArray(c.funcs) ? c.funcs : [];
+        /* the injection of a hand written stylesheet, kept as text when its rules
+           cannot be read - a save must write it back instead of dropping it */
+        d.styleRaw = m.styleRaw || '';
         d.defaultsExtra = (m.defaultsExtra && typeof m.defaultsExtra === 'object') ? m.defaultsExtra : {};
         d.imported = !!m.imported;
         /* order of the blocks in the original file: the generator writes them back as they were */
@@ -1281,6 +1285,8 @@
         d.lastComma = (m.lastComma === undefined) ? false : !!m.lastComma;
         d.srcVar = m.srcVar || '';
         d.srcKey = m.srcKey || '';
+        d.srcPrefix = m.srcPrefix || '';
+        d.srcTail = Array.isArray(m.srcTail) ? m.srcTail.slice() : null;
         d.eol = m.eol || '\n';
         d.eof = (m.eof === undefined) ? true : !!m.eof;
         d.dataInline = !!m.dataInline;
@@ -1929,6 +1935,72 @@
             ex.push({ name: hits[k].name, text: s.slice(hits[k].from, to).replace(/\s+$/, '') });
         }
         return ex.length ? ex : null;
+    }
+
+    /* the top level statements of a file, split the same way the blocks of the
+       literal are: a character walk that skips strings, templates, comments and
+       regex literals, cutting at a semicolon or a top level closing brace */
+    function topLevelSplit(s) {
+        s = String(s || '');
+        var out = [], i = 0, end = s.length, q = '', depth = 0, last = '', inComment = false, start = -1;
+        function pushPiece(to) {
+            if (start >= 0 && to > start) { out.push({ start: start, end: to }); start = -1; }
+        }
+        for (; i < end; i++) {
+            var ch = s.charAt(i);
+            if (inComment) {
+                if (ch === '*' && s.charAt(i + 1) === '/') { inComment = false; i++; }
+                continue;
+            }
+            if (ch === '/' && s.charAt(i + 1) === '/') {
+                var nl = s.indexOf('\n', i);
+                i = (nl < 0 ? end : nl);
+                continue;
+            }
+            if (ch === '/' && s.charAt(i + 1) === '*') { inComment = true; i++; continue; }
+            if (q) {
+                if (ch === '\\') { i++; continue; }
+                if (ch === q) q = '';
+                continue;
+            }
+            if (ch === '"' || ch === "'" || ch === '`') { q = ch; continue; }
+            if (ch === '/' && last && !/[)\]}A-Za-z0-9_$]/.test(last)) {
+                var k = i + 1, cls = false;
+                while (k < end) {
+                    var rc = s.charAt(k);
+                    if (rc === '\\') { k += 2; continue; }
+                    if (rc === '[') cls = true;
+                    else if (rc === ']') cls = false;
+                    else if (rc === '/' && !cls) break;
+                    else if (rc === '\n') break;
+                    k++;
+                }
+                i = (k < end && s.charAt(k) === '/') ? k : i;
+                last = '/';
+                continue;
+            }
+            if (depth === 0 && start < 0 && !/\s/.test(ch)) start = i;
+            if (ch === '(' || ch === '[' || ch === '{') { depth++; last = ch; continue; }
+            if (ch === ')' || ch === ']') { depth--; last = ch; continue; }
+            if (ch === '}') {
+                if (depth === 1) {
+                    depth = 0;
+                    var k2 = i + 1;
+                    while (k2 < end && /\s/.test(s.charAt(k2))) k2++;
+                    var wm = /^([A-Za-z_$][\w$]*)/.exec(s.slice(k2));
+                    var wn = wm ? wm[1] : '';
+                    if (s.charAt(k2) === ';') { pushPiece(k2 + 1); i = k2; }
+                    else if (wn === 'else' || wn === 'catch' || wn === 'finally' || wn === 'while') { last = '}'; continue; }
+                    else pushPiece(i + 1);
+                } else depth--;
+                last = '}';
+                continue;
+            }
+            if (ch === ';' && depth === 0) pushPiece(i + 1);
+            last = ch;
+        }
+        pushPiece(end);
+        return out;
     }
 
     /* does the last item of the tabs array end with a comma? null when there are no tabs */
@@ -2631,6 +2703,10 @@
             if (dataRaw) {
                 if (dataRaw.indexOf('\n') < 0) dl.push('        return {' + dataBody() + ' };');
                 else dl.push('        return {', dataBody(), '        };');
+            } else if (has('dataPre')) {
+                /* the code before the return is not the object Vue needs: data()
+                   must return one even when the body itself is empty yet */
+                dl.push('        return {};');
             }
             if (!dl.length) dl.push('        return {};');
             B.data = ['    data() {'].concat(dl).concat(['    }']).join('\n');
@@ -2692,12 +2768,23 @@
         /* a block that the file did not have yet goes after the ones it did have */
         SRC_BLOCKS.forEach(function (k) { if (B[k] && parts.indexOf(B[k]) < 0) parts.push(B[k]); });
 
-        var out = ['const ' + vn + ' = {', parts.join(',\n') + (m.lastComma && parts.length ? ',' : ''), '};', ''];
+        var out = [];
+        if (imported && m.srcPrefix) out.push(String(m.srcPrefix).replace(/\s+$/, ''));
+        out.push('const ' + vn + ' = {', parts.join(',\n') + (m.lastComma && parts.length ? ',' : ''), '};', '');
         out.push('window.DpWidgets = window.DpWidgets || {};');
         /* the file may address the widget with a dot or with a quoted key - keep it */
         var wkey = (imported && m.srcKey) ? m.srcKey
             : (/^[A-Za-z_$][\w$]*$/.test(m.type) ? '.' + m.type : '[' + jsStr(m.type) + ']');
         out.push('window.DpWidgets' + wkey + ' = ' + vn + ';');
+        /* the stylesheet of the widget travels with the file: a marked block right
+           after the registration. When its rules could not be read, the injection
+           of the file is written back as it stands instead */
+        var cssText = String(c.css || '').replace(/\s+$/, '');
+        if (cssText.trim()) out.push('', styleBlockText(cssText, m.type));
+        else if (imported && m.styleRaw) out.push('', String(m.styleRaw));
+        /* the module level of a ready made widget: the statics and helpers that
+           stood outside the literal are written back, after what the generator owns */
+        if (imported && Array.isArray(m.srcTail) && m.srcTail.length) out.push('', m.srcTail.join('\n'));
         if (!imported) {
             /* a widget made in the builder keeps its design model in the file: it is needed to reopen it */
             out.push('');
@@ -2741,6 +2828,17 @@
            repair the save does, run while the model is read, so the code the editor shows
            is the code the widget really runs. */
         if (model) ensureComputed(model);
+        /* the stylesheet is read from the file itself: the block and the model are
+           written together, and the file is what really runs on the page */
+        if (model) {
+            var sc = styleCssOf(js);
+            if (sc === null) {
+                model.code.css = '';
+                model.styleRaw = styleRawOf(js);
+            } else if (sc !== '') {
+                model.code.css = sc;
+            }
+        }
         return model;
     }
 
@@ -2879,6 +2977,114 @@
             break;
         }
         return m;
+    }
+
+    /* ---- the stylesheet of a widget ---------------------------------------
+       The rules of a widget are put into the page as one <style> tag. They live
+       in the widget file inside a marked block, so the builder can show them in
+       the CSS mode and write them back on save. An injection the generator does
+       not know is not a block it can keep: it would disappear from the file on
+       the first save, silently, together with the look of the widget. */
+
+    var STYLE_IN = '/* DPSTYLE-BEGIN */';
+    var STYLE_OUT = '/* DPSTYLE-END */';
+
+    /* the id of the tag is the one the ready made widgets already use, so a file
+       saved while the old copy of it is still in the browser cannot put the same
+       rules into the page twice */
+    function styleIdOf(type) {
+        return String(type || 'widget').replace(/[^A-Za-z0-9_-]/g, '') + '-widget-style';
+    }
+
+    function styleBlockRe() {
+        return /\/\*\s*DPSTYLE-BEGIN\s*\*\/[\s\S]*?\/\*\s*DPSTYLE-END\s*\*\//;
+    }
+
+    /* one JS string per line: a quote, a backslash or a template sign inside a
+       rule reaches the file unchanged, and the file stays readable */
+    function styleBlockText(css, type) {
+        var text = String(css == null ? '' : css).replace(/\r\n/g, '\n');
+        if (!text.trim()) return '';
+        var id = JSON.stringify(styleIdOf(type));
+        var vals = text.split('\n').map(function (l) { return JSON.stringify(l); });
+        var body = vals.map(function (v, i) { return '            ' + v + (i + 1 < vals.length ? ',' : ''); }).join('\n');
+        return [
+            STYLE_IN,
+            '(function () {',
+            '    if (typeof document === \'undefined\') return;',
+            '    try {',
+            '        if (document.getElementById(' + id + ')) return;',
+            '        var st = document.createElement(\'style\');',
+            '        st.id = ' + id + ';',
+            '        st.textContent = [',
+            body,
+            '        ].join(\'\\n\');',
+            '        (document.head || document.documentElement).appendChild(st);',
+            '    } catch (e) { }',
+            '})();',
+            STYLE_OUT
+        ].join('\n');
+    }
+
+    /* the rules held by an injection, or null when they cannot be read */
+    function styleTextOf(block) {
+        var m = /st\.textContent\s*=\s*\[([\s\S]*?)\]\s*\.join\(\s*(['"])\\n\2\s*\)/.exec(String(block || ''));
+        if (!m) return null;
+        try {
+            var arr = (new Function('return [' + m[1] + '];'))();
+            if (!Array.isArray(arr)) return null;
+            return arr.map(function (s) { return String(s); }).join('\n');
+        } catch (e) { return null; }
+    }
+
+    /* an injection of a style tag into the page: what the builder meets in a file
+       written by hand. It can only be kept when its rules can be read - and when
+       they cannot, the block itself is written back untouched */
+    function styleLooksInjection(s) {
+        return /createElement\(\s*['"]style['"]\s*\)/.test(s) && /\.textContent\s*=/.test(s);
+    }
+
+    /* the CSS of a widget file: '' when the file has none, null when it has an
+       injection whose rules the builder could not read */
+    function styleCssOf(js) {
+        var s = String(js || '');
+        var mk = styleBlockRe().exec(s);
+        if (mk) {
+            var c = styleTextOf(mk[0]);
+            if (c !== null) return c;
+        }
+        var c2 = styleTextOf(s);
+        if (c2 !== null) return c2;
+        return styleLooksInjection(s) ? null : '';
+    }
+
+    /* the injection as it stands in the file, written back untouched when its
+       rules cannot be read. Only a top level one is taken: a style tag built
+       inside a method of the widget is a part of that method and is already
+       carried by the code of the model */
+    function styleRawOf(js) {
+        var s = String(js || '');
+        var mk = styleBlockRe().exec(s);
+        if (mk) return mk[0];
+        var i = s.search(/\.textContent\s*=/);
+        if (i < 0 || !styleLooksInjection(s)) return '';
+        var re = /\n[ \t]*\(function/g, m, head = null;
+        while ((m = re.exec(s.slice(0, i))) !== null) head = m;
+        if (!head) return '';
+        var from = head.index + 1;
+        /* the statement ends at the semicolon of the rules: the usual injection
+           writes them as an array and joins it, an odd one assigns them directly */
+        var j = s.indexOf('].join(', i);
+        var semi = s.indexOf(';', j >= 0 ? j : i);
+        if (semi < 0) return '';
+        var e1 = s.indexOf('})();', semi);
+        e1 = e1 < 0 ? -1 : e1 + 5;
+        /* the registration of the widget may stand right behind the injection */
+        var e2m = /(?:^|\n)[ \t]*window\.DpWidgets\s*=/.exec(s.slice(semi));
+        var e2 = e2m ? semi + e2m.index : -1;
+        var end = (e1 < 0) ? e2 : (e2 < 0 ? e1 : Math.min(e1, e2));
+        if (end < 0) return '';
+        return s.slice(from, end).replace(/\s+$/, '');
     }
 
     function extractCode(js) {
@@ -3029,6 +3235,10 @@ var tpl = readTemplateStr(js);
         ['dataPre', 'data', 'computed', 'methods', 'mounted', 'watch', 'beforeUnmount'].forEach(function (k) {
             m.code[k] = code[k] || '';
         });
+        /* the stylesheet of the file: the CSS mode of the appearance section shows it */
+        var sc = styleCssOf(js);
+        if (sc === null) m.styleRaw = styleRawOf(js);
+        else m.code.css = sc;
         /* graph.js writes `data() { return {` - the return stays on the line of the brace */
         var draw = methodRaw(js, 'data');
         m.dataInline = !!(draw && draw.indexOf('\n') >= 0 && /return/.test(draw.split('\n')[0]));
@@ -3105,6 +3315,42 @@ var tpl = readTemplateStr(js);
         var last = null, lastKey = '', re = /window\.DpWidgets(\.[A-Za-z_$][\w$]*|\[['"][^'"]+['"]\])\s*=\s*([A-Za-z_$][\w$]*)\s*;/g, mm;
         while ((mm = re.exec(js)) !== null) { last = mm[2]; lastKey = mm[1]; }
         if (last) { m.srcVar = last; m.srcKey = lastKey; }
+        /* The top level of the file outside the component literal and the
+           registration: module constants of the widget, statics put on the
+           component, helpers. Without them the first save drops what the code of
+           the widget still refers to - musicplayer.js keeps its band table there,
+           alarmclock.js the styles of its fields. They are read now and written
+           back on save, so the ready made widget keeps working. */
+        var headRe = /(?:^|\n)[ \t]*(?:const|let|var)[ \t]+([A-Za-z_$][\w$]*)[ \t]*=[ \t]*\{/g, ha, heads = [];
+        while ((ha = headRe.exec(js)) !== null) heads.push({ name: ha[1], at: ha.index });
+        var anc = null;
+        for (var ai = 0; ai < heads.length; ai++) {
+            if (heads[ai].name === last) { anc = heads[ai]; break; }
+        }
+        if (!anc && heads.length) anc = heads[0];
+        m.srcPrefix = '';
+        m.srcTail = [];
+        if (anc) {
+            m.srcPrefix = js.slice(0, anc.at);
+            var lb = js.indexOf('{', anc.at), le = blockEnd(js, lb) + 1, kk = le;
+            while (kk < js.length && /\s/.test(js.charAt(kk))) kk++;
+            if (js.charAt(kk) === ';') le = kk + 1;
+            var sfxTail = js.slice(le), sPieces = topLevelSplit(sfxTail);
+            var regP = /^\s*window\.DpWidgets(\.[A-Za-z_$][\w$]*|\[['"][^'"]+['"]\])\s*=\s*([A-Za-z_$][\w$]*)\s*;?\s*$/, lastReg = -1, pj;
+            for (pj = 0; pj < sPieces.length; pj++) {
+                if (regP.test(sfxTail.slice(sPieces[pj].start, sPieces[pj].end))) lastReg = pj;
+            }
+            for (pj = 0; pj < sPieces.length; pj++) {
+                if (pj === lastReg) continue;
+                var sp = sfxTail.slice(sPieces[pj].start, sPieces[pj].end).trim();
+                if (!sp) continue;
+                if (/^\s*window\.DpWidgets\s*=\s*window\.DpWidgets\s*\|\|\s*\{\}\s*;?\s*$/.test(sp)) continue;
+                if (/^\s*window\.DpBuilderModels/.test(sp)) continue;
+                if (m.styleRaw && sp === String(m.styleRaw).trim()) continue;
+                if (sc && (sp.indexOf('DPSTYLE-BEGIN') >= 0 || (/^\(function/.test(sp) && sp.indexOf('.textContent') >= 0))) continue;
+                m.srcTail.push(sp);
+            }
+        }
         /* the size and the radius of the constructor are the size and the radius of the
            widget on the panel, and the panel takes them from the defaults of the file:
            read them from there, otherwise the constructor would show the size of an empty
@@ -3580,20 +3826,27 @@ var tpl = readTemplateStr(js);
         /* the body of an object: a bare word there is a property of a variable
            that does not exist, so it can never be what was meant */
         var objBody = kind === 'data' || kind === 'computed' || kind === 'methods' || kind === 'watch';
-        var lines = 0, words = 0, single = 0;
-        stripped.split('\n').forEach(function (l) {
-            var t = l.trim();
-            if (!t) return;
-            /* only identifiers, separated by commas or spaces (a word in any language) */
-            if (!/^[\p{L}_$][\p{L}\p{N}_$]*(\s*[,\s]\s*[\p{L}_$][\p{L}\p{N}_$]*)*$/u.test(t)) return;
-            lines++;
-            if (t.split(/[\s,]+/).length >= 2) words++;
-            else single++;
-        });
-        if (!lines) return 0;
-        if (words) return lines;
-        if (single && objBody) return lines;
-        return lines >= 3 ? lines : 0;
+var statementBody = kind === 'dataPre' || kind === 'mounted' || kind === 'beforeUnmount';
+    var lines = 0, words = 0, single = 0, other = 0;
+    stripped.split('\n').forEach(function (l) {
+        var t = l.trim();
+        if (!t) return;
+        /* only identifiers, separated by commas or spaces (a word in any language) */
+        if (!/^[\p{L}_$][\p{L}\p{N}_$]*(\s*[,\s]\s*[\p{L}_$][\p{L}\p{N}_$]*)*$/u.test(t)) { other++; return; }
+        lines++;
+        if (t.split(/[\s,]+/).length >= 2) words++;
+        else single++;
+    });
+    if (!lines) return 0;
+    if (words) return lines;
+    if (single && objBody) return lines;
+    /* in the body of a method a bare identifier does nothing at all - it is a
+       no-op reference. One word is a typo, several are a sentence: flag the
+       section when every line is such a word and nothing else. The leading
+       `axios` of a promise chain is one line among real code, so it must not
+       trip this check. */
+    if (statementBody && !other) return lines;
+    return lines >= 3 ? lines : 0;
     }
 
     /* a template without a tag and without a binding is a text, not a markup */
@@ -3703,6 +3956,10 @@ var tpl = readTemplateStr(js);
         parseSource: parseSource,
         extractCode: extractCode,
         importSource: importSource,
+        styleCssOf: styleCssOf,
+        styleBlockText: styleBlockText,
+        styleRawOf: styleRawOf,
+        styleIdOf: styleIdOf,
         codeToOptions: codeToOptions,
         defaultsOf: defaultsOf,
         wizard: wizard,
