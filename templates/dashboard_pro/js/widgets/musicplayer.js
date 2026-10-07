@@ -23,7 +23,8 @@ const MusicplayerWidget = {
             { key: 'autoplay', label: 'mu_field_autoplay', type: 'checkbox', default: false },
             { key: 'shuffle', label: 'mu_field_shuffle', type: 'checkbox', default: false },
             { key: 'repeat', label: 'mu_field_repeat', type: 'select', default: 'off', options: [{ value: 'off', label: 'mu_opt_repeat_off' }, { value: 'one', label: 'mu_opt_repeat_one' }, { value: 'all', label: 'mu_opt_repeat_all' }] },
-            { key: 'volume', label: 'mu_field_volume', type: 'number', step: 0.05, default: 0.8 },
+            { key: 'cm_use_vol', label: 'cm_vol_active', type: 'switch', default: false, row: 'vol_row' },
+            { key: 'volume', label: 'mu_field_volume', type: 'slider', min: 0, max: 100, step: 1, default: 50, row: 'vol_row' },
             { key: 'show_playlist', label: 'mu_field_show_playlist', type: 'checkbox', default: true },
             { key: 'show_spectrum', label: 'mu_field_show_spectrum', type: 'checkbox', default: true },
         ],
@@ -78,11 +79,11 @@ const MusicplayerWidget = {
     },
     defaults: {
         icon: 'fas fa-music', icon_type: 'icon',
-        folder: 'cms/sounds', state_object: 'DashboardProMusicplayer', state_property: 'Playlist', playlist: '[]',
-        autoplay: false, shuffle: false, repeat: 'off', volume: 0.8, show_playlist: true, show_spectrum: true,
+        folder: 'cms/sounds', state_object: 'DashboardProMusicplayer', state_property: 'Playlist', playlist: '[{"src":"https://hls-01-retro.emgsound.ru/12/128/playlist.m3u8","title":"Ретро FM"},{"src":"http://ep128.hostingradio.ru:8030/ep128","title":"Европа Плюс"},{"src":"https://dfm.hostingradio.ru/dfm128.mp3","title":"Радио DFM"},{"src":"http://dorognoe.hostingradio.ru:8000/dorognoe","title":"Дорожное Радио"}]',
+        autoplay: false, shuffle: false, repeat: 'off', volume: 50, show_playlist: true, show_spectrum: true,
         color_mode: 'dominant', color_object: '', color_property: '', bands: '',
         color_threshold: 90, color_interval: 500,
-        dev_type: 'ports', port_ch: '3', port_mode: 'freq', port_out: 'onoff', cm_on_level: 90, wr_mode: 'hex', ic_mode: 'cm', end_action: 'off',
+        dev_type: 'ports', port_ch: '3', port_mode: 'freq', port_out: 'onoff', cm_on_level: 90, wr_mode: 'hex', ic_mode: 'cm', end_action: 'off', cm_use_vol: false,
         width: 320, height: 400,
     },
     template: `
@@ -90,8 +91,10 @@ const MusicplayerWidget = {
             <div class="widget-v-card__header">
                 <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon"></i>
                 <div class="widget-v-card__title">{{ widget.title || t('widget_musicplayer') }}</div>
+                <button v-if="cmOn && cmModes.length > 1" class="dp-music__ibtn" @click.stop="cmCycle" :title="cmTitle"><i :class="cmModeIcon"></i></button>
                 <button class="dp-music__ibtn" :class="{ 'dp-music__ibtn--on': cmOn }" @click.stop="toggleCm" :title="cmTitle"><i class="fas fa-lightbulb"></i></button>
-                <button class="dp-music__ibtn" @click.stop="togglePicker" :title="t('mu_add_file')"><i class="fas fa-plus"></i></button>
+                <button class="dp-music__ibtn" :class="{ 'dp-music__ibtn--on': eqOpen }" @click.stop="toggleEq" :title="t('mu_eq')"><i class="fas fa-sliders"></i></button>
+                <button class="dp-music__ibtn" :class="{ 'dp-music__ibtn--on': pickerOpen }" @click.stop="togglePicker" :title="pickerOpen ? t('mu_playlist') : t('mu_add_file')"><i :class="pickerOpen ? 'fas fa-list' : 'fas fa-plus'"></i></button>
                 <button class="dp-music__ibtn" @click.stop="clearAll" :title="t('mu_clear')"><i class="fas fa-trash"></i></button>
             </div>
             <div class="widget-v-card__body dp-music__body">
@@ -116,9 +119,20 @@ const MusicplayerWidget = {
                     <input type="range" min="0" max="1" step="0.05" :value="volume" @input.stop="onVolume($event)">
                     <i class="fas fa-volume-up"></i>
                 </div>
-                <div class="dp-music__spectrum" v-if="showSpectrum">
-                    <span class="dp-music__cell" v-for="(v, si) in spectrum" :key="si"><i :style="{ height: v + '%', background: spectrumColor(si) }"></i></span>
-                </div>
+                <template v-if="showSpectrum">
+                    <div class="dp-music__spectrum" v-if="!cmOn">
+                        <span class="dp-music__cell" v-for="(v, si) in spectrum" :key="si"><i :style="{ height: v + '%', background: spectrumColor(si) }"></i></span>
+                    </div>
+                    <div class="dp-music__spectrum dp-music__cm dp-music__cm--lamps" v-else-if="cmDevice === 'ports'">
+                        <span class="dp-music__lamp" v-for="(l, i) in cmLamps" :key="i" :class="{ 'dp-music__lamp--on': l.lvl > 0 }" :style="{ opacity: 0.18 + l.lvl * 0.82 }"></span>
+                    </div>
+                    <div class="dp-music__spectrum dp-music__cm" v-else-if="cmDevice === 'rgb'">
+                        <span class="dp-music__cell" v-for="(v, si) in spectrum" :key="si"><i :style="{ height: '100%', background: cmWash || '#888888', opacity: cmWashO }"></i></span>
+                    </div>
+                    <div class="dp-music__spectrum dp-music__cm dp-music__cm--strip" v-else>
+                        <span class="dp-music__led" v-for="(ld, i) in cmStrip" :key="i" :style="{ background: ld.c, opacity: ld.o }"></span>
+                    </div>
+                </template>
                 <div class="dp-music__picker" v-if="pickerOpen">
                     <div class="dp-music__picker-head">{{ t('mu_files') }}</div>
                     <div class="dp-music__files" v-if="filesLoading"><i class="fas fa-circle-notch fa-spin"></i></div>
@@ -137,6 +151,20 @@ const MusicplayerWidget = {
                     </div>
                     <div class="dp-music__picker-row" v-if="pickerError"><span class="dp-music__err">{{ pickerError }}</span></div>
                 </div>
+                <div class="dp-music__eq" v-if="eqOpen">
+                    <div class="dp-music__picker-head">{{ t('mu_eq') }}</div>
+                    <div class="dp-music__eq-bands">
+                        <div class="dp-music__eq-band" v-for="(b, bi) in eqBands" :key="bi">
+                            <span class="dp-music__eq-lbl">{{ b.label }}</span>
+                            <input type="range" min="-12" max="12" step="1" :value="eqGains[bi] || 0" @input.stop="setEqBand(bi, $event.target.value)">
+                            <span class="dp-music__eq-val">{{ eqGains[bi] || 0 }}</span>
+                        </div>
+                    </div>
+                    <div class="dp-music__eq-presets">
+                        <button class="dp-music__eq-p" :class="{ 'dp-music__ibtn--on': eqSel === pr.key }" v-for="pr in eqPresets" :key="pr.key" @click.stop="applyEqPreset(pr.key)">{{ t(pr.label) }}</button>
+                        <button class="dp-music__eq-p" :class="{ 'dp-music__ibtn--on': eqSel === 'custom' }" @click.stop="saveCustomEq">{{ t('mu_eq_custom') }}</button>
+                    </div>
+                </div>
                 <div class="dp-music__list" v-if="showPlaylist && tracks.length">
                     <div class="dp-music__row" :class="{ 'dp-music__row--on': ti === index }" v-for="(tr, ti) in tracks" :key="tr.key" @click.stop="playIndex(ti)">
                         <i class="fas" :class="ti === index && playing ? 'fas fa-volume-high' : 'fas fa-music'"></i>
@@ -148,7 +176,7 @@ const MusicplayerWidget = {
         </div>`,
     data() {
         return {
-            tracks: [], index: -1, playing: false, position: 0, duration: 0, volume: 0.8, shuffleOn: false, repeatMode: 'off',
+            tracks: [], index: -1, playing: false, position: 0, duration: 0, volume: 0.5, shuffleOn: false, repeatMode: 'off',
             pickerOpen: false, files: [], filesLoading: false, pickerError: '', picked: [], manualUrl: '',
             spectrum: new Array(24).fill(0), audioEl: null, actx: null, analyser: null, gainNode: null, graphDone: false,
             freqData: null, rafId: 0, lastColorAt: 0, sentColors: {}, saveTimer: null, keySeq: 0,
@@ -156,10 +184,14 @@ const MusicplayerWidget = {
             cmOn: false, cmTimer: 0, lastCmAt: 0, sentCm: {}, cmPending: [],
             cmPos: 0, cmHueD: 0, cmFast: null, cmSlow: null, cmBeatAt: 0,
             cmShuffled: false, cmRoll: [1, 1, 1], cmQueuedNext: false,
+            cmLamps: [], cmStrip: Array.from({ length: 16 }, () => ({ c: 'rgb(80,80,80)', o: 0.15 })), cmWash: '', cmWashO: 0,
+            eqOpen: false, eqGains: MusicplayerWidget.EQ_BANDS.map(() => 0), eqFilters: [], customEq: null, eqSel: null,
         };
     },
     computed: {
         showSpectrum() { return this.widget.show_spectrum !== false; },
+        eqBands() { return MusicplayerWidget.EQ_BANDS || []; },
+        eqPresets() { return MusicplayerWidget.EQ_PRESETS || []; },
         showPlaylist() { return this.widget.show_playlist !== false; },
         current() { return this.index >= 0 && this.index < this.tracks.length ? this.tracks[this.index] : null; },
         currentTitle() { return this.current ? (this.current.title || this.current.src) : ''; },
@@ -207,27 +239,68 @@ const MusicplayerWidget = {
             const v = parseInt(String(this.widget.cm_on_level), 10);
             return v >= 0 && v <= 255 ? v : 90;
         },
+        cmUseVol() { return this.widget.cm_use_vol === true || this.widget.cm_use_vol === '1'; },
         cmIcMode() { return this.opt(this.widget.ic_mode, ['cm', 'wave', 'cm_wave', 'shuffle'], 'cm'); },
         cmTitle() {
             const tp = this.cmDevice;
             if (tp === 'ports') return this.cmPortMode === 'wave' ? this.t('cm_mode_wave') : this.t('cm_mode_freq');
             if (tp === 'rgb') return this.t('cm_ic_cm');
-            return this.t('cm_ic_' + this.cmIcMode);
+            return this.t(this.cmIcMode === 'cm_wave' ? 'cm_ic_wave_fade' : 'cm_ic_' + this.cmIcMode);
+        },
+        /* the modes available for the device; a single option gives nothing to cycle
+           and the runtime button stays hidden */
+        cmModes() {
+            if (this.cmDevice === 'ports') return ['freq', 'wave'];
+            if (this.cmDevice === 'ic') return ['cm', 'wave', 'cm_wave', 'shuffle'];
+            return [];
+        },
+        cmModeIcon() {
+            const m = this.cmDevice === 'ports' ? this.cmPortMode : this.cmIcMode;
+            const map = {
+                'freq': 'fas fa-chart-column',
+                'wave': 'fas fa-wave-square',
+                'cm': 'fas fa-palette',
+                'cm_wave': 'fas fa-fill',
+                'shuffle': 'fas fa-shuffle',
+            };
+            return map[m] || 'fas fa-sliders';
         },
         aliveDisabled() { return !!(this.widget.object_alive && this.widget.property_alive) && this.isAlive === false; },
     },
     watch: {
-        'widget.volume'(v) { this.setVolume(v); },
+        'widget.volume'() { this.setVolume(this.pctVol() / 100); },
         'widget.autoplay'(v) { if (v) this.playIndex(this.index < 0 ? 0 : this.index); else if (this.playing) this.pause(); },
         'widget.folder'() { this.files = []; this.pickerError = ''; },
         'widget.color_mode'(v) { if (String(v) === 'off') this.clearColors(); },
     },
     mounted() {
-        this.volume = this.clamp01(this.widget.volume === undefined || this.widget.volume === '' ? 0.8 : Number(this.widget.volume));
+        this.volume = this.clamp01(this.pctVol() / 100);
+        try {
+            const savedVol = localStorage.getItem(this.volStateKey());
+            if (savedVol !== null && savedVol !== '') {
+                const v = Number(savedVol);
+                if (!isNaN(v)) this.volume = this.clamp01(v);
+            }
+        } catch (e) { }
+        try {
+            const savedEq = JSON.parse(localStorage.getItem(this.eqStateKey()) || 'null');
+            if (Array.isArray(savedEq) && savedEq.length) {
+                this.eqGains = this.eqBands.map((b, i) => this.clampEq(savedEq[i]));
+            }
+        } catch (e) { }
+        try {
+            const savedCu = JSON.parse(localStorage.getItem(this.eqCustomKey()) || 'null');
+            if (Array.isArray(savedCu) && savedCu.length) this.customEq = savedCu.map(v => this.clampEq(v));
+        } catch (e) { }
+        this.eqSel = this.customEq && String(this.customEq) === String(this.eqGains) ? 'custom' : (this.eqPresets.find(pr => String(pr.g) === String(this.eqGains)) || {}).key || null;
         this.repeatMode = this.opt(this.widget.repeat, ['off', 'one', 'all'], 'off');
         this.shuffleOn = this.widget.shuffle === true;
-        this.initTracks();
-        this.cmOn = this.cmTargets().length > 0;
+        this.initTracks().then(() => {
+            if (this.widget.autoplay && this.tracks.length && this.index < 0) this.playIndex(0);
+        });
+        const savedCm = localStorage.getItem(this.cmStateKey());
+        this.cmOn = savedCm ? savedCm === '1' : false;
+        if (this.cmOn) this.cmLamps = Array.from({ length: this.cmChannelCount }, () => ({ lvl: 0 }));
         if (this.widget.object_alive && this.widget.property_alive) {
             this.checkAlive();
             this.availTimer = setInterval(() => this.checkAlive(), (Number(this.widget.alive_timeout) || 3) * 1000);
@@ -248,6 +321,12 @@ const MusicplayerWidget = {
     },
     methods: {
         clamp01(v) { const n = Number(v); if (!isFinite(n)) return 0; return n < 0 ? 0 : n > 1 ? 1 : n; },
+        pctVol() {
+            let v = this.widget.volume === undefined || this.widget.volume === '' ? 50 : Number(this.widget.volume);
+            if (isNaN(v)) v = 50;
+            if (v > 0 && v <= 1) v = v * 100;
+            return v;
+        },
         opt(v, list, dflt) { const s = String(v === undefined || v === null ? '' : v); return list.indexOf(s) >= 0 ? s : dflt; },
         fmtTime(sec) {
             const n = Math.max(0, Math.floor(Number(sec) || 0));
@@ -332,8 +411,59 @@ const MusicplayerWidget = {
                 }));
             } catch (e) { }
         },
+        toggleEq() {
+            this.eqOpen = !this.eqOpen;
+            if (this.eqOpen) this.pickerOpen = false;
+        },
+        clampEq(v) {
+            v = Number(v);
+            if (isNaN(v)) v = 0;
+            return Math.max(-12, Math.min(12, Math.round(v)));
+        },
+        setEqBand(i, val) {
+            const v = this.clampEq(val);
+            this.eqGains[i] = v;
+            const fl = this.eqFilters && this.eqFilters[i];
+            if (fl) { try { fl.gain.value = v; } catch (e) { } }
+            if (this.eqSel === 'custom') {
+                this.customEq = this.eqGains.slice();
+                try { localStorage.setItem(this.eqCustomKey(), JSON.stringify(this.customEq)); } catch (e) { }
+                try { localStorage.setItem(this.eqStateKey(), JSON.stringify(this.eqGains)); } catch (e) { }
+            } else {
+                this.eqSel = null;
+            }
+        },
+        applyEqPreset(key) {
+            const pr = this.eqPresets.find(p => p.key === key);
+            if (!pr || !pr.g) return;
+            this.eqSel = key;
+            this.eqGains = pr.g.slice();
+            if (this.eqFilters) this.eqFilters.forEach((fl, i) => { if (fl) { try { fl.gain.value = this.eqGains[i] || 0; } catch (e) { } } });
+            try { localStorage.setItem(this.eqStateKey(), JSON.stringify(this.eqGains)); } catch (e) { }
+        },
+        eqStateKey() {
+            const id = this.widget && this.widget.id;
+            return 'dp_music_eq_' + (id === undefined || id === null ? 'global' : id);
+        },
+        eqCustomKey() {
+            const id = this.widget && this.widget.id;
+            return 'dp_music_eq_custom_' + (id === undefined || id === null ? 'global' : id);
+        },
+        saveCustomEq() {
+            if (this.customEq) {
+                this.eqSel = 'custom';
+                this.eqGains = this.customEq.slice();
+            } else {
+                this.customEq = this.eqGains.slice();
+                this.eqSel = 'custom';
+            }
+            if (this.eqFilters) this.eqFilters.forEach((fl, i) => { if (fl) { try { fl.gain.value = this.eqGains[i] || 0; } catch (e) { } } });
+            try { localStorage.setItem(this.eqStateKey(), JSON.stringify(this.eqGains)); } catch (e) { }
+            try { localStorage.setItem(this.eqCustomKey(), JSON.stringify(this.customEq)); } catch (e) { }
+        },
         async togglePicker() {
             this.pickerOpen = !this.pickerOpen;
+            if (this.pickerOpen) this.eqOpen = false;
             if (this.pickerOpen && !this.files.length && !this.filesLoading) await this.loadFiles();
         },
         async loadFiles() {
@@ -408,11 +538,24 @@ const MusicplayerWidget = {
                 const gn = ctx.createGain();
                 gn.gain.value = this.volume;
                 ctx.createMediaElementSource(el).connect(an);
-                an.connect(gn);
+                const giz = [];
+                let prev = an;
+                this.eqBands.forEach((b, i) => {
+                    const fl = ctx.createBiquadFilter();
+                    fl.type = b.type;
+                    fl.frequency.value = b.f;
+                    fl.Q.value = 1.1;
+                    fl.gain.value = this.eqGains[i] || 0;
+                    prev.connect(fl);
+                    prev = fl;
+                    giz.push(fl);
+                });
+                prev.connect(gn);
                 gn.connect(ctx.destination);
                 this.actx = ctx;
                 this.analyser = an;
                 this.gainNode = gn;
+                this.eqFilters = giz;
                 this.freqData = new Uint8Array(an.frequencyBinCount);
                 this.graphDone = true;
                 return true;
@@ -456,7 +599,12 @@ const MusicplayerWidget = {
             this.resumeCtx();
             this.index = i;
             const src = this.srcUrl(this.tracks[i].src);
-            if (!/^https?:\/\//i.test(src)) el.crossOrigin = 'anonymous';
+            /* The element is routed through WebAudio (the analyser feeds the spectrum
+               and the colour music), and a cross-origin URL without the crossorigin
+               attribute plays with the clock running but its path to the graph stays
+               silent - no sound until some local file enables the attribute on the
+               same element. The attribute is therefore set for every track up front. */
+            el.crossOrigin = 'anonymous';
             if (el.getAttribute('src') !== src) { el.setAttribute('src', src); this.position = 0; this.duration = 0; }
             el.volume = hasGraph ? 1 : this.volume;
             const p = el.play();
@@ -530,6 +678,7 @@ const MusicplayerWidget = {
             this.volume = val;
             if (this.gainNode) { try { this.gainNode.gain.value = val; } catch (e) { } }
             else if (this.audioEl) { try { this.audioEl.volume = val; } catch (e) { } }
+            try { localStorage.setItem(this.volStateKey(), String(val)); } catch (e) { }
         },
         onSeek(e) {
             const el = this.audioEl;
@@ -569,7 +718,8 @@ const MusicplayerWidget = {
             an.getByteFrequencyData(this.freqData);
             const bands = this.bandList;
             const levels = bands.map(b => this.bandLevel(b, this.freqData));
-            this.spectrum = this.shape(levels);
+            const k = this.cmUseVol ? this.volume : 1;
+            this.spectrum = this.shape(k !== 1 ? levels.map(v => v * k) : levels);
             this.pushColors(bands, levels);
             this.cmTick();
             this.cmFlush();
@@ -647,6 +797,14 @@ const MusicplayerWidget = {
         },
 
 
+        cmStateKey() {
+            const id = this.widget && this.widget.id;
+            return 'dp_music_cm_' + (id === undefined || id === null ? 'global' : id);
+        },
+        volStateKey() {
+            const id = this.widget && this.widget.id;
+            return 'dp_music_vol_' + (id === undefined || id === null ? 'global' : id);
+        },
         /* ---- colour music -------------------------------------------------
            The controller is never addressed from the browser: it sits on its own
            address and sends no CORS headers, so a request from the panel would be
@@ -684,7 +842,8 @@ const MusicplayerWidget = {
         },
         cmLevels(count) {
             const bands = this.cmBands(count);
-            return bands.map(b => this.bandLevel(b, this.freqData));
+            const k = this.cmUseVol ? this.volume : 1;
+            return bands.map(b => this.bandLevel(b, this.freqData) * k);
         },
         /* a slow follower gives the loudness and a fast one the moment they diverge:
            that jump is the beat the wave steps on */
@@ -767,45 +926,65 @@ const MusicplayerWidget = {
         },
         cmStepEffect(levels) {
             const targets = this.cmTargets();
-            if (!targets.length) return;
-            const n = targets.length;
             const beat = this.cmBeat(levels);
 
             if (this.cmDevice === 'ports') {
-                if (this.cmPortMode !== 'wave') { this.cmApply(levels.slice(0, n)); return; }
-                if (beat) this.cmPos = (this.cmPos + 1) % n;
-                const head = levels.slice(0, n).map(v => v * 0.12);
-                head[this.cmPos] = Math.max(...levels.slice(0, n)) * 1.2;
+                const cnt = this.cmChannelCount;
+                const vals = levels.slice(0, cnt);
+                if (this.cmPortMode !== 'wave') {
+                    this.cmApply(vals);
+                    this.cmLamps = vals.map(v => ({ lvl: this.cmPortOut === 'onoff' ? (v >= this.cmOnLevel ? 1 : 0) : Math.max(0, Math.min(1, v / 255)) }));
+                    return;
+                }
+                if (beat) this.cmPos = (this.cmPos + 1) % cnt;
+                const head = vals.map(v => v * 0.12);
+                head[this.cmPos] = Math.max(...vals) * 1.2;
                 this.cmApply(head);
+                this.cmLamps = head.map(v => ({ lvl: this.cmPortOut === 'onoff' ? (v >= this.cmOnLevel ? 1 : 0) : Math.max(0, Math.min(1, v / 255)) }));
                 return;
             }
 
             const mode = this.cmDevice === 'rgb' ? 'cm' : this.cmIcMode;
             const hue = this.cmHue(levels);
             const loud = Math.min(100, Math.max(...levels) * 0.4 + 25);
+            const n = targets.length;
+            let sent = null;
 
-            if (mode === 'cm') { this.cmApply(this.cmHslToRgb(hue, 100, loud)); return; }
-            if (mode === 'shuffle') {
+            if (mode === 'cm') {
+                sent = this.cmHslToRgb(hue, 100, loud);
+                this.cmApply(sent);
+            } else if (mode === 'shuffle') {
                 if (beat || !this.cmShuffled) {
                     this.cmShuffled = true;
                     this.cmRoll = [0, 1, 2].map(() => Math.random());
                 }
                 const c = this.cmHslToRgb(Math.random() * 360, 100, loud);
-                this.cmApply([c[0] * this.cmRoll[0], c[1] * this.cmRoll[1], c[2] * this.cmRoll[2]]);
-                return;
+                sent = [c[0] * this.cmRoll[0], c[1] * this.cmRoll[1], c[2] * this.cmRoll[2]];
+                this.cmApply(sent);
+            } else {
+                if (beat) this.cmPos = (this.cmPos + 1) % (n > 0 ? n : 3);
+                const tint = mode === 'cm_wave' ? (hue + this.cmPos * 60) % 360 : (this.cmHueD = (this.cmHueD + 6) % 360);
+                const c = this.cmHslToRgb(tint, 100, loud);
+                if (n === 3) {
+                    const tail = [0.18, 0.18, 0.18];
+                    tail[this.cmPos % 3] = 1;
+                    sent = [c[0] * tail[0], c[1] * tail[1], c[2] * tail[2]];
+                    this.cmApply(sent);
+                } else {
+                    sent = [c[0], c[1], c[2]];
+                    this.cmApply(sent);
+                }
             }
-            if (beat) this.cmPos = (this.cmPos + 1) % n;
-            /* the wave carries the rhythm; for the tinted wave the hue rides on the
-               band the wave is standing on, otherwise the hue only drifts */
-            const tint = mode === 'cm_wave' ? (hue + this.cmPos * 60) % 360 : (this.cmHueD = (this.cmHueD + 6) % 360);
-            const c = this.cmHslToRgb(tint, 100, loud);
-            if (n === 3) {
-                const tail = [0.18, 0.18, 0.18];
-                tail[this.cmPos] = 1;
-                this.cmApply([c[0] * tail[0], c[1] * tail[1], c[2] * tail[2]]);
-                return;
+
+            if (!sent) return;
+            const cc = 'rgb(' + Math.round(sent[0]) + ',' + Math.round(sent[1]) + ',' + Math.round(sent[2]) + ')';
+            if (this.cmDevice === 'rgb') {
+                this.cmWash = cc;
+                this.cmWashO = Math.max(0.25, Math.min(1, loud / 100));
+            } else {
+                const o = 0.5 + (loud / 100) * 0.4;
+                this.cmStrip = this.cmStrip.map(() => ({ c: cc, o: o }));
             }
-            this.cmApply([c[0], c[1], c[2]]);
         },
         cmTick() {
             if (!this.cmOn) return;
@@ -814,29 +993,54 @@ const MusicplayerWidget = {
             this.lastCmAt = now;
             /* plain lamps want one slice each; a colour lamp wants low/mid/high, even
                when all of it is written through a single colour property */
-            const n = this.cmDevice === 'ports' ? (this.cmTargets().length || 3) : 3;
+            const n = this.cmDevice === 'ports' ? this.cmChannelCount : 3;
             this.cmStepEffect(this.cmLevels(n));
             this.cmFlush();
         },
+        cmCycle() {
+            const modes = this.cmModes;
+            if (modes.length < 2) return;
+            const key = this.cmDevice === 'ports' ? 'port_mode' : 'ic_mode';
+            const cur = String(this.widget[key] || '').trim();
+            const next = modes[(modes.indexOf(cur) + 1) % modes.length];
+            this.widget[key] = next;
+            this.cmPos = 0;
+            this.cmFast = null;
+            this.cmSlow = null;
+        },
         toggleCm() {
             this.cmOn = !this.cmOn;
-            if (this.cmOn) { this.cmFast = null; this.cmSlow = null; this.cmPos = 0; }
+            try { localStorage.setItem(this.cmStateKey(), this.cmOn ? '1' : '0'); } catch (e) { }
+            if (this.cmOn) { this.cmFast = null; this.cmSlow = null; this.cmPos = 0; this.cmLamps = Array.from({ length: this.cmChannelCount }, () => ({ lvl: 0 })); }
             else this.cmEndLight('off');
         },
         /* what the strip does once the track is over - settings pick off, on or keep */
         cmEndLight(action) {
             const t = this.cmTargets();
-            if (!t.length) return;
             const what = action || this.cmEndAction;
             if (what === 'keep') return;
             if (what === 'on') {
+                this.cmViewLamps(true);
+                this.cmWash = 'rgb(255,255,255)'; this.cmWashO = 1;
+                this.cmStrip = this.cmStrip.map(() => ({ c: 'rgb(255,255,255)', o: 1 }));
+                if (!t.length) return;
                 if (this.cmDevice === 'ports' && this.cmPortOut === 'onoff') { t.forEach(c => this.cmSend(c.object, c.property, '1')); }
                 else if (this.cmDevice !== 'ports' && this.cmWrite === 'hex') { this.cmSend(t[0].object, t[0].property, 'ffffff'); }
                 else { t.forEach((c, i) => this.cmSend(c.object, c.property, String([255, 60, 20][i] || 255))); }
             } else {
+                this.cmViewOff();
+                if (!t.length) return;
                 t.forEach(c => this.cmSend(c.object, c.property, '0'));
             }
             this.cmFlush();
+        },
+        cmViewLamps(on) {
+            this.cmLamps = Array.from({ length: this.cmChannelCount }, () => ({ lvl: on ? 1 : 0 }));
+        },
+        cmViewOff() {
+            this.cmLamps = (this.cmLamps || []).map(l => ({ lvl: 0 }));
+            this.cmWash = ''; this.cmWashO = 0;
+            this.cmStrip = this.cmStrip.map(l => ({ c: l.c, o: 0 }));
         },
         clearCm() {
             const keys = Object.keys(this.sentCm);
@@ -866,6 +1070,27 @@ MusicplayerWidget.DEFAULT_BANDS = [
     { lo: 6000, hi: 14000, color: '#aa66ff', object: '', property: '' },
 ];
 
+MusicplayerWidget.EQ_BANDS = [
+    { label: '60', f: 60, type: 'lowshelf' },
+    { label: '130', f: 130, type: 'peaking' },
+    { label: '230', f: 230, type: 'peaking' },
+    { label: '500', f: 500, type: 'peaking' },
+    { label: '910', f: 910, type: 'peaking' },
+    { label: '3.6K', f: 3600, type: 'peaking' },
+    { label: '8K', f: 8000, type: 'peaking' },
+    { label: '14K', f: 14000, type: 'highshelf' },
+];
+
+MusicplayerWidget.EQ_PRESETS = [
+    { key: 'flat', label: 'mu_eq_flat', g: [0, 0, 0, 0, 0, 0, 0, 0] },
+    { key: 'rock', label: 'mu_eq_rock', g: [6, 4, 4, 3, 2, 3, 4, 4] },
+    { key: 'pop', label: 'mu_eq_pop', g: [4, 3, 2, 2, 1, 3, 2, 2] },
+    { key: 'retro', label: 'mu_eq_retro', g: [4, 2, 3, 1, -2, -4, -5, -6] },
+    { key: 'techno', label: 'mu_eq_techno', g: [7, 5, 3, 1, 0, 2, 4, 5] },
+    { key: 'jazz', label: 'mu_eq_jazz', g: [3, 2, 2, 1, 1, 1, 3, 3] },
+    { key: 'classical', label: 'mu_eq_classical', g: [2, 0, -1, 0, 0, -2, -2, -1] },
+];
+
 window.DpWidgets = window.DpWidgets || {};
 
 (function injectMusicplayerWidgetStyle() {
@@ -891,12 +1116,28 @@ window.DpWidgets = window.DpWidgets || {};
             '.dp-music__tbtn:hover { background:rgba(128,128,128,.32); }',
             '.dp-music__tbtn--main { width:42px; height:42px; font-size:1rem; background:var(--primary); color:#fff !important; }',
             '.dp-music__tbtn--main:hover { filter:brightness(1.12); }',
-            '.dp-music__tbtn--on { color:var(--primary) !important; box-shadow:inset 0 0 0 1px var(--primary); }',
+            '.dp-music__tbtn--on { background:rgba(76,175,80,.16); color:#4caf50 !important; box-shadow:inset 0 0 0 1px #4caf50; }',
             '.dp-music__vol { display:flex; align-items:center; gap:6px; margin-top:8px; font-size:.65rem; color:var(--on-theme-mid); }',
             '.dp-music__vol input[type=range] { flex:1; min-width:0; -webkit-appearance:none; appearance:none; height:4px; border-radius:2px; background:rgba(128,128,128,.3); outline:none; cursor:pointer; }',
             '.dp-music__vol input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:13px; height:13px; border-radius:50%; background:var(--primary); cursor:pointer; border:none; }',
             '.dp-music__vol input[type=range]::-moz-range-thumb { width:13px; height:13px; border-radius:50%; background:var(--primary); cursor:pointer; border:none; }',
             '.dp-music__spectrum { display:flex; align-items:flex-end; gap:2px; height:44px; margin-top:8px; padding:0 1px; }',
+            '.dp-music__cm { background:rgba(0,0,0,.24); border-radius:5px; justify-content:center; }',
+            '.dp-music__cm--lamps { align-items:center; gap:12px; }',
+            '.dp-music__lamp { width:12px; height:12px; min-width:12px; border-radius:50%; background:rgba(255,255,255,.07); box-shadow:inset 0 0 2px rgba(0,0,0,.45); }',
+            '.dp-music__lamp--on { background:radial-gradient(circle at 35% 30%, #fff, #ffd54f 60%, #f7931e); box-shadow:0 0 8px 2px rgba(255,213,79,.85); }',
+            '.dp-music__cm--strip { align-items:center; gap:3px; padding:0 4px; }',
+            '.dp-music__led { flex:1; min-width:3px; height:10px; align-self:center; border-radius:2px; }',
+            '.dp-music__eq { margin-top:8px; padding:8px; background:rgba(128,128,128,.12); border-radius:8px; }',
+            '.dp-music__eq-bands { display:flex; gap:8px; justify-content:space-between; padding:4px 2px 0; }',
+            '.dp-music__eq-band { display:flex; flex-direction:column; align-items:center; gap:4px; flex:1; min-width:0; }',
+            '.dp-music__eq-lbl { font-size:.6rem; color:var(--on-theme-mid); white-space:nowrap; }',
+            '.dp-music__eq-val { font-size:.62rem; color:var(--on-theme-high); }',
+            '.dp-music__eq-band input[type=range] { writing-mode:vertical-lr; direction:rtl; height:74px; width:28px; margin:0; accent-color:var(--primary); }',
+            '.dp-music__eq-presets { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; justify-content:center; }',
+            '.dp-music__eq-p { border:none; border-radius:12px; padding:3px 10px; font-size:.68rem; background:rgba(128,128,128,.18); color:var(--on-theme-mid) !important; cursor:pointer; transition:background .15s; }',
+            '.dp-music__eq-p:hover { background:rgba(128,128,128,.32); }',
+            '.dp-music__eq-p.dp-music__ibtn--on { background:var(--primary); color:#fff !important; }',
             '.dp-music__cell { flex:1; height:100%; display:flex; align-items:flex-end; }',
             '.dp-music__cell i { display:block; width:100%; min-height:2px; border-radius:1px; opacity:.85; transition:height .06s linear; }',
             '.dp-music__picker { margin-top:8px; padding:8px; border-radius:var(--wpb-radius-default, 0px); background:rgba(128,128,128,.12); border:1px solid rgba(128,128,128,.25); }',
