@@ -83,7 +83,7 @@
                         <i class="fas fa-bars"></i>
                         <span class="app-bar__menu-tooltip">{{ sidebarMini ? t('show_sidebar') : t('hide_sidebar') }}</span>
                     </button>
-                    <span v-if="headerHas('title')" class="app-bar__title" :style="headerSlotStyle('title')">{{ showHeaderPanel ? t('header_settings') : (showSettingsPanel ? t('settings') : (showWidgetEditorPanel ? t('widget_editor') : (currentPanel?.title || t('home_panel')))) }}</span>
+                    <span v-if="headerHas('title')" class="app-bar__title" :style="headerSlotStyle('title')">{{ showHeaderPanel ? t('header_settings') : (showSettingsPanel ? t('settings') : (showWidgetEditorPanel ? t('widget_editor') : (linkView ? (linkView.title || t('home_panel')) : (currentPanel?.title || t('home_panel'))))) }}</span>
                     <template v-for="it in headerInst('spacer')" :key="it.key"><div class="app-bar__spacer" :style="headerStyleAt(it.idx, it.type)"></div></template>
                     <template v-for="it in headerInst('divider')" :key="it.key"><div class="app-bar__divider" :style="headerStyleAt(it.idx, it.type)"></div></template>
                     <div v-if="headerHas('status')" class="app-bar__actions" :style="headerSlotStyle('status')">
@@ -220,7 +220,7 @@
                 </header>
                 <aside class="sidebar" :class="{ 'sidebar--open': sidebarOpen, 'sidebar--mini': sidebarMini }">
                     <div class="sidebar__prepend">
-                        <div class="sidebar-brand" :class="{ active: !currentPanel }" @click="selectHomePanel();sidebarOpen=false">
+                        <div class="sidebar-brand" :class="{ active: !currentPanel }" @click="goHome();sidebarOpen=false">
                             <div class="sidebar-brand__icon">
                                 <i class="fas fa-chart-line"></i>
                             </div>
@@ -2508,7 +2508,7 @@
                 <div class="modal-body" style="text-align:center;padding:2rem 1.5rem">
                     <i class="fas fa-chart-line" style="font-size:3rem;color:var(--primary);margin-bottom:1rem"></i>
                     <h3 style="margin-bottom:.3rem">Dashboard Pro</h3>
-                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 01.19.14</p>
+                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 01.19.16</p>
                     <p style="color:var(--text-secondary);font-size:.8rem">{{ t('app_desc') }}</p>
                     <div class="about-links" style="margin-top:1rem;font-size:.85rem;color:var(--text-secondary);line-height:1.8">
                         <div>{{ t('about_telegram') }}: <a href="https://t.me/+9ZFQaxs_Ukw4NmMy" target="_blank" rel="noopener">Telegram</a></div>
@@ -2536,6 +2536,6 @@
 <script src="js/lib/hls.min.js?v=1"></script>
     <script src="js/dpbuilder.js?v=71"></script>
     <script src="js/dpbuilder-ui.js?v=53"></script>
-<script src="js/app.js?v=336"></script>
+<script src="js/app.js?v=340"></script>
 </body>
 </html>

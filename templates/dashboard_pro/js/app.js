@@ -885,6 +885,26 @@ function headerLinkNormalize(raw) {
     if (s.startsWith('/')) return window.location.origin + s;
     return 'https://' + s;
 }
+/* Адрес панели-страницы храним дружелюбно: путь /index.html остаётся путём,
+   а хост при открытии подставляется из текущего адреса, поэтому ссылка не
+   устаревает при смене IP. Абсолютную внешнюю ссылку сохраняем как есть,
+   всё опасное (javascript:, data:, file:) по-прежнему не проходит. */
+function panelUrlToSave(raw) {
+    const s = String(raw == null ? '' : raw).trim();
+    if (!s) return '';
+    if (/^[a-z][a-z0-9+.\-]*:/i.test(s) && !/^https?:\/\//i.test(s)) return '';
+    if (/^https?:\/\//i.test(s)) {
+        return s.startsWith(window.location.origin) ? (s.slice(window.location.origin.length) || '/') : s;
+    }
+    return s;
+}
+/* Старый сохранённый адрес может уже нести на себе хост - при показе в форме
+   его снимаем, чтобы не прибивать IP к полю ввода. */
+function panelUrlToForm(u) {
+    const s = String(u == null ? '' : u).trim();
+    if (!s) return '';
+    return s.startsWith(window.location.origin) ? (s.slice(window.location.origin.length) || '/') : s;
+}
 function headerLinkUrl(cfg) { return (cfg && typeof cfg.url === 'string') ? cfg.url : ''; }
 function headerLinkTitle(cfg) { return (cfg && cfg.title) ? cfg.title : headerLinkUrl(cfg); }
 function headerLinkMode(cfg) { return (cfg && cfg.mode === 'window') ? 'window' : 'panel'; }
@@ -924,7 +944,7 @@ function headerLinkGo(inst) {
     linkView.value = { url: u, title: headerLinkTitle(inst.cfg) };
     sidebarOpen.value = false;
 }
-function closeLinkView() { linkView.value = null; }
+function closeLinkView() { linkView.value = null; localStorage.removeItem('dp_lastUrl'); }
 const headerLinkOpen = ref(false);
 const headerLinkTarget = ref(-1);
 const headerLinkForm = reactive({ title: '', url: '', mode: 'panel', display: 'icon', icon: '', image: '', shape: 'none' });
@@ -1550,7 +1570,7 @@ function headerPanelSave() {
         function addPlusButton() {
             /* Пока открыт адрес в области, виджеты добавлять некуда: кнопка «+»
                в шапке должна вести в панель, а не открывать список виджетов. */
-            if (linkView.value) { selectHomePanel(); return; }
+            if (linkView.value) { goHome(); return; }
             if (!isPanel(currentPanel.value)) {
                 openPanelForm(null);
             } else {
@@ -1724,6 +1744,18 @@ function loadScript(src, version) {
                 if (def) {
                     const target = panels.value.find(p => p.name === def && p.panelType !== 'url');
                     if (target) selectPanel(target);
+                }
+                /* Открытая перед перезагрузкой страница-адрес открывается снова,
+                   иначе F5 возвращает на предыдущую панель. Панель по умолчанию из
+                   настроек остаётся стартовой - она выбрана администратором, и её
+                   приоритет над перезагрузкой страницы сохраняется. */
+                if (!def) {
+                    const lastUrl = localStorage.getItem('dp_lastUrl');
+                    if (lastUrl) {
+                        const urlTarget = panels.value.find(p => p.name === lastUrl && p.panelType === 'url');
+                        const url = urlTarget ? headerLinkNormalize(urlTarget.url) : '';
+                        if (url) linkView.value = { url: url, title: urlTarget.title || url, bare: true };
+                    }
                 }
                 headerMigrateLegacy();
                 headerValueRefresh();
@@ -2863,12 +2895,24 @@ if (f.key) {
                    с кнопками у неё нет (bare), выход - левое меню. У ссылки из
                    шапки такая полоса остаётся - там она и была придумана. */
                 linkView.value = { url: url, title: p.title || url, bare: true };
+                localStorage.setItem('dp_lastUrl', p.name);
                 sidebarOpen.value = false;
                 return;
             }
             selectPanel(p);
             if (expand) expandedGroups.value = { ...expandedGroups.value, [p.name]: true };
+            leaveUrlPage();
             sidebarOpen.value = false;
+        }
+        function leaveUrlPage() {
+            if (linkView.value) {
+                linkView.value = null;
+                localStorage.removeItem('dp_lastUrl');
+            }
+        }
+        function goHome() {
+            leaveUrlPage();
+            selectHomePanel();
         }
 
         async function openPanelForm(p) {
@@ -2884,7 +2928,7 @@ if (f.key) {
                     hideHome: p.hideHome || false,
                     panelType: p.panelType || 'panel',
                     parentGroup: p.parentGroup || 'root',
-                    url: p.url || '',
+                    url: panelUrlToForm(p.url),
                     dropdownNav: p.dropdownNav || false,
                     openOnClick: p.openOnClick || false,
                     infoObject: p.infoObject || '',
@@ -2989,7 +3033,7 @@ if (f.key) {
                 panelError.value = f.panelType === 'url' ? t('panel_error_url_change') : t('panel_error_group_change');
                 return;
             }
-            const panelUrl = f.panelType === 'url' ? headerLinkNormalize(f.url) : '';
+            const panelUrl = f.panelType === 'url' ? panelUrlToSave(f.url) : '';
             if (f.panelType === 'url' && !panelUrl) {
                 panelError.value = t('panel_error_url');
                 return;
@@ -3993,7 +4037,7 @@ if (f.key) {
    currentPanel новым объектом) ссылку закрывать не должно. */
 watch(currentPanel, (np, op) => {
     if (!linkView.value) return;
-    if ((np && np.name) !== (op && op.name)) linkView.value = null;
+    if ((np && np.name) !== (op && op.name)) { linkView.value = null; localStorage.removeItem('dp_lastUrl'); }
 });
 
         watch(settings, (s) => {
@@ -4020,7 +4064,7 @@ onMounted(() => {
             authenticated, authChecking, authDenied, langReady, login, password, loginError, loginLoading, doLogin, doLogout, testAPI: Auth.testAPI,
             headerTime, headerDate, headerStatusSectionOn, headerStatusList, headerStatusItems, headerStatusMaxReached,
             showHeaderStatusEditor, hsForm, hsProperties, hsEditIdx, openHeaderStatusEditor, loadHsProperties, clearHsObject, editHeaderStatusItem, saveHeaderStatusItem, removeHeaderStatusItem, hsMapArr, headerStatusImages: HEADER_STATUS_IMAGES,
-            panels, currentPanel, selectPanel, selectHomePanel, loading, editMode,
+            panels, currentPanel, selectPanel, selectHomePanel, goHome, loading, editMode,
             showAddWidget, widgetSearch, filteredDefs, plusTooltip, addPlusButton,
             widgetTypeComponent, addWidget, openWidgetHelp, getWidgetFields, getWidgetRows, getWidgetTabs, getFieldOptions, fieldVisible, g2rCameraOptions, loadGo2rtcCameras,
             getMethodObj, getMethodName, setMethodField, itemLabel, objectKeyOfField,
