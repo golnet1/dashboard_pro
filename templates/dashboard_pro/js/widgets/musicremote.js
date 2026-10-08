@@ -102,6 +102,7 @@ const MusicRemoteWidget = {
         },
         async send(k) {
             const code = this.codeFor(k);
+            dpClientLog('musicremote', 'debug', 'press ' + k + ' -> ' + code + ' [' + (this.widget.send_mode || 'property') + ']');
             try {
                 if (this.widget.send_mode === 'script') {
                     const url = '/api.php/script/' + encodeURIComponent(this.widget.script) + '?' + new URLSearchParams({ key: code });

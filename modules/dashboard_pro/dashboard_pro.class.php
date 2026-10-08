@@ -84,6 +84,25 @@ class dashboard_pro extends module
 
     function api($params)
     {
+        /* Каждая ошибка apiDispatch попадает в MajorDojo DebMes - всегда, независимо
+           от тумблера отладки. Исключения логируются и пробрасываются наверх.
+           Эндпоинт lang отдаёт словарь интерфейса, а не результат работы: в нём
+           штатно есть ключ 'error' (надпись для UI), поэтому его авто-лог
+           игнорируется. */
+        try {
+            $res = $this->apiDispatch($params);
+            if (($params['request'][0] ?? '') !== 'lang' && is_array($res) && !empty($res['error'])) {
+                $this->dErr('api/' . ($params['request'][0] ?? '?') . ': ' . $res['error']);
+            }
+            return $res;
+        } catch (\Throwable $e) {
+            $this->dErr('api/' . ($params['request'][0] ?? '?') . ' exception: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    function apiDispatch($params)
+    {
         global $session;
         if (!$session) {
             $session = new session("prj");
@@ -99,7 +118,32 @@ class dashboard_pro extends module
             }
         }
         if ($params['request'][0] == 'test') {
+            $this->dLog('test ok');
             return ['status' => 'ok', 'time' => time(), 'session' => $session ? 'active' : 'none'];
+        }
+        if ($params['request'][0] == 'cmLog') {
+            /* клиентский лог цветомузыки ([cm][имя-виджета] ...): забирается пакетом
+               и уходит в DebMes, но только при включённой отладке у пользователя */
+            if ($this->dashDebug()) {
+                $input = $this->bodyInput();
+                if (!is_array($input)) $input = array();
+                $src = preg_replace('/[^a-zA-Z0-9_\-]/', '', (string)($input['src'] ?? 'widget'));
+                if ($src === '') $src = 'widget';
+                $lvl = preg_replace('/[^a-zA-Z0-9_\-]/', '', (string)($input['level'] ?? 'cm'));
+                if ($lvl === '') $lvl = 'cm';
+                $batch = array();
+                if (isset($input['lines']) && is_array($input['lines'])) {
+                    foreach ($input['lines'] as $line) {
+                        if (is_string($line) && trim($line) !== '') $batch[] = substr($line, 0, 600);
+                    }
+                } elseif (isset($input['msg'])) {
+                    $batch[] = substr((string)$input['msg'], 0, 600);
+                }
+                if (function_exists('DebMes')) {
+                    foreach ($batch as $line) DebMes('[' . $lvl . '][' . $src . '] ' . $line, 'dashboard_pro');
+                }
+            }
+            return ['ok' => 1];
         }
         if ($params['request'][0] == 'checkAuth') {
             if ($session && !empty($session->data['DP_PRO_USERNAME']) && empty($session->data['DP_PRO_LOGGED_OUT'])) {
@@ -153,6 +197,7 @@ class dashboard_pro extends module
                     $session->save();
                     $this->issueRememberToken($user['USERNAME']);
                 }
+                $this->dLog('login ok: ' . $user['USERNAME']);
                 return [
                     'success' => true,
                     'username' => $user['USERNAME'],
@@ -167,12 +212,16 @@ class dashboard_pro extends module
 
         if ($params['request'][0] == 'logout') {
             if ($session) {
+                $logoutUser = $session->data['DP_PRO_USERNAME'] ?? '';
                 unset($session->data['DP_PRO_USERNAME']);
                 unset($session->data['DP_PRO_USER_ID']);
                 unset($session->data['DP_PRO_USER_ACCESS']);
                 $session->data['DP_PRO_LOGGED_OUT'] = true;
                 $session->save();
+            } else {
+                $logoutUser = '';
             }
+            $this->dLog('logout: ' . $logoutUser);
             $this->clearRememberToken();
             return ['success' => true];
         }
@@ -183,6 +232,7 @@ class dashboard_pro extends module
                 $input = $this->bodyInput();
                 $panels = $input['panels'] ?? $input['data'] ?? $input;
                 $this->savePanels($panels);
+                $this->dLog('panels saved');
                 return ['success' => true];
             }
             return $this->loadPanels();
@@ -204,6 +254,7 @@ class dashboard_pro extends module
                     unset($settings['mainPageRedirect']);
                 }
                 $this->saveDashboardSettings($settings);
+                $this->dLog('settings saved');
                 $out = ['success' => true];
                 if ($mainPage !== null) {
                     /* Отчёт и запись - только когда состояние действительно
@@ -448,11 +499,11 @@ class dashboard_pro extends module
             $lp = $this->histProbeRtsp($live);
             $pp = $this->histProbeRtsp($playback);
             if ($lp === null || $pp === null) {
-                @file_put_contents(ROOT . 'cms/cached/hls_debug.log', date('H:i:s') . ' histcheck probe failed live=' . ($lp === null ? 'no' : 'ok') . ' pb=' . ($pp === null ? 'no' : 'ok') . "\n", FILE_APPEND);
+                $this->dLog('hls histcheck probe failed live=' . ($lp === null ? 'no' : 'ok') . ' pb=' . ($pp === null ? 'no' : 'ok'));
                 return ['error' => 'ffprobe unavailable or probe failed'];
             }
             $same = $this->histProbeSame($lp, $pp);
-            @file_put_contents(ROOT . 'cms/cached/hls_debug.log', date('H:i:s') . ' histcheck same=' . ($same ? '1' : '0') . ' live=' . $lp['codec'] . '@' . $lp['width'] . 'x' . $lp['height'] . ' pb=' . $pp['codec'] . '@' . $pp['width'] . 'x' . $pp['height'] . ' afps=' . $lp['afps'] . '/' . $pp['afps'] . ' start=' . $lp['start'] . '/' . $pp['start'] . ' dur=' . $lp['dur'] . '/' . $pp['dur'] . "\n", FILE_APPEND);
+            $this->dLog('hls histcheck same=' . ($same ? '1' : '0') . ' live=' . $lp['codec'] . '@' . $lp['width'] . 'x' . $lp['height'] . ' pb=' . $pp['codec'] . '@' . $pp['width'] . 'x' . $pp['height'] . ' afps=' . $lp['afps'] . '/' . $pp['afps'] . ' start=' . $lp['start'] . '/' . $pp['start'] . ' dur=' . $lp['dur'] . '/' . $pp['dur']);
             return ['same' => $same, 'live' => $lp, 'playback' => $pp];
         }
 
@@ -466,7 +517,7 @@ class dashboard_pro extends module
             $msg = is_array($d) ? trim((string)($d['msg'] ?? '')) : trim($raw);
             if ($msg == '') $msg = trim((string)($_POST['msg'] ?? ''));
             if ($msg != '') {
-                @file_put_contents(ROOT . 'cms/cached/hls_debug.log', date('H:i:s') . ' [dbg] ' . substr($msg, 0, 700) . "\n", FILE_APPEND);
+                $this->dLog('hls dbg: ' . substr($msg, 0, 700));
             }
             $this->httpJson(200, array('ok' => 1));
         }
@@ -543,7 +594,7 @@ class dashboard_pro extends module
             }
             $tok = preg_replace('/[^a-zA-Z0-9_-]/', '', (string)($params['tok'] ?? ''));
             if (strlen($tok) > 40) $tok = substr($tok, 0, 40);
-            @file_put_contents(ROOT . 'cms/cached/hls_debug.log', date('H:i:s') . ' ' . ($file == '' ? 'm3u8' : $file) . ' v=' . $view . ' r=' . $res . ' f=' . $fps . ' tok=' . $tok . ' src=' . preg_replace('/[^a-zA-Z0-9_:?&=.\/\-]/', '', substr($src, 0, 200)) . "\n", FILE_APPEND);
+            $this->dLog('hls ' . ($file == '' ? 'm3u8' : $file) . ' v=' . $view . ' r=' . $res . ' f=' . $fps . ' tok=' . $tok . ' src=' . preg_replace('/[^a-zA-Z0-9_:?&=.\/\-]/', '', substr($src, 0, 200)));
             $key = substr(preg_replace('/[^a-f0-9]/', '', sha1($src . '|' . $view . '|' . $res . '|' . $fps . '|v4')), 0, 16);
             $root = ROOT . 'cms/cached/hls_bridge';
             $dir = $root . '/' . $key;
@@ -569,24 +620,24 @@ class dashboard_pro extends module
                 header('Content-Type: application/vnd.apple.mpegurl');
                 if ($content === false || $content === '') {
                     echo "#EXTM3U\n";
-                    @file_put_contents(ROOT . 'cms/cached/hls_debug.log', date('H:i:s') . ' ->200 EMPTY m3u8' . "\n", FILE_APPEND);
+                    $this->dLog('hls ->200 EMPTY m3u8');
                     exit;
                 }
                 $content = preg_replace_callback('/^(seg_[0-9]+\.ts)$/m', function ($m) use ($src, $view, $res, $fps, $tok) {
                     return '?src=' . rawurlencode($src) . '&file=' . $m[1] . '&view=' . $view . '&res=' . $res . '&fps=' . $fps . ($tok != '' ? '&tok=' . $tok : '');
                 }, $content);
                 echo $content;
-                @file_put_contents(ROOT . 'cms/cached/hls_debug.log', date('H:i:s') . ' ->200 m3u8 (' . strlen($content) . "b)\n", FILE_APPEND);
+                $this->dLog('hls ->200 m3u8 (' . strlen($content) . 'b)');
                 exit;
             }
             $path = $dir . '/' . $file;
             if (!is_file($path)) {
-                @file_put_contents(ROOT . 'cms/cached/hls_debug.log', date('H:i:s') . ' ->404 ' . $file . "\n", FILE_APPEND);
+                $this->dLog('hls ->404 ' . $file);
                 http_response_code(404);
                 exit;
             }
             $this->hlsTouch($dir, $tok);
-            @file_put_contents(ROOT . 'cms/cached/hls_debug.log', date('H:i:s') . ' ->200 ' . $file . "\n", FILE_APPEND);
+            $this->dLog('hls ->200 ' . $file);
             header('Content-Type: video/mp2t');
             readfile($path);
             exit;
@@ -685,6 +736,7 @@ class dashboard_pro extends module
             $output = array();
             $return_var = 0;
             exec($command, $output, $return_var);
+            $this->dLog('exec "'. $command . '" rc=' . $return_var);
             return ['success' => $return_var === 0, 'output' => implode("\n", $output)];
         }
 
@@ -707,6 +759,7 @@ class dashboard_pro extends module
                 if (is_array($decoded)) $param = $decoded;
             }
             $result = runScript($script, $param);
+            $this->dLog('script ' . $script);
             return ['success' => true, 'result' => $result];
         }
 
@@ -785,8 +838,74 @@ class dashboard_pro extends module
             $value = $params['value'] ?? '';
             if (!$object || !$property) return ['error' => 'object and property required'];
             sg($object . '.' . $property, $value);
+            $this->dLog('set ' . $object . '.' . $property . ' = ' . substr((string)$value, 0, 120));
             postToWebSocket("DASHBOARD_PRO", array('COMMAND' => 'UpdateData'), "PostEvent");
             return ['success' => true];
+        }
+
+        if ($params['request'][0] == 'cmRun') {
+            /* запуск/останов внешнего движка цветомузыки (cm_engine.php) по факту
+               play/stop плеера. Один HTTP-запрос на событие; дальше движок сам
+               пишет Object.Property из CLI-процесса, минуя Apache. */
+            $input = $this->bodyInput();
+            if (!is_array($input)) $input = array();
+            $action = trim((string)($input['action'] ?? ($params['action'] ?? '')));
+            if ($action !== 'start' && $action !== 'stop') return ['error' => 'action required (start|stop)'];
+
+            $targets = array();
+            $rawTargets = $input['targets'] ?? ($params['targets'] ?? null);
+            if (is_string($rawTargets)) $rawTargets = json_decode($rawTargets, true);
+            if (is_array($rawTargets)) {
+                foreach ($rawTargets as $t) {
+                    if (!is_array($t)) continue;
+                    $object = trim((string)($t['object'] ?? ''));
+                    $property = trim((string)($t['property'] ?? ''));
+                    if ($object === '' || !$this->isSafeObjectTitle($object)) continue;
+                    if (!preg_match('/^[A-Za-z0-9_\-\.]{1,64}$/', $property)) continue;
+                    $targets[] = array('object' => $object, 'property' => $property);
+                }
+            }
+            if ($action === 'start' && !$targets) return ['error' => 'no valid targets'];
+
+            $mode = (string)($input['mode'] ?? ($params['mode'] ?? 'freq'));
+            if ($mode !== 'wave') $mode = 'freq';
+            $out = (string)($input['out'] ?? ($params['out'] ?? 'onoff'));
+            if ($out !== 'level') $out = 'onoff';
+            $onLevel = isset($input['on_level']) ? (int)$input['on_level'] : (isset($params['on_level']) ? (int)$params['on_level'] : 90);
+            $onLevel = max(0, min(255, $onLevel));
+            $speed = isset($input['speed']) ? (int)$input['speed'] : (isset($params['speed']) ? (int)$params['speed'] : 90);
+            $speed = max(20, min(10000, $speed));
+
+            $dev = (string)($input['dev'] ?? ($params['dev'] ?? 'ports'));
+            if (!in_array($dev, array('ports', 'rgb', 'ic', 'megad'), true)) $dev = 'ports';
+            $wr = (string)($input['wr'] ?? ($params['wr'] ?? 'hex'));
+            if ($wr !== 'rgb') $wr = 'hex';
+            $icMode = (string)($input['ic_mode'] ?? ($params['ic_mode'] ?? 'cm'));
+            if (!in_array($icMode, array('cm', 'wave', 'cm_wave', 'shuffle'), true)) $icMode = 'cm';
+            $pixels = isset($input['pixels']) ? (int)$input['pixels'] : (isset($params['pixels']) ? (int)$params['pixels'] : 100);
+            $pixels = max(1, min(512, $pixels));
+            $end = (string)($input['end'] ?? ($params['end'] ?? 'off'));
+            if (!in_array($end, array('off', 'on', 'keep'), true)) $end = 'off';
+
+            $payload = array(
+                'action' => $action,
+                'dev' => $dev,
+                'targets' => $targets,
+                'mode' => $mode,
+                'out' => $out,
+                'on_level' => $onLevel,
+                'wr' => $wr,
+                'ic_mode' => $icMode,
+                'pixels' => $pixels,
+                'speed' => $speed,
+                'end' => $end,
+            );
+            $json = json_encode($payload);
+            if ($json === false) return ['error' => 'bad payload'];
+            $cmd = 'nohup php /var/www/html/modules/dashboard_pro/cm_engine.php ' . escapeshellarg($json) . ' >/dev/null 2>&1 &';
+            @exec($cmd);
+            $this->dLog('cmRun ' . $action . ' dev=' . $dev . ' targets=' . count($targets) . ' mode=' . $mode . ' out=' . $out . ' level=' . $onLevel . ' speed=' . $speed);
+            return ['ok' => 1, 'action' => $action];
         }
 
         if ($params['request'][0] == 'objectSave') {
@@ -871,6 +990,7 @@ class dashboard_pro extends module
             }
 
             postToWebSocket("DASHBOARD_PRO", array('COMMAND' => 'UpdateData'), "PostEvent");
+            $this->dLog('objectSave ' . $name . ($created ? ' (new)' : '') . ' written=' . $written);
             return ['success' => true, 'object' => $name, 'created' => $created, 'updated' => !$created, 'written' => $written, 'injected' => $injected];
         }
 
@@ -886,6 +1006,7 @@ class dashboard_pro extends module
             if ($class !== '' && (string)$rec['CLASS_TITLE'] !== $class) return ['error' => 'object "' . $object . '" does not belong to class "' . $class . '"'];
             deleteObject($rec['ID']);
             postToWebSocket("DASHBOARD_PRO", array('COMMAND' => 'UpdateData'), "PostEvent");
+            $this->dLog('objectDelete ' . $rec['TITLE']);
             return ['success' => true, 'object' => $rec['TITLE'], 'class' => (string)($rec['CLASS_TITLE'] ?? '')];
         }
 
@@ -1582,6 +1703,28 @@ class dashboard_pro extends module
         return '';
     }
 
+    /* Отладка панели: подробные сообщения уходят в Майор-дебмес только когда у
+       текущего пользователя включён тумблер debug в настройках, ошибки пишутся
+       всегда. Всё, что пишется модулем, складывается в один файл dashboard_pro.log;
+       первый тег - уровень, второй говорит, откуда строка: [dashboard] - сервер
+       модуля, <имя виджета> - клиент. */
+    function dashDebug()
+    {
+        $s = $this->loadDashboardSettings();
+        return is_array($s) && !empty($s['debug']);
+    }
+
+    function dLog($msg)
+    {
+        if (!$this->dashDebug()) return;
+        if (function_exists('DebMes')) DebMes('[debug][dashboard] ' . $msg, 'dashboard_pro');
+    }
+
+    function dErr($msg)
+    {
+        if (function_exists('DebMes')) DebMes('[error][dashboard] ' . $msg, 'dashboard_pro');
+    }
+
     function httpJson($code, $arr)
     {
         http_response_code($code);
@@ -1598,6 +1741,33 @@ class dashboard_pro extends module
         if ($pid <= 0) return false;
         $out = trim((string)@shell_exec('kill -0 ' . $pid . ' 2>/dev/null && echo alive'));
         return $out === 'alive';
+    }
+    /* ffmpeg пишет stderr в файл стрима, потому что процесс detached - напрямую в
+       DebMes его не увести. Поэтому файл служит только буфером: каждое обращение
+       выгружает новые строки в DebMes (debug) и запоминает позицию чтения, файл
+       перестаёт быть отдельным логом и тяжелеет только при реальных ошибках */
+    function drainHlsLog($dir)
+    {
+        $f = $dir . '/ffmpeg.log';
+        if (!is_file($f)) return;
+        $size = @filesize($f);
+        if ($size === false || $size <= 0) return;
+        $pos = (int)@file_get_contents($dir . '/ffmpeg.log.pos');
+        if ($pos > $size || $pos < 0) $pos = 0;
+        if ($size <= $pos) return;
+        $fh = @fopen($f, 'rb');
+        if (!$fh) return;
+        fseek($fh, $pos);
+        $raw = (string)fread($fh, 65536);
+        fclose($fh);
+        @file_put_contents($dir . '/ffmpeg.log.pos', (string)($pos + strlen($raw)));
+        $n = 0;
+        foreach (preg_split('/\r?\n/', $raw) as $ln) {
+            $ln = trim($ln, " \t\r\n\0");
+            if ($ln === '') continue;
+            $this->dLog('ffmpeg: ' . substr($ln, 0, 700));
+            if (++$n >= 40) break;
+        }
     }
 
     function histProbeRtsp($url)
@@ -1650,6 +1820,7 @@ class dashboard_pro extends module
     function ensureHlsProcess($src, $dir, $view = 'full', $res = '', $fps = '')
     {
         $pl = $dir . '/index.m3u8';
+        $this->drainHlsLog($dir);
         if (is_file($pl) && $this->hlsProcessAlive($dir)) {
             return;
         }
@@ -1696,11 +1867,14 @@ class dashboard_pro extends module
         }
         if (!$this->hlsProcessAlive($dir)) {
             @unlink($dir . '/run.pid');
+            $this->drainHlsLog($dir);
+            $this->dLog('hls process died src=' . substr($src, 0, 160));
         }
     }
 
     function killHlsDir($dir)
     {
+        $this->drainHlsLog($dir);
         $pat = '/hls_bridge/' . basename($dir) . '/';
         @shell_exec('pkill -9 -f ' . escapeshellarg($pat) . ' 2>/dev/null');
         @unlink($dir . '/run.pid');

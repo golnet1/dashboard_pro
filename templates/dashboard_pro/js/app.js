@@ -28,6 +28,38 @@ function dpInfoDisplay(val) {
 }
 
 window.__dpWsCache = {};
+
+/* общий клиентский лог виджетов: строки копятся и пакетом уходят в cmLog-эндпоинт
+   модуля; сервер сам решает, писать ли в DebMes (только при включённой отладке) */
+let dpCLogBuf = [];
+let dpCLogT = 0;
+function dpClientLog(src, level, msg) {
+    if (!src || msg === '' || msg === null || msg === undefined) return;
+    dpCLogBuf.push({ s: String(src).slice(0, 40), l: level === 'debug' ? 'debug' : 'cm', m: String(msg).slice(0, 600) });
+    if (dpCLogT) return;
+    dpCLogT = window.setTimeout(() => {
+        dpCLogT = 0;
+        const items = dpCLogBuf.splice(0, dpCLogBuf.length);
+        if (!items.length) return;
+        const groups = {};
+        for (const it of items) {
+            const key = it.l + '\u0001' + it.s;
+            (groups[key] = groups[key] || []).push(it.m);
+        }
+        for (const key of Object.keys(groups)) {
+            const sep = key.indexOf('\u0001');
+            const lvl = key.slice(0, sep);
+            const srcName = key.slice(sep + 1);
+            try {
+                fetch('/api.php/module/dashboard_pro/cmLog', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ src: srcName, level: lvl, lines: groups[key] })
+                }).catch(() => {});
+            } catch (e) { }
+        }
+    }, 2000);
+}
 window.__dpWsLive = false;
 window.__dpInfoCache = window.__dpInfoCache || {};
 window.__dpWidgetState = window.__dpWidgetState || {};
@@ -1669,7 +1701,7 @@ function loadScript(src, version) {
            reached the panel. The token changes on every install, and the base follows the
            module, so a module update also refreshes the widgets. */
         const WIDGET_TOKEN_KEY = 'dp_widget_token';
-        const WIDGET_TOKEN_BASE = 206;
+        const WIDGET_TOKEN_BASE = 238;
         function widgetToken() {
             let token = 0;
             try { token = parseInt(localStorage.getItem(WIDGET_TOKEN_KEY) || '0', 10) || 0; } catch (e) { token = 0; }
@@ -2249,14 +2281,18 @@ if (f.key) {
                     }
                 }
             }
-            /* A widget saved before its selector had a default carries an empty string
-               there, and an empty value matches no entry of the list - the field would
-               sit on a placeholder that is no longer drawn. A field that has a default
-               takes it; everything else keeps the saved value, empty or not. */
+            /* A field that was never saved (a selector added in a later version,
+               like the eighth colour-music channel) is undefined, and a select
+               bound to undefined matches none of its options: it would sit on a
+               blank line instead of the «choose» placeholder. Such fields take
+               their default, or an empty string so the placeholder is selected.
+               A saved empty string keeps the migration rule below. */
             tabs.forEach(tab => getWidgetFields(w.type, tab.fields || tab.key).forEach(f => {
-                if (!f.key || f.default === undefined) return;
+                if (!f.key) return;
                 const cur = editWidgetForm.value[f.key];
-                if (cur === undefined || cur === null || cur === '') editWidgetForm.value[f.key] = f.default;
+                if (cur === undefined || cur === null || (cur === '' && f.default !== undefined)) {
+                    editWidgetForm.value[f.key] = (f.default !== undefined) ? f.default : '';
+                }
             }));
             widgetProperties.value = [];
             infoProperties.value = [];
@@ -2789,7 +2825,7 @@ if (f.key) {
             if (obj) loadIconProperties();
         });
         // Generic watcher for any object_* fields (alive, status, current, target, etc.)
-        const extraObjectKeys = ['object_alive', 'object_status', 'object_current', 'object_target', 'object_level', 'state_object', 'object_p1', 'object_p2', 'object_p3', 'object_p4', 'object_p5', 'object_p6', 'object_p7', 'object_hex', 'object_r', 'object_g', 'object_b'];
+        const extraObjectKeys = ['object_alive', 'object_status', 'object_current', 'object_target', 'object_level', 'state_object', 'object_p1', 'object_p2', 'object_p3', 'object_p4', 'object_p5', 'object_p6', 'object_p7', 'object_p8', 'object_hex', 'object_r', 'object_g', 'object_b', 'object_md'];
         extraObjectKeys.forEach(key => {
             watch(() => editWidgetForm.value?.[key], async (obj) => {
                 if (!obj) { extraProperties.value[key] = []; return; }

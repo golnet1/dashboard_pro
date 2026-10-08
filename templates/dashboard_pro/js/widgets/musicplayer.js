@@ -1,3 +1,17 @@
+/* set to false to silence the colour-music debug log. Lines only go to the
+   browser console; nothing is sent to the server. */
+const CM_DEBUG = true;
+function cmLog() {
+    if (!CM_DEBUG) return;
+    const line = Array.prototype.slice.call(arguments)
+        .map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' ');
+    console.log('%c[CM]', 'color:#9a6a4a;font-weight:bold', line);
+}
+/* is there at least one Object.Property configured to write into */
+function targetsOk(list) {
+    return Array.isArray(list) && list.some(t => t && t.object && t.property);
+}
+
 const MusicplayerWidget = {
     props: ['widget'],
     tabs: [
@@ -29,22 +43,24 @@ const MusicplayerWidget = {
             { key: 'show_spectrum', label: 'mu_field_show_spectrum', type: 'checkbox', default: true },
         ],
         light: [
-            { key: 'dev_type', label: 'cm_dev_type', type: 'select', default: 'ports', options: [{ value: 'ports', label: 'cm_dev_ports' }, { value: 'rgb', label: 'cm_dev_rgb' }, { value: 'ic', label: 'cm_dev_ic' }] },
-            { key: 'port_ch', label: 'cm_ch_count', type: 'select', default: '3', showIf: { dev_type: 'ports' }, options: [{ value: '3', label: '3' }, { value: '4', label: '4' }, { value: '5', label: '5' }, { value: '6', label: '6' }, { value: '7', label: '7' }] },
+            { key: 'dev_type', label: 'cm_dev_type', type: 'select', default: 'ports', options: [{ value: 'ports', label: 'cm_dev_ports' }, { value: 'rgb', label: 'cm_dev_rgb' }, { value: 'ic', label: 'cm_dev_ic' }, { value: 'megad', label: 'cm_dev_megad' }] },
+            { key: 'port_ch', label: 'cm_ch_count', type: 'select', default: '3', showIf: { dev_type: 'ports' }, options: [{ value: '3', label: '3' }, { value: '4', label: '4' }, { value: '5', label: '5' }, { value: '6', label: '6' }, { value: '7', label: '7' }, { value: '8', label: '8' }] },
             { key: 'object_p1', label: 'cm_ch1', type: 'object', row: 'cm_p1', showIf: { dev_type: 'ports' } },
             { key: 'property_p1', label: 'cm_prop', type: 'property', row: 'cm_p1', showIf: { dev_type: 'ports' } },
             { key: 'object_p2', label: 'cm_ch2', type: 'object', row: 'cm_p2', showIf: { dev_type: 'ports' } },
             { key: 'property_p2', label: 'cm_prop', type: 'property', row: 'cm_p2', showIf: { dev_type: 'ports' } },
             { key: 'object_p3', label: 'cm_ch3', type: 'object', row: 'cm_p3', showIf: { dev_type: 'ports' } },
             { key: 'property_p3', label: 'cm_prop', type: 'property', row: 'cm_p3', showIf: { dev_type: 'ports' } },
-            { key: 'object_p4', label: 'cm_ch4', type: 'object', row: 'cm_p4', showIf: { dev_type: 'ports', port_ch: ['4', '5', '6', '7'] } },
-            { key: 'property_p4', label: 'cm_prop', type: 'property', row: 'cm_p4', showIf: { dev_type: 'ports', port_ch: ['4', '5', '6', '7'] } },
-            { key: 'object_p5', label: 'cm_ch5', type: 'object', row: 'cm_p5', showIf: { dev_type: 'ports', port_ch: ['5', '6', '7'] } },
-            { key: 'property_p5', label: 'cm_prop', type: 'property', row: 'cm_p5', showIf: { dev_type: 'ports', port_ch: ['5', '6', '7'] } },
-            { key: 'object_p6', label: 'cm_ch6', type: 'object', row: 'cm_p6', showIf: { dev_type: 'ports', port_ch: ['6', '7'] } },
-            { key: 'property_p6', label: 'cm_prop', type: 'property', row: 'cm_p6', showIf: { dev_type: 'ports', port_ch: ['6', '7'] } },
-            { key: 'object_p7', label: 'cm_ch7', type: 'object', row: 'cm_p7', showIf: { dev_type: 'ports', port_ch: '7' } },
-            { key: 'property_p7', label: 'cm_prop', type: 'property', row: 'cm_p7', showIf: { dev_type: 'ports', port_ch: '7' } },
+            { key: 'object_p4', label: 'cm_ch4', type: 'object', row: 'cm_p4', showIf: { dev_type: 'ports', port_ch: ['4', '5', '6', '7', '8'] } },
+            { key: 'property_p4', label: 'cm_prop', type: 'property', row: 'cm_p4', showIf: { dev_type: 'ports', port_ch: ['4', '5', '6', '7', '8'] } },
+            { key: 'object_p5', label: 'cm_ch5', type: 'object', row: 'cm_p5', showIf: { dev_type: 'ports', port_ch: ['5', '6', '7', '8'] } },
+            { key: 'property_p5', label: 'cm_prop', type: 'property', row: 'cm_p5', showIf: { dev_type: 'ports', port_ch: ['5', '6', '7', '8'] } },
+            { key: 'object_p6', label: 'cm_ch6', type: 'object', row: 'cm_p6', showIf: { dev_type: 'ports', port_ch: ['6', '7', '8'] } },
+            { key: 'property_p6', label: 'cm_prop', type: 'property', row: 'cm_p6', showIf: { dev_type: 'ports', port_ch: ['6', '7', '8'] } },
+            { key: 'object_p7', label: 'cm_ch7', type: 'object', row: 'cm_p7', showIf: { dev_type: 'ports', port_ch: ['7', '8'] } },
+            { key: 'property_p7', label: 'cm_prop', type: 'property', row: 'cm_p7', showIf: { dev_type: 'ports', port_ch: ['7', '8'] } },
+            { key: 'object_p8', label: 'cm_ch8', type: 'object', row: 'cm_p8', showIf: { dev_type: 'ports', port_ch: '8' } },
+            { key: 'property_p8', label: 'cm_prop', type: 'property', row: 'cm_p8', showIf: { dev_type: 'ports', port_ch: '8' } },
             { key: 'port_mode', label: 'cm_mode', type: 'select', default: 'freq', showIf: { dev_type: 'ports' }, options: [{ value: 'freq', label: 'cm_mode_freq' }, { value: 'wave', label: 'cm_mode_wave' }] },
             { key: 'port_out', label: 'cm_out', type: 'select', default: 'onoff', showIf: { dev_type: 'ports' }, options: [{ value: 'level', label: 'cm_out_level' }, { value: 'onoff', label: 'cm_out_onoff' }] },
             { key: 'cm_on_level', label: 'cm_on_level', type: 'number', step: 5, default: 90, showIf: { dev_type: 'ports', port_out: 'onoff' } },
@@ -57,8 +73,11 @@ const MusicplayerWidget = {
             { key: 'property_g', label: 'cm_prop', type: 'property', row: 'cm_g', showIf: { dev_type: ['rgb', 'ic'], wr_mode: 'rgb' } },
             { key: 'object_b', label: 'cm_b', type: 'object', row: 'cm_b', showIf: { dev_type: ['rgb', 'ic'], wr_mode: 'rgb' } },
             { key: 'property_b', label: 'cm_prop', type: 'property', row: 'cm_b', showIf: { dev_type: ['rgb', 'ic'], wr_mode: 'rgb' } },
-            { key: 'ic_mode', label: 'cm_effects', type: 'select', default: 'cm', showIf: { dev_type: 'ic' }, options: [{ value: 'cm', label: 'cm_ic_cm' }, { value: 'wave', label: 'cm_ic_wave' }, { value: 'cm_wave', label: 'cm_ic_wave_fade' }, { value: 'shuffle', label: 'cm_ic_shuffle' }] },
-            { key: 'end_action', label: 'cm_on_end', type: 'select', default: 'off', showIf: { dev_type: 'rgb' }, options: [{ value: 'off', label: 'cm_end_off' }, { value: 'on', label: 'cm_end_on' }, { value: 'keep', label: 'cm_end_keep' }] },
+            { key: 'ic_mode', label: 'cm_effects', type: 'select', default: 'cm', showIf: { dev_type: ['ic', 'megad'] }, options: [{ value: 'cm', label: 'cm_ic_cm' }, { value: 'wave', label: 'cm_ic_wave' }, { value: 'cm_wave', label: 'cm_ic_wave_fade' }, { value: 'shuffle', label: 'cm_ic_shuffle' }] },
+            { key: 'object_md', label: 'cm_object', type: 'object', row: 'cm_md', showIf: { dev_type: 'megad' } },
+            { key: 'property_md', label: 'cm_prop', type: 'property', row: 'cm_md', showIf: { dev_type: 'megad' } },
+            { key: 'cm_pixels', label: 'cm_pixels', type: 'number', step: 1, default: 100, showIf: { dev_type: 'megad' } },
+            { key: 'end_action', label: 'cm_on_end', type: 'select', default: 'off', showIf: { dev_type: ['rgb', 'megad'] }, options: [{ value: 'off', label: 'cm_end_off' }, { value: 'on', label: 'cm_end_on' }, { value: 'keep', label: 'cm_end_keep' }] },
         ],
         advanced: [
             { key: 'bg_mode', label: 'field_bg_mode', type: 'select', row: 'bg_row', options: [{ value: 'default', label: 'opt_default' }, { value: 'image', label: 'opt_image' }, { value: 'color', label: 'opt_custom_color' }, { value: 'property', label: 'opt_color_property' }] },
@@ -83,8 +102,8 @@ const MusicplayerWidget = {
         autoplay: false, shuffle: false, repeat: 'off', volume: 50, show_playlist: true, show_spectrum: true,
         color_mode: 'dominant', color_object: '', color_property: '', bands: '',
         color_threshold: 90, color_interval: 500,
-        dev_type: 'ports', port_ch: '3', port_mode: 'freq', port_out: 'onoff', cm_on_level: 90, wr_mode: 'hex', ic_mode: 'cm', end_action: 'off', cm_use_vol: false,
-        width: 320, height: 400,
+        dev_type: 'ports', port_ch: '3', port_mode: 'freq', port_out: 'onoff', cm_on_level: 90, wr_mode: 'hex', ic_mode: 'cm', object_md: '', property_md: '', cm_pixels: 100, end_action: 'off', cm_use_vol: false,
+        width: 320, height: 425,
     },
     template: `
         <div class="widget-v-card dp-music" :class="{ 'widget-v-card--disabled': aliveDisabled }" :style="cardStyle">
@@ -92,12 +111,12 @@ const MusicplayerWidget = {
                 <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon"></i>
                 <div class="widget-v-card__title">{{ widget.title || t('widget_musicplayer') }}</div>
                 <button v-if="cmOn && cmModes.length > 1" class="dp-music__ibtn" @click.stop="cmCycle" :title="cmTitle"><i :class="cmModeIcon"></i></button>
-                <button class="dp-music__ibtn" :class="{ 'dp-music__ibtn--on': cmOn }" @click.stop="toggleCm" :title="cmTitle"><i class="fas fa-lightbulb"></i></button>
+                <button class="dp-music__ibtn" :class="{ 'dp-music__ibtn--on': cmOn }" @click.stop="toggleCm" :title="cmToggleTitle"><i class="fas fa-lightbulb"></i></button>
                 <button class="dp-music__ibtn" :class="{ 'dp-music__ibtn--on': eqOpen }" @click.stop="toggleEq" :title="t('mu_eq')"><i class="fas fa-sliders"></i></button>
                 <button class="dp-music__ibtn" :class="{ 'dp-music__ibtn--on': pickerOpen }" @click.stop="togglePicker" :title="pickerOpen ? t('mu_playlist') : t('mu_add_file')"><i :class="pickerOpen ? 'fas fa-list' : 'fas fa-plus'"></i></button>
                 <button class="dp-music__ibtn" @click.stop="clearAll" :title="t('mu_clear')"><i class="fas fa-trash"></i></button>
             </div>
-            <div class="widget-v-card__body dp-music__body">
+            <div class="widget-v-card__body dp-music__body" :class="{ 'dp-music__body--panel': pickerOpen || eqOpen }">
                 <div class="dp-music__now" v-if="current">
                     <div class="dp-music__name" :title="currentTitle">{{ currentTitle }}</div>
                     <div class="dp-music__times"><span>{{ posText }}</span><span>{{ durText }}</span></div>
@@ -110,7 +129,7 @@ const MusicplayerWidget = {
                 <div class="dp-music__transport">
                     <button class="dp-music__tbtn" :class="{ 'dp-music__tbtn--on': shuffleOn }" @click.stop="shuffleOn = !shuffleOn" :title="t('mu_shuffle')"><i class="fas fa-shuffle"></i></button>
                     <button class="dp-music__tbtn" @click.stop="prevTrack" :title="t('mu_prev')"><i class="fas fa-step-backward"></i></button>
-                    <button class="dp-music__tbtn dp-music__tbtn--main" @click.stop="toggle" :title="playing ? t('mu_pause') : t('mu_play')"><i :class="playing ? 'fas fa-pause' : 'fas fa-play'"></i></button>
+                    <button class="dp-music__tbtn dp-music__tbtn--main" @click.stop="playing && streamNow ? stop() : toggle()" :title="playing ? (streamNow ? t('mu_stop') : t('mu_pause')) : t('mu_play')"><i :class="playing ? (streamNow ? 'fas fa-stop' : 'fas fa-pause') : 'fas fa-play'"></i></button>
                     <button class="dp-music__tbtn" @click.stop="nextTrack" :title="t('mu_next')"><i class="fas fa-step-forward"></i></button>
                     <button class="dp-music__tbtn" :class="{ 'dp-music__tbtn--on': repeatMode !== 'off' }" @click.stop="cycleRepeat" :title="t('mu_repeat')"><i class="fas" :class="repeatMode === 'one' ? 'fas fa-redo-alt' : 'fas fa-redo'"></i></button>
                 </div>
@@ -137,10 +156,12 @@ const MusicplayerWidget = {
                     <div class="dp-music__picker-head">{{ t('mu_files') }}</div>
                     <div class="dp-music__files" v-if="filesLoading"><i class="fas fa-circle-notch fa-spin"></i></div>
                     <div class="dp-music__files" v-else-if="!files.length">{{ t('mu_no_files') }}</div>
-                    <label class="dp-music__file" v-for="f in files" :key="f.path">
-                        <input type="checkbox" :value="f.path" v-model="picked">
-                        <span :title="f.path">{{ f.name }}</span>
-                    </label>
+                    <div class="dp-music__files-list" v-else>
+                        <label class="dp-music__file" v-for="f in files" :key="f.path">
+                            <input type="checkbox" :value="f.path" v-model="picked">
+                            <span :title="f.path">{{ f.name }}</span>
+                        </label>
+                    </div>
                     <div class="dp-music__picker-row">
                         <input class="dp-music__url" v-model="manualUrl" :placeholder="t('mu_url_ph')" @keyup.enter="addManual">
                         <button class="dp-music__ibtn" @click.stop="addManual" :title="t('mu_add')"><i class="fas fa-check"></i></button>
@@ -165,7 +186,7 @@ const MusicplayerWidget = {
                         <button class="dp-music__eq-p" :class="{ 'dp-music__ibtn--on': eqSel === 'custom' }" @click.stop="saveCustomEq">{{ t('mu_eq_custom') }}</button>
                     </div>
                 </div>
-                <div class="dp-music__list" v-if="showPlaylist && tracks.length">
+                <div class="dp-music__list" v-if="showPlaylist && tracks.length && !pickerOpen && !eqOpen">
                     <div class="dp-music__row" :class="{ 'dp-music__row--on': ti === index }" v-for="(tr, ti) in tracks" :key="tr.key" @click.stop="playIndex(ti)">
                         <i class="fas" :class="ti === index && playing ? 'fas fa-volume-high' : 'fas fa-music'"></i>
                         <span class="dp-music__row-name" :title="tr.src">{{ tr.title }}</span>
@@ -176,12 +197,12 @@ const MusicplayerWidget = {
         </div>`,
     data() {
         return {
-            tracks: [], index: -1, playing: false, position: 0, duration: 0, volume: 0.5, shuffleOn: false, repeatMode: 'off',
+            tracks: [], index: -1, playing: false, position: 0, duration: 0, liveStream: false, volume: 0.5, shuffleOn: false, repeatMode: 'off',
             pickerOpen: false, files: [], filesLoading: false, pickerError: '', picked: [], manualUrl: '',
             spectrum: new Array(24).fill(0), audioEl: null, actx: null, analyser: null, gainNode: null, graphDone: false,
             freqData: null, rafId: 0, lastColorAt: 0, sentColors: {}, saveTimer: null, keySeq: 0,
             isAlive: true, availTimer: null, gestureArmed: false,
-            cmOn: false, cmTimer: 0, lastCmAt: 0, sentCm: {}, cmPending: [],
+            cmOn: false, cmEngineOn: false, cmTimer: 0, lastCmAt: 0, sentCm: {}, cmPending: [],
             cmPos: 0, cmHueD: 0, cmFast: null, cmSlow: null, cmBeatAt: 0,
             cmShuffled: false, cmRoll: [1, 1, 1], cmQueuedNext: false,
             cmLamps: [], cmStrip: Array.from({ length: 16 }, () => ({ c: 'rgb(80,80,80)', o: 0.15 })), cmWash: '', cmWashO: 0,
@@ -198,6 +219,11 @@ const MusicplayerWidget = {
         posText() { return this.fmtTime(this.position); },
         durText() { return this.fmtTime(this.duration); },
         progressPct() { return this.duration > 0 ? Math.min(100, Math.max(0, this.position / this.duration * 100)) : 0; },
+        /* A live broadcast (radio) never ends, so pausing it is meaningless and the main
+           button stops instead. A file keeps the usual pause. The element is the source of
+           truth - a live source reports an infinite duration - and the shape of the address
+           is only a fallback for the moment before the duration is known. */
+        streamNow() { return this.liveStream || this.isStreamSrc(this.current ? this.current.src : ''); },
         cardStyle() {
             const s = {};
             const mode = this.widget.bg_mode || (this.widget.color ? 'color' : 'default');
@@ -227,11 +253,16 @@ const MusicplayerWidget = {
             const m = String(this.widget.color_mode || 'dominant');
             return m === 'dominant' || m === 'bands';
         },
-        cmDevice() { return this.opt(this.widget.dev_type, ['ports', 'rgb', 'ic'], 'ports'); },
+        cmDevice() { return this.opt(this.widget.dev_type, ['ports', 'rgb', 'ic', 'megad'], 'ports'); },
         cmWrite() { return this.opt(this.widget.wr_mode, ['hex', 'rgb'], 'hex'); },
         cmChannelCount() {
             const n = parseInt(String(this.widget.port_ch), 10);
-            return n >= 3 && n <= 7 ? n : 3;
+            return n >= 3 && n <= 8 ? n : 3;
+        },
+        cmPixels() {
+            const n = parseInt(String(this.widget.cm_pixels), 10);
+            if (isNaN(n) || n < 1) return 100;
+            return Math.min(512, n);
         },
         cmPortMode() { return this.opt(this.widget.port_mode, ['freq', 'wave'], 'freq'); },
         cmPortOut() { return this.opt(this.widget.port_out, ['level', 'onoff'], 'onoff'); },
@@ -240,6 +271,10 @@ const MusicplayerWidget = {
             return v >= 0 && v <= 255 ? v : 90;
         },
         cmUseVol() { return this.widget.cm_use_vol === true || this.widget.cm_use_vol === '1'; },
+        /* Цветомузыку для всех типов устройств ведёт серверный движок
+           cm_engine.php: браузер шлёт только cmRun start/stop по фронтам
+           play/stop, а кадры и цвета пишет процесс, минуя Apache. */
+        cmExt() { return true; },
         cmIcMode() { return this.opt(this.widget.ic_mode, ['cm', 'wave', 'cm_wave', 'shuffle'], 'cm'); },
         cmTitle() {
             const tp = this.cmDevice;
@@ -247,11 +282,12 @@ const MusicplayerWidget = {
             if (tp === 'rgb') return this.t('cm_ic_cm');
             return this.t(this.cmIcMode === 'cm_wave' ? 'cm_ic_wave_fade' : 'cm_ic_' + this.cmIcMode);
         },
+        cmToggleTitle() { return this.t(this.cmOn ? 'cm_disable' : 'cm_enable'); },
         /* the modes available for the device; a single option gives nothing to cycle
            and the runtime button stays hidden */
         cmModes() {
             if (this.cmDevice === 'ports') return ['freq', 'wave'];
-            if (this.cmDevice === 'ic') return ['cm', 'wave', 'cm_wave', 'shuffle'];
+            if (this.cmDevice === 'ic' || this.cmDevice === 'megad') return ['cm', 'wave', 'cm_wave', 'shuffle'];
             return [];
         },
         cmModeIcon() {
@@ -310,6 +346,7 @@ const MusicplayerWidget = {
         this.unarmGesture();
         this.stopLoop();
         this.stop();
+        this.cmEngineStop();
         this.clearColors();
         this.clearCm();
         try { if (this.actx) this.actx.close(); } catch (e) { }
@@ -352,6 +389,16 @@ const MusicplayerWidget = {
             if (/^(https?:)?\/\//i.test(s) || s.charAt(0) === '/') return s;
             if (/^(data|blob):/i.test(s)) return s;
             return '/' + s.replace(/^\.\//, '');
+        },
+        /* a source is a broadcast when it is a remote url that has no media file
+           extension (a radio endpoint such as .../ep128) or carries a playlist
+           extension. A local path from the server folder is always a file. */
+        isStreamSrc(src) {
+            const s = String(src || '').trim();
+            if (!/^https?:\/\//i.test(s)) return false;
+            const clean = s.split(/[?#]/)[0];
+            if (/\.(m3u8|m3u|pls)$/i.test(clean)) return true;
+            return !/\.[a-z0-9]{2,5}$/i.test(clean);
         },
         normTracks(arr) {
             const out = [];
@@ -605,7 +652,7 @@ const MusicplayerWidget = {
                silent - no sound until some local file enables the attribute on the
                same element. The attribute is therefore set for every track up front. */
             el.crossOrigin = 'anonymous';
-            if (el.getAttribute('src') !== src) { el.setAttribute('src', src); this.position = 0; this.duration = 0; }
+            if (el.getAttribute('src') !== src) { el.setAttribute('src', src); this.position = 0; this.duration = 0; this.liveStream = false; }
             el.volume = hasGraph ? 1 : this.volume;
             const p = el.play();
             if (p && p.then) p.then(() => this.onPlaying()).catch(() => { this.playing = false; this.armGesture(); });
@@ -616,12 +663,14 @@ const MusicplayerWidget = {
             this.playing = true;
             this.cmQueuedNext = false;
             this.startLoop();
+            if (this.cmOn && !this.cmEngineOn) this.cmEngineStart();
         },
         pause() {
             const el = this.audioEl;
             if (el) { try { el.pause(); } catch (e) { } }
             this.playing = false;
             this.stopLoop();
+            this.cmEngineStop('off');
         },
         toggle() {
             if (!this.tracks.length) return;
@@ -641,8 +690,10 @@ const MusicplayerWidget = {
             this.playing = false;
             this.position = 0;
             this.duration = 0;
+            this.liveStream = false;
             this.stopLoop();
             this.spectrum = new Array(24).fill(0);
+            this.cmEngineStop(this.cmEndAction);
         },
         stopLoop() { if (this.rafId) { cancelAnimationFrame(this.rafId); this.rafId = 0; } },
         prevTrack() {
@@ -691,7 +742,10 @@ const MusicplayerWidget = {
         },
         onEnded() {
             this.playing = false;
-            if (this.cmOn && this.repeatMode !== 'one' && !this.cmQueuedNext) {
+            /* the engine keeps running across a playlist boundary - stopping it here
+               would race the start of the next track and could leave the light dead.
+               The end state is asked for when playback really stops (see stop()) */
+            if (this.cmOn && !this.cmExt && this.repeatMode !== 'one' && !this.cmQueuedNext) {
                 this.cmQueuedNext = true;
                 this.cmEndLight();
             }
@@ -707,6 +761,7 @@ const MusicplayerWidget = {
                 if (!this.playing) return;
                 this.position = el.currentTime || 0;
                 this.duration = el.duration && isFinite(el.duration) ? el.duration : 0;
+                this.liveStream = el.duration === Infinity;
                 this.sample();
                 this.rafId = requestAnimationFrame(step);
             };
@@ -826,6 +881,7 @@ const MusicplayerWidget = {
                 for (let i = 1; i <= this.cmChannelCount; i++) add(this.widget['object_p' + i], this.widget['property_p' + i]);
                 return out;
             }
+            if (this.cmDevice === 'megad') { add(this.widget.object_md, this.widget.property_md); return out; }
             if (this.cmWrite === 'hex') { add(this.widget.object_hex, this.widget.property_hex); return out; }
             ['r', 'g', 'b'].forEach(c => add(this.widget['object_' + c], this.widget['property_' + c]));
             return out;
@@ -840,19 +896,79 @@ const MusicplayerWidget = {
             }
             return out;
         },
-        cmLevels(count) {
-            const bands = this.cmBands(count);
-            const k = this.cmUseVol ? this.volume : 1;
-            return bands.map(b => this.bandLevel(b, this.freqData) * k);
+        /* automatic gain control for the colour devices. The on/off lamps on ports get
+           a follower per channel: each light is driven by the dynamics of its own
+           band and the master volume does not matter - whichever band suddenly plays
+           louder than its recent average pops over the threshold. The level outputs
+           get a follower on the peak of the spectrum instead - the loudest band is
+           drawn near the target, so the lamps stay bright, the shape of the
+           frequencies - bass brighter than treble - survives and the gain does not
+           pump on every beat. The strips share one follower on the mean, so their
+           brightness is spread around the middle. The beat still reads the raw
+           loudness and survives the normalisation. */
+        cmNormalize(levels, target, mode) {
+            const t = target || 90;
+            const n = levels.length;
+            if (!n) return levels;
+            const now = Date.now();
+            if (mode === 'per') {
+                if (!this.cmNormArr || this.cmNormArr.length !== n) {
+                    /* fresh followers start at the target, so the gain is 1 and the
+                       first frame passes through unchanged instead of flashing */
+                    this.cmNormArr = new Array(n).fill(t);
+                    this.cmNormAt = now;
+                    return levels;
+                }
+                if (now - this.cmNormAt >= 60) {
+                    for (let i = 0; i < n; i++) {
+                        const diff = levels[i] - this.cmNormArr[i];
+                        this.cmNormArr[i] += diff * (diff >= 0 ? 0.5 : 0.1);
+                    }
+                    this.cmNormAt = now;
+                }
+                const out = new Array(n);
+                for (let i = 0; i < n; i++) out[i] = Math.min(255, levels[i] * (t / Math.max(10, this.cmNormArr[i])));
+                return out;
+            }
+            if (mode === 'peak') {
+                /* the follower jumps up at once and decays slowly, so a loud peak is
+                   held for a moment and the gain does not pump on every beat */
+                const peak = Math.max(...levels);
+                if (this.cmNormPeak == null) { this.cmNormPeak = peak; this.cmNormAt = now; }
+                else if (now - this.cmNormAt >= 60) {
+                    if (peak > this.cmNormPeak) this.cmNormPeak = peak;
+                    else this.cmNormPeak = this.cmNormPeak * 0.985 + peak * 0.015;
+                    this.cmNormAt = now;
+                }
+                const base = Math.max(10, this.cmNormPeak);
+                return levels.map(v => Math.min(255, v * (t / base)));
+            }
+            let sum = 0;
+            for (let i = 0; i < n; i++) sum += levels[i];
+            const mean = sum / n;
+            if (this.cmNormAvg == null) { this.cmNormAvg = mean; this.cmNormAt = now; }
+            else if (now - this.cmNormAt >= 60) {
+                const diff = mean - this.cmNormAvg;
+                this.cmNormAvg += diff * (diff > 0 ? 0.5 : 0.1);
+                this.cmNormAt = now;
+            }
+            const base = Math.max(10, this.cmNormAvg);
+            return levels.map(v => Math.min(255, v * (t / base)));
         },
         /* a slow follower gives the loudness and a fast one the moment they diverge:
            that jump is the beat the wave steps on */
         cmBeat(levels) {
-            const mean = levels.reduce((a, v) => a + v, 0) / (levels.length || 1);
-            this.cmFast = this.cmFast == null ? mean : this.cmFast * 0.5 + mean * 0.5;
-            this.cmSlow = this.cmSlow == null ? mean : this.cmSlow * 0.94 + mean * 0.06;
+            /* the beat is a jump of the raw loudness; the normalised levels are
+               deliberately flat, so the beat would vanish if it were read from them */
+            let val = this.cmRawPeak;
+            if (val == null) val = levels.reduce((a, v) => a + v, 0) / (levels.length || 1);
+            /* silenced music is not a beat: reset the followers so the next onset is
+               caught cleanly, and the wave effects freeze instead of drifting */
+            if (val < 28) { this.cmFast = null; this.cmSlow = null; return false; }
+            this.cmFast = this.cmFast == null ? val : this.cmFast * 0.5 + val * 0.5;
+            this.cmSlow = this.cmSlow == null ? val : this.cmSlow * 0.94 + val * 0.06;
             const now = Date.now();
-            if (this.cmFast - this.cmSlow < 6 || now - this.cmBeatAt < 130) return false;
+            if (this.cmFast - this.cmSlow < 6 || now - this.cmBeatAt < 140) return false;
             this.cmBeatAt = now;
             return true;
         },
@@ -885,9 +1001,11 @@ const MusicplayerWidget = {
            end of the tick, and over the websocket when the live channel is up,
            so colour music does not spawn an Apache/php request per channel */
         cmSend(object, property, value) {
+            if (this.cmExt) return;
             const key = object + '.' + property;
             const v = String(value);
-            if (this.sentCm[key] === v) return;
+            if (this.sentCm[key] === v) { cmLog('skip ' + key + ' = ' + (v.length > 60 ? v.slice(0, 60) + '...(' + v.length + ')' : v)); return; }
+            cmLog('>> ' + key + ' = ' + (v.length > 60 ? v.slice(0, 60) + '...(' + v.length + ')' : v));
             this.sentCm[key] = v;
             if (!this.cmPending) this.cmPending = [];
             this.cmPending.push({ object: object, property: property, value: v });
@@ -902,6 +1020,55 @@ const MusicplayerWidget = {
             pairs.forEach(p => {
                 try { dpAPI('setProperty?' + new URLSearchParams({ object: p.object, property: p.property, value: p.value })); } catch (e) { }
             });
+        },
+        /* light output for every device type is driven by a server-side cm_engine.php
+           process (ran without Apache), so the browser only sends a single cmRun
+           start/stop at the play/pause edges instead of a frame every 90ms. The payload
+           is built from the same light settings the ws pushing uses, so the lamp set is
+           exactly the configured Object.Property list. */
+        cmEnginePayload() {
+            const targets = this.cmTargets();
+            if (!targets.length) return null;
+            return {
+                action: 'start',
+                dev: this.cmDevice,
+                targets: targets,
+                mode: this.cmPortMode,
+                out: this.cmPortOut,
+                on_level: this.cmOnLevel,
+                wr: this.cmWrite,
+                ic_mode: this.cmIcMode,
+                pixels: this.cmPixels,
+                speed: 90,
+            };
+        },
+        cmEngineStart() {
+            if (!this.cmExt || !targetsOk(this.cmTargets())) return;
+            const payload = this.cmEnginePayload();
+            if (!payload) return;
+            this.cmEngineOn = true;
+            payload.action = 'start';
+            cmLog('engine start ' + JSON.stringify(payload));
+            try {
+                dpAPI('cmRun', { method: 'POST', body: JSON.stringify(payload) }).catch(() => { });
+            } catch (e) { }
+        },
+        /* stopping takes the state to leave the light in: pause and switching the lamp
+           button off go dark, while a finished track asks the configured end action. A
+           second stop for a turn that already happened is dropped, otherwise it would
+           overwrite the end state with plain "off". */
+        cmEngineStop(endAction) {
+            if (!this.cmEngineOn) return;
+            this.cmEngineOn = false;
+            if (!this.cmExt || !targetsOk(this.cmTargets())) return;
+            const payload = this.cmEnginePayload();
+            if (!payload) return;
+            payload.action = 'stop';
+            payload.end = endAction || 'off';
+            cmLog('engine stop ' + JSON.stringify(payload));
+            try {
+                dpAPI('cmRun', { method: 'POST', body: JSON.stringify(payload) }).catch(() => { });
+            } catch (e) { }
         },
         /* what one channel is written as. A dimmer takes the level as it is, a plain
            lamp only knows on and off, so the level is cut at the threshold and becomes
@@ -925,6 +1092,7 @@ const MusicplayerWidget = {
             t.forEach((c, i) => this.cmSend(c.object, c.property, this.cmValue(vals[i] || 0)));
         },
         cmStepEffect(levels) {
+            if (this.cmDevice === 'megad') { this.cmStepMegad(levels); return; }
             const targets = this.cmTargets();
             const beat = this.cmBeat(levels);
 
@@ -936,9 +1104,15 @@ const MusicplayerWidget = {
                     this.cmLamps = vals.map(v => ({ lvl: this.cmPortOut === 'onoff' ? (v >= this.cmOnLevel ? 1 : 0) : Math.max(0, Math.min(1, v / 255)) }));
                     return;
                 }
-                if (beat) this.cmPos = (this.cmPos + 1) % cnt;
+                /* the wave steps with the beat, so the light jumps from lamp to lamp in
+                   time with the music; in a steady section it keeps a slow drift
+                   instead of stalling, and in a real pause the loudness gate in
+                   cmBeat stops it */
                 const head = vals.map(v => v * 0.12);
-                head[this.cmPos] = Math.max(...vals) * 1.2;
+                const pos = this.cmPos || 0;
+                if (beat) this.cmPos = (pos + 1) % cnt;
+                else if (this.cmRawPeak >= 28) this.cmPos = (pos + 0.04 + 0.02 * (Math.max(...vals) / 255)) % cnt;
+                head[Math.floor(this.cmPos)] = Math.max(...vals) * 1.2;
                 this.cmApply(head);
                 this.cmLamps = head.map(v => ({ lvl: this.cmPortOut === 'onoff' ? (v >= this.cmOnLevel ? 1 : 0) : Math.max(0, Math.min(1, v / 255)) }));
                 return;
@@ -946,7 +1120,8 @@ const MusicplayerWidget = {
 
             const mode = this.cmDevice === 'rgb' ? 'cm' : this.cmIcMode;
             const hue = this.cmHue(levels);
-            const loud = Math.min(100, Math.max(...levels) * 0.4 + 25);
+            const loud = Math.min(100, Math.max(...levels) * 0.5);
+            cmLog('effect dev=' + this.cmDevice + ' mode=' + mode + ' hue=' + Math.round(hue) + ' loud=' + Math.round(loud));
             const n = targets.length;
             let sent = null;
 
@@ -986,15 +1161,101 @@ const MusicplayerWidget = {
                 this.cmStrip = this.cmStrip.map(() => ({ c: cc, o: o }));
             }
         },
+        /* MegaD addressable strip: a single property carries the whole frame as hex -
+           every pixel as three bytes (RRGGBB) glued together. The frame length is set by
+           the pixel count, so the server side only has to forward the value to the
+           controller (for example /sec/?pt=35&ws=<value>). */
+        cmStepMegad(levels) {
+            const t = this.cmTargets();
+            const n = this.cmPixels;
+            const beat = this.cmBeat(levels);
+            const hue = this.cmHue(levels);
+            const loud = Math.min(100, Math.max(...levels) * 0.5);
+            const mode = this.cmIcMode;
+            cmLog('megad mode=' + mode + ' px=' + n + ' hue=' + Math.round(hue) + ' loud=' + Math.round(loud) + (mode === 'wave' || mode === 'cm_wave' ? ' phase=' + Math.round(this.cmPhase || 0) : ''));
+            const frame = new Array(n);
+
+            if (mode === 'shuffle') {
+                if (beat || !this.cmShuffled) {
+                    this.cmShuffled = true;
+                    this.cmRoll = [0, 1, 2].map(() => Math.random());
+                }
+                for (let i = 0; i < n; i++) {
+                    const c = this.cmHslToRgb(Math.random() * 360, 100, loud);
+                    frame[i] = [c[0] * this.cmRoll[0], c[1] * this.cmRoll[1], c[2] * this.cmRoll[2]];
+                }
+            } else if (mode === 'wave' || mode === 'cm_wave') {
+                /* the spectrum is laid along the strip - low frequencies at one end,
+                   high at the other - and the whole rainbow slides towards the end, so
+                   a colour that started at the beginning walks the length of the tape.
+                   The rhythm wave speeds up and slows down with the beat, the shades
+                   wave keeps one steady speed and only follows the frequencies. */
+                const spec = levels;
+                const B = spec.length;
+                const lowN = Math.max(1, Math.ceil(B / 4));
+                const bass = spec.slice(0, lowN).reduce((a, v) => a + v, 0) / lowN;
+                /* the rhythm wave moves with the bass from the normalised spectrum, so
+                   the volume of the track does not change the speed, and it never stops;
+                   the shades wave keeps one steady speed and only follows the frequencies */
+                const step = mode === 'wave' ? n * (0.012 + 0.03 * (bass / 255)) : n * 0.022;
+                this.cmPhase = ((((this.cmPhase || 0) + step) % n) + n) % n;
+                for (let i = 0; i < n; i++) {
+                    const pos = (((i - this.cmPhase) % n) + n) % n;
+                    const b = Math.min(B - 1, Math.floor(pos / n * B));
+                    const tint = (b / B) * 320;
+                    const l = Math.min(100, 35 + spec[b] * 55 / 255);
+                    frame[i] = this.cmHslToRgb(tint, 100, l);
+                }
+            } else {
+                const c = this.cmHslToRgb(hue, 100, loud);
+                for (let i = 0; i < n; i++) frame[i] = c;
+            }
+
+            this.cmStrip = this.cmStrip.map((_, i) => {
+                const px = frame[Math.min(n - 1, Math.floor((i / this.cmStrip.length) * n))] || [0, 0, 0];
+                return {
+                    c: 'rgb(' + Math.round(px[0]) + ',' + Math.round(px[1]) + ',' + Math.round(px[2]) + ')',
+                    o: Math.max(0.15, Math.max(px[0], px[1], px[2]) / 255),
+                };
+            });
+            if (t.length) this.cmSendFrame(t[0], frame);
+        },
+        cmFrameHex(frame) {
+            let out = '';
+            for (let i = 0; i < frame.length; i++) {
+                const p = frame[i] || [0, 0, 0];
+                for (let j = 0; j < 3; j++) {
+                    const v = Math.max(0, Math.min(255, Math.round(Number(p[j]) || 0)));
+                    out += v.toString(16).padStart(2, '0');
+                }
+            }
+            return out;
+        },
+        cmSendFrame(target, frame) {
+            if (!target) return;
+            this.cmSend(target.object, target.property, this.cmFrameHex(frame));
+        },
         cmTick() {
             if (!this.cmOn) return;
             const now = Date.now();
             if (now - this.lastCmAt < 90) return;
             this.lastCmAt = now;
-            /* plain lamps want one slice each; a colour lamp wants low/mid/high, even
-               when all of it is written through a single colour property */
-            const n = this.cmDevice === 'ports' ? this.cmChannelCount : 3;
-            this.cmStepEffect(this.cmLevels(n));
+            /* the whole spectrum is AGC normalised - plain lamps split around their
+                   on/off threshold by frequency, the strips follow the shape of the
+                   frequencies. The beat reads the raw loudness, so it still fires. */
+            const n = this.cmDevice === 'ports' ? this.cmChannelCount : 24;
+            const raw = this.cmBands(n).map(b => this.bandLevel(b, this.freqData));
+            this.cmRawPeak = raw.length ? Math.max(...raw) : 0;
+            const k = this.cmUseVol ? this.volume : 1;
+            /* the on/off lamps get their own channel followers, the level outputs
+               follow the peak (bright), the strips share one on the mean */
+            const per = this.cmDevice === 'ports' && this.cmPortOut === 'onoff';
+            const mode = per ? 'per' : (this.cmDevice === 'ports' ? 'peak' : 'mean');
+            const target = per ? this.cmOnLevel : (this.cmDevice === 'ports' ? 220 : 90);
+            const levels = this.cmNormalize(raw, target, mode).map(v => v * k);
+            cmLog('freqs(' + n + ') raw=' + raw.map(v => Math.round(v)).join(','));
+            cmLog('levels dev=' + this.cmDevice + ' ' + levels.map(v => Math.round(v)).join(','));
+            this.cmStepEffect(levels);
             this.cmFlush();
         },
         cmCycle() {
@@ -1005,31 +1266,53 @@ const MusicplayerWidget = {
             const next = modes[(modes.indexOf(cur) + 1) % modes.length];
             this.widget[key] = next;
             this.cmPos = 0;
-            this.cmFast = null;
+            this.cmPhase = 0;
+this.cmFast = null;
             this.cmSlow = null;
+            this.cmNormArr = null;
+            this.cmNormAvg = null;
+            this.cmNormPeak = null;
+            this.cmNormAt = 0;
         },
-        toggleCm() {
+toggleCm() {
             this.cmOn = !this.cmOn;
             try { localStorage.setItem(this.cmStateKey(), this.cmOn ? '1' : '0'); } catch (e) { }
-            if (this.cmOn) { this.cmFast = null; this.cmSlow = null; this.cmPos = 0; this.cmLamps = Array.from({ length: this.cmChannelCount }, () => ({ lvl: 0 })); }
-            else this.cmEndLight('off');
+            if (this.cmOn) {
+                this.cmFast = null; this.cmSlow = null; this.cmPos = 0; this.cmPhase = 0; this.cmNormArr = null; this.cmNormAvg = null; this.cmNormPeak = null; this.cmNormAt = 0; this.cmLamps = Array.from({ length: this.cmChannelCount }, () => ({ lvl: 0 }));
+                if (this.playing) this.cmEngineStart();
+            }
+            else { this.cmEndLight('off'); this.cmEngineStop(); }
         },
-        /* what the strip does once the track is over - settings pick off, on or keep */
+        /* what the light does once the sound is over - settings pick off, on or keep.
+           With the engine driving the light the end state is a stop of that engine, the
+           browser only keeps its own preview in step; the write itself is done server side */
         cmEndLight(action) {
             const t = this.cmTargets();
             const what = action || this.cmEndAction;
             if (what === 'keep') return;
+            if (this.cmDevice === 'megad') {
+                const c = what === 'on' ? [255, 255, 255] : [0, 0, 0];
+                this.cmStrip = this.cmStrip.map(() => ({ c: 'rgb(' + c.join(',') + ')', o: what === 'on' ? 1 : 0 }));
+                if (this.cmExt) { this.cmEngineStop(what); return; }
+                const frame = new Array(this.cmPixels).fill(c);
+                if (t.length) this.cmSendFrame(t[0], frame);
+                this.cmFlush();
+                return;
+            }
             if (what === 'on') {
                 this.cmViewLamps(true);
                 this.cmWash = 'rgb(255,255,255)'; this.cmWashO = 1;
                 this.cmStrip = this.cmStrip.map(() => ({ c: 'rgb(255,255,255)', o: 1 }));
-                if (!t.length) return;
+            } else {
+                this.cmViewOff();
+            }
+            if (this.cmExt) { this.cmEngineStop(what); return; }
+            if (!t.length) return;
+            if (what === 'on') {
                 if (this.cmDevice === 'ports' && this.cmPortOut === 'onoff') { t.forEach(c => this.cmSend(c.object, c.property, '1')); }
                 else if (this.cmDevice !== 'ports' && this.cmWrite === 'hex') { this.cmSend(t[0].object, t[0].property, 'ffffff'); }
                 else { t.forEach((c, i) => this.cmSend(c.object, c.property, String([255, 60, 20][i] || 255))); }
             } else {
-                this.cmViewOff();
-                if (!t.length) return;
                 t.forEach(c => this.cmSend(c.object, c.property, '0'));
             }
             this.cmFlush();
@@ -1110,7 +1393,8 @@ window.DpWidgets = window.DpWidgets || {};
             '.dp-music__times { display:flex; justify-content:space-between; font-size:.7rem; color:var(--on-theme-mid); font-variant-numeric:tabular-nums; margin-top:2px; }',
             '.dp-music__seek { height:4px; border-radius:2px; background:rgba(128,128,128,.3); margin-top:5px; cursor:pointer; overflow:hidden; }',
             '.dp-music__seek-fill { height:100%; background:var(--primary); border-radius:2px; }',
-            '.dp-music__empty { flex:1; display:flex; align-items:center; justify-content:center; font-size:.8rem; color:var(--on-theme-dim); text-align:center; padding:10px 0; }',
+            '.dp-music__now { min-height:42px; }',
+            '.dp-music__empty { min-height:42px; display:flex; align-items:center; justify-content:center; font-size:.8rem; color:var(--on-theme-dim); text-align:center; }',
             '.dp-music__transport { display:flex; align-items:center; justify-content:center; gap:6px; margin-top:8px; }',
             '.dp-music__tbtn { width:32px; height:32px; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; border:none; border-radius:50%; background:rgba(128,128,128,.18); color:var(--on-theme-mid) !important; cursor:pointer; font-size:.78rem; padding:0; }',
             '.dp-music__tbtn:hover { background:rgba(128,128,128,.32); }',
@@ -1143,6 +1427,13 @@ window.DpWidgets = window.DpWidgets || {};
             '.dp-music__picker { margin-top:8px; padding:8px; border-radius:var(--wpb-radius-default, 0px); background:rgba(128,128,128,.12); border:1px solid rgba(128,128,128,.25); }',
             '.dp-music__picker-head { font-size:.72rem; color:var(--on-theme-mid); margin-bottom:5px; }',
             '.dp-music__files { font-size:.72rem; color:var(--on-theme-dim); padding:4px 0; }',
+            '.dp-music__files-list { overflow-y:auto; min-height:0; }',
+            '.dp-music__body--panel { overflow:hidden; }',
+            '.dp-music__body--panel .dp-music__now, .dp-music__body--panel .dp-music__empty, .dp-music__body--panel .dp-music__transport, .dp-music__body--panel .dp-music__vol, .dp-music__body--panel .dp-music__spectrum { flex:0 0 auto; }',
+            '.dp-music__body--panel .dp-music__picker { flex:1 1 auto; min-height:0; display:flex; flex-direction:column; }',
+            '.dp-music__body--panel .dp-music__picker-head, .dp-music__body--panel .dp-music__picker-row, .dp-music__body--panel .dp-music__picker-hint, .dp-music__body--panel .dp-music__files { flex:0 0 auto; }',
+            '.dp-music__body--panel .dp-music__files-list { flex:1 1 auto; }',
+            '.dp-music__body--panel .dp-music__eq { flex:1 1 auto; min-height:0; overflow-y:auto; }',
             '.dp-music__file { display:flex; align-items:center; gap:6px; font-size:.76rem; color:var(--on-theme-high); padding:2px 0; cursor:pointer; }',
             '.dp-music__file span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }',
             '.dp-music__picker-row { display:flex; align-items:center; gap:6px; margin-top:6px; }',

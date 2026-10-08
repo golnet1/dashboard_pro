@@ -125,20 +125,41 @@ const DimmerWidget = {
         levelProperty() {
             return this.widget.property_level || this.widget.property || 'level';
         },
+hasSeparateLevel() {
+            return !!(this.widget.object_level || this.widget.property_level);
+        },
         async loadState() {
             if (Date.now() < this._toggleUntil) return;
-            const obj = this.levelObject();
-            if (!obj) return;
-            try {
-                const d = await dpAPI('getProperty?' + new URLSearchParams({ object: obj, property: this.levelProperty() }));
-                if (!d.error && d.value !== undefined) {
-                    const val = Number(d.value);
-                    this.level = isNaN(val) ? 0 : Math.min(this.max, Math.max(this.min, val));
-                    this.isOn = this.level > 0;
-                    const st = this.uiState();
-                    if (st) { st.level = this.level; st.isOn = this.isOn; }
-                }
-            } catch (e) { /* silent */ }
+            const lvlObj = this.levelObject();
+            let level = null;
+            if (lvlObj) {
+                try {
+                    const d = await dpAPI('getProperty?' + new URLSearchParams({
+                        object: lvlObj, property: this.levelProperty()
+                    }));
+                    if (d && !d.error && d.value !== undefined && d.value !== '') {
+                        const n = Number(d.value);
+                        if (!isNaN(n)) level = n;
+                    }
+                } catch (e) { /* silent */ }
+            }
+            let on = null;
+            if (this.hasSeparateLevel() && this.widget.object && this.widget.property) {
+                try {
+                    const d = await dpAPI('getProperty?' + new URLSearchParams({
+                        object: this.widget.object, property: this.widget.property
+                    }));
+                    if (d && !d.error && d.value !== undefined) {
+                        const s = String(d.value).trim().toLowerCase();
+                        on = !(s === '' || s === '0' || s === 'off' || s === 'false');
+                    }
+                } catch (e) { /* silent */ }
+            }
+            if (level !== null) this.level = Math.min(this.max, Math.max(this.min, level));
+            if (on !== null) this.isOn = on;
+            else if (level !== null) this.isOn = this.level > 0;
+            const st = this.uiState();
+            if (st) { st.level = this.level; st.isOn = this.isOn; }
         },
         async toggle() {
             if (this.loading || this.aliveDisabled) return;

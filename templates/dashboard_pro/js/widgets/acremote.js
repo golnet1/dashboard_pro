@@ -99,6 +99,7 @@ const AcRemoteWidget = {
             } catch (e) { /* keep current state on transient error */ }
         },
         async send(code) {
+            dpClientLog('acremote', 'debug', 'send ' + (code.length > 120 ? code.slice(0, 120) + '...(' + code.length + ')' : code) + ' [' + (this.widget.send_mode || 'property') + ']');
             try {
                 if (this.widget.send_mode === 'script') {
                     let params;
