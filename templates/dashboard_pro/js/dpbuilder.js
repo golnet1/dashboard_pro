@@ -1149,7 +1149,7 @@
                 tabs: [{ key: 'main', label: 'tab_main', items: stdFields() }]
             },
             defaultsExtra: {},
-            code: { dataPre: '', data: '', computed: '', methods: '', mounted: '', watch: '', beforeUnmount: '', css: '', funcs: [] }
+            code: { dataPre: '', data: '', computed: '', methods: '', mounted: '', watch: '', beforeUnmount: '', css: '', funcs: [], consts: '', headFuncs: [], statics: [] }
         };
     }
 
@@ -1269,6 +1269,13 @@
         d.code.beforeUnmount = c.beforeUnmount || '';
         d.code.css = c.css || '';
         d.code.funcs = Array.isArray(c.funcs) ? c.funcs : [];
+        /* code of the file that stands outside the component literal: top level
+           constants and helpers (before the literal) and statics put on the
+           component (after it). They are edited in the Code section; what the
+           builder cannot place is kept as text */
+        d.code.consts = c.consts || '';
+        d.code.headFuncs = Array.isArray(c.headFuncs) ? c.headFuncs : [];
+        d.code.statics = Array.isArray(c.statics) ? c.statics : [];
         /* the injection of a hand written stylesheet, kept as text when its rules
            cannot be read - a save must write it back instead of dropping it */
         d.styleRaw = m.styleRaw || '';
@@ -1735,6 +1742,67 @@
         /* the funcs are properties of the object: a comma between the user text and the funcs */
         if (base && base.charAt(base.length - 1) !== ',') base += ',';
         return base + '\n' + fs;
+    }
+
+    /* top level statements of a file, split the same way the blocks of the literal
+       are: every piece keeps the comments that came before it, they belong to the
+       declaration that follows */
+    function splitTopStatements(text) {
+        var raw = String(text || '');
+        var pieces = topLevelSplit(raw), out = [], prev = 0;
+        for (var i = 0; i < pieces.length; i++) {
+            var t = raw.slice(prev, pieces[i].end).replace(/^\s+/, '').replace(/\s+$/, '');
+            prev = pieces[i].end;
+            if (t) out.push(t);
+        }
+        var rest = raw.slice(prev).replace(/^\s+/, '').replace(/\s+$/, '');
+        if (rest) out.push(rest);
+        return out;
+    }
+
+    /* the text of a statement for classification: the declarations may carry a
+       comment above them, take it off so that the kind can be told from the head */
+    function declHead(t) {
+        var s = String(t || '').replace(/^\s+/, '');
+        var guard = 0;
+        while (guard++ < 20) {
+            var b = /^\/\*[\s\S]*?\*\//.exec(s);
+            if (b) { s = s.slice(b[0].length).replace(/^\s+/, ''); continue; }
+            var l = /^\/\/[^\n]*/.exec(s);
+            if (l) { s = s.slice(l[0].length).replace(/^\s+/, ''); continue; }
+            break;
+        }
+        return s;
+    }
+
+    /* the top level of the file before the component: constants in one text, helper
+       functions each on its own (they may be called without `this`, so they cannot
+       go into the methods of the component), and whatever else as it stands */
+    function classifyModulePrefix(text) {
+        var consts = [], funcs = [], left = [];
+        splitTopStatements(text).forEach(function (t) {
+            var h = declHead(t);
+            var fm = /^(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(/.exec(h);
+            if (fm) { funcs.push({ _i: uid('hf'), name: fm[1], text: t }); return; }
+            var cm = /^(?:const|let|var)\s+([A-Za-z_$][\w$]*)\b/.exec(h);
+            if (cm) { consts.push(t); return; }
+            left.push(t);
+        });
+        return { consts: consts.join('\n'), funcs: funcs, left: left.join('\n') };
+    }
+
+    /* the module level after the component: assignments of the form
+       Component.NAME = ... are the statics and are edited one by one; anything
+       else (a stylesheet injection, a helper) is kept as text */
+    function classifyModuleTail(pieces, varName) {
+        var statics = [], left = [];
+        (Array.isArray(pieces) ? pieces : []).forEach(function (t) {
+            var h = declHead(t);
+            var m = /^([A-Za-z_$][\w$]*)\s*\.\s*([A-Za-z_$][\w$]*)\s*=/.exec(h);
+            if (m && (!varName || m[1] === varName)) { statics.push({ _i: uid('st'), name: m[2], text: t }); return; }
+            left.push(t);
+        });
+        return { statics: statics, left: left };
     }
 
     function build(model, extra) {
@@ -2769,7 +2837,18 @@
         SRC_BLOCKS.forEach(function (k) { if (B[k] && parts.indexOf(B[k]) < 0) parts.push(B[k]); });
 
         var out = [];
-        if (imported && m.srcPrefix) out.push(String(m.srcPrefix).replace(/\s+$/, ''));
+        /* the module level before the literal: the constants, the helper functions
+           and whatever the builder does not classify; they are written in that order */
+        var preParts = [];
+        if (String((c || {}).consts || '').trim()) preParts.push(String(c.consts).replace(/\s+$/, ''));
+        (Array.isArray((c || {}).headFuncs) ? c.headFuncs : []).forEach(function (f) {
+            if (!f) return;
+            var ft = String(f.text || '').trim();
+            if (!ft) ft = 'function ' + (f.name || 'fn') + '() {}';
+            preParts.push(ft.replace(/\s+$/, ''));
+        });
+        if (m.srcPrefix && String(m.srcPrefix).trim()) preParts.push(String(m.srcPrefix).replace(/\s+$/, ''));
+        if (preParts.length) out.push(preParts.join('\n'));
         out.push('const ' + vn + ' = {', parts.join(',\n') + (m.lastComma && parts.length ? ',' : ''), '};', '');
         out.push('window.DpWidgets = window.DpWidgets || {};');
         /* the file may address the widget with a dot or with a quoted key - keep it */
@@ -2782,9 +2861,19 @@
         var cssText = String(c.css || '').replace(/\s+$/, '');
         if (cssText.trim()) out.push('', styleBlockText(cssText, m.type));
         else if (imported && m.styleRaw) out.push('', String(m.styleRaw));
-        /* the module level of a ready made widget: the statics and helpers that
-           stood outside the literal are written back, after what the generator owns */
-        if (imported && Array.isArray(m.srcTail) && m.srcTail.length) out.push('', m.srcTail.join('\n'));
+        /* the module level after the literal: first the statics edited one by one,
+           then the pieces kept as text */
+        var tailParts = [];
+        (Array.isArray((c || {}).statics) ? c.statics : []).forEach(function (f) {
+            if (!f) return;
+            var ft = String(f.text || '').trim();
+            if (!ft) ft = vn + '.' + (f.name || 'STATIC') + ' = null;';
+            tailParts.push(ft.replace(/\s+$/, ''));
+        });
+        if (Array.isArray(m.srcTail)) {
+            m.srcTail.forEach(function (t) { if (String(t || '').trim()) tailParts.push(String(t).replace(/\s+$/, '')); });
+        }
+        if (tailParts.length) out.push('', tailParts.join('\n'));
         if (!imported) {
             /* a widget made in the builder keeps its design model in the file: it is needed to reopen it */
             out.push('');
@@ -3173,6 +3262,29 @@
         }).join('\n');
     }
 
+    /* the editor of a section shows it from the first column: a fixed number of
+       spaces of the file is taken off every line, and is put back on save. The
+       depth of the section belongs to the builder, so it is passed in and not read
+       off the least indented line alone: a line a hand edit left shallow must not
+       cancel the indent of the whole block */
+    function dedentBy(s, n) {
+        n = (typeof n === 'number' && n > 0) ? Math.floor(n) : 0;
+        if (!n) return String(s || '');
+        return String(s || '').split('\n').map(function (l) {
+            if (!l.trim()) return l;
+            var lead = l.length - l.replace(/^[ \t]+/, '').length;
+            return lead >= n ? l.slice(n) : l.replace(/^[ \t]+/, '');
+        }).join('\n');
+    }
+    function reindentBy(s, n) {
+        n = (typeof n === 'number' && n > 0) ? Math.floor(n) : 0;
+        if (!n) return String(s || '');
+        var p = new Array(n + 1).join(' ');
+        return String(s || '').split('\n').map(function (l) {
+            return l.trim() ? p + l : l;
+        }).join('\n');
+    }
+
     function fieldFromWidget(f) {
         var o = newField(f && f.type ? f.type : 'text');
         if (!f || typeof f !== 'object') return o;
@@ -3251,10 +3363,25 @@ var tpl = readTemplateStr(js);
         m.indent = {};
         ['dataPre', 'data', 'computed', 'methods', 'watch', 'mounted', 'beforeUnmount'].forEach(function (n) {
             var r = methodRaw(js, n);
-            if (!r) return;
-            var fl = r.split('\n').filter(function (l) { return l.trim() !== ''; })[0];
-            if (!fl) return;
-            m.indent[n] = fl.length - fl.replace(/^[ \t]+/, '').length;
+            if (!r) {
+                /* computed, watch and methods are object properties: the entries sit
+                   under a "name: {" head, and the depth of the head itself is deeper
+                   for some files (stream.js). The indent of the entries is the one of
+                   the first line of the block - the later shallow lines do not count */
+                var mm = new RegExp('(?:^|\\n)[ \\t]*' + n + '[ \\t]*:\\s*\\{').exec(js);
+                if (mm) {
+                    var nl = js.indexOf('\n', mm.index + mm[0].length);
+                    if (nl >= 0) {
+                        var ne = js.indexOf('\n', nl + 1);
+                        var fl = js.slice(nl + 1, ne < 0 ? js.length : ne);
+                        if (fl.trim()) m.indent[n] = fl.length - fl.replace(/^[ \t]+/, '').length;
+                    }
+                }
+                return;
+            }
+            var fl2 = r.split('\n').filter(function (l) { return l.trim() !== ''; })[0];
+            if (!fl2) return;
+            m.indent[n] = fl2.length - fl2.replace(/^[ \t]+/, '').length;
         });
         /* some files write a top level method with a deeper indent (stream.js beforeUnmount) */
         m.headIndent = {};
@@ -3351,6 +3478,16 @@ var tpl = readTemplateStr(js);
                 m.srcTail.push(sp);
             }
         }
+        /* the module level outside the literal is shown and edited in the Code
+           section: the constants and the helper functions of the prefix, and the
+           statics of the tail. What the builder does not classify stays as text */
+        var pre = classifyModulePrefix(m.srcPrefix);
+        m.code.consts = pre.consts;
+        m.code.headFuncs = pre.funcs;
+        m.srcPrefix = pre.left;
+        var tl = classifyModuleTail(m.srcTail, m.srcVar);
+        m.code.statics = tl.statics;
+        m.srcTail = tl.left;
         /* the size and the radius of the constructor are the size and the radius of the
            widget on the panel, and the panel takes them from the defaults of the file:
            read them from there, otherwise the constructor would show the size of an empty
@@ -3994,6 +4131,8 @@ var statementBody = kind === 'dataPre' || kind === 'mounted' || kind === 'before
         blockIndent: blockIndent,
         dedentBlock: dedentBlock,
         reindentBlock: reindentBlock,
+        dedentBy: dedentBy,
+        reindentBy: reindentBy,
         lbl: lbl,
         varName: varName
     };

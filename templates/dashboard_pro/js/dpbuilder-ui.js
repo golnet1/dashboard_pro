@@ -660,27 +660,31 @@
             /* ================= 3. code ================= */
             '  <div v-show="sub === \'code\'" class="dpb-codewrap">' +
             '    <div class="dpb-codetabs">' +
-            '      <button v-for="(c, ci) in CODES" :key="c.key" class="dpb-subtab" :class="{ \'dpb-subtab--on\': code === c.key }"' +
-            '              @click="code = c.key" @dblclick.stop="c.fn && renFn(c.idx)">' +
-            '        <i :class="c.fn ? \'fas fa-bolt\' : c.icon"></i>' +
-            '        <span v-if="c.fn && fnren === c.idx" class="dpb-fnren"><input v-model="funcs[c.idx].name" class="dpb-inline" @click.stop @blur="commitFn(c.idx)" @keyup.enter="commitFn(c.idx)"></span>' +
-            '        <template v-else>{{ c.label }}</template>' +
-            '        <i v-if="c.fn" class="far fa-times dpb-fn__del" :class="{ \'dpb-fn__del--hide\': fnren === c.idx }" @click.stop="delFn(c.idx)"></i>' +
-            '      </button>' +
-            '      <div style="flex:1"></div>' +
+            '      <div class="dpb-codetabs__scroll">' +
+            '        <button v-for="(c, ci) in CODES" :key="c.key" class="dpb-subtab" :class="{ \'dpb-subtab--on\': code === c.key, \'dpb-subtab--sep\': c.sep }"' +
+            '                @click="c.sep || (code = c.key)" @dblclick.stop="c.ed && renFn(c)">' +
+            '          <i :class="c.ed ? \'fas fa-bolt\' : c.icon"></i>' +
+            '          <span v-if="c.ed && fnren === c.key" class="dpb-fnren"><input :value="c.label" class="dpb-inline" @click.stop @input="setFnName(c, $event.target.value)" @blur="commitFn(c)" @keyup.enter="commitFn(c)"></span>' +
+            '          <template v-else>{{ c.label }}</template>' +
+            '          <i v-if="c.ed" class="far fa-times dpb-fn__del" :class="{ \'dpb-fn__del--hide\': fnren === c.key }" @click.stop="delFn(c)"></i>' +
+            '        </button>' +
+            '        <div style="flex:1"></div>' +
+            '      </div>' +
             '      <div class="dpb-fnadd">' +
             '        <button class="dpb-btn dpb-btn--ghost" :class="{ \'dpb-fnadd--on\': fnMenu }" @click="fnMenu = !fnMenu; fnren = -1"><i class="fas fa-plus"></i>{{ t(\'dpb_fn_add\') }}</button>' +
             '        <div v-if="fnMenu" class="dpb-fnmenu">' +
             '          <div class="dpb-fnmenu__head">{{ t(\'dpb_fn_add\') }}</div>' +
             '          <button v-for="s in FN_STD" :key="s.key" class="dpb-fnitem" @click.stop="addStdFn(s)"><i :class="s.icon"></i>{{ s.label }}</button>' +
             '          <div class="dpb-fnmenu__sep"></div>' +
-            '          <button class="dpb-fnitem dpb-fnitem--custom" @click.stop="addCustomFn"><i class="fas fa-bolt"></i>{{ t(\'dpb_fn_custom\') }}<span class="dpb-fnitem__hint">{{ t(\'dpb_fn_num\') }}</span></button>' +
+            '          <button class="dpb-fnitem dpb-fnitem--custom" @click.stop="addConsts"><i class="fas fa-superscript"></i>{{ t(\'dpb_mod_consts\') }}</button>' +
+            '          <button class="dpb-fnitem dpb-fnitem--custom" @click.stop="addHeadFn"><i class="fas fa-cube"></i>{{ t(\'dpb_mod_fn\') }}<span class="dpb-fnitem__hint">{{ t(\'dpb_fn_num\') }}</span></button>' +
+            '          <button class="dpb-fnitem dpb-fnitem--custom" @click.stop="addStatic"><i class="fas fa-database"></i>{{ t(\'dpb_mod_static\') }}<span class="dpb-fnitem__hint">{{ t(\'dpb_fn_num\') }}</span></button>' +
             '        </div>' +
             '      </div>' +
             '      <button class="dpb-btn dpb-btn--ghost" @click="runWizard"><i class="fas fa-magic"></i>{{ t(\'dpb_wizard\') }}</button>' +
             '    </div>' +
             '    <div v-if="fnEmpty" class="dpb-codearea"><div class="dpb-fnstub" @click="fnMenu = true"><i class="fas fa-plus"></i>{{ t(\'dpb_fn_stub\') }}<span>{{ t(\'dpb_fn_stub_hint\') }}</span></div></div>' +
-            '    <div v-else class="dpb-codearea"><code-editor v-model="codeText" /></div>' +
+            '    <div v-else class="dpb-codearea"><div v-if="staticHdr" class="dpb-stathdr"><code class="dpb-stathdr__code">{{ staticHdr }}</code></div><code-editor v-model="codeText" /></div>' +
             '    <div class="dpb-codefoot">' +
             '      <span v-if="err" class="dpb-err"><i class="fas fa-exclamation-triangle"></i>{{ err }}</span>' +
             '      <span v-else class="dpb-ok"><i class="fas fa-check"></i>{{ t(\'dpb_code_ok\') }}</span>' +
@@ -691,7 +695,7 @@
 
             /* ---------------- footer ---------------- */
             '  <div class="dpb-foot">' +
-            '    <span class="dpb-err" v-if="nameError || typeError"><i class="fas fa-exclamation-triangle"></i>{{ nameError || typeError }}</span>' +
+            '    <span class="dpb-err" v-if="sub === \'view\' && (nameError || typeError)"><i class="fas fa-exclamation-triangle"></i>{{ nameError || typeError }}</span>' +
             '    <span class="dpb-hint" v-else>{{ t(\'dpb_foot_hint\') }}</span>' +
             '    <div style="flex:1"></div>' +
             '    <button class="dpb-btn dpb-btn--ghost" :disabled="busy" @click="$emit(\'reset\')"><i class="fas fa-undo"></i>{{ t(\'dpb_reset\') }}</button>' +
@@ -768,34 +772,89 @@
                 if (has('beforeUnmount')) list.push({ key: 'beforeUnmount', label: 'beforeUnmount()', icon: 'fas fa-power-off' });
                 var fs = (this.model.code || {}).funcs || [];
                 for (var i = 0; i < fs.length; i++) {
-                    list.push({ key: '@' + i, label: String(fs[i].name || ''), icon: 'fas fa-bolt', fn: true, idx: i });
+                    list.push({ key: '@' + i, label: String(fs[i].name || ''), icon: 'fas fa-bolt', ed: true, idx: i, grp: 'fn' });
                 }
-                return list;
+                /* the code of the file outside the component literal: constants,
+                   module helper functions and component statics, each under its name */
+                var post = [];
+                if (has('consts') || this.code === 'consts') post.push({ key: 'consts', label: String(this.t('dpb_mod_consts')), icon: 'fas fa-superscript', fixed: true });
+                var hf = (this.model.code || {}).headFuncs || [];
+                for (var j = 0; j < hf.length; j++) {
+                    post.push({ key: 'H' + j, label: String(hf[j].name || ''), icon: 'fas fa-cube', ed: true, idx: j, grp: 'head' });
+                }
+                var st = (this.model.code || {}).statics || [];
+                for (var k = 0; k < st.length; k++) {
+                    post.push({ key: 'S' + k, label: String(st[k].name || ''), icon: 'fas fa-database', ed: true, idx: k, grp: 'static' });
+                }
+                if (post.length) list.push({ key: '::sep', label: '', sep: true, icon: '' });
+                return list.concat(post);
             },
             funcs: function () { return (this.model.code || {}).funcs || []; },
-            fnCur: function () {
+            headFuncs: function () { return (this.model.code || {}).headFuncs || []; },
+            statics: function () { return (this.model.code || {}).statics || []; },
+            /* the editable object of the current tab: a standard section, the
+               "Константы" text, or a named entry of funcs / module funcs / statics */
+            edCur: function () {
                 var c = this.code;
-                if (typeof c !== 'string' || c.charAt(0) !== '@') return null;
-                return this.funcs[parseInt(c.slice(1), 10)] || null;
+                if (typeof c !== 'string') return null;
+                if (c === 'consts') return { kind: 'consts' };
+                if (c.charAt(0) === '@') return { kind: 'fn', obj: this.funcs[parseInt(c.slice(1), 10)] || null };
+                if (c.charAt(0) === 'H') return { kind: 'head', obj: this.headFuncs[parseInt(c.slice(1), 10)] || null };
+                if (c.charAt(0) === 'S') return { kind: 'static', obj: this.statics[parseInt(c.slice(1), 10)] || null };
+                return null;
+            },
+            fnCur: function () {
+                var e = this.edCur;
+                return (e && (e.kind === 'fn' || e.kind === 'head' || e.kind === 'static')) ? e.obj : null;
+            },
+            /* the head of a static tab, read only: the widget variable is taken
+               from the name of the widget, the property from the name of the tab,
+               and only the value after "=" is edited in the window */
+            staticHdr: function () {
+                var e = this.edCur;
+                if (!e || e.kind !== 'static' || !e.obj) return '';
+                return this.staticVar() + '.' + (e.obj.name || 'STATIC') + ' = ';
             },
             /* an empty standard section shows the "add a function" stub instead of an editor */
             fnEmpty: function () {
                 if (this.fnCur) return false;
-                if (this.code === 'data' || this.code === 'dataPre') return false;
+                if (this.code === 'data' || this.code === 'dataPre' || this.code === 'consts') return false;
                 return !String(this.model.code[this.code] || '').trim();
             },
             /* the code sections are shown from the first column, the indent of the
                file is put back when the text is saved */
             codeText: {
                 get: function () {
-                    var f = this.fnCur;
-                    if (f) return f.text || '';
-                    return B.dedentBlock(this.model.code[this.code]);
+                    var e = this.edCur;
+                    if (!e) return B.dedentBy(this.model.code[this.code], this.sectionBase(this.code));
+                    if (e.kind === 'consts') return String(this.model.code.consts || '');
+                    if (e.kind === 'static') {
+                        var sc = String(e.obj ? e.obj.text : '');
+                        return B.dedentBy(this.staticBody(sc), this.staticBase(sc));
+                    }
+                    return e.obj ? (e.obj.text || '') : '';
                 },
                 set: function (v) {
-                    var f = this.fnCur;
-                    if (f) { f.text = v; return; }
-                    this.model.code[this.code] = B.reindentBlock(v, this.model.code[this.code]);
+                    var e = this.edCur;
+                    if (!e) { this.model.code[this.code] = B.reindentBy(v, this.sectionBase(this.code)); return; }
+                    if (e.kind === 'consts') { this.model.code.consts = v; return; }
+if (e.kind === 'static') {
+                    var cur = String(e.obj ? e.obj.text : '');
+                    var body = B.reindentBy(String(v || '').replace(/\s+$/, ''), this.staticBase(cur));
+                    e.obj.text = this.staticFull(cur, body);
+                    return;
+                }
+                if (e.obj) {
+                    e.obj.text = v;
+                    /* the tab carries the name of the function the code declares, so
+                       a name changed in the code moves the label of the tab too */
+                    if (e.kind === 'head' || e.kind === 'fn') {
+                        var mm = (e.kind === 'head'
+                            ? /^(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(/
+                            : /^[ \t]*([A-Za-z_$][\w$]*)\s*\(/).exec(String(v || '').trim());
+                        if (mm && mm[1] !== e.obj.name) e.obj.name = mm[1];
+                    }
+                }
                 }
             },
             hasRawHtml: function () {
@@ -827,11 +886,13 @@
                         return false;
                     }
                 }
-                var keys = ['dataPre', 'data', 'computed', 'methods', 'mounted', 'watch', 'beforeUnmount'];
+                var keys = ['dataPre', 'data', 'computed', 'methods', 'mounted', 'watch', 'beforeUnmount', 'consts'];
                 for (var j = 0; j < keys.length; j++) {
                     if (String(c[keys[j]] || '').trim()) return false;
                 }
-                return !((c.funcs) || []).length;
+                return !((c.funcs) || []).length &&
+                    !((c.headFuncs) || []).length &&
+                    !((c.statics) || []).length;
             },
             /* 'auto' follows the model: a widget with own HTML opens in code mode,
                a widget made of blocks opens in the visual mode */
@@ -918,8 +979,11 @@
         },
 
         watch: {
-            /* another widget is opened: the mode follows the new model again */
-            modelValue: function () { this.viewMode = 'auto'; this.rawTpl = ''; this.rawErr = ''; this.cssErr = ''; this.fnMenu = false; this.fnren = -1; this.syncCss(); },
+            /* another widget is opened: back to the defaults and the mode
+               follows the new model again. The tab chosen in the previous
+               widget (a code section, a subtab, a settings tab) must not
+               stick to the next one */
+            modelValue: function () { this.sub = 'view'; this.code = 'data'; this.tabIdx = 0; this.sel = ''; this.fsel = ''; this.fnold = ''; this.viewMode = 'auto'; this.rawTpl = ''; this.rawErr = ''; this.cssErr = ''; this.fnMenu = false; this.fnren = -1; this.syncCss(); },
             /* the stylesheet is shown in the page while it is edited, so the rules
                are seen where they will really stand */
             viewMode: function () { this.syncCss(); },
@@ -938,7 +1002,10 @@
             'model.code.mounted': function () { this.check(); },
             'model.code.watch': function () { this.check(); },
             'model.code.beforeUnmount': function () { this.check(); },
-            'model.code.funcs': { deep: true, handler: function () { this.check(); } }
+            'model.code.funcs': { deep: true, handler: function () { this.check(); } },
+            'model.code.consts': function () { this.check(); },
+            'model.code.headFuncs': { deep: true, handler: function () { this.check(); } },
+            'model.code.statics': { deep: true, handler: function () { this.check(); } }
         },
 
          mounted: function () {
@@ -1609,10 +1676,17 @@
 
             /* --- code --- */
             check: function () {
-                var f = this.fnCur;
-                var r = f
-                    ? B.checkSyntax(f.text || '', 'mounted')
-                    : B.checkSyntax(this.model.code[this.code] || '', this.code);
+                var e = this.edCur;
+                var text, kind;
+                if (e) {
+                    text = e.kind === 'consts' ? String(this.model.code.consts || '')
+                        : (e.obj ? (e.obj.text || '') : '');
+                    kind = 'mounted';
+                } else {
+                    text = this.model.code[this.code] || '';
+                    kind = this.code;
+                }
+                var r = B.checkSyntax(text, kind);
                 this.err = r.ok ? '' : (r.key ? this.t(r.key) : r.error);
             },
             addStdFn: function (s) {
@@ -1623,50 +1697,155 @@
                 this.fnMenu = false;
                 this.check();
             },
-            addCustomFn: function () {
+            /* the module level of the file outside the component literal */
+            addConsts: function () {
+                this.code = 'consts';
+                this.fnMenu = false;
+                this.check();
+            },
+            addHeadFn: function () {
                 var c = this.model.code;
-                if (!Array.isArray(c.funcs)) c.funcs = [];
+                if (!Array.isArray(c.headFuncs)) c.headFuncs = [];
                 var names = {};
-                ['data', 'dataPre', 'computed', 'methods', 'mounted', 'watch', 'beforeUnmount'].forEach(function (k) { names[k] = 1; });
+                c.headFuncs.forEach(function (f) { names[f.name] = 1; });
                 c.funcs.forEach(function (f) { names[f.name] = 1; });
+                ['data', 'dataPre', 'computed', 'methods', 'mounted', 'watch', 'beforeUnmount'].forEach(function (k) { names[k] = 1; });
                 var n = 1;
-                while (names['function' + n]) n++;
-                c.funcs.push({ _i: B.uid('fn'), name: 'function' + n, text: '' });
-                this.code = '@' + (c.funcs.length - 1);
+                while (names['fn' + n]) n++;
+                c.headFuncs.push({ _i: B.uid('hf'), name: 'fn' + n, text: 'function fn' + n + '() {}' });
+                this.code = 'H' + (c.headFuncs.length - 1);
                 this.fnMenu = false;
                 this.check();
             },
-            delFn: function (i) {
-                var fs = this.model.code.funcs || [];
-                if (i < 0 || i >= fs.length) return;
-                fs.splice(i, 1);
-                if (String(this.code).charAt(0) === '@') this.code = 'data';
-                this.fnren = -1;
+            addStatic: function () {
+                var c = this.model.code;
+                if (!Array.isArray(c.statics)) c.statics = [];
+                var names = {};
+                c.statics.forEach(function (f) { names[f.name] = 1; });
+                var n = 1;
+                while (names['STATIC' + n]) n++;
+                c.statics.push({ _i: B.uid('st'), name: 'STATIC' + n, text: '' });
+                this.code = 'S' + (c.statics.length - 1);
                 this.fnMenu = false;
                 this.check();
             },
-            renFn: function (i) {
-                var f = this.funcs[i];
-                if (!f) return;
-                this.fnold = String(f.name || '');
-                this.fnren = i;
+            /* the depth of a section: from the whole of its text when the depth is
+               even, from the recorded indent of the import otherwise - a line a hand
+               edit left shallow (methods of musicplayer.js) must not cancel the
+               indent of every entry, so the recorded depth wins when nothing else
+               says anything */
+            sectionBase: function (name) {
+                var min = B.blockIndent(String((this.model.code || {})[name] || ''));
+                if (min > 0) return min;
+                var i = (this.model || {}).indent;
+                return (i && typeof i[name] === 'number' && i[name] > 0) ? i[name] : 0;
+            },
+            staticBase: function (text) {
+                return B.blockIndent(this.staticBody(String(text || '')));
+            },
+            objOf: function (c) {
+                var grp = c && c.grp;
+                var i = c ? c.idx : -1;
+                if (grp === 'fn') return this.funcs[i];
+                if (grp === 'head') return this.headFuncs[i];
+                if (grp === 'static') return this.statics[i];
+                return null;
+            },
+            /* the variable the widget lives in on the module level: the one the
+               file uses when it is imported, the built name for a new widget */
+            staticVar: function () {
+                return String((this.model.srcVar || '')).trim() || B.varName(this.model.type || 'widget');
+            },
+            /* the value without the "Widget.NAME =" head; a text without a head
+               (typed into a brand new static) stays as it is */
+            staticValue: function (text) {
+                var h = /^[ \t]*[A-Za-z_$][\w$]*\.[A-Za-z_$][\w$]*[ \t]*=[ \t]*/.exec(String(text || ''));
+                return h ? String(text).slice(h[0].length) : String(text || '');
+            },
+            /* the statics are tables: the brackets of the array and the closing ";"
+               are put back when the file is written, so the tab shows only the
+               lines between them */
+            staticIsArray: function (text) {
+                return /^[ \t]*[A-Za-z_$][\w$]*\.[A-Za-z_$][\w$]*[ \t]*=\s*\[/.test(String(text || ''));
+            },
+            staticBody: function (text) {
+                var v = this.staticValue(text);
+                var s = String(v || '').replace(/^\s+/, '');
+                if (s.charAt(0) === '[') {
+                    var b = s.slice(1).replace(/\s*;\s*$/, '').replace(/\s*\]\s*$/, '').replace(/^\s*\n/, '').replace(/\s+$/, '');
+                    return b;
+                }
+                return String(v || '').replace(/\s*;\s*$/, '').replace(/\s+$/, '');
+            },
+/* the whole statement from the value: the head, the brackets of the
+                array and the ";" are added automatically; a value that was not an
+                array keeps its shape, only the ";" is appended */
+            staticFull: function (cur, body) {
+                var vn = this.staticVar();
+                var nm = (this.edCur && this.edCur.obj && this.edCur.obj.name) ? this.edCur.obj.name : 'STATIC';
+                var t = String(body || '').replace(/\s+$/, '');
+                if (!t.trim()) return '';
+                var isArr = !String(cur).trim() || this.staticIsArray(cur);
+                if (isArr) return vn + '.' + nm + ' = [\n' + t.replace(/^\s*\n/, '') + '\n];';
+                if (t.charAt(t.length - 1) !== ';') t += ';';
+                return vn + '.' + nm + ' = ' + t;
+            },
+            setFnName: function (c, v) {
+                var o = this.objOf(c);
+                if (o) o.name = v;
+            },
+            delFn: function (c) {
+                var grp = c && c.grp;
+                var i = c ? c.idx : -1;
+                var arr = grp === 'head' ? (this.model.code.headFuncs || [])
+                    : grp === 'static' ? (this.model.code.statics || [])
+                        : (this.model.code.funcs || []);
+                if (!arr[i]) return;
+                arr.splice(i, 1);
+                if (String(this.code) === c.key) this.code = 'data';
+                this.fnren = '';
+                this.fnMenu = false;
+                this.check();
+            },
+            renFn: function (c) {
+                var o = this.objOf(c);
+                if (!o) return;
+                this.fnold = String(o.name || '');
+                this.fnren = c.key;
                 var self = this;
                 setTimeout(function () {
                     var el = self.$el ? self.$el.querySelector('.dpb-fnren input') : null;
                     if (el) { el.focus(); el.select(); }
                 }, 0);
             },
-            commitFn: function (i) {
-                var fs = this.model.code.funcs || [];
-                var f = fs[i];
-                if (f) {
-                    var nm = String(f.name || '').trim();
+            commitFn: function (c) {
+                var grp = c && c.grp;
+                var arr = grp === 'head' ? (this.model.code.headFuncs || [])
+                    : grp === 'static' ? (this.model.code.statics || [])
+                        : (this.model.code.funcs || []);
+                var o = arr[c.idx];
+                if (o) {
+                    var old = this.fnold;
+                    var nm = String(o.name || '').trim();
                     var ok = /^[A-Za-z_$][\w$]*$/.test(nm) &&
-                        ['data', 'dataPre', 'computed', 'methods', 'mounted', 'watch', 'beforeUnmount'].indexOf(nm) < 0 &&
-                        !fs.some(function (x, j) { return j !== i && String(x.name) === nm; });
-                    if (!ok) f.name = this.fnold || ('function' + (i + 1));
+                        (grp !== 'static' || /^[A-Z][A-Z0-9_]*$/.test(nm)) &&
+                        ['data', 'dataPre', 'computed', 'methods', 'mounted', 'watch', 'beforeUnmount', 'consts'].indexOf(nm) < 0 &&
+                        !arr.some(function (x, j) { return j !== c.idx && String(x.name) === nm; });
+                    if (!ok) o.name = old || (grp === 'static' ? 'STATIC' + (c.idx + 1) : 'fn' + (c.idx + 1));
+                    else if (old && old !== o.name) {
+                        /* the name lives in the code the entry keeps: the tab shows
+                           it and the file is written from the text, so a rename has
+                           to reach the declaration itself */
+                        if (grp === 'head') {
+                            var reH = new RegExp('\\bfunction\\s+' + old.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*\\(');
+                            o.text = String(o.text || '').replace(reH, 'function ' + o.name + '(');
+                        } else if (grp === 'static') {
+                            var reS = new RegExp('([A-Za-z_$][\\w$]*\\.)' + old.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(\\s*=)');
+                            o.text = String(o.text || '').replace(reS, '$1' + o.name + '$2');
+                        }
+                    }
                 }
-                this.fnren = -1;
+                this.fnren = '';
                 this.fnold = '';
             },
             runWizard: function (onlyStubs) {
@@ -1720,12 +1899,12 @@
             source: function () { return B.genSource(this.model); },
             download: function () {
                 this.validate();
-                if (this.nameError || this.typeError) return;
+                if (this.nameError || this.typeError) { this.sub = 'view'; return; }
                 this.$emit('action', 'download', { model: this.model, js: this.source() });
             },
             save: function () {
                 this.validate();
-                if (this.nameError || this.typeError) return;
+                if (this.nameError || this.typeError) { this.sub = 'view'; return; }
                 this.$emit('action', 'install', { model: this.model, js: this.source() });
             },
             reset: function () { this.$emit('reset'); }

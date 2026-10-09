@@ -883,6 +883,14 @@ body.widget-dragging, body.widget-dragging * { cursor: grabbing !important; }
 .dpb-subtab { display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border:1px solid rgba(255,255,255,.14); border-radius:var(--wpb-radius-default, 0px); background:rgba(255,255,255,.04); color:rgba(255,255,255,.75); font-size:.82rem; cursor:pointer; white-space:nowrap; }
 .dpb-subtab:hover { background:rgba(255,255,255,.1); color:#fff; }
 .dpb-subtab--on { background:#1976d2; border-color:#1976d2; color:#fff; }
+.dpb-subtab--sep { width:1px; height:18px; padding:0; border:0; cursor:default; background:rgba(255,255,255,.22); border-radius:0; flex-shrink:0; }
+.dpb-subtab--sep:hover { background:rgba(255,255,255,.22); }
+.dpb-subtab--sep + * { margin-left:4px; }
+.dpb-codetabs__scroll { display:flex; align-items:center; gap:6px; flex:1; min-width:0; overflow-x:auto; overflow-y:hidden; scrollbar-width:thin; }
+.dpb-codetabs__scroll::-webkit-scrollbar { height:8px; }
+.dpb-codetabs__scroll::-webkit-scrollbar-track { background:rgba(255,255,255,.06); }
+.dpb-codetabs__scroll::-webkit-scrollbar-thumb { background:rgba(255,255,255,.25); border-radius:4px; }
+.dpb-codetabs__scroll .dpb-subtab { flex-shrink:0; }
 .dpb-wizstat { font-size:.75rem; color:rgba(255,255,255,.45); }
 
 /* the "add a function" menu and the stub of an empty code section */
@@ -1094,6 +1102,8 @@ body.widget-dragging, body.widget-dragging * { cursor: grabbing !important; }
 /* code editor */
 .dpb-codewrap { flex:1; min-height:0; display:flex; flex-direction:column; }
 .dpb-codearea { flex:1; min-height:0; display:flex; }
+.dpb-stathdr { display:flex; align-items:center; flex-shrink:0; padding:5px 12px; border-bottom:1px solid rgba(255,255,255,.12); background:rgba(0,0,0,.22); }
+.dpb-stathdr__code { font-family:ui-monospace, SFMono-Regular, Consolas, monospace; font-size:.8rem; color:#90caf9; white-space:pre; }
 .dpb-fnstub { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; margin:12px; border:1px dashed rgba(125,177,245,.35); border-radius:var(--wpb-radius-default, 0px); color:rgba(125,177,245,.75); font-size:.9rem; cursor:pointer; transition:background .15s, border-color .15s; }
 .dpb-fnstub:hover { border-color:#90caf9; color:#90caf9; background:rgba(25,118,210,.08); }
 .dpb-fnstub i { font-size:1.15rem; }
