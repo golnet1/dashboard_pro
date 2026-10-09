@@ -32,7 +32,7 @@
    }
 */
 
-$ROOT = '/var/www/html';
+$ROOT = defined('SERVER_ROOT') ? SERVER_ROOT : (realpath(dirname(__DIR__, 2)) ?: '/var/www/html');
 
 chdir($ROOT);
 if (PHP_SAPI === 'cli') {
@@ -76,21 +76,45 @@ function cmFrameHex($frame)
     return $out;
 }
 
+function cmFindValueId($op)
+{
+    if (!$op || strpos($op, '.') === false) return false;
+    list($oname, $pname) = array_map('trim', explode('.', $op, 2));
+    if ($oname === '' || $pname === '') return false;
+    $oid = (int)SQLSelectOne("SELECT ID FROM objects WHERE TITLE LIKE '" . DBSafe($oname) . "'")['ID'];
+    if (!$oid) return false;
+    $v = SQLSelectOne("SELECT ID, VALUE FROM pvalues WHERE OBJECT_ID=" . $oid . " AND PROPERTY_NAME LIKE '" . DBSafe($pname) . "'");
+    if (!$v['ID']) return false;
+    return (int)$v['ID'];
+}
+
 function cmWriteTargets($targets, $values)
 {
+    if (!$targets) return;
+    $now = date('Y-m-d H:i:s');
     foreach ($targets as $i => $t) {
         $v = isset($values[$i]) ? $values[$i] : end($values);
-        setGlobal($t['object'] . '.' . $t['property'], (string)$v);
+        $vid = cmFindValueId($t['object'] . '.' . $t['property']);
+        if ($vid) {
+            SQLExec("UPDATE pvalues SET VALUE='" . DBSafe((string)$v) . "', UPDATED='" . $now . "' WHERE ID=" . $vid);
+        } else {
+            setGlobal($t['object'] . '.' . $t['property'], (string)$v);
+        }
     }
 }
 
-/* разослать один цвет: hex в первый таргет или R/G/B по трём таргетам */
 function cmWriteColor($targets, $dev, $wr, $rgb)
 {
     if (!$targets) return;
     if ($dev !== 'ports' && $wr === 'hex') {
-        setGlobal($targets[0]['object'] . '.' . $targets[0]['property'],
-            sprintf('%02x%02x%02x', cmClamp8($rgb[0]), cmClamp8($rgb[1]), cmClamp8($rgb[2])));
+        $v = sprintf('%02x%02x%02x', cmClamp8($rgb[0]), cmClamp8($rgb[1]), cmClamp8($rgb[2]));
+        $now = date('Y-m-d H:i:s');
+        $vid = cmFindValueId($targets[0]['object'] . '.' . $targets[0]['property']);
+        if ($vid) {
+            SQLExec("UPDATE pvalues SET VALUE='" . DBSafe($v) . "', UPDATED='" . $now . "' WHERE ID=" . $vid);
+        } else {
+            setGlobal($targets[0]['object'] . '.' . $targets[0]['property'], $v);
+        }
         return;
     }
     cmWriteTargets($targets, array(cmClamp8($rgb[0]), cmClamp8($rgb[1]), cmClamp8($rgb[2])));
@@ -104,7 +128,14 @@ function cmApplyEnd($targets, $dev, $wr, $out, $pixels, $end)
     if ($dev === 'megad') {
         $c = $on ? array(255, 255, 255) : array(0, 0, 0);
         $frame = array_fill(0, max(1, $pixels), $c);
-        setGlobal($targets[0]['object'] . '.' . $targets[0]['property'], cmFrameHex($frame));
+        $v = cmFrameHex($frame);
+        $now = date('Y-m-d H:i:s');
+        $vid = cmFindValueId($targets[0]['object'] . '.' . $targets[0]['property']);
+        if ($vid) {
+            SQLExec("UPDATE pvalues SET VALUE='" . DBSafe($v) . "', UPDATED='" . $now . "' WHERE ID=" . $vid);
+        } else {
+            setGlobal($targets[0]['object'] . '.' . $targets[0]['property'], $v);
+        }
         return;
     }
     if ($dev === 'ports') {
@@ -113,7 +144,14 @@ function cmApplyEnd($targets, $dev, $wr, $out, $pixels, $end)
         return;
     }
     if ($dev !== 'ports' && $wr === 'hex') {
-        setGlobal($targets[0]['object'] . '.' . $targets[0]['property'], $on ? 'ffffff' : '000000');
+        $v = $on ? 'ffffff' : '000000';
+        $now = date('Y-m-d H:i:s');
+        $vid = cmFindValueId($targets[0]['object'] . '.' . $targets[0]['property']);
+        if ($vid) {
+            SQLExec("UPDATE pvalues SET VALUE='" . DBSafe($v) . "', UPDATED='" . $now . "' WHERE ID=" . $vid);
+        } else {
+            setGlobal($targets[0]['object'] . '.' . $targets[0]['property'], $v);
+        }
         return;
     }
     if ($on) cmWriteTargets($targets, array(255, 60, 20));
@@ -165,7 +203,7 @@ $speed = isset($input['speed']) && is_numeric($input['speed'])
 
 /* ---- запущенные движки ---------------------------------------------- */
 
-function cmRunDir() { return '/var/www/html/modules/dashboard_pro/.cm_run'; }
+function cmRunDir() { return $GLOBALS['ROOT'] . '/modules/dashboard_pro/.cm_run'; }
 
 function cmCfgLoad($dir)
 {
@@ -349,7 +387,14 @@ while (true) {
                 $frame[] = cmHslToRgb($tint, 100, 55);
             }
         }
-        setGlobal($targets[0]['object'] . '.' . $targets[0]['property'], cmFrameHex($frame));
+        $v = cmFrameHex($frame);
+        $now = date('Y-m-d H:i:s');
+        $vid = cmFindValueId($targets[0]['object'] . '.' . $targets[0]['property']);
+        if ($vid) {
+            SQLExec("UPDATE pvalues SET VALUE='" . DBSafe($v) . "', UPDATED='" . $now . "' WHERE ID=" . $vid);
+        } else {
+            setGlobal($targets[0]['object'] . '.' . $targets[0]['property'], $v);
+        }
     }
 
     $step++;
