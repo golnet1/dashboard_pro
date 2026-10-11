@@ -695,7 +695,7 @@
 
             /* ---------------- footer ---------------- */
             '  <div class="dpb-foot">' +
-            '    <span class="dpb-err" v-if="sub === \'view\' && (nameError || typeError)"><i class="fas fa-exclamation-triangle"></i>{{ nameError || typeError }}</span>' +
+            '    <span class="dpb-err" v-if="nameError || typeError"><i class="fas fa-exclamation-triangle"></i>{{ nameError || typeError }}</span>' +
             '    <span class="dpb-hint" v-else>{{ t(\'dpb_foot_hint\') }}</span>' +
             '    <div style="flex:1"></div>' +
             '    <button class="dpb-btn dpb-btn--ghost" :disabled="busy" @click="$emit(\'reset\')"><i class="fas fa-undo"></i>{{ t(\'dpb_reset\') }}</button>' +
@@ -1899,12 +1899,12 @@ if (e.kind === 'static') {
             source: function () { return B.genSource(this.model); },
             download: function () {
                 this.validate();
-                if (this.nameError || this.typeError) { this.sub = 'view'; return; }
+                if (this.nameError || this.typeError) return;
                 this.$emit('action', 'download', { model: this.model, js: this.source() });
             },
             save: function () {
                 this.validate();
-                if (this.nameError || this.typeError) { this.sub = 'view'; return; }
+                if (this.nameError || this.typeError) return;
                 this.$emit('action', 'install', { model: this.model, js: this.source() });
             },
             reset: function () { this.$emit('reset'); }

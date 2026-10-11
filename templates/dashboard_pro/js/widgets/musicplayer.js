@@ -43,7 +43,8 @@ const MusicplayerWidget = {
             { key: 'show_spectrum', label: 'mu_field_show_spectrum', type: 'checkbox', default: true },
         ],
         light: [
-            { key: 'dev_type', label: 'cm_dev_type', type: 'select', default: 'ports', options: [{ value: 'ports', label: 'cm_dev_ports' }, { value: 'rgb', label: 'cm_dev_rgb' }, { value: 'ic', label: 'cm_dev_ic' }, { value: 'megad', label: 'cm_dev_megad' }] },
+            { key: 'cm_group', label: 'cm_group', type: 'select', default: 'tuya', options: [{ value: 'tuya', label: 'cm_group_tuya' }, { value: 'megad', label: 'cm_group_megad' }, { value: 'zigbee', label: 'cm_group_zigbee' }] },
+            { key: 'dev_type', label: 'cm_dev_type', type: 'select', default: 'ports', options: [{ value: 'ports', label: 'cm_dev_ports' }, { value: 'rgb', label: 'cm_dev_rgb' }, { value: 'ic', label: 'cm_dev_ic' }] },
             { key: 'port_ch', label: 'cm_ch_count', type: 'select', default: '3', showIf: { dev_type: 'ports' }, options: [{ value: '3', label: '3' }, { value: '4', label: '4' }, { value: '5', label: '5' }, { value: '6', label: '6' }, { value: '7', label: '7' }, { value: '8', label: '8' }] },
             { key: 'object_p1', label: 'cm_ch1', type: 'object', row: 'cm_p1', showIf: { dev_type: 'ports' } },
             { key: 'property_p1', label: 'cm_prop', type: 'property', row: 'cm_p1', showIf: { dev_type: 'ports' } },
@@ -62,22 +63,21 @@ const MusicplayerWidget = {
             { key: 'object_p8', label: 'cm_ch8', type: 'object', row: 'cm_p8', showIf: { dev_type: 'ports', port_ch: '8' } },
             { key: 'property_p8', label: 'cm_prop', type: 'property', row: 'cm_p8', showIf: { dev_type: 'ports', port_ch: '8' } },
             { key: 'port_mode', label: 'cm_mode', type: 'select', default: 'freq', showIf: { dev_type: 'ports' }, options: [{ value: 'freq', label: 'cm_mode_freq' }, { value: 'wave', label: 'cm_mode_wave' }] },
-            { key: 'port_out', label: 'cm_out', type: 'select', default: 'onoff', showIf: { dev_type: 'ports' }, options: [{ value: 'level', label: 'cm_out_level' }, { value: 'onoff', label: 'cm_out_onoff' }] },
-            { key: 'cm_on_level', label: 'cm_on_level', type: 'number', step: 5, default: 90, showIf: { dev_type: 'ports', port_out: 'onoff' } },
-            { key: 'wr_mode', label: 'cm_write', type: 'select', default: 'hex', showIf: { dev_type: ['rgb', 'ic'] }, options: [{ value: 'hex', label: 'cm_wr_hex' }, { value: 'rgb', label: 'cm_wr_rgb' }] },
-            { key: 'object_hex', label: 'cm_object', type: 'object', row: 'cm_hex', showIf: { dev_type: ['rgb', 'ic'], wr_mode: 'hex' } },
-            { key: 'property_hex', label: 'cm_prop', type: 'property', row: 'cm_hex', showIf: { dev_type: ['rgb', 'ic'], wr_mode: 'hex' } },
-            { key: 'object_r', label: 'cm_r', type: 'object', row: 'cm_r', showIf: { dev_type: ['rgb', 'ic'], wr_mode: 'rgb' } },
-            { key: 'property_r', label: 'cm_prop', type: 'property', row: 'cm_r', showIf: { dev_type: ['rgb', 'ic'], wr_mode: 'rgb' } },
-            { key: 'object_g', label: 'cm_g', type: 'object', row: 'cm_g', showIf: { dev_type: ['rgb', 'ic'], wr_mode: 'rgb' } },
-            { key: 'property_g', label: 'cm_prop', type: 'property', row: 'cm_g', showIf: { dev_type: ['rgb', 'ic'], wr_mode: 'rgb' } },
-            { key: 'object_b', label: 'cm_b', type: 'object', row: 'cm_b', showIf: { dev_type: ['rgb', 'ic'], wr_mode: 'rgb' } },
-            { key: 'property_b', label: 'cm_prop', type: 'property', row: 'cm_b', showIf: { dev_type: ['rgb', 'ic'], wr_mode: 'rgb' } },
+            { key: 'cm_on_level', label: 'cm_on_level', type: 'number', step: 5, default: 90, showIf: { dev_type: 'ports' } },
+            { key: 'wr_mode', label: 'cm_write', type: 'select', default: 'hex', showIf: { dev_type: 'rgb' }, options: [{ value: 'hex', label: 'cm_wr_hex' }, { value: 'rgb', label: 'cm_wr_rgb' }] },
+            { key: 'object_hex', label: 'cm_object', type: 'object', row: 'cm_hex', showIf: { dev_type: 'rgb', wr_mode: 'hex' } },
+            { key: 'property_hex', label: 'cm_prop', type: 'property', row: 'cm_hex', showIf: { dev_type: 'rgb', wr_mode: 'hex' } },
+            { key: 'object_r', label: 'cm_r', type: 'object', row: 'cm_r', showIf: { dev_type: 'rgb', wr_mode: 'rgb' } },
+            { key: 'property_r', label: 'cm_prop', type: 'property', row: 'cm_r', showIf: { dev_type: 'rgb', wr_mode: 'rgb' } },
+            { key: 'object_g', label: 'cm_g', type: 'object', row: 'cm_g', showIf: { dev_type: 'rgb', wr_mode: 'rgb' } },
+            { key: 'property_g', label: 'cm_prop', type: 'property', row: 'cm_g', showIf: { dev_type: 'rgb', wr_mode: 'rgb' } },
+            { key: 'object_b', label: 'cm_b', type: 'object', row: 'cm_b', showIf: { dev_type: 'rgb', wr_mode: 'rgb' } },
+            { key: 'property_b', label: 'cm_prop', type: 'property', row: 'cm_b', showIf: { dev_type: 'rgb', wr_mode: 'rgb' } },
             { key: 'ic_mode', label: 'cm_effects', type: 'select', default: 'cm', showIf: { dev_type: ['ic', 'megad'] }, options: [{ value: 'cm', label: 'cm_ic_cm' }, { value: 'wave', label: 'cm_ic_wave' }, { value: 'cm_wave', label: 'cm_ic_wave_fade' }, { value: 'shuffle', label: 'cm_ic_shuffle' }] },
-            { key: 'object_md', label: 'cm_object', type: 'object', row: 'cm_md', showIf: { dev_type: 'megad' } },
-            { key: 'property_md', label: 'cm_prop', type: 'property', row: 'cm_md', showIf: { dev_type: 'megad' } },
-            { key: 'cm_pixels', label: 'cm_pixels', type: 'number', step: 1, default: 100, showIf: { dev_type: 'megad' } },
-            { key: 'end_action', label: 'cm_on_end', type: 'select', default: 'off', showIf: { dev_type: ['rgb', 'megad'] }, options: [{ value: 'off', label: 'cm_end_off' }, { value: 'on', label: 'cm_end_on' }, { value: 'keep', label: 'cm_end_keep' }] },
+            { key: 'object_md', label: 'cm_object', type: 'object', row: 'cm_md', showIf: { dev_type: ['ic', 'megad'] } },
+            { key: 'property_md', label: 'cm_prop', type: 'property', row: 'cm_md', showIf: { dev_type: ['ic', 'megad'] } },
+            { key: 'cm_pixels', label: 'cm_pixels', type: 'number', step: 1, default: 100, showIf: { dev_type: ['ic', 'megad'] } },
+            { key: 'end_action', label: 'cm_on_end', type: 'select', default: 'off', showIf: { dev_type: ['rgb', 'ic', 'megad'] }, options: [{ value: 'off', label: 'cm_end_off' }, { value: 'on', label: 'cm_end_on' }, { value: 'keep', label: 'cm_end_keep' }] },
         ],
         advanced: [
             { key: 'bg_mode', label: 'field_bg_mode', type: 'select', row: 'bg_row', options: [{ value: 'default', label: 'opt_default' }, { value: 'image', label: 'opt_image' }, { value: 'color', label: 'opt_custom_color' }, { value: 'property', label: 'opt_color_property' }] },
@@ -102,7 +102,7 @@ const MusicplayerWidget = {
         autoplay: false, shuffle: false, repeat: 'off', volume: 50, show_playlist: true, show_spectrum: true,
         color_mode: 'dominant', color_object: '', color_property: '', bands: '',
         color_threshold: 90, color_interval: 500,
-        dev_type: 'ports', port_ch: '3', port_mode: 'freq', port_out: 'onoff', cm_on_level: 90, wr_mode: 'hex', ic_mode: 'cm', object_md: '', property_md: '', cm_pixels: 100, end_action: 'off', cm_use_vol: false,
+        cm_group: 'tuya', dev_type: 'ports', port_ch: '3', port_mode: 'freq', port_out: 'onoff', cm_on_level: 90, wr_mode: 'hex', ic_mode: 'cm', object_md: '', property_md: '', cm_pixels: 100, end_action: 'off', cm_use_vol: false,
         width: 320, height: 425,
     },
     template: `
@@ -253,7 +253,13 @@ const MusicplayerWidget = {
             const m = String(this.widget.color_mode || 'dominant');
             return m === 'dominant' || m === 'bands';
         },
-        cmDevice() { return this.opt(this.widget.dev_type, ['ports', 'rgb', 'ic', 'megad'], 'ports'); },
+        cmDevice() { return this.opt(this.widget.dev_type, ['ports', 'rgb', 'ic'], 'ports'); },
+        cmController() {
+            if (this.widget.cm_group === 'tuya') return 'tuya';
+            if (this.widget.cm_group === 'megad' || this.widget.dev_type === 'megad') return 'megad';
+            if (this.widget.cm_group === 'zigbee') return 'zigbee';
+            return this.cmDevice;
+        },
         cmWrite() { return this.opt(this.widget.wr_mode, ['hex', 'rgb'], 'hex'); },
         cmChannelCount() {
             const n = parseInt(String(this.widget.port_ch), 10);
@@ -286,6 +292,7 @@ const MusicplayerWidget = {
         /* the modes available for the device; a single option gives nothing to cycle
            and the runtime button stays hidden */
         cmModes() {
+            if (this.widget.cm_group === 'tuya') return [];
             if (this.cmDevice === 'ports') return ['freq', 'wave'];
             if (this.cmDevice === 'ic' || this.cmDevice === 'megad') return ['cm', 'wave', 'cm_wave', 'shuffle'];
             return [];
@@ -881,7 +888,7 @@ const MusicplayerWidget = {
                 for (let i = 1; i <= this.cmChannelCount; i++) add(this.widget['object_p' + i], this.widget['property_p' + i]);
                 return out;
             }
-            if (this.cmDevice === 'megad') { add(this.widget.object_md, this.widget.property_md); return out; }
+            if (this.cmDevice === 'ic' || this.cmDevice === 'megad') { add(this.widget.object_md, this.widget.property_md); return out; }
             if (this.cmWrite === 'hex') { add(this.widget.object_hex, this.widget.property_hex); return out; }
             ['r', 'g', 'b'].forEach(c => add(this.widget['object_' + c], this.widget['property_' + c]));
             return out;
@@ -1031,7 +1038,8 @@ const MusicplayerWidget = {
             if (!targets.length) return null;
             return {
                 action: 'start',
-                dev: this.cmDevice,
+                dev: this.cmController,
+                dev_type: this.cmDevice,
                 targets: targets,
                 mode: this.cmPortMode,
                 out: this.cmPortOut,
@@ -1092,7 +1100,7 @@ const MusicplayerWidget = {
             t.forEach((c, i) => this.cmSend(c.object, c.property, this.cmValue(vals[i] || 0)));
         },
         cmStepEffect(levels) {
-            if (this.cmDevice === 'megad') { this.cmStepMegad(levels); return; }
+            if (this.cmDevice === 'ic' || this.cmDevice === 'megad') { this.cmStepMegad(levels); return; }
             const targets = this.cmTargets();
             const beat = this.cmBeat(levels);
 
@@ -1161,10 +1169,10 @@ const MusicplayerWidget = {
                 this.cmStrip = this.cmStrip.map(() => ({ c: cc, o: o }));
             }
         },
-        /* MegaD addressable strip: a single property carries the whole frame as hex -
-           every pixel as three bytes (RRGGBB) glued together. The frame length is set by
-           the pixel count, so the server side only has to forward the value to the
-           controller (for example /sec/?pt=35&ws=<value>). */
+        /* Addressable strip (ic, megad): a single property carries the whole frame
+           as hex - every pixel as three bytes (RRGGBB) glued together. The frame
+           length is set by the pixel count, so the server side only has to forward
+           the value to the controller (for example /sec/?pt=35&ws=<value>). */
         cmStepMegad(levels) {
             const t = this.cmTargets();
             const n = this.cmPixels;
@@ -1172,7 +1180,7 @@ const MusicplayerWidget = {
             const hue = this.cmHue(levels);
             const loud = Math.min(100, Math.max(...levels) * 0.5);
             const mode = this.cmIcMode;
-            cmLog('megad mode=' + mode + ' px=' + n + ' hue=' + Math.round(hue) + ' loud=' + Math.round(loud) + (mode === 'wave' || mode === 'cm_wave' ? ' phase=' + Math.round(this.cmPhase || 0) : ''));
+            cmLog('strip mode=' + mode + ' px=' + n + ' hue=' + Math.round(hue) + ' loud=' + Math.round(loud) + (mode === 'wave' || mode === 'cm_wave' ? ' phase=' + Math.round(this.cmPhase || 0) : ''));
             const frame = new Array(n);
 
             if (mode === 'shuffle') {
@@ -1290,7 +1298,7 @@ toggleCm() {
             const t = this.cmTargets();
             const what = action || this.cmEndAction;
             if (what === 'keep') return;
-            if (this.cmDevice === 'megad') {
+            if (this.cmDevice === 'ic' || this.cmDevice === 'megad') {
                 const c = what === 'on' ? [255, 255, 255] : [0, 0, 0];
                 this.cmStrip = this.cmStrip.map(() => ({ c: 'rgb(' + c.join(',') + ')', o: what === 'on' ? 1 : 0 }));
                 if (this.cmExt) { this.cmEngineStop(what); return; }

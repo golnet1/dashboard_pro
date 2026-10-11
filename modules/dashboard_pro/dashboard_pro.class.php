@@ -877,7 +877,9 @@ class dashboard_pro extends module
             $speed = max(20, min(10000, $speed));
 
             $dev = (string)($input['dev'] ?? ($params['dev'] ?? 'ports'));
-            if (!in_array($dev, array('ports', 'rgb', 'ic', 'megad'), true)) $dev = 'ports';
+            if (!in_array($dev, array('ports', 'rgb', 'ic', 'megad', 'tuya', 'zigbee'), true)) $dev = 'ports';
+            $devType = (string)($input['dev_type'] ?? ($params['dev_type'] ?? 'ports'));
+            if (!in_array($devType, array('ports', 'rgb', 'ic', 'megad'), true)) $devType = 'ports';
             $wr = (string)($input['wr'] ?? ($params['wr'] ?? 'hex'));
             if ($wr !== 'rgb') $wr = 'hex';
             $icMode = (string)($input['ic_mode'] ?? ($params['ic_mode'] ?? 'cm'));
@@ -890,6 +892,7 @@ class dashboard_pro extends module
             $payload = array(
                 'action' => $action,
                 'dev' => $dev,
+                'dev_type' => $devType,
                 'targets' => $targets,
                 'mode' => $mode,
                 'out' => $out,
