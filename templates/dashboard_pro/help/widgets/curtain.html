@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ворота / жалюзи / шторы — Dashboard Pro Справка</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="../css/help.css">
+</head>
+<body>
+<header class="help-header">
+    <i class="fas fa-book" style="font-size:1.4rem"></i>
+    <h1>Dashboard Pro <span class="subtitle">— справка и документация</span></h1>
+    <a href="../../index.html"><i class="fas fa-external-link-alt"></i> Открыть панель</a>
+</header>
+<div class="help-layout">
+    <aside class="help-side">
+        <div class="help-side__title">Разделы справки</div>
+        <nav>
+            <a href="../index.html"><i class="fas fa-home"></i> Обзор</a>
+            <a href="../panels.html"><i class="fas fa-th-large"></i> Панели</a>
+            <a href="../widgets.html" class="help-side__toggle" aria-expanded="false"><i class="fas fa-puzzle-piece"></i> Виджеты</a><div class="help-side__sub">
+                <a href="acremote.html">Пульт кондиционера</a>
+                <a href="analogclock.html">Аналоговые часы</a>
+                <a href="alarmclock.html">Будильник</a>
+                <a href="button.html">Кнопка</a>
+                <a href="calendar.html">Календарь</a>
+                <a href="chat.html">Чат</a>
+                <a href="clock.html">Часы</a>
+                <a href="colorslider.html">Слайдер цвета</a>
+                <a href="curtain.html">Ворота / жалюзи / шторы</a>
+                <a href="datepicker.html">Выбор даты</a>
+                <a href="dimmer.html">Диммер</a>
+                <a href="empty.html">Пустой</a>
+                <a href="gauge.html">Индикатор</a>
+                <a href="gradient-slider.html">Слайдер с градиентом</a>
+                <a href="graph.html">График</a>
+                <a href="group.html">Группа</a>
+                <a href="iframe.html">iFrame</a>
+                <a href="image.html">Изображение</a>
+                <a href="keypad.html">Клавиатура</a>
+                <a href="map.html">Карта</a>
+                <a href="musicplayer.html">Музыкальный проигрыватель</a>
+                <a href="musicremote.html">Пульт музыки</a>
+                <a href="panellink.html">Ссылка на панель</a>
+                <a href="progressbar.html">Прогресс-бар</a>
+                <a href="relay.html">Реле</a>
+                <a href="rgb.html">RGB</a>
+                <a href="roominfo.html">Помещение</a>
+                <a href="roundslider.html">Круглый слайдер</a>
+                <a href="select.html">Выбор</a>
+                <a href="sendtext.html">Отправка текста</a>
+                <a href="slider.html">Слайдер</a>
+                <a href="sliderbuttons.html">Слайдер с кнопками</a>
+                <a href="slideshow.html">Слайд-шоу</a>
+                <a href="status.html">Статус</a>
+                <a href="stream.html">Потоковое видео</a>
+                <a href="table.html">Таблица</a>
+                <a href="test.html">Тест</a>
+                <a href="text.html">Текст</a>
+                <a href="thermostat.html">Термостат</a>
+                <a href="timeline.html">Таймлайн</a>
+                <a href="timepicker.html">Выбор времени</a>
+                <a href="trend.html">Тренд</a>
+                <a href="tvremote.html">Пульт ТВ</a>
+                <a href="unknown.html">Неизвестный</a>
+                <a href="value.html">Значение</a>
+                <a href="video.html">Видео</a>
+                <a href="weather.html">Погода</a>
+            </div>
+            <a href="../editor.html"><i class="fas fa-edit"></i> Редактор виджетов</a>
+            <a href="../builder.html"><i class="fas fa-wand-magic-sparkles"></i> Конструктор</a>
+            <a href="../settings.html"><i class="fas fa-cog"></i> Настройки</a>
+            <a href="../users.html"><i class="fas fa-users"></i> Пользователи и права</a>
+            <a href="../faq.html"><i class="fas fa-question-circle"></i> Частые вопросы</a>
+        </nav>
+    </aside>
+    <main class="help-main" id="top">
+        <p class="help-breadcrumb"><a href="../widgets.html"><i class="fas fa-arrow-left"></i> Виджеты</a></p>
+        <h2>Ворота / жалюзи / шторы</h2>
+        <div class="help-card" id="curtain">
+            <div class="help-card__head"><h3>Ворота / жалюзи / шторы</h3><span class="badge">curtain</span><a class="help-top" href="../widgets.html">↑ к списку виджетов</a></div>
+            <p>Управление открытием и закрытием: картинка выбранного типа (ворота, жалюзи или шторы) показывает текущий процент открытия, а перетаскивание мышью по картинке задаёт новый процент.</p>
+            <h4>Как работает</h4>
+            <p><b>Картинка.</b> В поле <b>Тип конструкции</b> выберите вид: <b>Ворота</b> сдвигаются в выбранную сторону (влево или вправо), <b>Шторы</b> раздвигаются в обе стороны, <b>Жалюзи</b> поднимаются снизу вверх. Вид рисуется средствами SVG и зависит от текущего значения свойства.</p>
+            <p><b>Управление мышью.</b> Перетащите указатель по картинке: для штор открытие растёт по мере удаления от центра к краю, для ворот — по мере движения к стороне открытия, для жалюзи — по мере движения вверх. Пока вы тянете, картинка меняется, а значение записывается в объект по окончании перетаскивания. Двойной клик по картинке открывает (100%) или закрывает (0%) полностью.</p>
+            <p><b>Значение.</b> Проценту открытия соответствует значение свойства в диапазоне <b>Минимум</b>–<b>Максимум</b> (по умолчанию 0–100). Если у устройства всё наоборот (0 — открыто), включите <b>Инвертировать</b>.</p>
+            <p><b>Кнопки.</b> Внизу карточки пять круглых кнопок с иконками: <b>−</b> и <b>+</b> (изменить процент на <b>Шаг</b>) по краям, <b>↑</b> «Открыть» / <b>↓</b> «Закрыть» (полное открытие/закрытие) и по центру <b>■</b> «Стоп» (остановка движения). Открытие/закрытие при заданных <b>Метод открытия</b> / <b>Метод закрытия</b> вызывают методы объекта, иначе пишут в свойство; остановка при заданном <b>Метод остановки</b> вызывает метод, иначе фиксирует текущее положение. Кнопки «Открыть» / «Закрыть», а также двойной клик, анимируют картинку плавно; длительность задаётся полем <b>Скорость</b> (в секундах).</p>
+            <h4>Настройки</h4>
+            <h5>Основное <span class="badge">main</span></h5>
+            <table>
+                <tr><th>Поле</th><th>Ключ</th><th>Тип</th><th>По умолчанию</th><th>Описание</th></tr>
+                <tr><td>Название</td><td><code>title</code></td><td><code>text</code></td><td>—</td><td>Заголовок виджета на панели.</td></tr>
+                <tr><td>Тип иконки</td><td><code>icon_type</code></td><td><code>select</code></td><td><code>icon</code></td><td>Источник иконки: <b>Иконка</b>, <b>Свойство</b> или <b>URL</b>.</td></tr>
+                <tr><td>Иконка</td><td><code>icon</code></td><td><code>icon_picker</code></td><td><code>fas fa-warehouse</code></td><td>Класс Font Awesome, например <code>fas fa-warehouse</code>.</td></tr>
+                <tr><td>Объект (иконка)</td><td><code>icon_object</code></td><td><code>object</code></td><td>—</td><td>Объект, свойство которого содержит класс иконки.</td></tr>
+                <tr><td>Свойство (иконка)</td><td><code>icon_property</code></td><td><code>property</code></td><td>—</td><td>Свойство с классом иконки.</td></tr>
+                <tr><td>URL иконки</td><td><code>icon_url</code></td><td><code>text</code></td><td>—</td><td>Адрес картинки-иконки.</td></tr>
+                <tr><td>Тип конструкции</td><td><code>cover_type</code></td><td><code>select</code></td><td><code>curtain</code></td><td>Вид картинки: <b>Ворота</b> (в одну сторону), <b>Жалюзи</b> (вверх), <b>Шторы</b> (в обе стороны).</td></tr>
+                <tr><td>Сторона открытия ворот</td><td><code>gate_side</code></td><td><code>select</code></td><td><code>left</code></td><td>Куда сдвигаются ворота: <b>Влево</b> или <b>Вправо</b>. Показывается только для типа «Ворота».</td></tr>
+                <tr><td>Объект</td><td><code>object</code></td><td><code>object</code></td><td>—</td><td>Объект положения (степень открытия). Виджет читает из него процент и пишет в него изменения.</td></tr>
+                <tr><td>Свойство</td><td><code>property</code></td><td><code>property</code></td><td><code>position</code></td><td>Свойство положения, обычно <code>position</code> или <code>level</code>.</td></tr>
+                <tr><td>Минимум</td><td><code>level_min</code></td><td><code>number</code></td><td>0</td><td>Значение, соответствующее 0% открытия.</td></tr>
+                <tr><td>Максимум</td><td><code>level_max</code></td><td><code>number</code></td><td>100</td><td>Значение, соответствующее 100% открытия.</td></tr>
+                <tr><td>Шаг</td><td><code>level_step</code></td><td><code>number</code></td><td>10</td><td>На сколько процентов меняют значение кнопки «+» и «−».</td></tr>
+                <tr><td>Картинка проёма (день)</td><td><code>cover_image</code></td><td><code>text</code></td><td>—</td><td>Адрес картинки, которая показывается в открытой части (за шторой, жалюзи или воротами) днём. Если задана только она — показывается всегда, независимо от времени суток.</td></tr>
+                <tr><td>Картинка проёма (ночь)</td><td><code>cover_image_night</code></td><td><code>text</code></td><td>—</td><td>Картинка открытой части ночью. Показывается, когда заданы <b>обе</b> картинки. День/ночь определяются по закату и восходу (<code>ThisComputer.SunRiseTime</code> / <code>SunSetTime</code>), а если их нет — по времени: день 6:00–18:00, ночь 18:00–6:00.</td></tr>
+                <tr><td>—</td><td colspan="4">Если обе картинки пусты — в открытой части показывается стандартное «стекло» (пустой проём).</td></tr>
+                <tr><td>Инвертировать</td><td><code>invert</code></td><td><code>checkbox</code></td><td>нет</td><td>Включите, если 0 означает «открыто». Меняется только показываемое число (0↔100), сама картинка остаётся на месте.</td></tr>
+                <tr><td>Скорость</td><td><code>anim_speed</code></td><td><code>number</code></td><td>10</td><td>Длительность анимации полного открытия/закрытия в секундах. Меньше — быстрее, больше — медленнее. <code>0</code> — мгновенно.</td></tr>
+                <tr><td>Объект (открыть)</td><td><code>object_open_obj</code></td><td><code>method_object</code></td><td>—</td><td>Объект, у которого вызывается метод открытия. В паре с «Метод открытия».</td></tr>
+                <tr><td>Метод открытия</td><td><code>object_open</code></td><td><code>method</code></td><td>—</td><td>Метод полного открытия.</td></tr>
+                <tr><td>Объект (закрыть)</td><td><code>object_close_obj</code></td><td><code>method_object</code></td><td>—</td><td>Объект, у которого вызывается метод закрытия. В паре с «Метод закрытия».</td></tr>
+                <tr><td>Метод закрытия</td><td><code>object_close</code></td><td><code>method</code></td><td>—</td><td>Метод полного закрытия.</td></tr>
+                <tr><td>Объект (стоп)</td><td><code>object_stop_obj</code></td><td><code>method_object</code></td><td>—</td><td>Объект, у которого вызывается метод остановки. В паре с «Метод остановки».</td></tr>
+                <tr><td>Метод остановки</td><td><code>object_stop</code></td><td><code>method</code></td><td>—</td><td>Метод остановки движения. Если не задан, кнопка просто фиксирует текущее положение.</td></tr>
+            </table>
+            <h5>Дополнительно <span class="badge">advanced</span></h5>
+            <table>
+                <tr><th>Поле</th><th>Ключ</th><th>Тип</th><th>Описание</th></tr>
+                <tr><td>Фон виджета</td><td><code>bg_mode</code></td><td><code>select</code></td><td>Стиль фона карточки.</td></tr>
+                <tr><td>Цвет</td><td><code>color</code></td><td><code>color</code></td><td>Цвет фона (режим «Заданный цвет»).</td></tr>
+                <tr><td>URL изображения</td><td><code>bg_image</code></td><td><code>text</code></td><td>Фоновая картинка (режим «Изображение»).</td></tr>
+                <tr><td>Объект / Свойство (цвет фона)</td><td><code>bg_object</code> / <code>bg_property</code></td><td><code>object</code> / <code>property</code></td><td>Цвет фона из свойства (режим «Цвет из свойства»).</td></tr>
+                <tr><td>Признак доступности</td><td><code>object_alive</code></td><td><code>object</code></td><td>Объект контроля «живости» виджета.</td></tr>
+                <tr><td>Свойство (доступность)</td><td><code>property_alive</code></td><td><code>property</code></td><td>Свойство «живости».</td></tr>
+                <tr><td>Таймаут (сек)</td><td><code>alive_timeout</code></td><td><code>number</code></td><td>Сколько секунд ждать ответа. По умолчанию 3.</td></tr>
+                <tr><td>Информация объекта</td><td><code>object_info</code></td><td><code>object</code></td><td>Объект нижней строки информации.</td></tr>
+                <tr><td>Свойство (информация)</td><td><code>property_info</code></td><td><code>property</code></td><td>Свойство нижней строки информации.</td></tr>
+                <tr><td>Префикс / Постфикс информации</td><td><code>pre_info</code> / <code>pos_info</code></td><td><code>text</code></td><td>Текст до и после значения.</td></tr>
+                <tr><td>Фон / Круг</td><td><code>background</code> / <code>round</code></td><td><code>checkbox</code></td><td>Подложка под иконкой и её форма.</td></tr>
+            </table>
+        </div>
+    </main>
+</div>
+<footer class="help-footer">Dashboard Pro · Справка модуля · <a href="https://github.com/golnet1/dashboard_pro" target="_blank" rel="noopener">GitHub</a></footer>
+<script>
+(function () {
+    function closeAll() {
+        document.querySelectorAll('.help-side__sub--open').forEach(function (el) { el.classList.remove('help-side__sub--open'); });
+        document.querySelectorAll('.help-side__toggle').forEach(function (t) { t.setAttribute('aria-expanded', 'false'); });
+    }
+    document.querySelectorAll('.help-side__toggle').forEach(function (toggle) {
+        toggle.addEventListener('click', function (e) {
+            var sub = toggle.nextElementSibling;
+            var wasOpen = sub && sub.classList.contains('help-side__sub--open');
+            closeAll();
+            if (sub && !wasOpen) {
+                sub.classList.add('help-side__sub--open');
+                toggle.setAttribute('aria-expanded', 'true');
+                e.preventDefault();
+            }
+        });
+    });
+    document.querySelectorAll('.help-side nav a').forEach(function (a) {
+        if (!a.classList.contains('help-side__toggle')) a.addEventListener('click', closeAll);
+    });
+})();
+</script>
+<script src="../js/help-search.js"></script>
+</body>
+</html>

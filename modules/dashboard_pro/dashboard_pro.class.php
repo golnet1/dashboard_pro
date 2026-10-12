@@ -3105,6 +3105,7 @@ function widgetUsageInfo($type)
             array('stream', 'fas fa-satellite-dish', 'Stream', 'Streaming video (go2rtc, ONVIF, RTSP)'),
             array('alarmclock', 'fas fa-bell', 'Alarm clock', 'Alarm clock: time, days, sound, script, PHP code'),
             array('musicplayer', 'fas fa-music', 'Music player', 'Music player: playlist, spectrum analyzer, color output by frequency bands'),
+            array('curtain', 'fas fa-warehouse', 'Gates / Blinds / Curtains', 'Open/close by percentage'),
         );
     }
 
