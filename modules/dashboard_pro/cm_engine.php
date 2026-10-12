@@ -51,11 +51,21 @@ ic     - адресная лента одним цветом (wr) с эффек�
 $ROOT = defined('SERVER_ROOT') ? SERVER_ROOT : (realpath(dirname(__DIR__, 2)) ?: '/var/www/html');
 
 chdir($ROOT);
+error_reporting(E_ERROR);
 if (PHP_SAPI === 'cli') {
+    /* Живая цветомузыка пишет свойства по кадру (~16 раз/с). Задаём
+       TRACK_DATA_CHANGES_IGNORE ДО config.php, чтобы в этом процессе все
+       записи движка были исключены из истории (.data), а обычные
+       переключения света в веб-запросах писались штатно (там свой ignore). */
+    if (!defined('TRACK_DATA_CHANGES_IGNORE')) {
+        define('TRACK_DATA_CHANGES_IGNORE', '.*');
+    }
+    /* Движок не должен попадать и в UI-историю (phistory): помечаем процесс,
+       и setProperty по этой метке не ставит запись в phistory_queue. */
+    if (!defined('CM_ENGINE')) define('CM_ENGINE', 1);
     require_once './config.php';
     require_once './lib/loader.php';
 }
-error_reporting(E_ERROR);
 
 /* ---- цвет ---------------------------------------------------------- */
 function cmHslToRgb($h, $s, $l)
@@ -92,6 +102,46 @@ function cmFrameHex($frame)
     return $out;
 }
 
+/* Музыка из кадра плеера, общая для ВСЕХ контроллеров и типов устройств:
+   тон - по самой громкой полосе спектра, яркость - по динамическому уровню
+   (raw, растянутый 0-255). Кадра нет - мягкая ротация по времени (fallback). */
+function cmMusic($raw, $frame, $step = 0, $degPerStep = 1.5)
+{
+    $bands = (is_array($raw) && count($raw)) ? $raw : $frame;
+    $n = is_array($bands) ? count($bands) : 0;
+    if (!$n) return array('hue' => fmod($step * $degPerStep, 360), 'loud' => 45, 'peak' => 0, 'max' => 0, 'live' => false);
+    $peak = 0; $max = -1;
+    for ($i = 0; $i < $n; $i++) {
+        $v = (int)$bands[$i];
+        if ($v > $max) { $max = $v; $peak = $i; }
+    }
+    return array(
+        'hue'  => ($peak / max(1, $n)) * 320,
+        'loud' => max(0, min(100, $max * 100 / 255)),
+        'peak' => $peak,
+        'max'  => $max,
+        'live' => true,
+    );
+}
+
+/* яркость из музыкальной громкости (не залипает на верху) */
+function cmLight($mu) { return 18 + $mu['loud'] * 0.55; }
+
+/* кадр адресной ленты для музыкального режима: тональность из спектра,
+   плавный сдвиг по пикселям, яркость дышит вместе с треком */
+function cmMusicFrame($pixels, $mu, $step)
+{
+    $n = max(1, (int)$pixels);
+    $light = cmLight($mu);
+    $base = $mu['hue'] + fmod($step * 6, 360);
+    $frame = array();
+    for ($i = 0; $i < $n; $i++) {
+        $tint = fmod($base + ($i / $n) * 320, 360);
+        $frame[] = cmHslToRgb($tint, 100, $light);
+    }
+    return $frame;
+}
+
 function cmWriteTargets($targets, $values)
 {
     foreach ($targets as $i => $t) {
@@ -113,21 +163,26 @@ function cmWriteColor($targets, $dev, $wr, $rgb)
 }
 
 /* финальное состояние таргетов при стопе (end_action) */
-function cmApplyEnd($targets, $dev, $wr, $out, $pixels, $end)
+function cmApplyEnd($targets, $dev, $wr, $out, $pixels, $end, $devType = null)
 {
     if (!$targets || $end === 'keep') return;
     if ($dev === 'tuya') return; /* лампу возвращает cmTuyaRestore по prev */
-    if ($dev === 'zigbee') return; /* прежнее состояние возвращает cmZigbeeRestore|cmApplyEnd из cfg */
+    if ($dev === 'zigbee') return; /* прежнее состояние возвращает cmRestore по zprev */
     $on = ($end === 'on');
+    /* порты: тип выхода берём из модуля (PWM -> 0-255, SW -> 0/1) тем же тиком,
+       что и во время музыки. Иначе на диммер попало бы «1» (почти ноль) и лампа
+       гасла вместо того, чтобы загореться. Кадр «все каналы» = 255 или 0. */
+    if ($dev === 'ports' || ($dev === 'megad' && $devType === 'ports')) {
+        $n = count($targets);
+        $frame = array_fill(0, max(1, $n), $on ? 255 : 0);
+        $sent = array();
+        cmPortsTick($targets, $frame, $frame, 'level', 1, $sent);
+        return;
+    }
     if ($dev === 'megad') {
         $c = $on ? array(255, 255, 255) : array(0, 0, 0);
         $frame = array_fill(0, max(1, $pixels), $c);
         setGlobal($targets[0]['object'] . '.' . $targets[0]['property'], cmFrameHex($frame));
-        return;
-    }
-    if ($dev === 'ports') {
-        if ($out === 'onoff') cmWriteTargets($targets, array($on ? '1' : '0'));
-        else cmWriteTargets($targets, array($on ? '255' : '0'));
         return;
     }
     if ($dev !== 'ports' && $wr === 'hex') {
@@ -444,6 +499,112 @@ function cmTargetIds($targets)
     return $ids;
 }
 
+/* Выход MegaD для пары объект.свойство. Ищем выход в модуле по ОБЪЕКТУ:
+   сначала точное совпадение LINKED_PROPERTY, а если его нет - единственный
+   выход этого объекта (у плеера имя свойства может отличаться от привязки
+   модуля, напр. плеер шлёт .level, а модуль слушает .levelWork). Тип:
+   PWM (диммер) => 0-255, SW (реле) => 0/1. Возвращаем и фактическое свойство
+   модуля, в которое надо писать. Если объект не привязан к MegaD - unknown. */
+function cmPortInfo($object, $property)
+{
+    static $cache = array();
+    $key = $object . '.' . $property;
+    if (array_key_exists($key, $cache)) return $cache[$key];
+    $rec = null;
+    $sel = "SELECT NUM,DEVICE_ID,COMMAND_INDEX,REVERSE,MISC,PWM,LINKED_PROPERTY FROM megadproperties WHERE LINKED_OBJECT='" . DBSafe($object) . "' AND COMMAND='output'";
+    if (function_exists('SQLSelectOne')) {
+        $rec = SQLSelectOne($sel . " AND LINKED_PROPERTY='" . DBSafe($property) . "'");
+        if (!is_array($rec) || !$rec) {
+            $rows = SQLSelect($sel);
+            if (count($rows) === 1) $rec = $rows[0];
+        }
+    }
+    if (is_array($rec) && $rec) {
+        $prop = (string)($rec['LINKED_PROPERTY'] ?? $property);
+        $pwm = (isset($rec['PWM']) && trim((string)$rec['PWM']) !== '');
+        if (!$pwm && isset($rec['MISC']) && strpos(strtolower((string)$rec['MISC']), 'pwm') !== false) $pwm = true;
+        if (!$pwm && stripos($prop, 'level') !== false) $pwm = true;
+        $type = $pwm ? 'pwm' : 'sw';
+        $idx = (int)($rec['COMMAND_INDEX'] ?? 0);
+        $ch = ($idx > 0) ? $rec['NUM'] . 'e' . ($idx - 1) : (string)$rec['NUM'];
+        $res = array('type' => $type, 'prop' => $prop, 'devid' => (int)($rec['DEVICE_ID'] ?? 0), 'ch' => $ch, 'rev' => (int)($rec['REVERSE'] ?? 0));
+    } else {
+        /* не MegaD (tuya/zigbee/прочее): тип выхода - по имени свойства,
+           уровень (диммер/яркость) иначе реле */
+        $prop = (string)$property;
+        $pwm = (strpos(strtolower($prop), 'level') !== false
+            || strpos(strtolower($prop), 'bright') !== false
+            || strpos(strtolower($prop), 'dim') !== false);
+        $type = $pwm ? 'pwm' : 'unknown';
+        $res = array('type' => $type, 'prop' => $prop, 'devid' => 0, 'ch' => '', 'rev' => 0);
+    }
+    $cache[$key] = $res;
+    return $res;
+}
+
+/* подключение к устройству MegaD (IP/пароль) - чтобы слать порты пачкой
+   одним запросом, как в примерах: /sec/?cmd=8:1;11:0;13:150 */
+function cmDevConn($devid)
+{
+    static $cache = array();
+    if (array_key_exists($devid, $cache)) return $cache[$devid];
+    $url = '';
+    if (function_exists('SQLSelectOne')) {
+        $d = SQLSelectOne("SELECT IP,PASSWORD FROM megaddevices WHERE ID=" . (int)$devid);
+        if (is_array($d) && $d && !empty($d['IP'])) $url = 'http://' . $d['IP'] . '/' . $d['PASSWORD'] . '/?cmd=';
+    }
+    $cache[$devid] = $url;
+    return $url;
+}
+
+function cmPortSend($batch)
+{
+    foreach ((array)$batch as $devid => $cmds) {
+        if (!$cmds) continue;
+        $base = cmDevConn($devid);
+        if ($base === '') continue;
+        if (function_exists('getURL')) @getURL($base . implode(';', $cmds), 0);
+    }
+}
+
+/* один тик для портов: SW -> 0/1 (по порогу), PWM -> уровень 0-255.
+   PWM берёт «сырой» уровень кадра (raw), если он есть, - так диммер мигает,
+   а не залипает на постоянном AGC-уровне. Все порты одного устройства уходят
+   одной командой (батч). Объект-свойство обновляем без вызова модуля
+   (setGlobal 3-й флаг), иначе команда ушла бы второй раз. */
+function cmPortsTick($targets, $frame, $raw, $out, $onLevel, &$lastSent)
+{
+    if (!$frame) return;
+    $batch = array();
+    foreach ($targets as $i => $t) {
+        $pi = cmPortInfo($t['object'], $t['property']);
+        $lvl = isset($frame[$i]) ? (int)$frame[$i] : 0;
+        if ($pi['type'] === 'pwm' && $raw && isset($raw[$i])) $lvl = (int)$raw[$i];
+        $v = cmPortValue($pi['type'], $lvl, $out, $onLevel);
+        if (isset($lastSent[$i]) && $lastSent[$i] === $v) continue;
+        $lastSent[$i] = $v;
+        if (!empty($pi['devid']) && isset($pi['ch']) && $pi['ch'] !== '') {
+            $val = ($pi['type'] === 'sw' && !empty($pi['rev'])) ? ($v === '0' ? '1' : '0') : $v;
+            $batch[$pi['devid']][] = $pi['ch'] . ':' . $val;
+            setGlobal($t['object'] . '.' . $pi['prop'], $v, 1);
+        } else {
+            setGlobal($t['object'] . '.' . $pi['prop'], $v);
+        }
+    }
+    cmPortSend($batch);
+}
+
+/* значение для выхода: SW -> 0/1 по порогу, PWM -> уровень 0-255;
+   неизвестный выход -> как настроено в плеере (out) */
+function cmPortValue($type, $level, $out, $onLevel)
+{
+    $level = max(0, min(255, (int)$level));
+    if ($type === 'pwm') return (string)$level;
+    if ($type === 'sw') return $level >= $onLevel ? '1' : '0';
+    return ($out === 'level') ? (string)$level : ($level >= $onLevel ? '1' : '0');
+}
+
+
 /* на панели может быть несколько виджетов с цветомузыкой: чужой движок гасим
    только если он пишет в те же свойства, иначе виджеты мешали бы друг другу */
 function cmTargetsOverlap($a, $b)
@@ -478,6 +639,7 @@ function cmStopEngines($dir, $targets, $end)
     }
     foreach ($dead as $cfg) {
         @unlink($cfg['__file']);
+        @unlink(substr($cfg['__file'], 0, -5) . '.frame');
         if (($cfg['dev'] ?? '') === 'tuya') {
             cmTuyaRestore($cfg['tobj'] ?? '', $cfg['tmap'] ?? null, $cfg['tdev'] ?? null, $cfg['tprev'] ?? null);
             continue;
@@ -502,7 +664,8 @@ function cmStopEngines($dir, $targets, $end)
         }
         cmApplyEnd($cfg['targets'],
             $cfg['dev'] ?? 'ports', $cfg['wr'] ?? 'hex',
-            $cfg['out'] ?? 'onoff', (int)($cfg['pixels'] ?? 100), $end);
+            $cfg['out'] ?? 'onoff', (int)($cfg['pixels'] ?? 100), $end,
+            $cfg['dev_type'] ?? null);
     }
     foreach ((array)glob($dir . '/*.pid') as $pf) @unlink($pf);
 }
@@ -513,7 +676,7 @@ if ($stop) {
     cmStopEngines($dir, $targets, $end);
     /* свет в конечное состояние заводим и сами: стоп должен сработать и тогда,
        когда движок уже не работает (остановлен, упал или не запускался) */
-    cmApplyEnd($targets, $dev, $wr, $out, $pixels, $end);
+    cmApplyEnd($targets, $dev, $wr, $out, $pixels, $end, $devType);
     exit(0);
 }
 
@@ -598,6 +761,7 @@ pcntl_async_signals(true);
    не лезло одновременно два процесса */
 pcntl_signal(SIGTERM, function () use ($cfgFile) {
     @unlink($cfgFile);
+    @unlink(substr($cfgFile, 0, -5) . '.frame');
     exit(0);
 });
 
@@ -612,34 +776,40 @@ $lastTuyaAt = 0.0;
 $tStep = 0;
 $tuyaBlink = true;
 
+/* кадры анализатора плеера: браузер шлёт 0/1 (или уровни) по каналам
+   (cmRun action=frame), движок каждым тиком пересылает их в Object.Property -
+   то самое, что раньше плеер писал напрямую в устройство */
+$frameFile = substr($cfgFile, 0, -5) . '.frame';
+$lastFrame = array();
+$lastRaw = array();
+$lastSent = array();
+
 while (true) {
+    /* читаем последний кадр браузера; битый/отсутствующий - держим прежний.
+       values - уровни для реле (AGC), raw - «сырые» уровни для диммеров */
+    $frRaw = @file_get_contents($frameFile);
+    if ($frRaw !== false) {
+        $fr = json_decode($frRaw, true);
+        if (is_array($fr) && isset($fr['values']) && is_array($fr['values'])) {
+            $lastFrame = $fr['values'];
+            if (isset($fr['raw']) && is_array($fr['raw'])) $lastRaw = $fr['raw'];
+        }
+    }
+
+    /* музыкальная составляющая кадра - общая для всех контроллеров
+       и типов устройств: тон из спектра, яркость из динамического уровня */
+    $mu = cmMusic($lastRaw, $lastFrame, $step);
+
     if ($dev === 'ports') {
-        $levels = array();
-        if ($mode === 'wave') {
-            $pos = $step % $cnt;
-            for ($i = 0; $i < $cnt; $i++) {
-                $d = (($i - $pos) + $cnt) % $cnt;
-                $levels[] = max(0, min(255, (int)(255 * pow(0.5, $d))));
-            }
-        } else {
-            for ($i = 0; $i < $cnt; $i++) {
-                $heads[$i] = $heads[$i] * 0.86 + (mt_rand(0, 1000) / 1000) * 255 * 0.14;
-                $levels[] = max(0, min(255, (int)round($heads[$i])));
-            }
-        }
-        $vals = array();
-        foreach ($targets as $i => $t) {
-            $v = (int)$levels[$i % $cnt];
-            if ($out === 'onoff') $vals[$i] = $v >= $onLevel ? '1' : '0';
-            else $vals[$i] = (string)max(0, min(255, $v));
-        }
-        cmWriteTargets($targets, $vals);
+        /* порты - зеркало анализатора: уровень плеера на каждый выход.
+           Тип берём из модуля MegaD (SW -> 0/1, PWM -> 0-255). Пока кадра
+           нет - выходы не трогаем. */
+        cmPortsTick($targets, $lastFrame, $lastRaw, $out, $onLevel, $lastSent);
     } elseif ($dev === 'rgb') {
-        $hue = fmod($step * 1.5, 360);
-        cmWriteColor($targets, $dev, $wr, cmHslToRgb($hue, 100, 55));
+        /* rgb-лампа: тон из спектра, яркость дышит по динамике трека */
+        cmWriteColor($targets, $dev, $wr, cmHslToRgb($mu['hue'], 100, cmLight($mu)));
     } elseif ($dev === 'tuya') {
-        $hue = fmod($step * 1.5, 360);
-        $rgb = cmHslToRgb($hue, 100, 55);
+        $rgb = cmHslToRgb($mu['hue'], 100, cmLight($mu));
         $hex = sprintf('%02x%02x%02x', cmClamp8($rgb[0]), cmClamp8($rgb[1]), cmClamp8($rgb[2]));
         /* зеркалим цвет только в свойство канала цвета (DP24): таргет
            простой лампы держит on/off, а не hex-цвет */
@@ -652,29 +822,33 @@ while (true) {
             $gap = ($tStrip || isset($tMap['24'])) ? max(0.4, $speed * 4 / 1000) : 0.6;
             if ($now - $lastTuyaAt >= $gap) {
                 $lastTuyaAt = $now;
+                /* яркость из динамики трека (DP22, диапазон 10..1000) */
+                $bright = (int)(10 + $mu['loud'] * 9.9);
                 if ($tStrip) {
                     $tStep++;
                     $dps = array();
                     if (isset($tMap['25'])) {
-                        /* стандартная лента: сцена-радуга из цветов движка */
-                        $dps['25'] = cmTuyaSceneData25($scene, $hue + $tStep * 12, 8);
+                        /* стандартная лента: сцена-радуга, тональность ведёт спектр */
+                        $dps['25'] = cmTuyaSceneData25($scene, $mu['hue'] + $tStep * 12, 8);
                     } elseif (isset($tMap['109'])) {
                         /* «dream»-лента: перебираем встроенные эффекты (разнобой — случайно) */
                         if ($icMode === 'shuffle') $dps['109'] = (string)cmTuyaScenes($scenes)[mt_rand(0, count(cmTuyaScenes($scenes)) - 1)];
                         else $dps['109'] = (string)cmTuyaSceneNext($scene, $scenes, $tStep);
                     } else {
                         /* сцены нет - красим цветом как лампу */
-                        $dps = cmTuyaStateToDps($tMap, array('24' => $hex));
+                        $dps['24'] = $hex;
                     }
+                    if (isset($tMap['22'])) $dps['22'] = $bright;
+                    $dps['20'] = true;
                     cmTuyaSend($tDev, $dps);
                 } elseif (isset($tMap['24'])) {
-                    /* RGB-лампа: радуга цветных кадров */
-                    cmTuyaSend($tDev, cmTuyaStateToDps($tMap, array('24' => $hex)));
+                    /* RGB-лампа: цвет из спектра + яркость из динамики */
+                    $dps = array('24' => $hex, '20' => true);
+                    if (isset($tMap['22'])) $dps['22'] = $bright;
+                    cmTuyaSend($tDev, $dps);
                 } else {
-                    /* простая лампа (канала цвета нет): мигает вкл/выкл, как
-                       порт в режиме onoff мигает на плеере. Звуковой фон
-                       движку недоступен, поэтому ритм ровный */
-                    $tuyaBlink = !$tuyaBlink;
+                    /* простая лампа без цвета: мелькает по громкости трека */
+                    $tuyaBlink = ($mu['loud'] >= 12);
                     if (isset($tMap['20']) && $tMap['20']['prop'] !== '') setGlobal($tObj . '.' . $tMap['20']['prop'], $tuyaBlink ? '1' : '0');
                     cmTuyaSend($tDev, array('20' => $tuyaBlink));
                 }
@@ -682,81 +856,33 @@ while (true) {
         }
     } elseif ($dev === 'zigbee') {
         /* Zigbee через MajorDoMo/zigbee2mqtt: значение таргет-свойства
-           уходит на устройство по MQTT (propertySetHandle => /set). Ведём
-           себя как обычный контроллер по dev_type: простые каналы мигают,
-           RGB/ic рисуют цветом. Прежнее состояние возвращается на стопе. */
+           уходит на устройство по MQTT (propertySetHandle => /set). Порты -
+           уровень/реле из кадра, лента - музыкальный кадр, цвет - из спектра. */
         if ($devType === 'ports') {
-            $levels = array();
-            if ($mode === 'wave') {
-                $pos = $step % $cnt;
-                for ($i = 0; $i < $cnt; $i++) {
-                    $d = (($i - $pos) + $cnt) % $cnt;
-                    $levels[] = max(0, min(255, (int)(255 * pow(0.5, $d))));
-                }
-            } else {
-                for ($i = 0; $i < $cnt; $i++) {
-                    $heads[$i] = $heads[$i] * 0.86 + (mt_rand(0, 1000) / 1000) * 255 * 0.14;
-                    $levels[] = max(0, min(255, (int)round($heads[$i])));
-                }
-            }
-            $vals = array();
-            foreach ($targets as $i => $t) {
-                $v = (int)$levels[$i % $cnt];
-                if ($out === 'onoff') $vals[$i] = $v >= $onLevel ? '1' : '0';
-                else $vals[$i] = (string)max(0, min(255, $v));
-            }
-            cmWriteTargets($targets, $vals);
+            cmPortsTick($targets, $lastFrame, $lastRaw, $out, $onLevel, $lastSent);
         } elseif ($devType === 'ic') {
-            if ($icMode === 'shuffle') {
-                if ($step >= $shuffleAt) {
-                    $shuffleColors = cmHslToRgb(mt_rand(0, 359), 100, 55);
-                    $shuffleAt = $step + 8 + mt_rand(0, 6);
-                }
-                cmWriteColor($targets, $dev, $wr, $shuffleColors);
-            } else {
-                $stepDeg = ($icMode === 'cm') ? 1.0 : (($icMode === 'cm_wave') ? 4.0 : 6.0);
-                cmWriteColor($targets, $dev, $wr, cmHslToRgb(fmod($step * $stepDeg, 360), 100, 55));
+            if ($mu['live'] && $targets) {
+                $frame = cmMusicFrame($pixels, $mu, $step);
+                setGlobal($targets[0]['object'] . '.' . $targets[0]['property'], cmFrameHex($frame));
             }
         } else {
-            /* rbge: плавный ход по кругу */
-            cmWriteColor($targets, $dev, $wr, cmHslToRgb(fmod($step * 1.5, 360), 100, 55));
+            cmWriteColor($targets, $dev, $wr, cmHslToRgb($mu['hue'], 100, cmLight($mu)));
         }
     } elseif ($dev === 'ic') {
-        if ($icMode === 'shuffle') {
-            if ($step >= $shuffleAt) {
-                $shuffleColors = cmHslToRgb(mt_rand(0, 359), 100, 55);
-                $shuffleAt = $step + 8 + mt_rand(0, 6);
-            }
-            cmWriteColor($targets, $dev, $wr, $shuffleColors);
-        } else {
-            $stepDeg = ($icMode === 'cm') ? 1.0 : (($icMode === 'cm_wave') ? 4.0 : 6.0);
-            $hue = fmod($step * $stepDeg, 360);
-            cmWriteColor($targets, $dev, $wr, cmHslToRgb($hue, 100, 55));
+        if ($mu['live'] && $targets) {
+            $frame = cmMusicFrame($pixels, $mu, $step);
+            setGlobal($targets[0]['object'] . '.' . $targets[0]['property'], cmFrameHex($frame));
         }
     } elseif ($dev === 'megad') {
-        $n = $pixels;
-        $frame = array();
-        if ($icMode === 'cm') {
-            $c = cmHslToRgb(fmod($step * 1.5, 360), 100, 50);
-            for ($i = 0; $i < $n; $i++) $frame[] = $c;
-        } elseif ($icMode === 'shuffle') {
-            if ($step >= $shuffleAt) {
-                $shuffleColors = array();
-                for ($i = 0; $i < $n; $i++) $shuffleColors[] = cmHslToRgb(mt_rand(0, 359), 100, 50);
-                $shuffleAt = $step + 8 + mt_rand(0, 6);
-            }
-            $frame = $shuffleColors;
+        if ($devType === 'ports') {
+            /* MegaD с обычными лампами: тип выхода берём из модуля MegaD
+               (SW -> 0/1, PWM -> 0-255), своей генерации нет */
+            cmPortsTick($targets, $lastFrame, $lastRaw, $out, $onLevel, $lastSent);
         } else {
-            $stepPx = ($icMode === 'wave') ? ($n * 0.042) : ($n * 0.022);
-            $phase = fmod($phase + $stepPx, $n);
-            if ($phase < 0) $phase += $n;
-            for ($i = 0; $i < $n; $i++) {
-                $b = ((($i - $phase) % $n) + $n) % $n;
-                $tint = ($b / $n) * 320;
-                $frame[] = cmHslToRgb($tint, 100, 55);
-            }
+            /* адресная лента: музыкальный кадр (тон из спектра, яркость по динамике) */
+            $frame = cmMusicFrame($pixels, $mu, $step);
+            setGlobal($targets[0]['object'] . '.' . $targets[0]['property'], cmFrameHex($frame));
         }
-        setGlobal($targets[0]['object'] . '.' . $targets[0]['property'], cmFrameHex($frame));
     }
 
     $step++;

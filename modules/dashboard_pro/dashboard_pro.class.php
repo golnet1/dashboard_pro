@@ -846,11 +846,14 @@ class dashboard_pro extends module
         if ($params['request'][0] == 'cmRun') {
             /* запуск/останов внешнего движка цветомузыки (cm_engine.php) по факту
                play/stop плеера. Один HTTP-запрос на событие; дальше движок сам
-               пишет Object.Property из CLI-процесса, минуя Apache. */
+               пишет Object.Property из CLI-процесса, минуя Apache. Кадры же
+               (action=frame) приходят от анализатора плеера каждый тик: это те же
+               0/1, что раньше шли напрямую в Object.Property, теперь их пересылает
+               движок. */
             $input = $this->bodyInput();
             if (!is_array($input)) $input = array();
             $action = trim((string)($input['action'] ?? ($params['action'] ?? '')));
-            if ($action !== 'start' && $action !== 'stop') return ['error' => 'action required (start|stop)'];
+            if ($action !== 'start' && $action !== 'stop' && $action !== 'frame') return ['error' => 'action required (start|stop|frame)'];
 
             $targets = array();
             $rawTargets = $input['targets'] ?? ($params['targets'] ?? null);
@@ -866,6 +869,32 @@ class dashboard_pro extends module
                 }
             }
             if ($action === 'start' && !$targets) return ['error' => 'no valid targets'];
+
+            if ($action === 'frame') {
+                /* кадр анализатора (0/1 или уровни по каналам) кладём в файл кадра
+                   работающего движка; движок каждым тиком пересылает значения
+                   в Object.Property - оттуда обновление уходит на устройство */
+                $values = array();
+                if (isset($input['values']) && is_array($input['values'])) {
+                    foreach ($input['values'] as $v) $values[] = trim((string)$v);
+                }
+                if (!$targets || !$values) return ['ok' => 1];
+                $ids = array();
+                foreach ($targets as $t) $ids[] = (string)$t['object'] . '.' . (string)$t['property'];
+                sort($ids);
+                $dir = ROOT . 'modules/dashboard_pro/.cm_run';
+                if (!is_dir($dir)) @mkdir($dir, 0775, true);
+                $hash = substr(md5(implode('|', $ids)), 0, 12);
+                $engOn = is_file($dir . '/cm_' . $hash . '.json');
+                if (!$engOn) return ['ok' => 1]; /* движка нет */
+                $frame = json_encode(array('values' => $values));
+                if ($frame !== false) {
+                    $tmp = $dir . '/cm_' . $hash . '.frame.tmp';
+                    @file_put_contents($tmp, $frame);
+                    @rename($tmp, $dir . '/cm_' . $hash . '.frame');
+                }
+                return ['ok' => 1];
+            }
 
             $mode = (string)($input['mode'] ?? ($params['mode'] ?? 'freq'));
             if ($mode !== 'wave') $mode = 'freq';
@@ -1588,7 +1617,7 @@ class dashboard_pro extends module
             $rel = str_replace('\\', '/', (string)($params['dir'] ?? 'cms/sounds'));
             $rel = trim(trim($rel), '/');
             if ($rel === '') $rel = 'cms/sounds';
-            $exts = array('mp3', 'ogg', 'oga', 'opus', 'wav', 'flac', 'm4a', 'aac', 'wma', 'webm', 'aif', 'aiff', 'mid', 'midi');
+            $exts = array('mp3', 'ogg', 'oga', 'opus', 'wav', 'flac', 'm4a', 'aac', 'wma', 'webm', 'aif', 'aiff', 'mid', 'midi', 'm3u', 'm3u8', 'pls');
             $maxFiles = 2000;
             $maxDepth = 3;
             $items = array();

@@ -77,7 +77,7 @@ const MusicplayerWidget = {
             { key: 'object_md', label: 'cm_object', type: 'object', row: 'cm_md', showIf: { dev_type: ['ic', 'megad'] } },
             { key: 'property_md', label: 'cm_prop', type: 'property', row: 'cm_md', showIf: { dev_type: ['ic', 'megad'] } },
             { key: 'cm_pixels', label: 'cm_pixels', type: 'number', step: 1, default: 100, showIf: { dev_type: ['ic', 'megad'] } },
-            { key: 'end_action', label: 'cm_on_end', type: 'select', default: 'off', showIf: { dev_type: ['rgb', 'ic', 'megad'] }, options: [{ value: 'off', label: 'cm_end_off' }, { value: 'on', label: 'cm_end_on' }, { value: 'keep', label: 'cm_end_keep' }] },
+            { key: 'end_action', label: 'cm_on_end', type: 'select', default: 'off', showIf: { dev_type: ['ports', 'rgb', 'ic', 'megad'] }, options: [{ value: 'off', label: 'cm_end_off' }, { value: 'on', label: 'cm_end_on' }, { value: 'keep', label: 'cm_end_keep' }] },
         ],
         advanced: [
             { key: 'bg_mode', label: 'field_bg_mode', type: 'select', row: 'bg_row', options: [{ value: 'default', label: 'opt_default' }, { value: 'image', label: 'opt_image' }, { value: 'color', label: 'opt_custom_color' }, { value: 'property', label: 'opt_color_property' }] },
@@ -278,8 +278,9 @@ const MusicplayerWidget = {
         },
         cmUseVol() { return this.widget.cm_use_vol === true || this.widget.cm_use_vol === '1'; },
         /* Цветомузыку для всех типов устройств ведёт серверный движок
-           cm_engine.php: браузер шлёт только cmRun start/stop по фронтам
-           play/stop, а кадры и цвета пишет процесс, минуя Apache. */
+           cm_engine.php: браузер шлёт cmRun start/stop по фронтам play/stop,
+           а для портовых устройств ещё и каждый кадр 0/1 (action=frame);
+           кадры и цвета пишет движок, минуя Apache-обработку свойства. */
         cmExt() { return true; },
         cmIcMode() { return this.opt(this.widget.ic_mode, ['cm', 'wave', 'cm_wave', 'shuffle'], 'cm'); },
         cmTitle() {
@@ -353,7 +354,7 @@ const MusicplayerWidget = {
         this.unarmGesture();
         this.stopLoop();
         this.stop();
-        this.cmEngineStop();
+        this.cmEngineStop(this.cmEndAction());
         this.clearColors();
         this.clearCm();
         try { if (this.actx) this.actx.close(); } catch (e) { }
@@ -435,19 +436,109 @@ const MusicplayerWidget = {
             const arr = raw.split(/[\n,]+/).map(s => s.trim()).filter(Boolean).map(s => ({ src: s }));
             return this.normTracks(arr);
         },
+        /* a local playlist file (.m3u/.m3u8/.pls) is a text list of tracks, not a track
+           itself: the browser audio element cannot play it, so it is fetched and its
+           entries are unfolded into the queue. Remote .m3u8 stays a stream url */
+        isPlaylistFile(src) {
+            return /\.(m3u8?|pls)$/i.test(String(src || '').split(/[?#]/)[0]);
+        },
+        /* a reference inside a playlist is resolved against the playlist's own folder: a
+           bare name or a relative path stays local, an absolute server path or a full
+           url is kept as it is */
+        resolvePlaylistRef(ref, base) {
+            let s = String(ref || '').trim().replace(/\\/g, '/');
+            if (!s) return '';
+            if (/^(https?:|data:|blob:|\/\/)/i.test(s) || s.charAt(0) === '/') return s;
+            const dir = String(base || '').replace(/[?#].*$/, '').replace(/\\/g, '/').replace(/[^/]*$/, '');
+            return (dir + s).replace(/\/{2,}/g, '/');
+        },
+        parseM3u(text, base) {
+            const out = [];
+            let title = '';
+            String(text || '').split(/\r?\n/).forEach(line => {
+                const t = line.trim();
+                if (!t) return;
+                if (t.charAt(0) === '#') {
+                    /* #EXTINF:<duration> [attrs],<title>: the title is what follows the
+                       first comma that is not inside a quoted attribute, so a quoted
+                       attribute may itself hold a comma (radio group names often do) */
+                    if (/^#EXTINF:/i.test(t)) {
+                        let q = false;
+                        let cut = -1;
+                        for (let i = 8; i < t.length; i++) {
+                            const c = t.charAt(i);
+                            if (c === '"') q = !q;
+                            else if (c === ',' && !q) { cut = i; break; }
+                        }
+                        title = cut >= 0 ? t.slice(cut + 1).trim() : '';
+                    }
+                    return;
+                }
+                const src = this.resolvePlaylistRef(t, base);
+                if (!src) return;
+                out.push({ src: src, title: title || this.titleFromSrc(src) });
+                title = '';
+            });
+            return out;
+        },
+        parsePls(text, base) {
+            const files = {};
+            const titles = {};
+            String(text || '').split(/\r?\n/).forEach(line => {
+                const t = line.trim();
+                let m = /^Title(\d+)\s*=\s*(.*)$/i.exec(t);
+                if (m) { titles[m[1]] = m[2].trim(); return; }
+                m = /^File(\d+)\s*=\s*(.*)$/i.exec(t);
+                if (m) files[m[1]] = m[2].trim();
+            });
+            return Object.keys(files).sort((a, b) => Number(a) - Number(b)).map(k => {
+                const src = this.resolvePlaylistRef(files[k], base);
+                return src ? { src: src, title: titles[k] || this.titleFromSrc(src) } : null;
+            }).filter(Boolean);
+        },
+        parsePlaylist(text, base) {
+            if (/^\s*\[playlist\]/im.test(String(text || ''))) return this.parsePls(text, base);
+            return this.parseM3u(text, base);
+        },
+        async loadPlaylistTracks(src) {
+            const url = this.srcUrl(src);
+            /* only local playlists are read: a remote url is a stream endpoint and may
+               not be fetched cross origin from the panel */
+            if (!url || /^(https?:|data:|blob:)/i.test(url)) return [];
+            try {
+                const r = await fetch(url, { cache: 'no-cache' });
+                if (!r.ok) return [];
+                return this.parsePlaylist(await r.text(), src);
+            } catch (e) { return []; }
+        },
+        async expandTracks(list) {
+            const out = [];
+            for (const t of (Array.isArray(list) ? list : [])) {
+                const src = String((t && t.src) || '').trim();
+                if (src && this.isPlaylistFile(src) && !/^(https?:|\/\/)/i.test(src)) {
+                    const items = await this.loadPlaylistTracks(src);
+                    if (items.length) { items.forEach(it => out.push(it)); continue; }
+                }
+                if (src) out.push({ src: src, title: String((t && t.title) || '') });
+            }
+            return this.normTracks(out);
+        },
         async initTracks() {
             const seed = this.seedTracks();
             if (seed.length) this.tracks = seed;
             const obj = String(this.widget.state_object || '').trim();
             const prop = String(this.widget.state_property || '').trim();
-            if (!obj || !prop) return;
-            try {
-                const d = await dpAPI('getProperty?' + new URLSearchParams({ object: obj, property: prop }));
-                if (d && !d.error && String(d.value || '').trim()) {
-                    const p = JSON.parse(String(d.value));
-                    if (Array.isArray(p) && p.length) this.tracks = this.normTracks(p);
-                }
-            } catch (e) { }
+            if (obj && prop) {
+                try {
+                    const d = await dpAPI('getProperty?' + new URLSearchParams({ object: obj, property: prop }));
+                    if (d && !d.error && String(d.value || '').trim()) {
+                        const p = JSON.parse(String(d.value));
+                        if (Array.isArray(p) && p.length) this.tracks = this.normTracks(p);
+                    }
+                } catch (e) { }
+            }
+            const expanded = await this.expandTracks(this.tracks);
+            if (expanded.length) this.tracks = expanded;
             if (!this.tracks.length && seed.length) this.scheduleSave();
         },
         scheduleSave() {
@@ -539,20 +630,22 @@ const MusicplayerWidget = {
             } catch (e) { this.files = []; this.pickerError = String(t('mu_no_files')); }
             this.filesLoading = false;
         },
-        addPicked() {
+        async addPicked() {
             if (!this.picked.length) return;
             const names = {};
             this.files.forEach(f => { names[f.path] = f.name; });
             const add = this.picked.map(p => ({ src: p, title: this.titleFromSrc(names[p] || p) }));
-            this.tracks = this.normTracks(this.tracks.concat(add));
             this.picked = [];
+            const expanded = await this.expandTracks(add);
+            this.tracks = this.normTracks(this.tracks.concat(expanded));
             this.scheduleSave();
         },
-        addManual() {
+        async addManual() {
             const raw = String(this.manualUrl || '').trim();
             if (!raw) return;
-            this.tracks = this.normTracks(this.tracks.concat([{ src: raw }]));
             this.manualUrl = '';
+            const expanded = await this.expandTracks([{ src: raw }]);
+            this.tracks = this.normTracks(this.tracks.concat(expanded));
             this.scheduleSave();
         },
         removeTrack(i) {
@@ -677,7 +770,9 @@ const MusicplayerWidget = {
             if (el) { try { el.pause(); } catch (e) { } }
             this.playing = false;
             this.stopLoop();
-            this.cmEngineStop('off');
+            /* пауза тоже останавливает звук, поэтому свет уходит в выбранное
+               конечное состояние (off / on / keep), а не всегда гаснет */
+            this.cmEngineStop(this.cmEndAction());
         },
         toggle() {
             if (!this.tracks.length) return;
@@ -700,7 +795,7 @@ const MusicplayerWidget = {
             this.liveStream = false;
             this.stopLoop();
             this.spectrum = new Array(24).fill(0);
-            this.cmEngineStop(this.cmEndAction);
+            this.cmEngineStop(this.cmEndAction());
         },
         stopLoop() { if (this.rafId) { cancelAnimationFrame(this.rafId); this.rafId = 0; } },
         prevTrack() {
@@ -962,6 +1057,30 @@ const MusicplayerWidget = {
             const base = Math.max(10, this.cmNormAvg);
             return levels.map(v => Math.min(255, v * (t / base)));
         },
+        /* raw band level is the *peak* of the FFT slice, so it sits high (like 200-255)
+           and a dimmer driven by it barely moves. This stretches each channel over its
+           own recent range: an envelope follower on the dips (lo) and on the peaks (hi)
+           maps lo..hi onto 0..255. The music then sweeps the dimmer from dark to full
+           instead of wobbling at the top. */
+        cmRawDim(levels) {
+            const n = levels.length;
+            if (!n) return levels;
+            if (!this.cmRLo || this.cmRLo.length !== n) {
+                this.cmRLo = levels.slice();
+                this.cmRHi = levels.slice();
+                return levels.map(v => Math.max(0, Math.min(255, Math.round(v))));
+            }
+            const out = new Array(n);
+            for (let i = 0; i < n; i++) {
+                const v = levels[i];
+                const lo = this.cmRLo[i], hi = this.cmRHi[i];
+                this.cmRLo[i] = lo + (v - lo) * (v < lo ? 0.5 : 0.01);
+                this.cmRHi[i] = hi + (v - hi) * (v > hi ? 0.5 : 0.01);
+                const span = Math.max(20, this.cmRHi[i] - this.cmRLo[i]);
+                levels[i] = Math.max(0, Math.min(255, Math.round((v - this.cmRLo[i]) / span * 255)));
+            }
+            return levels;
+        },
         /* a slow follower gives the loudness and a fast one the moment they diverge:
            that jump is the beat the wave steps on */
         cmBeat(levels) {
@@ -1004,9 +1123,9 @@ const MusicplayerWidget = {
             };
             return [conv(h + 1 / 3), conv(h), conv(h - 1 / 3)].map(v => Math.round(v * 255));
         },
-        /* queue one channel; the whole frame is sent in a single request at the
-           end of the tick, and over the websocket when the live channel is up,
-           so colour music does not spawn an Apache/php request per channel */
+        /* direct object/property writes are done by the server-side engine, so this
+           queue is inert in engine mode - the same values go to cm_engine.php as a
+           per-tick frame instead (see cmPortFrame) */
         cmSend(object, property, value) {
             if (this.cmExt) return;
             const key = object + '.' + property;
@@ -1029,10 +1148,11 @@ const MusicplayerWidget = {
             });
         },
         /* light output for every device type is driven by a server-side cm_engine.php
-           process (ran without Apache), so the browser only sends a single cmRun
-           start/stop at the play/pause edges instead of a frame every 90ms. The payload
-           is built from the same light settings the ws pushing uses, so the lamp set is
-           exactly the configured Object.Property list. */
+           process (ran without Apache): the browser sends cmRun start/stop at the
+           play/pause edges and, for ports, streams the analyser frame (converted 0/1)
+           every tick as cmRun action=frame - the engine forwards it to Object.Property.
+           The payload is built from the same light settings the ws pushing uses, so the
+           lamp set is exactly the configured Object.Property list. */
         cmEnginePayload() {
             const targets = this.cmTargets();
             if (!targets.length) return null;
@@ -1047,7 +1167,7 @@ const MusicplayerWidget = {
                 wr: this.cmWrite,
                 ic_mode: this.cmIcMode,
                 pixels: this.cmPixels,
-                speed: 90,
+                speed: 60,
             };
         },
         cmEngineStart() {
@@ -1076,6 +1196,26 @@ const MusicplayerWidget = {
             cmLog('engine stop ' + JSON.stringify(payload));
             try {
                 dpAPI('cmRun', { method: 'POST', body: JSON.stringify(payload) }).catch(() => { });
+            } catch (e) { }
+        },
+        /* the browser streams the analyser level per tick; the engine looks the
+           target up in the MegaD module and sends 0/1 for a switch output or
+           0-255 for a PWM output - so the same lamp the player shows lit gets
+           the right kind of value on the wire. The frame goes to the standalone
+           endpoint (no MajorDoMo boot) so it can be sent many times a second. */
+        cmPortFrame(levels, raw) {
+            if (!this.cmExt || !this.cmEngineOn) return;
+            const t = this.cmTargets();
+            if (!t.length) return;
+            const to8 = a => a.map(v => String(Math.max(0, Math.min(255, Math.round(Number(v) || 0)))));
+            const frame = to8(levels);
+            const rawFrame = raw && raw.length ? to8(raw) : frame;
+            try {
+                fetch('/modules/dashboard_pro/cm_frame.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ targets: t, values: frame, raw: rawFrame }),
+                }).catch(() => { });
             } catch (e) { }
         },
         /* what one channel is written as. A dimmer takes the level as it is, a plain
@@ -1109,6 +1249,7 @@ const MusicplayerWidget = {
                 const vals = levels.slice(0, cnt);
                 if (this.cmPortMode !== 'wave') {
                     this.cmApply(vals);
+                    this.cmPortFrame(vals, this.cmRawBands);
                     this.cmLamps = vals.map(v => ({ lvl: this.cmPortOut === 'onoff' ? (v >= this.cmOnLevel ? 1 : 0) : Math.max(0, Math.min(1, v / 255)) }));
                     return;
                 }
@@ -1122,6 +1263,7 @@ const MusicplayerWidget = {
                 else if (this.cmRawPeak >= 28) this.cmPos = (pos + 0.04 + 0.02 * (Math.max(...vals) / 255)) % cnt;
                 head[Math.floor(this.cmPos)] = Math.max(...vals) * 1.2;
                 this.cmApply(head);
+                this.cmPortFrame(head, this.cmRawBands);
                 this.cmLamps = head.map(v => ({ lvl: this.cmPortOut === 'onoff' ? (v >= this.cmOnLevel ? 1 : 0) : Math.max(0, Math.min(1, v / 255)) }));
                 return;
             }
@@ -1246,7 +1388,7 @@ const MusicplayerWidget = {
         cmTick() {
             if (!this.cmOn) return;
             const now = Date.now();
-            if (now - this.lastCmAt < 90) return;
+            if (now - this.lastCmAt < 60) return;
             this.lastCmAt = now;
             /* the whole spectrum is AGC normalised - plain lamps split around their
                    on/off threshold by frequency, the strips follow the shape of the
@@ -1255,6 +1397,10 @@ const MusicplayerWidget = {
             const raw = this.cmBands(n).map(b => this.bandLevel(b, this.freqData));
             this.cmRawPeak = raw.length ? Math.max(...raw) : 0;
             const k = this.cmUseVol ? this.volume : 1;
+            /* the raw band levels (no AGC) drive the dimmers; they are stretched over
+               each channel's own recent range, so a dimmed channel sweeps dark..full
+               instead of sticking to a flat normalised level */
+            this.cmRawBands = this.cmRawDim(raw.map(v => v * k));
             /* the on/off lamps get their own channel followers, the level outputs
                follow the peak (bright), the strips share one on the mean */
             const per = this.cmDevice === 'ports' && this.cmPortOut === 'onoff';
@@ -1264,6 +1410,10 @@ const MusicplayerWidget = {
             cmLog('freqs(' + n + ') raw=' + raw.map(v => Math.round(v)).join(','));
             cmLog('levels dev=' + this.cmDevice + ' ' + levels.map(v => Math.round(v)).join(','));
             this.cmStepEffect(levels);
+            /* кадр анализатора уходит движку для НЕ-портовых устройств
+               (rgb/ic/tuya/zigbee): из него движок берёт спектр и динамику.
+               Порты шлют кадр сами - у них свой рисунок (freq/wave) */
+            if (this.cmDevice !== 'ports') this.cmPortFrame(levels, this.cmRawBands);
             this.cmFlush();
         },
         cmCycle() {
@@ -1281,22 +1431,26 @@ this.cmFast = null;
             this.cmNormAvg = null;
             this.cmNormPeak = null;
             this.cmNormAt = 0;
+            this.cmRLo = null;
+            this.cmRHi = null;
         },
-toggleCm() {
+        toggleCm() {
             this.cmOn = !this.cmOn;
             try { localStorage.setItem(this.cmStateKey(), this.cmOn ? '1' : '0'); } catch (e) { }
             if (this.cmOn) {
-                this.cmFast = null; this.cmSlow = null; this.cmPos = 0; this.cmPhase = 0; this.cmNormArr = null; this.cmNormAvg = null; this.cmNormPeak = null; this.cmNormAt = 0; this.cmLamps = Array.from({ length: this.cmChannelCount }, () => ({ lvl: 0 }));
+                this.cmFast = null; this.cmSlow = null; this.cmPos = 0; this.cmPhase = 0; this.cmNormArr = null; this.cmNormAvg = null; this.cmNormPeak = null; this.cmNormAt = 0; this.cmRLo = null; this.cmRHi = null; this.cmLamps = Array.from({ length: this.cmChannelCount }, () => ({ lvl: 0 }));
                 if (this.playing) this.cmEngineStart();
             }
-            else { this.cmEndLight('off'); this.cmEngineStop(); }
+            /* выключение цветомузыки кнопкой тоже считается окончанием звучания -
+               свет уходит в выбранное конечное состояние, а не всегда гаснет */
+            else { this.cmEndLight(this.cmEndAction()); this.cmEngineStop(this.cmEndAction()); }
         },
         /* what the light does once the sound is over - settings pick off, on or keep.
            With the engine driving the light the end state is a stop of that engine, the
            browser only keeps its own preview in step; the write itself is done server side */
         cmEndLight(action) {
             const t = this.cmTargets();
-            const what = action || this.cmEndAction;
+            const what = action || this.cmEndAction();
             if (what === 'keep') return;
             if (this.cmDevice === 'ic' || this.cmDevice === 'megad') {
                 const c = what === 'on' ? [255, 255, 255] : [0, 0, 0];
@@ -1311,7 +1465,7 @@ toggleCm() {
                 this.cmViewLamps(true);
                 this.cmWash = 'rgb(255,255,255)'; this.cmWashO = 1;
                 this.cmStrip = this.cmStrip.map(() => ({ c: 'rgb(255,255,255)', o: 1 }));
-            } else {
+            } else if (what !== 'keep') {
                 this.cmViewOff();
             }
             if (this.cmExt) { this.cmEngineStop(what); return; }

@@ -1179,6 +1179,16 @@ function headerPanelSave() {
             }
             return widgetProperties.value;
         }
+        /* The third end-of-sound choice is worded "keep the last colour", which fits a
+           colour device. A plain lamp on a port has no colour - it keeps its last on/off
+           state - so for a ports device the same choice is captioned for that instead. */
+        function fieldOptionLabel(field, opt) {
+            if (field && field.key === 'end_action' && opt && opt.value === 'keep'
+                && String((editWidgetForm.value || {}).dev_type) === 'ports') {
+                return t('cm_end_keep_pos');
+            }
+            return t(opt ? opt.label : '');
+        }
 
         const g2rCameraOptions = ref([]);
         async function loadGo2rtcCameras() {
@@ -1701,7 +1711,7 @@ function loadScript(src, version) {
            reached the panel. The token changes on every install, and the base follows the
            module, so a module update also refreshes the widgets. */
         const WIDGET_TOKEN_KEY = 'dp_widget_token';
-        const WIDGET_TOKEN_BASE = 239;
+        const WIDGET_TOKEN_BASE = 241;
         function widgetToken() {
             let token = 0;
             try { token = parseInt(localStorage.getItem(WIDGET_TOKEN_KEY) || '0', 10) || 0; } catch (e) { token = 0; }
@@ -4102,7 +4112,7 @@ onMounted(() => {
             showHeaderStatusEditor, hsForm, hsProperties, hsEditIdx, openHeaderStatusEditor, loadHsProperties, clearHsObject, editHeaderStatusItem, saveHeaderStatusItem, removeHeaderStatusItem, hsMapArr, headerStatusImages: HEADER_STATUS_IMAGES,
             panels, currentPanel, selectPanel, selectHomePanel, goHome, loading, editMode,
             showAddWidget, widgetSearch, filteredDefs, plusTooltip, addPlusButton,
-            widgetTypeComponent, addWidget, openWidgetHelp, getWidgetFields, getWidgetRows, getWidgetTabs, getFieldOptions, fieldVisible, g2rCameraOptions, loadGo2rtcCameras,
+            widgetTypeComponent, addWidget, openWidgetHelp, getWidgetFields, getWidgetRows, getWidgetTabs, getFieldOptions, fieldOptionLabel, fieldVisible, g2rCameraOptions, loadGo2rtcCameras,
             getMethodObj, getMethodName, setMethodField, itemLabel, objectKeyOfField,
             editWidgetForm, editWidgetIsNew, widgetTab, widgetTabPos, editWidget, saveEditWidget, removeWidget,
         builderModel, builderReady, builderBusy, builderTitles, builderTypes, builderTarget, builderTargets,

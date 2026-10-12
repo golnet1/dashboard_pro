@@ -852,6 +852,7 @@ $frontend = array(
     'cm_end_off' => 'Switch everything off',
     'cm_end_on' => 'Switch everything on',
     'cm_end_keep' => 'Keep the last colour',
+    'cm_end_keep_pos' => 'Keep the last state',
     'cm_enable' => 'Turn on colour music',
     'cm_disable' => 'Turn off colour music',
     'mu_opt_repeat_off' => 'Off',

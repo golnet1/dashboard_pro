@@ -1339,7 +1339,11 @@ if (e.kind === 'static') {
             valLabel: valLabel,
             optLabel: function (o) {
                 if (!o) return '';
-                return o.label ? this.t(o.label) : valLabel(o.value);
+                var lbl = o.label;
+                /* a plain lamp on a port has no colour to keep: the third end choice
+                   holds the lamp in the state it was left in, so it is named for that */
+                if (lbl === 'cm_end_keep' && this.cur && this.cur.dev_type === 'ports') lbl = 'cm_end_keep_pos';
+                return lbl ? this.t(lbl) : valLabel(o.value);
             },
         fType: function (tp) { return window.__t ? window.__t('dpb_ft_' + tp) : tp; },
             fIcon: function (tp) { return (B.FIELD_TYPES[tp] || {}).icon || 'fas fa-square'; },
