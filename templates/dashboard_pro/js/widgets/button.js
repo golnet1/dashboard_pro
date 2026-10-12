@@ -68,14 +68,14 @@ const ButtonWidget = {
                     }
                 } else if (this.widget.button_type === 'script' && this.widget.script) {
                     if (this.widget.param) {
-                        await dpAPI('scriptRun?' + new URLSearchParams({ script: this.widget.script, param: this.widget.param }));
+                        await dpAPI('scriptRun?' + new URLSearchParams({ script: this.widget.script, value: this.widget.param }));
                     } else {
                         await dpAPI('scriptRun?' + new URLSearchParams({ script: this.widget.script }));
                     }
                 } else if (this.widget.button_type === 'method' && this.widget.method) {
                     const p = this.widget.method.split('/');
                     const base = 'method/' + p[0] + (p[1] ? '/' + p[1] : '');
-                    await dpAPI(base + (this.widget.param ? '?param=' + encodeURIComponent(this.widget.param) : ''));
+                    await dpAPI(base + (this.widget.param ? '?value=' + encodeURIComponent(this.widget.param) : ''));
                 } else if (this.widget.method) {
                     const p = this.widget.method.split('/');
                     await dpAPI('method/' + p[0] + (p[1] ? '/' + p[1] : ''));

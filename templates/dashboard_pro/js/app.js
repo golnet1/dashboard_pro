@@ -1711,7 +1711,7 @@ function loadScript(src, version) {
            reached the panel. The token changes on every install, and the base follows the
            module, so a module update also refreshes the widgets. */
         const WIDGET_TOKEN_KEY = 'dp_widget_token';
-        const WIDGET_TOKEN_BASE = 257;
+        const WIDGET_TOKEN_BASE = 266;
         function widgetToken() {
             let token = 0;
             try { token = parseInt(localStorage.getItem(WIDGET_TOKEN_KEY) || '0', 10) || 0; } catch (e) { token = 0; }
@@ -2327,6 +2327,8 @@ if (f.key) {
         }
 
         function removeWidget(idx) {
+            const w = currentPanel.value.widgets[idx];
+            if (w && w.id !== undefined && w.id !== null) cleanupWidgetState(w.id);
             currentPanel.value.widgets.splice(idx, 1);
             savePanels();
         }
@@ -2346,8 +2348,11 @@ if (f.key) {
         function removeGroupChild(child) {
             const parent = editWidgetParent.value || editWidgetForm.value;
             if (!parent || !Array.isArray(parent.children)) return;
-            const idx = parent.children.findIndex(c => c.id === child.id);
-            if (idx >= 0) parent.children.splice(idx, 1);
+            const idx = parent.children.findIndex(x => x.id === child.id);
+            if (idx >= 0) {
+                cleanupWidgetState(child.id);
+                parent.children.splice(idx, 1);
+            }
         }
 
         function moveGroupChildOut(child) {
@@ -2619,6 +2624,13 @@ if (f.key) {
                 const orig = (currentPanel.value.widgets || []).find(w => w.id === parent.id);
                 if (orig && Array.isArray(orig.children)) parent = orig;
             }
+            /* Личное состояние виджета (например, эквалайзер musicplayer) могло
+               поменяться, пока открыт диалог правки, а форма - это копия на момент
+               открытия. Переносим живое значение, иначе сохранение его затрёт. */
+            const live = currentPanel.value && currentPanel.value.widgets
+                ? findWidgetInList(currentPanel.value.widgets, editWidgetForm.value.id)
+                : null;
+            if (live && live.eq !== undefined) editWidgetForm.value.eq = live.eq;
             if (parent && Array.isArray(parent.children)) {
                 const idx = parent.children.findIndex(w => w.id === editWidgetForm.value.id);
                 if (idx >= 0) parent.children[idx] = { ...editWidgetForm.value };
@@ -2879,6 +2891,94 @@ if (f.key) {
             hasUnsavedChanges.value = false;
         }
 
+        /* Виджету иногда надо помнить мелочь, которая относится только к нему:
+           у musicplayer так хранится эквалайзер. Раньше это жило лишь в
+           localStorage браузера и терялось на другом устройстве или в приватном
+           окне. Теперь такая настройка висит прямо на объекте виджета в конфиге
+           панели, рядом с остальными полями, поэтому едет вместе с виджетом.
+           Запись на сервер склеивается таймером: протяжка ползунка не шлёт
+           запрос на каждое движение. */
+        function findWidgetInList(list, id) {
+            if (!Array.isArray(list)) return null;
+            for (const w of list) {
+                if (!w) continue;
+                if (w.id === id) return w;
+                if (Array.isArray(w.children)) {
+                    const hit = findWidgetInList(w.children, id);
+                    if (hit) return hit;
+                }
+            }
+            return null;
+        }
+
+        let widgetStateSaveTimer = null;
+        /* Копим поля по id: пока таймер тикает, панели успевают перечитаться
+           с сервера (WS шлёт PostProperty), и объект виджета подменяется. Перед
+           записью патч накладывается заново на актуальный объект, поэтому
+           значение не теряется в этой гонке. */
+        const pendingWidgetState = {};
+        function applyWidgetState(widgetId, patch) {
+            let w = findWidgetInList(currentPanel.value && currentPanel.value.widgets, widgetId);
+            if (!w) {
+                for (const p of panels.value) {
+                    w = findWidgetInList(p.widgets, widgetId);
+                    if (w) break;
+                }
+            }
+            if (w) Object.assign(w, patch);
+            return w;
+        }
+        function flushWidgetState() {
+            widgetStateSaveTimer = null;
+            const pending = Object.assign({}, pendingWidgetState);
+            for (const k in pendingWidgetState) delete pendingWidgetState[k];
+            for (const id in pending) applyWidgetState(id, pending[id]);
+            try {
+                /* панель у всех своя, поэтому hasUnsavedChanges и режим правки
+                   тут не трогаем - это фоновая запись, а не действие админа */
+                dpAPI('panels', { method: 'POST', body: JSON.stringify({ panels: panels.value }) })
+                    .catch(() => { });
+            } catch (e) { /* ignore */ }
+        }
+        function saveWidgetState(widgetId, patch) {
+            if (widgetId === undefined || widgetId === null) return;
+            const key = String(widgetId);
+            pendingWidgetState[key] = Object.assign(pendingWidgetState[key] || {}, patch);
+            applyWidgetState(widgetId, patch);
+            if (widgetStateSaveTimer) clearTimeout(widgetStateSaveTimer);
+            widgetStateSaveTimer = setTimeout(flushWidgetState, 700);
+        }
+
+        /* Виджет удалили - его личные ключи в localStorage больше не нужны.
+           В конфиге панели данные пропадают сами, вместе с объектом виджета. */
+        function cleanupWidgetState(widgetId) {
+            if (widgetId === undefined || widgetId === null) return;
+            const needle = String(widgetId);
+            try {
+                const keys = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const k = localStorage.key(i);
+                    if (k && k.indexOf(needle) !== -1) keys.push(k);
+                }
+                keys.forEach(k => localStorage.removeItem(k));
+            } catch (e) { /* ignore */ }
+        }
+
+        function cleanupPanelWidgets(panel) {
+            if (!panel || !Array.isArray(panel.widgets)) return;
+            const walk = (list) => {
+                (list || []).forEach(w => {
+                    if (!w) return;
+                    if (w.id !== undefined && w.id !== null) cleanupWidgetState(w.id);
+                    if (Array.isArray(w.children)) walk(w.children);
+                });
+            };
+            walk(panel.widgets);
+        }
+
+        window.__dpSaveWidgetState = saveWidgetState;
+        window.__dpCleanupWidgetState = cleanupWidgetState;
+
         async function saveSettingsNow() {
             applySettings();
             const s = await dpAPI('settings', { method: 'POST', body: JSON.stringify(settings.value) });
@@ -3127,6 +3227,7 @@ if (f.key) {
             if (!editPanelData.value) return;
             const idx = panels.value.indexOf(editPanelData.value);
             if (idx >= 0) {
+                cleanupPanelWidgets(editPanelData.value);
                 panels.value.splice(idx, 1);
                 if (currentPanel.value === editPanelData.value) currentPanel.value = panels.value.find(p => isPanel(p)) || panels.value[0] || null;
             }
@@ -3141,6 +3242,7 @@ if (f.key) {
             if (!await dpConfirm(t('delete_panel_confirm') + ' «' + p.title + '»?', { danger: true, okText: t('delete') })) return;
             const idx = panels.value.indexOf(p);
             if (idx >= 0) {
+                cleanupPanelWidgets(p);
                 panels.value.splice(idx, 1);
                 if (currentPanel.value === p) {
                     currentPanel.value = panels.value.find(pp => isPanel(pp)) || panels.value[0] || null;

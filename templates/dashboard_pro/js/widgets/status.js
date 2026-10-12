@@ -123,11 +123,11 @@ const StatusWidget = {
             const s = this.current;
             if (!s || !s.exec_type || s.exec_type === 'empty') return;
             if (s.exec_type === 'script' && s.script) {
-                await dpAPI('scriptRun?' + new URLSearchParams(s.exec_param ? { script: s.script, param: s.exec_param } : { script: s.script }));
+                await dpAPI('scriptRun?' + new URLSearchParams(s.exec_param ? { script: s.script, value: s.exec_param } : { script: s.script }));
             } else if (s.exec_type === 'method' && s.method) {
                 const p = String(s.method).split('/');
                 const base = 'method/' + p[0] + (p[1] ? '/' + p[1] : '');
-                await dpAPI(base + (s.exec_param ? '?param=' + encodeURIComponent(s.exec_param) : ''));
+                await dpAPI(base + (s.exec_param ? '?value=' + encodeURIComponent(s.exec_param) : ''));
             }
         }
     }

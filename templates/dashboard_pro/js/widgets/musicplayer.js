@@ -326,17 +326,28 @@ const MusicplayerWidget = {
                 if (!isNaN(v)) this.volume = this.clamp01(v);
             }
         } catch (e) { }
-        try {
-            const savedEq = JSON.parse(localStorage.getItem(this.eqStateKey()) || 'null');
-            if (Array.isArray(savedEq) && savedEq.length) {
-                this.eqGains = this.eqBands.map((b, i) => this.clampEq(savedEq[i]));
-            }
-        } catch (e) { }
-        try {
-            const savedCu = JSON.parse(localStorage.getItem(this.eqCustomKey()) || 'null');
-            if (Array.isArray(savedCu) && savedCu.length) this.customEq = savedCu.map(v => this.clampEq(v));
-        } catch (e) { }
-        this.eqSel = this.customEq && String(this.customEq) === String(this.eqGains) ? 'custom' : (this.eqPresets.find(pr => String(pr.g) === String(this.eqGains)) || {}).key || null;
+        /* Эквалайзер держим в config виджета (w.eq), поэтому он не сбрасывается
+           при обновлении панели и виден с любого устройства. Если в config его
+           ещё нет - читаем старый localStorage, чтобы не потерять уже сохранённое. */
+        const cfgEq = (this.widget && this.widget.eq && typeof this.widget.eq === 'object') ? this.widget.eq : null;
+        if (cfgEq && Array.isArray(cfgEq.gains) && cfgEq.gains.length) {
+            this.eqGains = this.eqBands.map((b, i) => this.clampEq(cfgEq.gains[i]));
+            if (Array.isArray(cfgEq.custom) && cfgEq.custom.length) this.customEq = cfgEq.custom.map(v => this.clampEq(v));
+            this.eqSel = (cfgEq.sel === 'custom' && this.customEq) ? 'custom'
+                : (this.eqPresets.find(pr => pr.key === cfgEq.sel) ? cfgEq.sel : null);
+        } else {
+            try {
+                const savedEq = JSON.parse(localStorage.getItem(this.eqStateKey()) || 'null');
+                if (Array.isArray(savedEq) && savedEq.length) {
+                    this.eqGains = this.eqBands.map((b, i) => this.clampEq(savedEq[i]));
+                }
+            } catch (e) { }
+            try {
+                const savedCu = JSON.parse(localStorage.getItem(this.eqCustomKey()) || 'null');
+                if (Array.isArray(savedCu) && savedCu.length) this.customEq = savedCu.map(v => this.clampEq(v));
+            } catch (e) { }
+            this.eqSel = this.customEq && String(this.customEq) === String(this.eqGains) ? 'custom' : (this.eqPresets.find(pr => String(pr.g) === String(this.eqGains)) || {}).key || null;
+        }
         this.repeatMode = this.opt(this.widget.repeat, ['off', 'one', 'all'], 'off');
         this.shuffleOn = this.widget.shuffle === true;
         this.initTracks().then(() => {
@@ -565,18 +576,26 @@ const MusicplayerWidget = {
             if (isNaN(v)) v = 0;
             return Math.max(-12, Math.min(12, Math.round(v)));
         },
+        /* Кривая у каждого виджета своя. Она живёт в config виджета в панели,
+           поэтому едет вместе с ним на другое устройство, а локально
+           дублируется в localStorage (приватный режим, нет доступа к записи). */
+        persistEq() {
+            const gains = this.eqGains.slice();
+            const custom = this.customEq ? this.customEq.slice() : null;
+            try { localStorage.setItem(this.eqStateKey(), JSON.stringify(gains)); } catch (e) { }
+            try { localStorage.setItem(this.eqCustomKey(), JSON.stringify(custom)); } catch (e) { }
+            if (this.widget && this.widget.id !== undefined && this.widget.id !== null && typeof window.__dpSaveWidgetState === 'function') {
+                window.__dpSaveWidgetState(this.widget.id, { eq: { sel: this.eqSel || null, gains: gains, custom: custom } });
+            }
+        },
         setEqBand(i, val) {
             const v = this.clampEq(val);
             this.eqGains[i] = v;
             const fl = this.eqFilters && this.eqFilters[i];
             if (fl) { try { fl.gain.value = v; } catch (e) { } }
-            if (this.eqSel === 'custom') {
-                this.customEq = this.eqGains.slice();
-                try { localStorage.setItem(this.eqCustomKey(), JSON.stringify(this.customEq)); } catch (e) { }
-                try { localStorage.setItem(this.eqStateKey(), JSON.stringify(this.eqGains)); } catch (e) { }
-            } else {
-                this.eqSel = null;
-            }
+            if (this.eqSel === 'custom') this.customEq = this.eqGains.slice();
+            else this.eqSel = null;
+            this.persistEq();
         },
         applyEqPreset(key) {
             const pr = this.eqPresets.find(p => p.key === key);
@@ -584,7 +603,7 @@ const MusicplayerWidget = {
             this.eqSel = key;
             this.eqGains = pr.g.slice();
             if (this.eqFilters) this.eqFilters.forEach((fl, i) => { if (fl) { try { fl.gain.value = this.eqGains[i] || 0; } catch (e) { } } });
-            try { localStorage.setItem(this.eqStateKey(), JSON.stringify(this.eqGains)); } catch (e) { }
+            this.persistEq();
         },
         eqStateKey() {
             const id = this.widget && this.widget.id;
@@ -603,8 +622,7 @@ const MusicplayerWidget = {
                 this.eqSel = 'custom';
             }
             if (this.eqFilters) this.eqFilters.forEach((fl, i) => { if (fl) { try { fl.gain.value = this.eqGains[i] || 0; } catch (e) { } } });
-            try { localStorage.setItem(this.eqStateKey(), JSON.stringify(this.eqGains)); } catch (e) { }
-            try { localStorage.setItem(this.eqCustomKey(), JSON.stringify(this.customEq)); } catch (e) { }
+            this.persistEq();
         },
         async togglePicker() {
             this.pickerOpen = !this.pickerOpen;

@@ -110,7 +110,7 @@ const AcRemoteWidget = {
                         const res = await fetch(url);
                         if (!res.ok) console.error('scriptRun failed:', res.status);
                     } else {
-                        await dpAPI('scriptRun?' + new URLSearchParams({ script: this.widget.script, param: code }));
+                        await dpAPI('scriptRun?' + new URLSearchParams({ script: this.widget.script, value: code }));
                     }
                 } else if (this.widget.send_mode === 'command') {
                     await dpAPI('execCommand?' + new URLSearchParams({ command: (this.widget.command_prefix || '') + code }));

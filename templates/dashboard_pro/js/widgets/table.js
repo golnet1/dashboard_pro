@@ -58,8 +58,11 @@ const TableWidget = {
                         <tr v-for="(item, ri) in rows" :key="ri" style="border-top:1px solid rgba(255,255,255,.06)">
                             <td v-for="(col, ci) in cols" :key="ci" :style="tdStyle(col)">
                                 <div v-if="col.type === 'checkbox'">
-                                    <span v-if="getBoolean(item[col.data_name])" style="color:#66bb6a"><i class="fas fa-check"></i></span>
-                                    <span v-else style="color:rgba(255,255,255,.3)"><i class="fas fa-times"></i></span>
+                                    <div class="v-simple-checkbox v-simple-checkbox--disabled" style="cursor:pointer;display:inline-flex" @click.stop="checkboxClick(item, col)">
+                                        <div class="v-input--selection-controls__input">
+                                            <i aria-hidden="true" class="v-icon notranslate v-icon--disabled theme--dark" :class="getBoolean(item[col.data_name]) ? 'mdi mdi-checkbox-marked' : 'mdi mdi-checkbox-blank-outline'"></i>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div v-else-if="col.type === 'chip'">
                                     <span class="dp-chip" :style="{ background: item[col.color_column] || col.color || 'rgba(255,255,255,.15)' }" style="padding:2px 10px;border-radius:12px;display:inline-block;white-space:nowrap">
@@ -142,15 +145,38 @@ const TableWidget = {
         thStyle(col) {
             const s = { padding: '6px 8px', textAlign: (col.align === 'center' ? 'center' : col.align === 'end' ? 'right' : 'left'), color: 'rgba(255,255,255,.6)', fontWeight: 500, whiteSpace: 'nowrap', fontSize: '.8rem' };
             if (col.sortable !== false) s.cursor = 'pointer';
-            if (col.width) s.width = col.width;
+            const w = this.colWidth(col);
+            if (w) s.width = w;
             return s;
         },
         tdStyle(col) {
             const s = { padding: (col.separator ? '4px 8px' : '4px 4px'), color: 'rgba(255,255,255,.8)', whiteSpace: 'nowrap', fontSize: '.8rem', borderRight: col.separator ? '1px solid rgba(255,255,255,.08)' : 'none', textAlign: (col.align === 'center' ? 'center' : col.align === 'end' ? 'right' : 'left') };
-            if (col.width) s.minWidth = col.width;
+            /* fixed-раскладка берёт ширины колонок из первой строки таблицы,
+               поэтому их надо задать и на ячейках td (не только на th). */
+            const w = this.colWidth(col);
+            if (w) { s.width = w; s.minWidth = w; }
             return s;
         },
-        getBoolean(e) { return 'true' === e || 1 == e || !!e; },
+        colWidth(col) {
+            const raw = col ? col.width : '';
+            if (raw === undefined || raw === null || raw === '') return '';
+            const s = String(raw).trim();
+            if (!s) return '';
+            /* "120" без единиц - это не CSS: браузер такую ширину молча игнорирует */
+            if (/^\d+(\.\d+)?$/.test(s)) return Number(s) > 0 ? s + 'px' : '';
+            /* Ноль (0, 0px, 0%) значит "авто": колонка не занимает фикс, а берёт
+               свою долю оставшейся ширины - как и колонка без ширины вовсе. */
+            const m = s.match(/^(\d+(?:\.\d+)?)\s*([a-z%]+)$/i);
+            if (m && Number(m[1]) === 0) return '';
+            return s;
+        },
+        /* Значения из БД нередко приходят строками: "0" - это ложь, а не истина.
+           Прежняя проверка !!e считала строку "0" истиной и включала все чекбоксы. */
+        getBoolean(e) {
+            if (e === true || e === 1) return true;
+            if (e === false || e === 0 || e === null || e === undefined) return false;
+            return ['1', 'true', 'yes', 'on'].includes(String(e).trim().toLowerCase());
+        },
         getChipText(color) {
             if (!color) return '#fff';
             const hex = String(color).replace('#', '');
@@ -166,29 +192,54 @@ const TableWidget = {
             if (col.sortable === false) return;
             this.sortBy(ci);
         },
+        checkboxClick(item, col) {
+            /* Значение не переключаем сами: новый статус пишет в БД скрипт/
+               метод, настроенный в callback. Как в MBoard - просто шлём строку
+               и обновляемся, чтобы показать то, что реально записалось. */
+            Promise.resolve(this.sendAction(item, col, 'clickRow'))
+                .finally(() => { setTimeout(() => this.updateData(), 700); });
+        },
         btnClick(item, col) {
+            this.sendAction(item, col, 'clickBtn');
+        },
+        /* Событие в формате MBoard: строка данных + action + header (колонка,
+           у которой есть поле value = имя поля данных) + widget_id. Скрипты
+           проверяют, например, $value['header']['value'] == 'CHOSEN'. */
+        buildEvent(item, col, action) {
+            const header = Object.assign({}, col, { value: col.data_name });
+            return Object.assign({}, item, { action: action, header: header, widget_id: this.widget.id });
+        },
+        sendAction(item, col, action) {
+            const json = JSON.stringify(this.buildEvent(item, col, action));
             if (this.widget.callback_type === 'property' && this.widget.object && this.widget.property) {
-                dpAPI('setProperty?' + new URLSearchParams({ object: this.widget.object, property: this.widget.property, value: String(item[col.data_name]) }));
+                dpAPI('setProperty?' + new URLSearchParams({ object: this.widget.object, property: this.widget.property, value: json }));
             } else if (this.widget.callback_type === 'method' && this.widget.callback_method) {
                 const p = String(this.widget.callback_method).split('/');
-                dpAPI('method/' + p[0] + (p[1] ? '/' + p[1] : '') + '?param=' + encodeURIComponent(JSON.stringify(item)));
+                dpAPI('method/' + p[0] + (p[1] ? '/' + p[1] : '') + '?value=' + encodeURIComponent(json));
             } else if (this.widget.callback_type === 'script' && this.widget.script) {
-                dpAPI('scriptRun?' + new URLSearchParams({ script: this.widget.script, param: JSON.stringify(item) }));
+                dpAPI('scriptRun?' + new URLSearchParams({ script: this.widget.script, value: json }));
             }
         },
         async updateData() {
             const query = (this.widget.query || '').trim();
-            if (!query) { this.items = []; return; }
-            this.loading = true;
+            if (!query) { this.items = []; this.loading = false; return; }
+            /* Спиннер показываем только на первой загрузке (когда данных ещё нет):
+               иначе каждое авто-обновление мигало бы - таблица исчезала и появлялась
+               заново. При фоновом обновлении таблица остаётся на месте. */
+            if (!this.items.length) this.loading = true;
             this.queryError = '';
             try {
                 const d = await dpAPI('query?' + new URLSearchParams({ query }));
-                this.items = (d && !d.error && Array.isArray(d.data)) ? d.data : [];
-                if (d && d.error) this.queryError = d.error;
+                if (d && d.error) {
+                    this.queryError = d.error;
+                } else {
+                    this.items = Array.isArray(d && d.data) ? d.data : [];
+                }
                 this.loading = false;
             } catch(e) {
-                this.items = [];
-                this.queryError = 'fetch failed';
+                /* При сбое фонового обновления оставляем прежние данные,
+                   чтобы таблица не «дёргалась». */
+                if (!this.items.length) this.queryError = 'fetch failed';
                 this.loading = false;
             }
         }

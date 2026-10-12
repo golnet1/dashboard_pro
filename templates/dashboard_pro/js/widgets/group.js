@@ -33,9 +33,9 @@ const GroupWidget = {
     defaults: { icon: 'fas fa-layer-group', icon_type: 'icon', hide_title: false, hide_icon: false, hide_count: false, dividers: false, columns: 2, children: [], height: 200 },
     template: `
         <div class="widget-v-card" :class="{ 'widget-v-card--disabled': !available }" :style="cardStyle">
-            <div class="widget-v-card__header" v-if="!widget.hide_title || !widget.hide_icon">
+            <div class="widget-v-card__header" v-if="showHeader">
                 <i v-if="widget.icon && !widget.hide_icon" :class="widget.icon" class="widget-v-card__icon"></i>
-                <div class="widget-v-card__title" v-if="!widget.hide_title">{{ widget.title || t('widget_group') }}</div>
+                <div class="widget-v-card__title" v-if="widget.title && !widget.hide_title">{{ widget.title }}</div>
                 <i v-if="!available" class="fas fa-ban widget-v-card__locked-icon"></i>
                 <span v-else-if="count && !widget.hide_count" class="widget-v-card__count">{{ count }} {{ t('units_widgets') }}</span>
             </div>
@@ -61,6 +61,15 @@ const GroupWidget = {
     beforeUnmount() { if (this.availTimer) clearInterval(this.availTimer); },
     computed: {
         count() { return this.widget.children ? this.widget.children.length : 0; },
+        /* Заголовок рисуется, только если в нём есть что показать: иконка,
+           название или количество. Пустой заголовок не занимает место, и
+           виджеты группы поднимаются вверх - как в виджете "текст". */
+        showHeader() {
+            if (!this.available) return true;
+            if (this.widget.icon && !this.widget.hide_icon) return true;
+            if (this.widget.title && !this.widget.hide_title) return true;
+            return !!(this.count && !this.widget.hide_count);
+        },
         columns() {
             const c = Number(this.widget.columns);
             return (c >= 1 && c <= 4) ? c : 2;

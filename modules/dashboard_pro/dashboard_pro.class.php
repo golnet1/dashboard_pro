@@ -752,13 +752,15 @@ class dashboard_pro extends module
 
         if ($params['request'][0] == 'scriptRun') {
             $script = trim($params['script'] ?? '');
-            $param = isset($params['param']) ? $params['param'] : '';
             if (!$script) return ['error' => 'script required'];
-            if (is_string($param)) {
-                $decoded = json_decode($param, true);
-                if (is_array($decoded)) $param = $decoded;
-            }
-            $result = runScript($script, $param);
+            /* Значение передаётся в 'value' (как в MBoard), а не в 'param':
+               в api.php есть глобальная переменная $param, привязанная к
+               последнему сегменту URL - любой ключ 'param' в адресе затирает
+               его, и запрос вида /scriptRun?...&param=... перестаёт находиться
+               ("Unknown API endpoint"), поэтому скрипт вообще не запускался.
+               Скрипты ожидают JSON-строку события в $params["value"]. */
+            $value = $params['value'] ?? '';
+            $result = runScript($script, ['value' => $value]);
             $this->dLog('script ' . $script);
             return ['success' => true, 'result' => $result];
         }

@@ -3766,7 +3766,7 @@ var tpl = readTemplateStr(js);
             methods.push('    ' + n + ': function (p) {');
             methods.push('        var script = ' + path(f.key) + ' || \'\';');
             methods.push('        if (!script) return;');
-            methods.push('        return dpAPI(\'scriptRun?script=\' + encodeURIComponent(script) + \'&param=\' + encodeURIComponent(JSON.stringify(p === undefined ? null : p)));');
+            methods.push('        return dpAPI(\'scriptRun?script=\' + encodeURIComponent(script) + \'&value=\' + encodeURIComponent(JSON.stringify(p === undefined ? null : p)));');
             methods.push('    },');
         });
         methodFields.forEach(function (f) {
