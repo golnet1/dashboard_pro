@@ -64,15 +64,12 @@ const MusicplayerWidget = {
             { key: 'property_p8', label: 'cm_prop', type: 'property', row: 'cm_p8', showIf: { dev_type: 'ports', port_ch: '8' } },
             { key: 'port_mode', label: 'cm_mode', type: 'select', default: 'freq', showIf: { dev_type: 'ports' }, options: [{ value: 'freq', label: 'cm_mode_freq' }, { value: 'wave', label: 'cm_mode_wave' }] },
             { key: 'cm_on_level', label: 'cm_on_level', type: 'number', step: 5, default: 90, showIf: { dev_type: 'ports' } },
-            { key: 'wr_mode', label: 'cm_write', type: 'select', default: 'hex', showIf: { dev_type: 'rgb' }, options: [{ value: 'hex', label: 'cm_wr_hex' }, { value: 'rgb', label: 'cm_wr_rgb' }] },
-            { key: 'object_hex', label: 'cm_object', type: 'object', row: 'cm_hex', showIf: { dev_type: 'rgb', wr_mode: 'hex' } },
-            { key: 'property_hex', label: 'cm_prop', type: 'property', row: 'cm_hex', showIf: { dev_type: 'rgb', wr_mode: 'hex' } },
-            { key: 'object_r', label: 'cm_r', type: 'object', row: 'cm_r', showIf: { dev_type: 'rgb', wr_mode: 'rgb' } },
-            { key: 'property_r', label: 'cm_prop', type: 'property', row: 'cm_r', showIf: { dev_type: 'rgb', wr_mode: 'rgb' } },
-            { key: 'object_g', label: 'cm_g', type: 'object', row: 'cm_g', showIf: { dev_type: 'rgb', wr_mode: 'rgb' } },
-            { key: 'property_g', label: 'cm_prop', type: 'property', row: 'cm_g', showIf: { dev_type: 'rgb', wr_mode: 'rgb' } },
-            { key: 'object_b', label: 'cm_b', type: 'object', row: 'cm_b', showIf: { dev_type: 'rgb', wr_mode: 'rgb' } },
-            { key: 'property_b', label: 'cm_prop', type: 'property', row: 'cm_b', showIf: { dev_type: 'rgb', wr_mode: 'rgb' } },
+            { key: 'object_r', label: 'cm_r', type: 'object', row: 'cm_r', showIf: { dev_type: 'rgb' } },
+            { key: 'property_r', label: 'cm_prop', type: 'property', row: 'cm_r', showIf: { dev_type: 'rgb' } },
+            { key: 'object_g', label: 'cm_g', type: 'object', row: 'cm_g', showIf: { dev_type: 'rgb' } },
+            { key: 'property_g', label: 'cm_prop', type: 'property', row: 'cm_g', showIf: { dev_type: 'rgb' } },
+            { key: 'object_b', label: 'cm_b', type: 'object', row: 'cm_b', showIf: { dev_type: 'rgb' } },
+            { key: 'property_b', label: 'cm_prop', type: 'property', row: 'cm_b', showIf: { dev_type: 'rgb' } },
             { key: 'ic_mode', label: 'cm_effects', type: 'select', default: 'cm', showIf: { dev_type: ['ic', 'megad'] }, options: [{ value: 'cm', label: 'cm_ic_cm' }, { value: 'wave', label: 'cm_ic_wave' }, { value: 'cm_wave', label: 'cm_ic_wave_fade' }, { value: 'shuffle', label: 'cm_ic_shuffle' }] },
             { key: 'object_md', label: 'cm_object', type: 'object', row: 'cm_md', showIf: { dev_type: ['ic', 'megad'] } },
             { key: 'property_md', label: 'cm_prop', type: 'property', row: 'cm_md', showIf: { dev_type: ['ic', 'megad'] } },
@@ -102,7 +99,7 @@ const MusicplayerWidget = {
         autoplay: false, shuffle: false, repeat: 'off', volume: 50, show_playlist: true, show_spectrum: true,
         color_mode: 'dominant', color_object: '', color_property: '', bands: '',
         color_threshold: 90, color_interval: 500,
-        cm_group: 'tuya', dev_type: 'ports', port_ch: '3', port_mode: 'freq', port_out: 'onoff', cm_on_level: 90, wr_mode: 'hex', ic_mode: 'cm', object_md: '', property_md: '', cm_pixels: 100, end_action: 'off', cm_use_vol: false,
+        cm_group: 'tuya', dev_type: 'ports', port_ch: '3', port_mode: 'freq', port_out: 'onoff', cm_on_level: 90, ic_mode: 'cm', object_md: '', property_md: '', cm_pixels: 100, end_action: 'off', cm_use_vol: false,
         width: 320, height: 425,
     },
     template: `
@@ -260,7 +257,7 @@ const MusicplayerWidget = {
             if (this.widget.cm_group === 'zigbee') return 'zigbee';
             return this.cmDevice;
         },
-        cmWrite() { return this.opt(this.widget.wr_mode, ['hex', 'rgb'], 'hex'); },
+        cmWrite() { return 'rgb'; },
         cmChannelCount() {
             const n = parseInt(String(this.widget.port_ch), 10);
             return n >= 3 && n <= 8 ? n : 3;
@@ -1088,7 +1085,6 @@ const MusicplayerWidget = {
                 return out;
             }
             if (this.cmDevice === 'ic' || this.cmDevice === 'megad') { add(this.widget.object_md, this.widget.property_md); return out; }
-            if (this.cmWrite === 'hex') { add(this.widget.object_hex, this.widget.property_hex); return out; }
             ['r', 'g', 'b'].forEach(c => add(this.widget['object_' + c], this.widget['property_' + c]));
             return out;
         },

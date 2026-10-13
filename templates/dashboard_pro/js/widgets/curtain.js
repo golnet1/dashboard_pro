@@ -16,6 +16,8 @@ const CurtainWidget = {
             { key: 'cover_type', label: 'field_cover_type', type: 'select', row: 'cover_row', options: [{value:'gate',label:'cover_gate'},{value:'blinds',label:'cover_blinds'},{value:'curtain',label:'cover_curtain'}] },
             { key: 'gate_side', label: 'field_gate_side', type: 'select', row: 'cover_row', showIf: { cover_type: 'gate' }, options: [{value:'left',label:'gate_side_left'},{value:'right',label:'gate_side_right'}] },
             { key: 'help', type: 'info', text: 'field_cover_hint' },
+            { key: 'icon_close', label: 'field_cover_icon_close', type: 'icon_picker', row: 'cover_btn_row' },
+            { key: 'icon_open', label: 'field_cover_icon_open', type: 'icon_picker', row: 'cover_btn_row' },
             { key: 'cover_image', label: 'field_cover_image', type: 'text', row: 'cover_img_row', placeholder: 'https://example.com/day.jpg' },
             { key: 'cover_image_night', label: 'field_cover_image_night', type: 'text', row: 'cover_img_row', placeholder: 'https://example.com/night.jpg' },
             { key: 'object', label: 'field_object', type: 'object', row: 'obj_prop' },
@@ -111,9 +113,9 @@ const CurtainWidget = {
                 </div>
                 <div class="ct-controls">
                     <button type="button" class="ct-ctl" :disabled="aliveDisabled" @click="stepDown" aria-label="-"><i class="fas fa-minus"></i></button>
-                    <button type="button" class="ct-ctl" :disabled="aliveDisabled" @click="openFull" :title="t('cover_open')"><i class="fas fa-arrow-up"></i></button>
+                    <button type="button" class="ct-ctl" :disabled="aliveDisabled" @click="closeFull" :title="t('cover_close')"><i :class="widget.icon_close || 'fas fa-arrow-down'"></i></button>
                     <button type="button" class="ct-ctl" :disabled="aliveDisabled" @click="stopMove" :title="t('cover_stop')"><i class="fas fa-stop"></i></button>
-                    <button type="button" class="ct-ctl" :disabled="aliveDisabled" @click="closeFull" :title="t('cover_close')"><i class="fas fa-arrow-down"></i></button>
+                    <button type="button" class="ct-ctl" :disabled="aliveDisabled" @click="openFull" :title="t('cover_open')"><i :class="widget.icon_open || 'fas fa-arrow-up'"></i></button>
                     <button type="button" class="ct-ctl" :disabled="aliveDisabled" @click="stepUp" aria-label="+"><i class="fas fa-plus"></i></button>
                 </div>
             </div>

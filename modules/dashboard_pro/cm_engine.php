@@ -107,16 +107,20 @@ function cmFrameHex($frame)
    (raw, растянутый 0-255). Кадра нет - мягкая ротация по времени (fallback). */
 function cmMusic($raw, $frame, $step = 0, $degPerStep = 1.5)
 {
+    /* Движок синтетический - своей звуковой карты нет, поэтому тон всегда
+       едет по времени, а спектр кадра лишь подмешивает свой оттенок. Так
+       цвета меняются и когда кадров от браузера нет, и на тихом треке. */
+    $base = fmod($step * $degPerStep, 360);
     $bands = (is_array($raw) && count($raw)) ? $raw : $frame;
     $n = is_array($bands) ? count($bands) : 0;
-    if (!$n) return array('hue' => fmod($step * $degPerStep, 360), 'loud' => 45, 'peak' => 0, 'max' => 0, 'live' => false);
+    if (!$n) return array('hue' => $base, 'loud' => 45, 'peak' => 0, 'max' => 0, 'live' => false);
     $peak = 0; $max = -1;
     for ($i = 0; $i < $n; $i++) {
         $v = (int)$bands[$i];
         if ($v > $max) { $max = $v; $peak = $i; }
     }
     return array(
-        'hue'  => ($peak / max(1, $n)) * 320,
+        'hue'  => fmod($base + ($peak / max(1, $n)) * 320, 360),
         'loud' => max(0, min(100, $max * 100 / 255)),
         'peak' => $peak,
         'max'  => $max,
@@ -179,7 +183,13 @@ function cmApplyEnd($targets, $dev, $wr, $out, $pixels, $end, $devType = null)
         cmPortsTick($targets, $frame, $frame, 'level', 1, $sent);
         return;
     }
-    if ($dev === 'megad') {
+    if ($dev === 'megad' && $devType === 'rgb') {
+        $c = $on ? array(255, 255, 255) : array(0, 0, 0);
+        $sent = array();
+        cmPortsTick($targets, $c, $c, 'level', 1, $sent);
+        return;
+    }
+    if ($dev === 'megad' && $devType !== 'rgb') {
         $c = $on ? array(255, 255, 255) : array(0, 0, 0);
         $frame = array_fill(0, max(1, $pixels), $c);
         setGlobal($targets[0]['object'] . '.' . $targets[0]['property'], cmFrameHex($frame));
@@ -878,6 +888,12 @@ while (true) {
             /* MegaD с обычными лампами: тип выхода берём из модуля MegaD
                (SW -> 0/1, PWM -> 0-255), своей генерации нет */
             cmPortsTick($targets, $lastFrame, $lastRaw, $out, $onLevel, $lastSent);
+        } elseif ($devType === 'rgb') {
+            /* MegaD + RGB-лампа = три PWM-порта как у простых ламп: R/G/B
+               (0-255) батчем. Диммеру отдаём «сырой» уровень, raw = кадр. */
+            $rgb = cmHslToRgb($mu['hue'], 100, cmLight($mu));
+            $frame = array(cmClamp8($rgb[0]), cmClamp8($rgb[1]), cmClamp8($rgb[2]));
+            cmPortsTick($targets, $frame, $frame, 'level', 1, $lastSent);
         } else {
             /* адресная лента: музыкальный кадр (тон из спектра, яркость по динамике) */
             $frame = cmMusicFrame($pixels, $mu, $step);
