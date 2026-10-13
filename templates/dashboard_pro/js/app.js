@@ -1730,7 +1730,7 @@ function loadScript(src, version) {
            reached the panel. The token changes on every install, and the base follows the
            module, so a module update also refreshes the widgets. */
         const WIDGET_TOKEN_KEY = 'dp_widget_token';
-        const WIDGET_TOKEN_BASE = 272;
+        const WIDGET_TOKEN_BASE = 275;
         function widgetToken() {
             let token = 0;
             try { token = parseInt(localStorage.getItem(WIDGET_TOKEN_KEY) || '0', 10) || 0; } catch (e) { token = 0; }
@@ -2878,7 +2878,7 @@ if (f.key) {
             if (obj) loadIconProperties();
         });
         // Generic watcher for any object_* fields (alive, status, current, target, etc.)
-        const extraObjectKeys = ['object_alive', 'object_status', 'object_current', 'object_target', 'object_level', 'state_object', 'object_p1', 'object_p2', 'object_p3', 'object_p4', 'object_p5', 'object_p6', 'object_p7', 'object_p8', 'object_hex', 'object_r', 'object_g', 'object_b', 'object_md'];
+        const extraObjectKeys = ['object_alive', 'object_status', 'object_current', 'object_target', 'object_level', 'state_object', 'object_p1', 'object_p2', 'object_p3', 'object_p4', 'object_p5', 'object_p6', 'object_p7', 'object_p8', 'object_hex', 'object_r', 'object_g', 'object_b', 'object_md', 'object_tv_on'];
         extraObjectKeys.forEach(key => {
             watch(() => editWidgetForm.value?.[key], async (obj) => {
                 if (!obj) { extraProperties.value[key] = []; return; }

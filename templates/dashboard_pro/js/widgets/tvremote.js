@@ -18,7 +18,14 @@ const TvRemoteWidget = {
             { key: 'command_prefix', label: 'field_command_prefix', type: 'text', row: 'obj_prop', showIf: { send_mode: 'command' }, placeholder: 'ph_command_prefix' },
             { key: 'tv_ip', label: 'field_tv_ip', type: 'text', row: 'obj_prop', showIf: { send_mode: 'tv' }, placeholder: 'ph_tv_ip' },
             { key: 'tv_port', label: 'field_tv_port', type: 'text', row: 'obj_prop', showIf: { send_mode: 'tv' }, placeholder: '1925' },
-            { key: 'script', label: 'field_script', type: 'text', row: 'obj_prop', showIf: { send_mode: 'script' }, placeholder: 'ph_script' },
+            { key: 'script', label: 'field_script', type: 'script', row: 'obj_prop', showIf: { send_mode: 'script' } },
+            { key: 'tv_on_type', label: 'field_tv_on_action', type: 'select', row: 'tv_on_row', showIf: { send_mode: 'tv' }, options: [{value:'property',label:'field_property'},{value:'method',label:'field_method'},{value:'script',label:'opt_script'}] },
+            { key: 'tv_on_method_obj', label: 'field_object', type: 'method_object', row: 'tv_on_row', parent: 'tv_on_method', showIf: { send_mode: 'tv', tv_on_type: 'method' } },
+            { key: 'object_tv_on', label: 'field_object', type: 'object', row: 'tv_on_row', showIf: { send_mode: 'tv', tv_on_type: 'property' } },
+            { key: 'property_tv_on', label: 'field_property', type: 'property', row: 'tv_on_row', showIf: { send_mode: 'tv', tv_on_type: 'property' } },
+            { key: 'tv_on_method', label: 'field_method', type: 'method', row: 'tv_on_row', parent: 'tv_on_method', showIf: { send_mode: 'tv', tv_on_type: 'method' } },
+            { key: 'tv_on_script', label: 'field_script', type: 'script', row: 'tv_on_row', showIf: { send_mode: 'tv', tv_on_type: 'script' } },
+            { key: 'tv_on_param', label: 'field_param', type: 'text', row: 'tv_on_row', showIf: { send_mode: 'tv', tv_on_type: 'script' } },
             { key: 'codes', label: 'field_codes', type: 'textarea', rows: 6, placeholder: 'ph_codes' },
         ],
         advanced: [
@@ -32,7 +39,7 @@ const TvRemoteWidget = {
             { key: 'alive_timeout', label: 'field_alive_timeout', type: 'number', step: 1 },
         ],
     },
-    defaults: { icon: 'fas fa-tv', icon_type: 'icon', property: 'value', send_mode: 'property', codes: '', width: 300, height: 540, minWidth: 280, minHeight: 520 },
+    defaults: { icon: 'fas fa-tv', icon_type: 'icon', property: 'value', send_mode: 'property', tv_on_type: '', tv_on_param: '', codes: '', width: 300, height: 540, minWidth: 280, minHeight: 520 },
     template: `
         <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled }" :style="cardStyle" style="display:flex;flex-direction:column">
             <div class="widget-v-card__header">
@@ -113,6 +120,36 @@ const TvRemoteWidget = {
             const tv = { power: 'Power', info: 'Info', settings: 'Settings', menu: 'Menu', home: 'Home', input: 'Source', back: 'Back', ok: 'Confirm', up: 'CursorUp', down: 'CursorDown', left: 'CursorLeft', right: 'CursorRight', mute: 'Mute', 'vol+': 'VolumeUp', 'vol-': 'VolumeDown', 'ch+': 'ChannelStepUp', 'ch-': 'ChannelStepDown', '0': 'Digit0', '1': 'Digit1', '2': 'Digit2', '3': 'Digit3', '4': 'Digit4', '5': 'Digit5', '6': 'Digit6', '7': 'Digit7', '8': 'Digit8', '9': 'Digit9' };
             return tv[k] || k;
         },
+        async tvPowerOn(code) {
+            const type = this.widget.tv_on_type;
+            if (type === 'method') {
+                const parts = String(this.widget.tv_on_method || '').split('/');
+                const obj = (parts[0] || '').trim();
+                const method = (parts[1] || '').trim();
+                if (!obj || !method) return false;
+                await dpAPI('method/' + obj + '/' + method);
+                return true;
+            }
+            if (type === 'property') {
+                const obj = (this.widget.object_tv_on || '').trim();
+                const prop = (this.widget.property_tv_on || '').trim();
+                if (!obj || !prop) return false;
+                await dpAPI('setProperty?' + new URLSearchParams({ object: obj, property: prop, value: code }));
+                return true;
+            }
+            if (type === 'script') {
+                const script = (this.widget.tv_on_script || '').trim();
+                if (!script) return false;
+                const params = { key: code };
+                const param = (this.widget.tv_on_param || '').trim();
+                if (param) params.value = param;
+                const url = '/api.php/script/' + encodeURIComponent(script) + '?' + new URLSearchParams(params);
+                const res = await fetch(url);
+                if (!res.ok) console.error('scriptRun failed:', res.status);
+                return true;
+            }
+            return false;
+        },
         async press(k) {
             const code = this.codeFor(k);
             dpClientLog('tvremote', 'debug', 'press ' + k + ' -> ' + code + ' [' + (this.widget.send_mode || 'property') + ']');
@@ -122,6 +159,7 @@ const TvRemoteWidget = {
                     const res = await fetch(url);
                     if (!res.ok) console.error('scriptRun failed:', res.status);
                 } else if (this.widget.send_mode === 'tv') {
+                    if (k === 'power' && await this.tvPowerOn(code)) return;
                     const ip = (this.widget.tv_ip || '').trim();
                     if (!ip) return;
                     await dpAPI('tvKey?' + new URLSearchParams({ ip: ip, port: (this.widget.tv_port || '1925').trim(), key: code }));

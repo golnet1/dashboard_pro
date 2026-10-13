@@ -1050,6 +1050,7 @@ $frontend = array(
     'opt_script' => 'Script',
     'opt_panel' => 'Panel',
     'field_tv_ip' => 'TV IP',
+    'field_tv_on_action' => 'Action on power-on',
     'field_tv_port' => 'TV port',
     'field_script' => 'Script name',
     'field_param' => 'Param',

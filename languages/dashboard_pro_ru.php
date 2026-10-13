@@ -1050,6 +1050,7 @@ $frontend = array(
     'opt_script' => 'Сценарий',
     'opt_panel' => 'Панель',
     'field_tv_ip' => 'IP телевизора',
+    'field_tv_on_action' => 'Действие при включении',
     'field_tv_port' => 'Порт телевизора',
     'field_script' => 'Имя сценария',
     'field_param' => 'Параметр',
