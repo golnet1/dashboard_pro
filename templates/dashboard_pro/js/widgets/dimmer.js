@@ -156,8 +156,12 @@ hasSeparateLevel() {
                 } catch (e) { /* silent */ }
             }
             if (level !== null) this.level = Math.min(this.max, Math.max(this.min, level));
-            if (on !== null) this.isOn = on;
-            else if (level !== null) this.isOn = this.level > 0;
+            /* Свет на уровне выше нуля - лампа горит, даже если свойство-выключатель
+               не трогали: цветомузыка musicplayer поднимает яркость напрямую, а
+               кнопку при этом не переключает, и раньше индикатор так и оставался
+               «выключено». Выключатель тоже может включить (уровень ещё не задан). */
+            if (level !== null) this.isOn = on === true || this.level > 0;
+            else if (on !== null) this.isOn = on;
             const st = this.uiState();
             if (st) { st.level = this.level; st.isOn = this.isOn; }
         },

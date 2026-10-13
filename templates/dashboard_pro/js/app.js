@@ -1096,6 +1096,25 @@ function headerPanelSave() {
                 return registerWidgetComponent(type);
             } catch(e) { return null; }
         }
+        /* A widget writes an "Object/Method" address in fields it names itself: button keeps
+           it in "method", relay/dimmer/thermostat/rgb in "object_switch/on/off/color", curtain
+           in "object_open/close/stop", table in "callback_method". The method list of a field
+           is built from the object of that address, so the fields are collected from the
+           definition instead of a fixed list - a new widget then needs no change here. */
+        function methodParentsFor(type) {
+            const keys = [];
+            try {
+                const comp = getWidgetComponent(type);
+                if (comp && comp.fields) {
+                    for (const arr of Object.values(comp.fields)) {
+                        for (const f of (arr || [])) {
+                            if (f && f.type === 'method' && f.parent && keys.indexOf(f.parent) < 0) keys.push(f.parent);
+                        }
+                    }
+                }
+            } catch (e) {}
+            return keys;
+        }
         function getWidgetRows(type, tab) {
             const fields = getWidgetFields(type, tab);
             const rows = [];
@@ -1711,7 +1730,7 @@ function loadScript(src, version) {
            reached the panel. The token changes on every install, and the base follows the
            module, so a module update also refreshes the widgets. */
         const WIDGET_TOKEN_KEY = 'dp_widget_token';
-        const WIDGET_TOKEN_BASE = 266;
+        const WIDGET_TOKEN_BASE = 268;
         function widgetToken() {
             let token = 0;
             try { token = parseInt(localStorage.getItem(WIDGET_TOKEN_KEY) || '0', 10) || 0; } catch (e) { token = 0; }
@@ -2316,9 +2335,8 @@ if (f.key) {
                 const res = await dpAPI('properties?object_id=' + encodeURIComponent(w.object_info));
                 infoProperties.value = res.items || [];
             }
-            // Load methods for all method-type fields
-            const methodParents = ['method', 'object_switch', 'object_on', 'object_off', 'object_color'];
-            methodParents.forEach(key => {
+            // Load methods for all method-type fields of this widget
+            methodParentsFor(w.type).forEach(key => {
                 const obj = getMethodObj(w[key]);
                 if (obj) loadObjectMethods(obj);
             });
@@ -2457,6 +2475,9 @@ if (f.key) {
                 { field: 'object_on', alias: null },
                 { field: 'object_off', alias: null },
                 { field: 'object_color', alias: null },
+                { field: 'object_open', alias: null },
+                { field: 'object_close', alias: null },
+                { field: 'object_stop', alias: null },
             ];
             return fieldDefs.some(fd => {
                 let val = w[fd.field];
@@ -2484,6 +2505,9 @@ if (f.key) {
                 { field: 'object_on', alias: null, label: 'field_on', isMethod: true },
                 { field: 'object_off', alias: null, label: 'field_off', isMethod: true },
                 { field: 'object_color', alias: null, label: 'field_color', isMethod: true },
+                { field: 'object_open', alias: null, label: 'field_open_method', isMethod: true },
+                { field: 'object_close', alias: null, label: 'field_close_method', isMethod: true },
+                { field: 'object_stop', alias: null, label: 'field_stop_method', isMethod: true },
             ];
             for (const fd of fieldDefs) {
                 let val = w[fd.field];
@@ -2510,9 +2534,10 @@ if (f.key) {
                 'field_object': 'object', 'field_info': 'object_info', 'field_alive': 'object_alive',
                 'field_value': 'object_value', 'field_icon': 'icon_object', 'field_bg': 'bg_object',
                 'field_method': 'method', 'field_switch': 'object_switch', 'field_on': 'object_on',
-                'field_off': 'object_off', 'field_color': 'object_color'
+                'field_off': 'object_off', 'field_color': 'object_color',
+                'field_open_method': 'object_open', 'field_close_method': 'object_close', 'field_stop_method': 'object_stop'
             };
-            const methodLabels = ['field_method', 'field_switch', 'field_on', 'field_off', 'field_color'];
+            const methodLabels = ['field_method', 'field_switch', 'field_on', 'field_off', 'field_color', 'field_open_method', 'field_close_method', 'field_stop_method'];
             const aliases = { 'field_icon': 'iconObject', 'field_bg': 'bgObject' };
             for (const g of changeObjectGroups.value) {
                 if (!g.newObj || g.newObj === g.oldObj) continue;
@@ -2823,10 +2848,16 @@ if (f.key) {
             const res = await dpAPI('properties?object_id=' + encodeURIComponent(obj));
             infoProperties.value = res.items || [];
         });
-        // Load methods when any method parent (object_switch/on/off/color) changes
-        const methodParents = ['object_switch', 'object_on', 'object_off', 'object_color'];
-        methodParents.forEach(key => {
-            watch(() => editWidgetForm.value?.[key] ? getMethodObj(editWidgetForm.value[key]) : '', (obj) => {
+        // Load methods when the object of any method field (whatever the widget calls it) changes
+        watch(() => {
+            const f = editWidgetForm.value;
+            if (!f) return '';
+            return methodParentsFor(f.type).map(k => k + '=' + (f[k] || '')).join('|');
+        }, () => {
+            const f = editWidgetForm.value;
+            if (!f) return;
+            methodParentsFor(f.type).forEach(k => {
+                const obj = getMethodObj(f[k]);
                 if (obj) loadObjectMethods(obj);
             });
         });

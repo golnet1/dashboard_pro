@@ -201,7 +201,7 @@ const MusicplayerWidget = {
             pickerOpen: false, files: [], filesLoading: false, pickerError: '', picked: [], manualUrl: '',
             spectrum: new Array(24).fill(0), audioEl: null, actx: null, analyser: null, gainNode: null, graphDone: false,
             freqData: null, rafId: 0, lastColorAt: 0, sentColors: {}, saveTimer: null, keySeq: 0,
-            isAlive: true, availTimer: null, gestureArmed: false,
+            isAlive: true, availTimer: null, gestureArmed: false, wantPlay: false, netRetries: 0, retryTimer: 0, progressAt: 0, lastCt: -1,
             cmOn: false, cmEngineOn: false, cmTimer: 0, lastCmAt: 0, sentCm: {}, cmPending: [],
             cmPos: 0, cmHueD: 0, cmFast: null, cmSlow: null, cmBeatAt: 0,
             cmShuffled: false, cmRoll: [1, 1, 1], cmQueuedNext: false,
@@ -687,6 +687,7 @@ const MusicplayerWidget = {
             const el = new Audio();
             el.preload = 'metadata';
             el.addEventListener('ended', () => this.onEnded());
+            el.addEventListener('error', () => this.onMediaError());
             this.audioEl = el;
             return el;
         },
@@ -762,6 +763,11 @@ const MusicplayerWidget = {
             const el = this.ensureEl();
             const hasGraph = this.ensureGraph();
             this.resumeCtx();
+            this.wantPlay = true;
+            this.netRetries = 0;
+            this.cancelRetry();
+            this.progressAt = Date.now();
+            this.lastCt = -1;
             this.index = i;
             const src = this.srcUrl(this.tracks[i].src);
             /* The element is routed through WebAudio (the analyser feeds the spectrum
@@ -779,6 +785,8 @@ const MusicplayerWidget = {
         onPlaying() {
             this.unarmGesture();
             this.playing = true;
+            this.cancelRetry();
+            this.progressAt = Date.now();
             this.cmQueuedNext = false;
             this.startLoop();
             if (this.cmOn && !this.cmEngineOn) this.cmEngineStart();
@@ -787,6 +795,8 @@ const MusicplayerWidget = {
             const el = this.audioEl;
             if (el) { try { el.pause(); } catch (e) { } }
             this.playing = false;
+            this.wantPlay = false;
+            this.cancelRetry();
             this.stopLoop();
             /* пауза тоже останавливает звук, поэтому свет уходит в выбранное
                конечное состояние (off / on / keep), а не всегда гаснет */
@@ -800,6 +810,11 @@ const MusicplayerWidget = {
             this.resumeCtx();
             const el = this.audioEl;
             if (!el) return;
+            this.wantPlay = true;
+            this.netRetries = 0;
+            this.cancelRetry();
+            this.progressAt = Date.now();
+            this.lastCt = -1;
             const p = el.play();
             if (p && p.then) p.then(() => this.onPlaying()).catch(() => { this.playing = false; this.armGesture(); });
             else this.onPlaying();
@@ -808,6 +823,9 @@ const MusicplayerWidget = {
             const el = this.audioEl;
             if (el) { try { el.pause(); } catch (e) { } try { el.currentTime = 0; } catch (e) { } }
             this.playing = false;
+            this.wantPlay = false;
+            this.netRetries = 0;
+            this.cancelRetry();
             this.position = 0;
             this.duration = 0;
             this.liveStream = false;
@@ -861,6 +879,9 @@ const MusicplayerWidget = {
             this.position = ratio * this.duration;
         },
         onEnded() {
+            /* a broadcast that ends has lost its signal, not finished: the same
+               source is retried, a piece of a playlist moves on as before */
+            if (this.streamNow) { this.scheduleReconnect(); return; }
             this.playing = false;
             /* the engine keeps running across a playlist boundary - stopping it here
                would race the start of the next track and could leave the light dead.
@@ -872,6 +893,61 @@ const MusicplayerWidget = {
             if (this.repeatMode === 'one') { this.playIndex(this.index); return; }
             this.nextTrack();
         },
+        onMediaError() {
+            if (this.wantPlay) this.scheduleReconnect();
+        },
+        cancelRetry() {
+            if (this.retryTimer) { clearTimeout(this.retryTimer); this.retryTimer = 0; }
+        },
+        /* Сторож: играем, но позиция не двигается - значит поток встал,
+           а событие об ошибке не пришло (потеря сигнала у радио). */
+        watchdog() {
+            if (!this.wantPlay || this.retryTimer) return;
+            if (!this.progressAt) return;
+            if (Date.now() - this.progressAt > 8000) this.scheduleReconnect();
+        },
+        /* Не более трёх попыток подряд. Восстановилось (позиция пошла) -
+           счётчик сбрасывается в startLoop; не восстановилось за три попытки -
+           один раз объявляем через say, что источник недоступен. */
+        scheduleReconnect() {
+            if (!this.wantPlay || this.retryTimer) return;
+            if (this.netRetries >= 3) { this.giveUpSource(); return; }
+            this.retryTimer = setTimeout(() => {
+                this.retryTimer = 0;
+                this.reconnectAttempt();
+            }, 1500);
+        },
+        reconnectAttempt() {
+            if (!this.wantPlay) return;
+            const el = this.audioEl;
+            if (!el) return;
+            this.netRetries++;
+            const resumePos = this.liveStream ? 0 : (this.position || 0);
+            this.progressAt = Date.now();
+            this.lastCt = -1;
+            try { el.load(); } catch (e) { }
+            if (resumePos > 0) {
+                const restore = () => { try { if (el.duration && isFinite(el.duration)) el.currentTime = Math.min(resumePos, Math.max(0, el.duration - 0.5)); } catch (e) { } };
+                el.addEventListener('loadedmetadata', restore, { once: true });
+            }
+            const p = el.play();
+            if (p && p.then) p.then(() => this.onPlaying()).catch(() => this.scheduleReconnect());
+            else this.onPlaying();
+        },
+        giveUpSource() {
+            const title = this.currentTitle || '';
+            this.sayUnavailable(title);
+            this.unarmGesture();
+            this.stop();
+        },
+        sayUnavailable(name) {
+            let msg = this.t('mu_source_unavailable');
+            if (name) msg += ': ' + name;
+            try {
+                const p = dpAPI('say?' + new URLSearchParams({ text: msg }));
+                if (p && p.catch) p.catch(() => { });
+            } catch (e) { }
+        },
         startLoop() {
             if (this.rafId) return;
             const el = this.audioEl;
@@ -879,9 +955,19 @@ const MusicplayerWidget = {
             const step = () => {
                 this.rafId = 0;
                 if (!this.playing) return;
-                this.position = el.currentTime || 0;
+                const ct = el.currentTime || 0;
+                if (ct !== this.lastCt) {
+                    this.progressAt = Date.now();
+                    if (this.lastCt >= 0 && ct > this.lastCt) {
+                        if (this.netRetries) this.netRetries = 0;
+                        if (this.retryTimer) { clearTimeout(this.retryTimer); this.retryTimer = 0; }
+                    }
+                    this.lastCt = ct;
+                }
+                this.position = ct;
                 this.duration = el.duration && isFinite(el.duration) ? el.duration : 0;
                 this.liveStream = el.duration === Infinity;
+                this.watchdog();
                 this.sample();
                 this.rafId = requestAnimationFrame(step);
             };

@@ -765,6 +765,19 @@ class dashboard_pro extends module
             return ['success' => true, 'result' => $result];
         }
 
+        if ($params['request'][0] == 'say') {
+            /* Объявление из виджета (музыкальный плеер сообщает, что источник
+               недоступен). Текст приходит уже переведённым на язык клиента. */
+            $login = $this->getUserLogin();
+            if (!$login) return ['error' => LANG_DASHBOARD_PRO_LOGIN_REQUIRED];
+            $text = trim((string)($params['text'] ?? ''));
+            if ($text === '') return ['error' => 'text required'];
+            $text = function_exists('mb_substr') ? mb_substr($text, 0, 500) : substr($text, 0, 500);
+            $level = (int)($params['level'] ?? 0);
+            say($text, $level, 0, 'dashboard_pro');
+            return ['success' => true];
+        }
+
         if ($params['request'][0] == 'users') {
             $login = $this->getUserLogin();
             $users = SQLSelect("SELECT ID, USERNAME, NAME FROM users WHERE USERNAME != '" . DBSafe($login) . "' ORDER BY USERNAME");
@@ -2184,7 +2197,7 @@ function widgetUsageInfo($type)
 
     function widgetRefKeys()
     {
-        return array('object', 'level_object', 'object_info', 'object_on', 'object_off', 'object_switch', 'object_color', 'mode_object', 'status_object', 'power_object', 'value_object', 'alarm_object', 'notify_object', 'link_object');
+        return array('object', 'level_object', 'object_info', 'object_on', 'object_off', 'object_switch', 'object_color', 'object_open', 'object_close', 'object_stop', 'callback_method', 'mode_object', 'status_object', 'power_object', 'value_object', 'alarm_object', 'notify_object', 'link_object');
     }
 
     function auditIssue($panel, $id, $type, $title, $soft, $reasons, $path = null)
