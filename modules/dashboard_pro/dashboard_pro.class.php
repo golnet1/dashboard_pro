@@ -253,6 +253,34 @@ class dashboard_pro extends module
                     $mainPage = !empty($settings['mainPageRedirect']);
                     unset($settings['mainPageRedirect']);
                 }
+                if (is_array($settings)) {
+                    /* Список модулей озвучки - производный от наличия файлов на
+                       диске, в настройках ему делать нечего. А сам выбор чиним
+                       под то, что реально установлено: сохранённое имя движка с
+                       чужого сайта здесь может не иметь модуля. */
+                    unset($settings['ttsModules']);
+                    $engines = $this->ttsEngines();
+                    if (!$engines) {
+                        unset($settings['ttsEngine']);
+                    } else {
+                        $choice = isset($settings['ttsEngine']) ? (string)$settings['ttsEngine'] : '';
+                        if (!isset($engines[$choice])) {
+                            $choice = isset($engines['piper_tts']) ? 'piper_tts' : 'sanotts';
+                        }
+                        $settings['ttsEngine'] = $choice;
+                    }
+                }
+                if (is_array($settings)) {
+                    /* Уровень оповещения и раскраска уровней - настройки центра
+                       уведомлений: порог отсекает малозначимое, список уровней
+                       задаёт цвет и иконку строки. */
+                    if (isset($settings['notifyLevel'])) {
+                        $settings['notifyLevel'] = max(0, (int)$settings['notifyLevel']);
+                    }
+                    if (isset($settings['levels'])) {
+                        $settings['levels'] = $this->normalizeNotifLevels($settings['levels']);
+                    }
+                }
                 $this->saveDashboardSettings($settings);
                 $this->dLog('settings saved');
                 $out = ['success' => true];
@@ -292,10 +320,24 @@ class dashboard_pro extends module
                     'src' => '/templates/vosk/js/vosk.js?' . filemtime($voskPrepend),
                 ];
             }
-            $piperPrepend = DIR_MODULES . 'piper_tts/prepend.php';
-            $piperJs = DIR_TEMPLATES . 'piper_tts/js/piper_tts.js';
-            if (is_file($piperPrepend) && is_file($piperJs)) {
-                $out['piper_tts'] = ['src' => '/templates/piper_tts/js/piper_tts.js?' . filemtime($piperJs)];
+            /* Озвучку в браузере даёт один из модулей синтеза речи. Если стоят
+               оба, выбор лежит в настройках дашборда (по умолчанию Piper); если
+               только один, берётся он, что бы ни было записано в настройках. */
+            $engines = $this->ttsEngines();
+            if ($engines) {
+                $engine = $this->ttsEngineChoice();
+                $out['tts'] = [
+                    'engine' => $engine,
+                    'src' => $engines[$engine],
+                    'wsPort' => $this->ttsWsPort(),
+                ];
+                if ($engine === 'sanotts') {
+                    /* Плеер sanoTTS берёт порт сокета и терминал вкладки из
+                       глобалов, которые его prepend.php пишет в обычную
+                       страницу. Страницу дашборда строит он сам, поэтому
+                       значения отдаём в ответе, а выставит их app.js. */
+                    $out['tts']['terminal'] = $this->voiceTerminal();
+                }
             }
             return $out;
         }
@@ -676,7 +718,7 @@ class dashboard_pro extends module
                 }
                 return ['success' => true];
             }
-            $items = SQLSelect("SELECT * FROM module_notifications WHERE IS_READ=0 ORDER BY ADDED DESC LIMIT 50");
+            $notif_rows = SQLSelect("SELECT * FROM module_notifications WHERE IS_READ=0 ORDER BY ADDED DESC LIMIT 50");
             $login = $this->getUserLogin();
             $last_shout = 0;
             if ($login) {
@@ -685,25 +727,51 @@ class dashboard_pro extends module
             if (!$last_shout && $session && !empty($session->data['DASHBOARD_PRO_LAST_SHOUT'])) {
                 $last_shout = (int)$session->data['DASHBOARD_PRO_LAST_SHOUT'];
             }
-            $shout_where = "MEMBER_ID=0 AND ID > $last_shout";
-            $shouts = SQLSelect("SELECT ID, MESSAGE, ADDED FROM shouts WHERE $shout_where ORDER BY ADDED DESC LIMIT 20");
-            $notif_total = SQLSelectOne("SELECT COUNT(*) as CNT FROM module_notifications WHERE IS_READ=0");
-            $shout_total = SQLSelectOne("SELECT COUNT(*) as CNT FROM shouts WHERE $shout_where");
-            $unread_total = (int)($notif_total['CNT'] ?? 0) + (int)($shout_total['CNT'] ?? 0);
+            /* В «колокольчик» идёт читаемая информация: уведомления модулей и
+               объявления системы (MEMBER_ID=0) - скажем, события узлов связи.
+               Реплики чат-бота opencode уведомлениями не считаются: его ответы
+               не должны сыпаться в колокольчик, им место в чате. Сообщения чата
+               шлются с member_id пользователя, поэтому под MEMBER_ID=0 и так не
+               попадают. */
+            $shout_where = "MEMBER_ID=0 AND SOURCE<>'opencode' AND ID > $last_shout";
+            $shouts = SQLSelect("SELECT ID, MESSAGE, ADDED, IMPORTANCE FROM shouts WHERE $shout_where ORDER BY ADDED DESC LIMIT 20");
             $computer_name = gg('site_title');
             if (!$computer_name) {
                 $computer_name = LANG_DASHBOARD_PRO_ALICE;
             }
+            /* Порог и раскраска берутся из личных настроек: чужой выбор уровня
+               не должен менять то, что видит этот пользователь. Уровень строки -
+               это PRIORITY обычных уведомлений и IMPORTANCE сообщений чата. */
+            $nsettings = $this->loadDashboardSettings();
+            $notify_level = isset($nsettings['notifyLevel']) ? max(0, (int)$nsettings['notifyLevel']) : 0;
+            $levels = $this->normalizeNotifLevels($nsettings['levels'] ?? null);
+            $items = array();
+            foreach ($notif_rows as $n) {
+                $lvl = (int)($n['PRIORITY'] ?? 0);
+                if ($lvl < $notify_level) continue;
+                $style = $this->notifLevelStyle($lvl, $levels, $n['TYPE'] ?? 'info');
+                $n['LEVEL'] = $lvl;
+                $n['COLOR'] = $style['color'];
+                $n['ICON'] = $style['icon'];
+                $items[] = $n;
+            }
             foreach ($shouts as $s) {
+                $lvl = (int)($s['IMPORTANCE'] ?? 0);
+                if ($lvl < $notify_level) continue;
+                $style = $this->notifLevelStyle($lvl, $levels, 'info');
                 $items[] = array(
                     'ID' => 'shout_' . $s['ID'],
                     'MODULE_NAME' => $computer_name,
                     'MESSAGE' => $s['MESSAGE'],
                     'TYPE' => 'info',
                     'IS_READ' => 0,
-                    'ADDED' => $s['ADDED']
+                    'ADDED' => $s['ADDED'],
+                    'LEVEL' => $lvl,
+                    'COLOR' => $style['color'],
+                    'ICON' => $style['icon']
                 );
             }
+            $unread_total = count($items);
             usort($items, function($a, $b) {
                 return strcmp($b['ADDED'] ?? '', $a['ADDED'] ?? '');
             });
@@ -2953,7 +3021,122 @@ function widgetUsageInfo($type)
     {
         $out = $this->loadDashboardSettings();
         $out['mainPageRedirect'] = $this->mainPageRedirectState()['enabled'] ? 1 : 0;
+        /* Список установленных модулей озвучки отдаём в интерфейс, чтобы поле
+           выбора показывало только их. Поле серое, когда модуль один: выбирать
+           не из чего, а второй вариант появится, как только его поставят. */
+        $list = array();
+        foreach ($this->ttsEngines() as $key => $src) {
+            $list[] = array('value' => $key, 'label' => ($key === 'sanotts') ? 'sanoTTS' : 'Piper TTS');
+        }
+        $out['ttsModules'] = $list;
+        $out['ttsEngine'] = $this->ttsEngineChoice($out);
+        /* Центр уведомлений: порог показа и раскраска уровней. Список уровней
+           всегда отдаём непустым - иначе окно настроек открывалось бы без единой
+           строки, и добавить уровень было бы не от чего. */
+        $out['notifyLevel'] = isset($out['notifyLevel']) ? max(0, (int)$out['notifyLevel']) : 0;
+        $out['levels'] = $this->normalizeNotifLevels(isset($out['levels']) ? $out['levels'] : null);
         return $out;
+    }
+
+    /* --- Уровни уведомлений -------------------------------------------------
+
+       Как в mboard: у каждого уровня свой цвет и иконка, а "уровень оповещения"
+       задаёт порог - строки ниже него в центр уведомлений не попадают. Набор по
+       умолчанию повторяет цвета светофора: чем важнее, тем "горячее". */
+
+    function defaultNotifLevels()
+    {
+        return array(
+            array('level' => 0, 'color' => '#607d8b', 'icon' => 'fas fa-bell'),
+            array('level' => 1, 'color' => '#4caf50', 'icon' => 'fas fa-bell'),
+            array('level' => 2, 'color' => '#ff9800', 'icon' => 'fas fa-bell'),
+            array('level' => 3, 'color' => '#f44336', 'icon' => 'fas fa-bell'),
+        );
+    }
+
+    function normalizeNotifLevels($levels)
+    {
+        if (!is_array($levels)) return $this->defaultNotifLevels();
+        $out = array();
+        foreach ($levels as $l) {
+            if (!is_array($l)) continue;
+            $lvl = isset($l['level']) ? (int)$l['level'] : 0;
+            if ($lvl < 0) $lvl = 0;
+            $color = isset($l['color']) ? trim((string)$l['color']) : '';
+            if (!preg_match('/^#[0-9a-fA-F]{3,8}$/', $color)) $color = '#607d8b';
+            $icon = isset($l['icon']) ? trim((string)$l['icon']) : '';
+            $icon = trim(preg_replace('/[^a-zA-Z0-9_\-\s]/', '', $icon));
+            if ($icon === '') $icon = 'fas fa-bell';
+            $out[] = array('level' => $lvl, 'color' => $color, 'icon' => $icon);
+        }
+        if (empty($out)) return $this->defaultNotifLevels();
+        return $out;
+    }
+
+    /* Цвет и иконка для строки: берём самый "старший" уровень, не превышающий
+       уровень строки. Если список уровней пуст, остаётся цвет по типу. */
+    function notifLevelStyle($level, $levels, $type = 'info')
+    {
+        $best = null;
+        foreach ($levels as $l) {
+            if ((int)$l['level'] <= $level && ($best === null || (int)$l['level'] > (int)$best['level'])) {
+                $best = $l;
+            }
+        }
+        if ($best) return array('color' => $best['color'], 'icon' => $best['icon']);
+        $map = array('danger' => '#f44336', 'error' => '#f44336', 'warning' => '#ff9800', 'success' => '#4caf50', 'info' => '#2196f3');
+        return array('color' => isset($map[$type]) ? $map[$type] : '#2196f3', 'icon' => 'fas fa-bell');
+    }
+
+    /* --- Модули озвучки в браузере ------------------------------------------
+
+       Плеер фраз даёт либо Piper, либо sanoTTS. Наличие модуля определяем по
+       тем же двум файлам, по которым его подключает ядро: prepend.php в
+       modules/<мод> и js в templates/<мод>/js. Piper идёт первым, поэтому он и
+       выбор по умолчанию. */
+
+    function ttsEngines()
+    {
+        $engines = array();
+        $piperPrepend = DIR_MODULES . 'piper_tts/prepend.php';
+        $piperJs = DIR_TEMPLATES . 'piper_tts/js/piper_tts.js';
+        if (is_file($piperPrepend) && is_file($piperJs)) {
+            $engines['piper_tts'] = '/templates/piper_tts/js/piper_tts.js?' . filemtime($piperJs);
+        }
+        $sanoPrepend = DIR_MODULES . 'sanotts/prepend.php';
+        $sanoJs = DIR_TEMPLATES . 'sanotts/js/sanotts.js';
+        if (is_file($sanoPrepend) && is_file($sanoJs)) {
+            $engines['sanotts'] = '/templates/sanotts/js/sanotts.js?' . filemtime($sanoJs);
+        }
+        return $engines;
+    }
+
+    function ttsEngineChoice($settings = null)
+    {
+        $engines = $this->ttsEngines();
+        if (!$engines) return '';
+        if ($settings === null) $settings = $this->loadDashboardSettings();
+        $choice = isset($settings['ttsEngine']) ? (string)$settings['ttsEngine'] : '';
+        if ($choice !== '' && isset($engines[$choice])) return $choice;
+        return isset($engines['piper_tts']) ? 'piper_tts' : 'sanotts';
+    }
+
+    function ttsWsPort()
+    {
+        return (defined('WEBSOCKETS_PORT') && (int)WEBSOCKETS_PORT > 0) ? (int)WEBSOCKETS_PORT : 8001;
+    }
+
+    function voiceTerminal()
+    {
+        global $session;
+        if (is_object($session) && isset($session->data['TERMINAL'])) {
+            return (string)$session->data['TERMINAL'];
+        }
+        if (isset($_SESSION['DATA']) && is_string($_SESSION['DATA'])) {
+            $d = @unserialize($_SESSION['DATA'], array('allowed_classes' => false));
+            if (is_array($d) && isset($d['TERMINAL'])) return (string)$d['TERMINAL'];
+        }
+        return '';
     }
 
     function mainPageHtaccessFile()

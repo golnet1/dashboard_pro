@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Ubuntu">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Arimo:400,600,700">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700">
-    <link rel="stylesheet" href="css/app.css?v=161">
+    <link rel="stylesheet" href="css/app.css?v=163">
     <link rel="stylesheet" href="css/leaflet.css?v=1">
     <script src="js/lib/vue.global.prod.js"></script>
 <style>
@@ -130,7 +130,7 @@
                                             <div class="notif-dropdown__subtitle">{{ n.MODULE_NAME }}</div>
                                         </div>
                                         <div class="notif-dropdown__meta">
-                                            <i class="fas fa-bell" :style="{ color: n.TYPE === 'danger' ? '#f44336' : n.TYPE === 'warning' ? '#ff9800' : '#2196f3' }"></i>
+                                            <i :class="n.ICON || 'fas fa-bell'" :style="{ color: n.COLOR || (n.TYPE === 'danger' ? '#f44336' : n.TYPE === 'warning' ? '#ff9800' : '#2196f3') }"></i>
                                             <span class="notif-dropdown__time">{{ n.ADDED ? n.ADDED.slice(11, 16) : '' }}</span>
                                         </div>
                                     </div>
@@ -199,6 +199,9 @@
                                 <div class="user-menu__divider"></div>
                                 <div class="user-menu__item" v-if="isAdmin" @click="userMenuOpen = false; showSettingsPanel = true; showWidgetEditorPanel = false; showHeaderPanel = false">
                                     <i class="fas fa-cog"></i> {{ t('settings') }}
+                                </div>
+                                <div class="user-menu__item" @click="userMenuOpen = false; openNotifSettings()">
+                                    <i class="fas fa-bell"></i> {{ t('notifications_settings') }}
                                 </div>
                                 <div class="user-menu__item" v-if="isAdmin" @click="userMenuOpen = false; openHeaderSettings()">
                                     <i class="fas fa-heading"></i> {{ t('header_settings') }}
@@ -328,6 +331,15 @@
                                             <div class="v-list-item__content py-0">
                                                 <div class="v-list-item__title">{{ t('main_page_redirect') }}</div>
                                                 <div class="v-list-item__subtitle">{{ t('main_page_redirect_desc') }}</div>
+                                            </div>
+                                        </div>
+                                        <div class="v-list-item theme--dark" v-if="(settings.ttsModules || []).length">
+                                            <div class="v-list-item__content py-0">
+                                                <div class="v-list-item__title">{{ t('tts_engine') }}</div>
+                                                <div class="v-list-item__subtitle mb-2">{{ t('tts_engine_desc') }}</div>
+                                                <select v-model="settings.ttsEngine" @change="settingsChanged()" :disabled="(settings.ttsModules || []).length < 2" :style="{ opacity: (settings.ttsModules || []).length < 2 ? 0.5 : 1, cursor: (settings.ttsModules || []).length < 2 ? 'not-allowed' : 'pointer' }" style="background:#1e1e1e;border:1px solid rgba(255,255,255,.24);border-radius:4px;color:#fff;outline:none;width:100%;padding:8px;font-size:14px;box-sizing:border-box">
+                                                    <option v-for="m in (settings.ttsModules || [])" :key="m.value" :value="m.value">{{ m.label }}</option>
+                                                </select>
                                             </div>
                                         </div>
                                         <div class="v-list-item theme--dark">
@@ -2179,7 +2191,7 @@
         </div>
 
         <!-- Icon Picker -->
-        <div class="modal-overlay" v-if="showIconPicker" @click.self="showIconPicker = false" style="background:rgba(0,0,0,.6)">
+        <div class="modal-overlay" v-if="showIconPicker" @click.self="showIconPicker = false" style="background:rgba(0,0,0,.6);z-index:1200">
             <div class="modal" style="max-width:900px;width:70%;min-height:60vh;max-height:80vh;display:flex;flex-direction:column;background:rgba(48,48,48,.92);color:#fff;border-radius:8px;overflow:hidden">
                 <div class="modal-header" style="padding:.75rem 1rem;border-bottom:1px solid rgba(255,255,255,.12);display:flex;align-items:center;flex-shrink:0">
                     <h3 style="font-size:1rem;font-weight:500;flex:1;margin:0">{{ t('select_icon') }}</h3>
@@ -2519,7 +2531,7 @@
                 <div class="modal-body" style="text-align:center;padding:2rem 1.5rem">
                     <i class="fas fa-chart-line" style="font-size:3rem;color:var(--primary);margin-bottom:1rem"></i>
                     <h3 style="margin-bottom:.3rem">Dashboard Pro</h3>
-                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 01.19.26</p>
+                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 01.20.1</p>
                     <p style="color:var(--text-secondary);font-size:.8rem">{{ t('app_desc') }}</p>
                     <div class="about-links" style="margin-top:1rem;font-size:.85rem;color:var(--text-secondary);line-height:1.8">
                         <div>{{ t('about_telegram') }}: <a href="https://t.me/+9ZFQaxs_Ukw4NmMy" target="_blank" rel="noopener">Telegram</a></div>
@@ -2536,6 +2548,35 @@
                 </div>
             </div>
         </div>
+
+        <!-- ===== Notification settings modal ===== -->
+        <div class="modal-overlay" v-if="showNotifSettings" @click.self="showNotifSettings = false">
+            <div class="modal" style="max-width:700px">
+                <div class="modal-header"><h3>{{ t('notifications_settings') }}</h3><button class="modal-close" @click="showNotifSettings = false">&times;</button></div>
+                <div class="modal-body">
+                    <div class="notif-set__field">
+                        <label>{{ t('notify_level') }}</label>
+                        <input type="number" min="0" v-model.number="settings.notifyLevel" @change="settingsChanged()" style="background:#1e1e1e;border:1px solid rgba(255,255,255,.24);border-radius:4px;color:#fff;outline:none;width:110px;padding:8px;font-size:14px;box-sizing:border-box">
+                        <div class="notif-set__hint">{{ t('notify_level_desc') }}</div>
+                    </div>
+                    <div class="notif-set__levels-head">
+                        <span>{{ t('levels') }}</span>
+                        <button type="button" class="notif-set__add" @click="addNotifLevel()" :title="t('add')"><i class="fas fa-plus"></i></button>
+                    </div>
+                    <div class="notif-set__row" v-for="(l, i) in (settings.levels || [])" :key="i">
+                        <i class="notif-set__preview" :class="l.icon || 'fas fa-bell'" :style="{ color: l.color || '#fff' }"></i>
+                        <label class="notif-set__lbl">{{ t('level') }}</label>
+                        <input class="notif-set__num" type="number" min="0" v-model.number="l.level" @change="settingsChanged()">
+                        <input class="notif-set__color" type="color" v-model="l.color" @change="settingsChanged()" :title="t('color')">
+                        <button type="button" class="notif-set__iconbtn" @click="openIconPicker('nl:' + i)" :title="t('pick_icon')"><i :class="l.icon || 'fas fa-bell'"></i><span>{{ l.icon || 'fas fa-bell' }}</span></button>
+                        <button type="button" class="notif-set__del" @click="removeNotifLevel(i)" :title="t('delete')"><i class="far fa-trash-alt"></i></button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-primary" @click="showNotifSettings = false">{{ t('close') }}</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="js/dpdialog.js?v=1"></script>
@@ -2547,6 +2588,6 @@
 <script src="js/lib/hls.min.js?v=1"></script>
     <script src="js/dpbuilder.js?v=74"></script>
     <script src="js/dpbuilder-ui.js?v=64"></script>
-    <script src="js/app.js?v=436"></script>
+    <script src="js/app.js?v=439"></script>
 </body>
 </html>

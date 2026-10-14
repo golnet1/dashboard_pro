@@ -282,6 +282,7 @@ const widgetUsage = computed(() => {
         const showHeaderPanel = ref(false);
         const showAddPanel = ref(false);
         const showAbout = ref(false);
+        const showNotifSettings = ref(false);
         const showExportDialog = ref(false);
         const exportMode = ref('all');
         const showCleanupDialog = ref(false);
@@ -333,7 +334,16 @@ const widgetUsage = computed(() => {
         const wsStatus = ref(null);
         const wsRev = reactive({});
         const bgColorMap = reactive({});
-        const settings = ref({ appTitle: '', theme: 'light', defaultPanel: '', debug: false, font: 'Roboto', hideMenu: false, hideChat: false, menuBg: '', panelBg: '', usePanelImage: true, useHeaderImage: false, cardsOpacity: 44, menuOpacity: 16, dialogOpacity: 12, primaryColor: '#1976d2', lightThemeColor: '#ffffff', darkThemeColor: '#303030', iconSize: 0, titleSize: 0, subtitleSize: 0, widgetSize: 0, grid: false, noOverlap: false, gridStep: 10, roundedWidgets: false, widgetRadius: 12, compactHeader: false, headerStatusItems: [] });
+        /* Набор уровней по умолчанию: тот же, что отдаёт сервер, пока
+           пользователь не сохранил свои. Модалке нужен непустой список, чтобы
+           было что править и от чего отталкиваться при добавлении. */
+        const DEFAULT_NOTIF_LEVELS = [
+            { level: 0, color: '#607d8b', icon: 'fas fa-bell' },
+            { level: 1, color: '#4caf50', icon: 'fas fa-bell' },
+            { level: 2, color: '#ff9800', icon: 'fas fa-bell' },
+            { level: 3, color: '#f44336', icon: 'fas fa-bell' }
+        ];
+        const settings = ref({ appTitle: '', theme: 'light', defaultPanel: '', debug: false, font: 'Roboto', hideMenu: false, hideChat: false, menuBg: '', panelBg: '', usePanelImage: true, useHeaderImage: false, cardsOpacity: 44, menuOpacity: 16, dialogOpacity: 12, primaryColor: '#1976d2', lightThemeColor: '#ffffff', darkThemeColor: '#303030', iconSize: 0, titleSize: 0, subtitleSize: 0, widgetSize: 0, grid: false, noOverlap: false, gridStep: 10, roundedWidgets: false, widgetRadius: 12, compactHeader: false, headerStatusItems: [], notifyLevel: 0, levels: DEFAULT_NOTIF_LEVELS.map(l => ({ ...l })) });
 
         const headerNow = ref(new Date());
         const headerTime = computed(() => headerNow.value.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
@@ -1655,6 +1665,8 @@ function headerPanelSave() {
             return 'widget-' + type;
         }
 
+        let activeVoiceEngine = null;
+
         function injectVoiceScript(src) {
             if (!src) return;
             if (document.querySelector('script[src^="' + src.split('?')[0] + '"]')) return;
@@ -1677,8 +1689,20 @@ function headerPanelSave() {
                 }
                 injectVoiceScript(d.vosk.src);
             }
-            if (d.piper_tts && d.piper_tts.src && window.top === window.self) {
-                injectVoiceScript(d.piper_tts.src);
+            if (d.tts && d.tts.src && window.top === window.self) {
+                activeVoiceEngine = d.tts.engine;
+                const port = d.tts.wsPort || 8001;
+                if (d.tts.engine === 'sanotts') {
+                    /* Плеер sanoTTS берёт порт сокета и терминал вкладки из
+                       глобалов, которые его prepend.php пишет в обычную
+                       страницу. Здесь страницу строит дашборд, поэтому
+                       значения приходят в ответе и выставляются до скрипта. */
+                    if (!window.SANOTTS_WS_PORT) window.SANOTTS_WS_PORT = port;
+                    if (d.tts.terminal && !window.SANOTTS_TERMINAL) window.SANOTTS_TERMINAL = d.tts.terminal;
+                } else if (!window.PIPER_WS_PORT) {
+                    window.PIPER_WS_PORT = port;
+                }
+                injectVoiceScript(d.tts.src);
             }
         }
 
@@ -3032,6 +3056,13 @@ if (f.key) {
                 }
             }
             applySettings();
+            if (activeVoiceEngine && settings.value.ttsEngine && settings.value.ttsEngine !== activeVoiceEngine) {
+                /* Плеер озвучки подключается один раз за загрузку страницы, и
+                   второй модуль рядом с первым играл бы каждую фразу дважды.
+                   Поэтому смена движка применяется перезагрузкой. */
+                activeVoiceEngine = settings.value.ttsEngine;
+                setTimeout(() => location.reload(), 400);
+            }
         }
 
         /* Настройки сохраняются сами, сразу после изменения: ждать кнопку
@@ -3404,6 +3435,14 @@ if (f.key) {
         } else if (typeof iconTarget.value === 'string' && iconTarget.value.startsWith('st:')) {
                 const idx = parseInt(iconTarget.value.slice(3), 10);
                 setStatusItemField(idx, 'icon', ic);
+            } else if (typeof iconTarget.value === 'string' && iconTarget.value.startsWith('nl:')) {
+                /* Иконка уровня оповещения: цель вида 'nl:<индекс>'. Список уровней
+                   сохраняется как личные настройки, поэтому сразу пишем их. */
+                const idx = parseInt(iconTarget.value.slice(3), 10);
+                if (settings.value.levels && settings.value.levels[idx]) {
+                    settings.value.levels[idx].icon = ic;
+                    settingsChanged();
+                }
             } else if (editWidgetForm.value) {
                 editWidgetForm.value[iconTarget.value] = ic;
             }
@@ -3428,6 +3467,11 @@ if (f.key) {
             if (typeof iconTarget.value === 'string' && iconTarget.value.startsWith('st:')) {
                 const idx = parseInt(iconTarget.value.slice(3), 10);
                 const arr = statusItems.value;
+                return arr[idx] && arr[idx].icon === ic;
+            }
+            if (typeof iconTarget.value === 'string' && iconTarget.value.startsWith('nl:')) {
+                const idx = parseInt(iconTarget.value.slice(3), 10);
+                const arr = settings.value.levels || [];
                 return arr[idx] && arr[idx].icon === ic;
             }
             return editWidgetForm.value && editWidgetForm.value[iconTarget.value] === ic;
@@ -3799,6 +3843,32 @@ if (f.key) {
             el.src = '/cms/avatars/user.png';
         }
 
+        /* Настройки уведомлений: порог показа и список уровней (цвет/иконка).
+           Список лежит в тех же личных настройках, что и тема, и сохраняется тем
+           же settingsChanged - отдельного хранилища не заводим. */
+        function openNotifSettings() {
+            if (!Array.isArray(settings.value.levels)) {
+                settings.value.levels = DEFAULT_NOTIF_LEVELS.map(l => ({ ...l }));
+            }
+            if (settings.value.notifyLevel === undefined) settings.value.notifyLevel = 0;
+            showNotifSettings.value = true;
+        }
+
+        function addNotifLevel() {
+            if (!Array.isArray(settings.value.levels)) {
+                settings.value.levels = DEFAULT_NOTIF_LEVELS.map(l => ({ ...l }));
+            }
+            const maxLevel = settings.value.levels.reduce((m, l) => Math.max(m, Number(l.level) || 0), 0);
+            settings.value.levels.push({ level: maxLevel + 1, color: '#2196f3', icon: 'fas fa-bell' });
+            settingsChanged();
+        }
+
+        function removeNotifLevel(i) {
+            if (!Array.isArray(settings.value.levels)) return;
+            settings.value.levels.splice(i, 1);
+            settingsChanged();
+        }
+
         function handleClickOutside(e) {
             if (userMenuOpen.value && !e.target.closest('.user-menu') && !e.target.closest('.user-avatar-btn')) {
                 userMenuOpen.value = false;
@@ -3815,6 +3885,7 @@ if (f.key) {
 
         let wsSocket = null;
         let wsReconnectTimer = null;
+        let notifRefreshTimer = null;
         let wsSubscribedProps = [];
 
         function wsSetLive(live) {
@@ -3951,16 +4022,15 @@ if (f.key) {
                         if (evName !== 'dashboard_pro' && evName !== 'say') return;
                         const cmd = (eInfo && eInfo.VALUE) || eInfo || {};
                         if (evName === 'say') {
-                            const sayText = cmd.message;
-                            if (sayText && authenticated.value) {
-                                notifications.value.unshift({
-                                    ID: 'notif_' + Date.now(),
-                                    MESSAGE: sayText,
-                                    MODULE_NAME: cmd.source || t('module_name_default'),
-                                    TYPE: (cmd.level && cmd.level >= 5) ? 'info' : 'info',
-                                    ADDED: new Date().toISOString().replace('T', ' ').slice(0, 19)
-                                });
-                                unreadCount.value = notifications.value.length;
+                            /* Озвучка приходит и из чата (ответы бота), и
+                               объявлениями системы. Что из этого считать
+                               уведомлением, решает сервер: реплики чат-бота он
+                               в колокольчик не пускает. Локально строку не
+                               подставляем - иначе ответ бота мелькал бы до
+                               первого обращения к серверу и тут же пропадал. */
+                            if (authenticated.value) {
+                                clearTimeout(notifRefreshTimer);
+                                notifRefreshTimer = setTimeout(checkNotifications, 300);
                             }
                             return;
                         }
@@ -4272,6 +4342,7 @@ onMounted(() => {
             showExportDialog, exportMode, exportSelectedPanel, exportUsers, exportSelectedUser, loadExportUsers, doExport, doImport,
             showCleanupDialog, cleanupReport, cleanupBusy, cleanupReasons, applyCleanup, restorePanels, runWizard,
             showAddPanel, editPanelData, panelForm, panelTab, panelTabPos, panelError, createPanel, editPanel, openPanelForm, deletePanel, deleteCurrentPanel, movePanel, isPanel, isNavActive, navItemClick, showAbout, toggleField,
+            showNotifSettings, openNotifSettings, addNotifLevel, removeNotifLevel,
             showIconPicker, iconTarget, iconSearch, iconCategory, iconCategorySearch, iconPage, iconCategories, filteredIconCategories, filteredIcons, totalPages, paginatedIcons, openIconPicker, selectIcon, iconPicked,
             showDirPicker, dirTarget, dirPickerPath, dirPickerItems, dirPickerUp, dirPickerLoading, dirPickerError, dirPickerPicked, openDirPicker, dirPickerGo, closeDirPicker, dirPickerOk,
             objects, iconProperties, infoProperties, widgetProperties, bgProperties, extraProperties, scripts, methodCache, loadObjects, loadScripts, loadIconProperties, loadInfoProperties, loadWidgetProperties, loadBgProperties, loadObjectMethods, widgetBgStyle, ownWidgetRadius,

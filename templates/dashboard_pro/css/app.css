@@ -228,6 +228,26 @@ a.user-menu__item { text-decoration: none; color: inherit; }
 .btn-primary[disabled], .btn-primary:disabled { opacity: .4; cursor: not-allowed; }
 .btn-primary[disabled]:hover, .btn-primary:disabled:hover { opacity: .4; }
 
+/* --- Notification settings (levels editor) --- */
+.notif-set__field { display: flex; flex-direction: column; gap: .35rem; margin-bottom: 1.2rem; }
+.notif-set__field label { font-size: .85rem; color: var(--text-secondary); }
+.notif-set__hint { font-size: .78rem; color: var(--text-secondary); opacity: .8; }
+.notif-set__levels-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: .5rem; font-size: .9rem; }
+.notif-set__add { width: 30px; height: 30px; border-radius: 50%; border: none; background: var(--primary); color: #fff; cursor: pointer; font-size: .8rem; }
+.notif-set__add:hover { opacity: .85; }
+.notif-set__row { display: flex; align-items: center; gap: .5rem; padding: .4rem 0; border-bottom: 1px solid var(--border); }
+.notif-set__preview { width: 1.2rem; text-align: center; }
+.notif-set__lbl { font-size: .78rem; color: var(--text-secondary); white-space: nowrap; }
+.notif-set__num { width: 60px; }
+.notif-set__color { width: 42px; height: 32px; padding: 2px; background: #1e1e1e; border: 1px solid rgba(255,255,255,.24); border-radius: 4px; cursor: pointer; }
+.notif-set__iconbtn { flex: 1 1 auto; min-width: 0; display: inline-flex; align-items: center; gap: .5rem; text-align: left; cursor: pointer; }
+.notif-set__iconbtn:hover { border-color: var(--primary); }
+.notif-set__iconbtn i { font-size: .95rem; flex-shrink: 0; }
+.notif-set__iconbtn span { color: rgba(255,255,255,.55); font-size: .78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.notif-set__num, .notif-set__iconbtn { background: #1e1e1e; border: 1px solid rgba(255,255,255,.24); border-radius: 4px; color: #fff; outline: none; padding: 7px 8px; font-size: .85rem; box-sizing: border-box; }
+.notif-set__del { border: none; background: none; color: var(--text-secondary); cursor: pointer; font-size: .95rem; padding: 4px 6px; }
+.notif-set__del:hover { color: #f44336; }
+
 .search-box { position: relative; margin-bottom: 1rem; }
 .search-box i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); }
 .search-box input { width: 100%; padding: .7rem .7rem .7rem 2.2rem; border: 1px solid var(--border); border-radius:var(--wpb-radius-default, 0px); font-size: .9rem; }
