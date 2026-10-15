@@ -3855,14 +3855,14 @@ if (f.key) {
             chatSentIds = new Set(chatMessages.value.filter((m) => !m._local).map((m) => m.ID));
             chatThinking.value = true;
             chatWatchStartedAt = Date.now();
+            /* poll from here: the POST blocks until the assistant answers (and may never return) */
+            scheduleChatWatch();
             try {
                 const res = await dpAPI('chat', { method: 'POST', body: JSON.stringify({ message: text }) });
                 if (res && res.member_id) chatMeId = res.member_id;
                 await loadChat();
                 checkNotifications();
             } catch (e) { /* silent */ }
-            /* "thinking" stays on screen until the answer shows up */
-            if (chatThinking.value) scheduleChatWatch();
         }
 
         function toggleEditMode() {
