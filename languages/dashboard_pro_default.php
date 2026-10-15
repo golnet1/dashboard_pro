@@ -336,6 +336,7 @@ $frontend = array(
     // Chat
     'chat' => 'Chat',
     'type_message' => 'Type a message...',
+    'thinking' => 'Thinking...',
     'send' => 'Send',
 
     // Icon picker

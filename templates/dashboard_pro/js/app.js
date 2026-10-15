@@ -272,6 +272,11 @@ const widgetUsage = computed(() => {
         const chatMessages = ref([]);
         const chatText = ref('');
         const chatLoading = ref(false);
+        const chatThinking = ref(false);
+        let chatMeId = 0;
+        let chatSentIds = null;
+        let chatWatchTimer = null;
+        let chatWatchStartedAt = 0;
         const hasUnsavedChanges = ref(false);
 
         const showNotifications = ref(false);
@@ -3784,11 +3789,50 @@ if (f.key) {
             } catch (e) { console.warn('checkNotifications error', e); }
         }
 
+        function chatMessageIsMine(m) {
+            if (!m) return false;
+            /* the optimistic copy we draw before the server echoes it back */
+            if (m._local) return true;
+            return Number(m.MEMBER_ID) > 0 && !!user.value.username && m.SOURCE === 'dashboard_pro';
+        }
+
+        function chatStamp(d) {
+            const p = (n) => String(n).padStart(2, '0');
+            return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+        }
+
+        function stopChatThinking() {
+            chatThinking.value = false;
+            if (chatWatchTimer) { clearTimeout(chatWatchTimer); chatWatchTimer = null; }
+        }
+
+        /* keep polling the history while the assistant is answering */
+        function scheduleChatWatch() {
+            if (chatWatchTimer) { clearTimeout(chatWatchTimer); chatWatchTimer = null; }
+            if (!chatThinking.value) return;
+            chatWatchTimer = setTimeout(async () => {
+                chatWatchTimer = null;
+                if (!chatThinking.value) return;
+                if (chatOpen.value) await loadChat();
+                if (!chatThinking.value) return;
+                if (Date.now() - chatWatchStartedAt > 120000) { stopChatThinking(); return; }
+                scheduleChatWatch();
+            }, 2000);
+        }
+
         async function loadChat() {
-            chatLoading.value = true;
+            /* the spinner is only for the very first load, an already filled history stays visible */
+            if (!chatMessages.value.length) chatLoading.value = true;
             try {
                 const res = await dpAPI('chat');
-                if (res && res.items) chatMessages.value = res.items;
+                if (res && res.items) {
+                    chatMessages.value = res.items;
+                    if (res.me && res.me.id) chatMeId = res.me.id;
+                    /* the first new message from someone else means the answer has arrived */
+                    if (chatThinking.value && chatSentIds && res.items.some((m) => !chatMessageIsMine(m) && !chatSentIds.has(m.ID))) {
+                        stopChatThinking();
+                    }
+                }
             } catch (e) { /* silent */ }
             chatLoading.value = false;
         }
@@ -3797,13 +3841,28 @@ if (f.key) {
             const text = chatText.value.trim();
             if (!text) return;
             chatText.value = '';
-            chatLoading.value = true;
+            /* show the sent message at once, without waiting for the server round-trip */
+            chatMessages.value.unshift({
+                ID: 'local_' + Date.now(),
+                MEMBER_ID: chatMeId || 1,
+                USER_NAME: user.value.name || user.value.username,
+                MESSAGE: text,
+                ADDED: chatStamp(new Date()),
+                SOURCE: 'dashboard_pro',
+                _local: true
+            });
+            /* remember the history we already had: the first message from someone else is the answer */
+            chatSentIds = new Set(chatMessages.value.filter((m) => !m._local).map((m) => m.ID));
+            chatThinking.value = true;
+            chatWatchStartedAt = Date.now();
             try {
-                await dpAPI('chat', { method: 'POST', body: JSON.stringify({ message: text }) });
+                const res = await dpAPI('chat', { method: 'POST', body: JSON.stringify({ message: text }) });
+                if (res && res.member_id) chatMeId = res.member_id;
                 await loadChat();
                 checkNotifications();
             } catch (e) { /* silent */ }
-            chatLoading.value = false;
+            /* "thinking" stays on screen until the answer shows up */
+            if (chatThinking.value) scheduleChatWatch();
         }
 
         function toggleEditMode() {
@@ -3815,7 +3874,13 @@ if (f.key) {
 
         function toggleChat() {
             chatOpen.value = !chatOpen.value;
-            if (chatOpen.value) loadChat();
+            if (chatOpen.value) {
+                loadChat();
+                if (chatThinking.value) scheduleChatWatch();
+            } else if (chatWatchTimer) {
+                clearTimeout(chatWatchTimer);
+                chatWatchTimer = null;
+            }
         }
 
         async function markNotificationsRead() {
@@ -4348,7 +4413,7 @@ onMounted(() => {
             objects, iconProperties, infoProperties, widgetProperties, bgProperties, extraProperties, scripts, methodCache, loadObjects, loadScripts, loadIconProperties, loadInfoProperties, loadWidgetProperties, loadBgProperties, loadObjectMethods, widgetBgStyle, ownWidgetRadius,
             isAdmin, toggleEditMode, wsConnected, wsTooltip, wsStatus, wsPulse, wsBytesSent, wsBytesReceived, wsRev, user, userMenuOpen, sidebarMini, toggleSidebar, expandedGroups, childPanels, toggleGroup, forceRefresh, formatBytes,
             showNotifications, notifications, unreadCount, checkNotifications, markNotificationsRead, notifAvatarUrl, notifAvatarFallback,
-            chatOpen, chatMessages, chatText, chatLoading, loadChat, sendChat, toggleChat, formatTime,
+            chatOpen, chatMessages, chatText, chatLoading, chatThinking, chatMessageIsMine, loadChat, sendChat, toggleChat, formatTime,
             widgetList, widgetUsage, exportWidgetZip, setWidgetEnabled, copyWidgetDef, deleteWidgetDef, pickWidgetZip, widgetName,
             widgetDefMouseDown, widgetDefMouseMove, widgetDefMouseUp, dragWidgetDefId, dragWidgetDefOverId,
             t
