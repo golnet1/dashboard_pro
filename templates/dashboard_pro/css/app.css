@@ -290,6 +290,11 @@ a.user-menu__item { text-decoration: none; color: inherit; }
 .chat-msg__text { background: #eaeaea; color: #222; padding: .5rem .7rem; border-radius:var(--wpb-radius-default, 0px); font-size: .85rem; line-height: 1.3; word-break: break-word; }
 .chat-msg--mine .chat-msg__text { background: var(--primary); color: #fff; }
 .chat-msg__time { font-size: .65rem; color: #888; margin-top: 2px; text-align: right; }
+.chat-msg__name { font-size: .7rem; color: #999; margin-bottom: 2px; }
+.chat-msg--mine .chat-msg__name { text-align: right; }
+
+/* the chat widget reuses the panel chat markup, keep its send button primary */
+.widget-v-card .chat-input button { color: var(--primary) !important; }
 
 .chat-input { display: flex; border-top: 1px solid var(--border); background: #1e1e1e; padding: .5rem; }
 .chat-input input { flex: 1; padding: .5rem .7rem; border: none; border-radius:var(--wpb-radius-default, 0px); background: #2a2a2a; color: #e0e0e0; font-size: .85rem; outline: none; }

@@ -273,6 +273,9 @@ const widgetUsage = computed(() => {
         const chatText = ref('');
         const chatLoading = ref(false);
         const chatThinking = ref(false);
+        /* how many chat widgets are on screen: they are a second visible chat
+           surface, so polling and live refreshes must keep working for them too */
+        const chatWidgetCount = ref(0);
         let chatMeId = 0;
         let chatSentIds = null;
         let chatWatchTimer = null;
@@ -1759,7 +1762,7 @@ function loadScript(src, version) {
            reached the panel. The token changes on every install, and the base follows the
            module, so a module update also refreshes the widgets. */
         const WIDGET_TOKEN_KEY = 'dp_widget_token';
-        const WIDGET_TOKEN_BASE = 275;
+        const WIDGET_TOKEN_BASE = 276;
         function widgetToken() {
             let token = 0;
             try { token = parseInt(localStorage.getItem(WIDGET_TOKEN_KEY) || '0', 10) || 0; } catch (e) { token = 0; }
@@ -3796,6 +3799,29 @@ if (f.key) {
             return Number(m.MEMBER_ID) > 0 && !!user.value.username && m.SOURCE === 'dashboard_pro';
         }
 
+        function chatAvatarUrl(v) {
+            v = String(v || '').trim();
+            if (!v) return '';
+            if (v.indexOf('data:') === 0) return v;
+            if (v.charAt(0) === '/' || /^(https?:)?\/\//i.test(v)) return v;
+            return '/cms/avatars/' + v;
+        }
+
+        /* The avatar of a chat message: our own photo for the user (including the
+           optimistic copy drawn before the server echoes it), the notification
+           image from the settings for the assistant, a person icon when there is none. */
+        function chatAvatar(m) {
+            if (!m || m._avatarError) return '';
+            if (m._local) return chatAvatarUrl(user.value.avatar);
+            if (Number(m.MEMBER_ID) > 0) return chatAvatarUrl(m.USER_AVATAR);
+            const v = String((settings.value && settings.value.notifAvatar) || '').trim();
+            return v ? chatAvatarUrl(v) : '';
+        }
+
+        function chatAvatarError(m) {
+            if (m && !m._avatarError) m._avatarError = true;
+        }
+
         function chatStamp(d) {
             const p = (n) => String(n).padStart(2, '0');
             return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
@@ -3806,6 +3832,22 @@ if (f.key) {
             if (chatWatchTimer) { clearTimeout(chatWatchTimer); chatWatchTimer = null; }
         }
 
+        /* at least one chat surface (the panel window or a chat widget) is on screen */
+        function chatSurfaceVisible() {
+            return chatOpen.value || chatWidgetCount.value > 0;
+        }
+
+        /* a chat widget was mounted or removed: keep the answer polling alive
+           while it is the only visible chat surface */
+        function chatSurfaceMount() {
+            chatWidgetCount.value++;
+            if (chatThinking.value) scheduleChatWatch();
+        }
+
+        function chatSurfaceUnmount() {
+            if (chatWidgetCount.value > 0) chatWidgetCount.value--;
+        }
+
         /* keep polling the history while the assistant is answering */
         function scheduleChatWatch() {
             if (chatWatchTimer) { clearTimeout(chatWatchTimer); chatWatchTimer = null; }
@@ -3813,7 +3855,7 @@ if (f.key) {
             chatWatchTimer = setTimeout(async () => {
                 chatWatchTimer = null;
                 if (!chatThinking.value) return;
-                if (chatOpen.value) await loadChat();
+                if (chatSurfaceVisible()) await loadChat();
                 if (!chatThinking.value) return;
                 if (Date.now() - chatWatchStartedAt > 120000) { stopChatThinking(); return; }
                 scheduleChatWatch();
@@ -3837,8 +3879,8 @@ if (f.key) {
             chatLoading.value = false;
         }
 
-        async function sendChat() {
-            const text = chatText.value.trim();
+        async function sendChatText(raw) {
+            const text = String(raw || '').trim();
             if (!text) return;
             chatText.value = '';
             /* show the sent message at once, without waiting for the server round-trip */
@@ -3865,6 +3907,10 @@ if (f.key) {
             } catch (e) { /* silent */ }
         }
 
+        async function sendChat() {
+            return sendChatText(chatText.value);
+        }
+
         function toggleEditMode() {
             if (editMode.value) {
                 commitChanges();
@@ -3877,7 +3923,8 @@ if (f.key) {
             if (chatOpen.value) {
                 loadChat();
                 if (chatThinking.value) scheduleChatWatch();
-            } else if (chatWatchTimer) {
+            } else if (!chatWidgetCount.value && chatWatchTimer) {
+                /* keep polling while a chat widget is still on screen */
                 clearTimeout(chatWatchTimer);
                 chatWatchTimer = null;
             }
@@ -4122,7 +4169,7 @@ if (f.key) {
                                 if (updated) currentPanel.value = updated;
                             });
                             checkNotifications();
-                            if (chatOpen.value) loadChat();
+                            if (chatSurfaceVisible()) loadChat();
                         }
                     }
                     if (data.action === 'PostEvent' && data.data) {
@@ -4413,7 +4460,7 @@ onMounted(() => {
             objects, iconProperties, infoProperties, widgetProperties, bgProperties, extraProperties, scripts, methodCache, loadObjects, loadScripts, loadIconProperties, loadInfoProperties, loadWidgetProperties, loadBgProperties, loadObjectMethods, widgetBgStyle, ownWidgetRadius,
             isAdmin, toggleEditMode, wsConnected, wsTooltip, wsStatus, wsPulse, wsBytesSent, wsBytesReceived, wsRev, user, userMenuOpen, sidebarMini, toggleSidebar, expandedGroups, childPanels, toggleGroup, forceRefresh, formatBytes,
             showNotifications, notifications, unreadCount, checkNotifications, markNotificationsRead, notifAvatarUrl, notifAvatarFallback,
-            chatOpen, chatMessages, chatText, chatLoading, chatThinking, chatMessageIsMine, loadChat, sendChat, toggleChat, formatTime,
+            chatOpen, chatMessages, chatText, chatLoading, chatThinking, chatMessageIsMine, chatAvatar, chatAvatarError, loadChat, sendChat, sendChatText, toggleChat, formatTime, chatSurfaceMount, chatSurfaceUnmount, chatSurfaceVisible,
             widgetList, widgetUsage, exportWidgetZip, setWidgetEnabled, copyWidgetDef, deleteWidgetDef, pickWidgetZip, widgetName,
             widgetDefMouseDown, widgetDefMouseMove, widgetDefMouseUp, dragWidgetDefId, dragWidgetDefOverId,
             t
