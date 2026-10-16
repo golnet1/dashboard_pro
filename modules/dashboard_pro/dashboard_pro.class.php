@@ -357,6 +357,14 @@ class dashboard_pro extends module
                 if ($member_id <= 0) {
                     return ['error' => LANG_DASHBOARD_PRO_LOGIN_INVALID];
                 }
+                /* Ассистент вызывается синхронно и может «думать» десятки секунд.
+                   Пока идёт ответ, PHP держит блокировку файла сессии, поэтому
+                   все остальные запросы панели (getProperty и прочие) ждут её
+                   освобождения — страница подвисает до ответа. Отпускаем сессию:
+                   ниже данные сессии уже не меняются. */
+                if (function_exists('session_status') && session_status() === PHP_SESSION_ACTIVE) {
+                    @session_write_close();
+                }
                 say($text, 0, $member_id, 'dashboard_pro');
                 return [
                     'success' => true,
