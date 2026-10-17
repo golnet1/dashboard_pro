@@ -1083,6 +1083,7 @@ $frontend = array(
     'field_round' => 'Round buttons',
     'field_striped' => 'Striped',
     'field_switch_method' => 'Switch method',
+    'field_thickness' => 'Ring thickness',
     'field_unit' => 'Unit',
     'field_url' => 'URL',
     'field_url_with_text' => 'URL ({text} template)',

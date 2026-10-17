@@ -18,6 +18,7 @@ const GaugeWidget = {
             { key: 'maxValue', label: 'field_max', type: 'number', row: 'range' },
             { key: 'round', label: 'field_rounding', type: 'number', placeholder: '0' },
             { key: 'unit', label: 'field_unit', type: 'text', placeholder: 'ph_percent' },
+            { key: 'thickness', label: 'field_thickness', type: 'number', step: 'any', placeholder: '10' },
             { key: 'colors', label: 'field_gradient_colors', type: 'textarea', rows: 2, placeholder: '[{"color":"#a9d70b"},{"color":"#f9c802"},{"color":"#ff0000"}]' },
         ],
         advanced: [
@@ -28,7 +29,7 @@ const GaugeWidget = {
             { key: 'bg_property', label: 'field_bg_property', type: 'property', row: 'bg_row', showIf: { bg_mode: 'property' } },
         ],
     },
-    defaults: { icon: 'fas fa-gauge-high', icon_type: 'icon', minValue: 0, maxValue: 100, round: 0, height: 180, unit: '', colors: JSON.stringify([{color:'#a9d70b'},{color:'#f9c802'},{color:'#ff0000'}]) },
+    defaults: { icon: 'fas fa-gauge-high', icon_type: 'icon', minValue: 0, maxValue: 100, round: 0, height: 180, unit: '', thickness: 10, colors: JSON.stringify([{color:'#a9d70b'},{color:'#f9c802'},{color:'#ff0000'}]) },
     template: `
         <div class="widget-v-card" :style="cardStyle" style="display:flex;flex-direction:column;align-items:center">
             <div v-if="showIcon || widget.title" class="widget-v-card__header" style="align-self:stretch;justify-content:center">
@@ -38,8 +39,8 @@ const GaugeWidget = {
             </div>
             <div class="widget-v-card__body" style="align-items:center;justify-content:center;min-height:0" :style="bodyStyle">
                 <svg viewBox="4 4 112 112" style="flex:1;width:100%;height:100%">
-                    <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="10"/>
-                    <circle cx="60" cy="60" r="50" fill="none" :stroke="gaugeColor" stroke-width="10" stroke-linecap="round"
+                    <circle cx="60" cy="60" :r="ringRadius" fill="none" stroke="rgba(255,255,255,.1)" :stroke-width="strokeWidth"/>
+                    <circle cx="60" cy="60" :r="ringRadius" fill="none" :stroke="gaugeColor" :stroke-width="strokeWidth" stroke-linecap="round"
                         :stroke-dasharray="circumference" :stroke-dashoffset="dashOffset"
                         transform="rotate(-90, 60, 60)" style="transition: stroke-dashoffset .5s"/>
                     <text x="60" :y="valueY" text-anchor="middle" fill="rgba(255,255,255,.87)" font-size="14" font-weight="700">{{ displayValue }}</text>
@@ -48,7 +49,7 @@ const GaugeWidget = {
             </div>
         </div>`,
     data() {
-        return { value: null, timer: null, circumference: 2 * Math.PI * 50 };
+        return { value: null, timer: null };
     },
     mounted() {
         this.loadValue();
@@ -69,12 +70,27 @@ const GaugeWidget = {
            the card and was cut by "overflow:hidden" (200 px tall in a 180 px card).
            min-height:0 (set in the template) keeps the body inside the card, the svg
            fills the body, and the ring takes the smaller side of it. The viewBox is
-           tightened to the drawn ring (r=50 plus the 10 wide stroke, with a unit of
-           margin) so that the ring reaches the edge of the widget instead of the
-           8 percent that the old 0 0 120 120 box left around it. The number and the
-           unit are drawn in viewBox units, so they scale together with the ring. */
+           tightened to the outer edge of the band (55 units from the centre, whatever
+           the thickness) so that the ring reaches the edge of the widget instead of
+           the 8 percent that the old 0 0 120 120 box left around it. The number and
+           the unit are drawn in viewBox units, so they scale together with the ring. */
         bodyStyle() {
             return (this.showIcon || this.widget.title) ? { padding: '0 12px 12px' } : { padding: '0' };
+        },
+        /* The band keeps its outer edge in place: a thicker ring grows inwards, so the
+           outer size of the gauge and the text inside it do not change. The radius
+           that is left for the hole is 55 - thickness, hence the cap: past 30 the
+           number and the unit would run into the band. */
+        strokeWidth() {
+            const v = Number(this.widget.thickness);
+            if (!isFinite(v) || v <= 0) return 10;
+            return Math.min(30, Math.max(2, v));
+        },
+        ringRadius() {
+            return 55 - this.strokeWidth / 2;
+        },
+        circumference() {
+            return 2 * Math.PI * this.ringRadius;
         },
         /* The number and the unit sit in the middle of the circle, the unit right
            under the number. The title no longer goes inside the circle: it is drawn
