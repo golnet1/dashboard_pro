@@ -40,8 +40,8 @@ const GroupWidget = {
                 <span v-else-if="count && !widget.hide_count" class="widget-v-card__count">{{ count }} {{ t('units_widgets') }}</span>
             </div>
             <div v-if="widget.children && widget.children.length" class="group-widgets-grid" :class="{ 'group-widgets-grid--dividers': widget.dividers }" :style="gridStyle">
-                <div v-for="child in widget.children" :key="child.id" class="group-widgets-grid__cell" :style="cellStyle(child)">
-                    <component :is="childWidgetComponent(child.type)" :widget="child"></component>
+                <div v-for="child in widget.children" :key="childKey(child)" class="group-widgets-grid__cell" :style="cellStyle(child)">
+                    <component :is="childWidgetComponent(child.type)" :widget="child" :key="childKey(child)"></component>
                 </div>
             </div>
             <div v-else class="widget-v-card__body group-widgets-grid group-widgets-grid--empty">
@@ -106,6 +106,14 @@ const GroupWidget = {
         childWidgetComponent(type) {
             if (typeof registerWidgetComponent === 'function') return registerWidgetComponent(type);
             return null;
+        },
+        /* Так же, как у виджета верхнего уровня в index.html: счётчик
+           wsRev[ид] поднимается приходом свойства сокета, смена ключа
+           перевешивает дочерний виджет, его mounted снова читает состояние. */
+        childKey(child) {
+            const rev = window.__dpWsRev;
+            const n = (rev && rev[child.id]) || 0;
+            return child.id + '-' + n;
         }
     }
 };

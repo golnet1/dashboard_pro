@@ -341,6 +341,11 @@ const widgetUsage = computed(() => {
         const wsPulse = ref(false);
         const wsStatus = ref(null);
         const wsRev = reactive({});
+        /* Виджеты группы рендерятся внутри group.js, а не в index.html, поэтому
+           ключ перерисовки дочернего виджета составляется там же. Тот же
+           реактивный объект лежит на window, чтобы чтение в шаблоне группы
+           подписывалось на смену счётчика и вызывало перевеску (mounted → poll). */
+        window.__dpWsRev = wsRev;
         const bgColorMap = reactive({});
         /* Набор уровней по умолчанию: тот же, что отдаёт сервер, пока
            пользователь не сохранил свои. Модалке нужен непустой список, чтобы
@@ -1762,7 +1767,7 @@ function loadScript(src, version) {
            reached the panel. The token changes on every install, and the base follows the
            module, so a module update also refreshes the widgets. */
         const WIDGET_TOKEN_KEY = 'dp_widget_token';
-        const WIDGET_TOKEN_BASE = 276;
+        const WIDGET_TOKEN_BASE = 277;
         function widgetToken() {
             let token = 0;
             try { token = parseInt(localStorage.getItem(WIDGET_TOKEN_KEY) || '0', 10) || 0; } catch (e) { token = 0; }
@@ -4017,9 +4022,21 @@ if (f.key) {
             } catch (e) { return false; }
         };
 
+        /* Виджеты, лежащие внутри группы, живут в w.children, а не в самом
+           списке панели. Без спуска в детей группа подписывалась бы только по
+           своим ключам (их там нет), и сокет не сообщил бы о смене состояния
+           вложенных выключателей — они менялись бы лишь после перезагрузки. */
+        function wsPanelWidgets(list, cb) {
+            (list || []).forEach(w => {
+                if (!w) return;
+                cb(w);
+                if (Array.isArray(w.children) && w.children.length) wsPanelWidgets(w.children, cb);
+            });
+        }
+
         function wsCollectProps() {
             const props = new Set();
-            (currentPanel.value?.widgets || []).forEach(w => {
+            wsPanelWidgets(currentPanel.value?.widgets, w => {
                 wsWidgetPropKeys(w).forEach(k => props.add(k));
             });
             HEADER_STATUS_BUILTIN.forEach(b => props.add((b.key + '.stateTitle').toLowerCase()));
@@ -4062,14 +4079,14 @@ if (f.key) {
         function wsRefreshWidgets(propKey) {
             const key = String(propKey).toLowerCase();
             const base = key.split('.')[0];
-            (currentPanel.value?.widgets || []).forEach(w => {
+            wsPanelWidgets(currentPanel.value?.widgets, w => {
                 const keys = wsWidgetPropKeys(w);
                 if (keys.has(key) || keys.has(base)) queueWsRemount(w.id);
             });
         }
 
         function wsRemountWidgets() {
-            (currentPanel.value?.widgets || []).forEach(w => queueWsRemount(w.id));
+            wsPanelWidgets(currentPanel.value?.widgets, w => queueWsRemount(w.id));
         }
 
         function initWebSocket() {
