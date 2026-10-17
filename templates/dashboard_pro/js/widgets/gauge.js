@@ -153,21 +153,15 @@ const GaugeWidget = {
         maxLabel() {
             return String(this.maxVal);
         },
-        /* In the half ring the opening lies in the upper half, so its middle is about
-           0.42 of the hole radius above the base line instead of the centre of the
-           circle. The number keeps its place relative to that point; the unit is not
-           inside the half ring at all — it goes to the scale line under it. */
-        halfCenterY() {
-            return 60 - 0.42 * (55 - this.strokeWidth);
-        },
         /* In the full ring the number and the unit sit in the middle of the ring, the
            unit right under the number; the value is moved up by a couple of units so
-           that the pair looks centred. In the half ring the number is alone in the
-           opening and is simply centred on it. The title no longer goes inside the
-           circle: it is drawn above it. */
+           that the pair looks centred. In the half ring the unit has moved to the scale
+           line under the ring, so the number stands alone and is put low, just above
+           the flat bottom — level with the points where the band begins and ends. The
+           title no longer goes inside the circle: it is drawn above it. */
         valueY() {
             if (this.isDonut) return this.widget.unit ? 58 : 65;
-            return this.halfCenterY + 5;
+            return 58;
         },
         unitY() {
             return 70;
