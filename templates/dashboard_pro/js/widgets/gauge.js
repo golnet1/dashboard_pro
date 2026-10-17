@@ -2,6 +2,7 @@ const GaugeWidget = {
     props: ['widget'],
     tabs: [
         { key: 'main', label: 'tab_main', fields: 'params' },
+        { key: 'colors', label: 'tab_colors' },
         { key: 'advanced', label: 'tab_advanced', fields: 'advanced' },
     ],
     fields: {
@@ -20,7 +21,9 @@ const GaugeWidget = {
             { key: 'unit', label: 'field_unit', type: 'text', row: 'round_unit_thick', placeholder: 'ph_percent' },
             { key: 'thickness', label: 'field_thickness', type: 'number', step: 'any', row: 'round_unit_thick', placeholder: '10' },
             { key: 'donut', label: 'field_donut', type: 'switch', default: true },
-            { key: 'colors', label: 'field_gradient_colors', type: 'textarea', rows: 2, placeholder: '[{"color":"#a9d70b"},{"color":"#f9c802"},{"color":"#ff0000"}]' },
+            /* The gradient of the arc lives in the system "colours" section: the tab
+               above carries its key and nothing else, and the core edits the "colors"
+               property of the widget (the palette is kept in the defaults below). */
         ],
         advanced: [
             { key: 'bg_mode', label: 'field_bg_mode', type: 'select', row: 'bg_row', options: [{value:'default',label:'opt_default'},{value:'image',label:'opt_image'},{value:'color',label:'opt_custom_color'},{value:'property',label:'opt_color_property'}] },
