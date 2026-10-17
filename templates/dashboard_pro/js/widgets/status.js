@@ -36,16 +36,13 @@ const StatusWidget = {
         { key: 'st1', status: '0', title: window.__t('default_off'), icon: 'fas fa-power-off', color: '#ef4444', exec_type: 'empty' },
         { key: 'st2', status: '1', title: window.__t('default_on'), icon: 'fas fa-check', color: '#22c55e', exec_type: 'empty' },
     ]) }),
-    /* Шапка с иконкой и названием показывается только у виджета с названием: у
-       виджета без него она выводила служебное «Статус» и вторую иконку поверх
-       той, что уже стоит рядом с текстом состояния. Сам текст состояния идёт
-       справа от иконки, а информация об объекте - под текстом, как у «Реле». */
+    /* Шапки у карточки нет: верхняя иконка дублировала ту, что стоит рядом с
+       текстом состояния, а название выводилось служебным «Статус». Остаётся
+       иконка состояния слева, справа от неё - текст состояния, под текстом -
+       строка информации об объекте (как у «Реле»). Поле «Название» на карточке
+       не выводится, оно остаётся именем виджета в списке редактора. */
     template: `
         <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled }" :style="cardStyle" @click="runAction">
-            <div v-if="widget.title" class="widget-v-card__header">
-                <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon"></i>
-                <div class="widget-v-card__title">{{ widget.title }}</div>
-            </div>
             <div class="widget-v-card__body" style="display:flex;align-items:center;gap:12px;padding:10px 12px;flex:1;min-width:0">
                 <i v-if="statusIcon" :class="statusIcon" :style="'font-size:2rem;flex-shrink:0;color:' + (statusColor || 'rgba(255,255,255,.6)')"></i>
                 <div style="min-width:0;flex:1">
