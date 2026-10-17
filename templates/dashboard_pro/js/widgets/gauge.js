@@ -46,7 +46,10 @@ const GaugeWidget = {
                         :stroke-dasharray="circumference" :stroke-dashoffset="dashOffset"
                         :transform="ringRotation" style="transition: stroke-dashoffset .5s"/>
                     <text x="60" :y="valueY" text-anchor="middle" fill="rgba(255,255,255,.87)" font-size="14" font-weight="700">{{ displayValue }}</text>
-                    <text x="60" :y="unitY" text-anchor="middle" fill="rgba(255,255,255,.5)" font-size="7" v-if="widget.unit">{{ widget.unit }}</text>
+                    <text x="60" :y="unitY" text-anchor="middle" fill="rgba(255,255,255,.5)" font-size="7" v-if="widget.unit && isDonut">{{ widget.unit }}</text>
+                    <text x="5" :y="scaleY" text-anchor="start" fill="rgba(255,255,255,.5)" font-size="7" v-if="!isDonut">{{ minLabel }}</text>
+                    <text x="60" :y="scaleY" text-anchor="middle" fill="rgba(255,255,255,.5)" font-size="7" v-if="!isDonut && widget.unit">{{ widget.unit }}</text>
+                    <text x="115" :y="scaleY" text-anchor="end" fill="rgba(255,255,255,.5)" font-size="7" v-if="!isDonut">{{ maxLabel }}</text>
                 </svg>
             </div>
         </div>`,
@@ -127,25 +130,39 @@ const GaugeWidget = {
             return this.circumference * this.arcSpan;
         },
         /* A half ring takes a shorter box: only the band above the base line, whose
-           ends are cut flat, plus the same hair of margin the full ring keeps. */
+           ends are cut flat, plus the room the scale line needs under it. */
         viewBox() {
-            return this.isDonut ? '4 4 112 112' : '4 4 112 57';
+            return this.isDonut ? '4 4 112 112' : '4 4 112 70';
+        },
+        /* The scale line under the half ring: the number sits at the foot of one end
+           of the band, the maximum at the other, and the unit keeps the middle. */
+        scaleY() {
+            return 70;
+        },
+        minLabel() {
+            return String(this.minVal);
+        },
+        maxLabel() {
+            return String(this.maxVal);
         },
         /* In the half ring the opening lies in the upper half, so its middle is about
            0.42 of the hole radius above the base line instead of the centre of the
-           circle. The number and the unit keep their places relative to that point. */
+           circle. The number keeps its place relative to that point; the unit is not
+           inside the half ring at all — it goes to the scale line under it. */
         halfCenterY() {
             return 60 - 0.42 * (55 - this.strokeWidth);
         },
-        /* The number and the unit sit in the middle of the ring, the unit right under
-           the number. The title no longer goes inside the circle: it is drawn above
-           it, so the value is centred on the ring and not pushed down. */
+        /* In the full ring the number and the unit sit in the middle of the ring, the
+           unit right under the number; the value is moved up by a couple of units so
+           that the pair looks centred. In the half ring the number is alone in the
+           opening and is simply centred on it. The title no longer goes inside the
+           circle: it is drawn above it. */
         valueY() {
             if (this.isDonut) return this.widget.unit ? 58 : 65;
-            return this.halfCenterY + (this.widget.unit ? -2 : 5);
+            return this.halfCenterY + 5;
         },
         unitY() {
-            return this.isDonut ? 70 : this.halfCenterY + 10;
+            return 70;
         },
         displayValue() {
             if (this.value === null) return '—';
