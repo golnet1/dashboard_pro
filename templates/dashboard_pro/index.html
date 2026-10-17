@@ -1989,6 +1989,7 @@
                                                                 </div>
                                                             </div>
                                                             <div v-if="field.key === 'radius'" class="dp-radius-hint">{{ t('radius_effective') }}: <b>{{ settings.roundedWidgets ? (Number(editWidgetForm.radius) > 0 ? Number(editWidgetForm.radius) + ' px (' + t('radius_from_widget') + ')' : (Number(settings.widgetRadius) > 0 ? Number(settings.widgetRadius) + ' px (' + t('radius_from_common') + ')' : '0 px (' + t('radius_from_common') + ' = 0)')) : '0 px (' + t('radius_off') + ')' }}</b></div>
+                                                            <div v-else-if="field.key === 'round'" class="dp-radius-hint">{{ t('round_decimals_hint') }}</div>
                                                         </template>
                                                         <template v-else-if="field.type === 'checkbox'">
                                                             <div class="v-input v-input--selection-controls v-input--switch" :class="{ 'input--is-checked': editWidgetForm[field.key] }">
@@ -2532,7 +2533,7 @@
                 <div class="modal-body" style="text-align:center;padding:2rem 1.5rem">
                     <i class="fas fa-chart-line" style="font-size:3rem;color:var(--primary);margin-bottom:1rem"></i>
                     <h3 style="margin-bottom:.3rem">Dashboard Pro</h3>
-                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 01.20.18</p>
+                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 01.20.19</p>
                     <p style="color:var(--text-secondary);font-size:.8rem">{{ t('app_desc') }}</p>
                     <div class="about-links" style="margin-top:1rem;font-size:.85rem;color:var(--text-secondary);line-height:1.8">
                         <div>{{ t('about_telegram') }}: <a href="https://t.me/+9ZFQaxs_Ukw4NmMy" target="_blank" rel="noopener">Telegram</a></div>
@@ -2589,6 +2590,6 @@
 <script src="js/lib/hls.min.js?v=1"></script>
     <script src="js/dpbuilder.js?v=74"></script>
     <script src="js/dpbuilder-ui.js?v=64"></script>
-    <script src="js/app.js?v=456"></script>
+    <script src="js/app.js?v=457"></script>
 </body>
 </html>

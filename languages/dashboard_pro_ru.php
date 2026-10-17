@@ -1086,6 +1086,7 @@ $frontend = array(
     'field_donut' => 'Пончик',
     'field_thickness' => 'Толщина круга',
     'field_unit' => 'Единица измерения',
+    'round_decimals_hint' => 'цифр после запятой',
     'field_url' => 'URL',
     'field_url_with_text' => 'URL (шаблон {text})',
     'ph_city_id' => 'City ID',

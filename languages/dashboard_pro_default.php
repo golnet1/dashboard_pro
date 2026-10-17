@@ -1086,6 +1086,7 @@ $frontend = array(
     'field_donut' => 'Donut',
     'field_thickness' => 'Ring thickness',
     'field_unit' => 'Unit',
+    'round_decimals_hint' => 'digits after the decimal point',
     'field_url' => 'URL',
     'field_url_with_text' => 'URL ({text} template)',
     'ph_city_id' => 'City ID',
