@@ -1083,6 +1083,7 @@ $frontend = array(
     'field_round' => 'Кнопки круглые',
     'field_striped' => 'Полосатый',
     'field_switch_method' => 'Метод переключения',
+    'field_donut' => 'Пончик',
     'field_thickness' => 'Толщина круга',
     'field_unit' => 'Единица измерения',
     'field_url' => 'URL',

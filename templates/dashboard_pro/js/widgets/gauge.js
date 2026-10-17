@@ -16,9 +16,10 @@ const GaugeWidget = {
             { key: 'property', label: 'field_property', type: 'property', row: 'obj_prop' },
             { key: 'minValue', label: 'field_min', type: 'number', row: 'range' },
             { key: 'maxValue', label: 'field_max', type: 'number', row: 'range' },
-            { key: 'round', label: 'field_rounding', type: 'number', placeholder: '0' },
+            { key: 'round', label: 'field_rounding', type: 'number', row: 'round_thick', placeholder: '0' },
+            { key: 'thickness', label: 'field_thickness', type: 'number', step: 'any', row: 'round_thick', placeholder: '10' },
             { key: 'unit', label: 'field_unit', type: 'text', placeholder: 'ph_percent' },
-            { key: 'thickness', label: 'field_thickness', type: 'number', step: 'any', placeholder: '10' },
+            { key: 'donut', label: 'field_donut', type: 'switch', default: true },
             { key: 'colors', label: 'field_gradient_colors', type: 'textarea', rows: 2, placeholder: '[{"color":"#a9d70b"},{"color":"#f9c802"},{"color":"#ff0000"}]' },
         ],
         advanced: [
@@ -29,7 +30,7 @@ const GaugeWidget = {
             { key: 'bg_property', label: 'field_bg_property', type: 'property', row: 'bg_row', showIf: { bg_mode: 'property' } },
         ],
     },
-    defaults: { icon: 'fas fa-gauge-high', icon_type: 'icon', minValue: 0, maxValue: 100, round: 0, height: 180, unit: '', thickness: 10, colors: JSON.stringify([{color:'#a9d70b'},{color:'#f9c802'},{color:'#ff0000'}]) },
+    defaults: { icon: 'fas fa-gauge-high', icon_type: 'icon', minValue: 0, maxValue: 100, round: 0, height: 180, unit: '', thickness: 10, donut: true, colors: JSON.stringify([{color:'#a9d70b'},{color:'#f9c802'},{color:'#ff0000'}]) },
     template: `
         <div class="widget-v-card" :style="cardStyle" style="display:flex;flex-direction:column;align-items:center">
             <div v-if="showIcon || widget.title" class="widget-v-card__header" style="align-self:stretch;justify-content:center">
@@ -38,11 +39,12 @@ const GaugeWidget = {
                 <div v-if="widget.title" class="widget-v-card__title">{{ widget.title }}</div>
             </div>
             <div class="widget-v-card__body" style="align-items:center;justify-content:center;min-height:0" :style="bodyStyle">
-                <svg viewBox="4 4 112 112" style="flex:1;width:100%;height:100%">
-                    <circle cx="60" cy="60" :r="ringRadius" fill="none" stroke="rgba(255,255,255,.1)" :stroke-width="strokeWidth"/>
-                    <circle cx="60" cy="60" :r="ringRadius" fill="none" :stroke="gaugeColor" :stroke-width="strokeWidth" stroke-linecap="round"
+                <svg :viewBox="viewBox" style="flex:1;width:100%;height:100%">
+                    <circle cx="60" cy="60" :r="ringRadius" fill="none" stroke="rgba(255,255,255,.1)" :stroke-width="strokeWidth"
+                        :stroke-dasharray="backgroundDash" :transform="ringRotation"/>
+                    <circle cx="60" cy="60" :r="ringRadius" fill="none" :stroke="gaugeColor" :stroke-width="strokeWidth" :stroke-linecap="ringCap"
                         :stroke-dasharray="circumference" :stroke-dashoffset="dashOffset"
-                        transform="rotate(-90, 60, 60)" style="transition: stroke-dashoffset .5s"/>
+                        :transform="ringRotation" style="transition: stroke-dashoffset .5s"/>
                     <text x="60" :y="valueY" text-anchor="middle" fill="rgba(255,255,255,.87)" font-size="14" font-weight="700">{{ displayValue }}</text>
                     <text x="60" :y="unitY" text-anchor="middle" fill="rgba(255,255,255,.5)" font-size="7" v-if="widget.unit">{{ widget.unit }}</text>
                 </svg>
@@ -92,14 +94,58 @@ const GaugeWidget = {
         circumference() {
             return 2 * Math.PI * this.ringRadius;
         },
-        /* The number and the unit sit in the middle of the circle, the unit right
-           under the number. The title no longer goes inside the circle: it is drawn
-           above it, so the value is centred on the ring and not pushed down. */
+        /* The «Пончик» switch keeps the full ring when it is on (the old look) and
+           leaves only the upper half when it is off, from nine to three o'clock.
+           Widgets saved before the switch existed have no "donut" key at all, and a
+           key saved as 0 or an empty string must not halve the ring either: only an
+           explicit "off" does. */
+        isDonut() {
+            const v = this.widget.donut;
+            return !(v === false || v === 0 || v === '0' || v === 'false');
+        },
+        /* The end of the arc: a full ring is capped round at both ends, the way it
+           always was, while a half ring is cut flat. A round cap would hang below the
+           nine and three o'clock points (it is a half disc of the thickness, centred
+           on the end of the path), and the coloured part would then stick out past
+           the flat end of the background band. The flat cut is perpendicular to the
+           path, so at those two points, where the tangent is vertical, it lies right
+           on the base line. */
+        ringCap() {
+            return this.isDonut ? 'round' : 'butt';
+        },
+        /* The share of the circle the band covers: all of it, or the upper half. */
+        arcSpan() {
+            return this.isDonut ? 1 : 0.5;
+        },
+        /* A full ring starts at twelve o'clock and is filled clockwise; a half ring
+           starts at nine o'clock so that the arc opens upwards. */
+        ringRotation() {
+            return this.isDonut ? 'rotate(-90, 60, 60)' : 'rotate(-180, 60, 60)';
+        },
+        /* The background is the same band, drawn only for the covered share. */
+        backgroundDash() {
+            return this.circumference * this.arcSpan;
+        },
+        /* A half ring takes a shorter box: only the band above the base line, whose
+           ends are cut flat, plus the same hair of margin the full ring keeps. */
+        viewBox() {
+            return this.isDonut ? '4 4 112 112' : '4 4 112 57';
+        },
+        /* In the half ring the opening lies in the upper half, so its middle is about
+           0.42 of the hole radius above the base line instead of the centre of the
+           circle. The number and the unit keep their places relative to that point. */
+        halfCenterY() {
+            return 60 - 0.42 * (55 - this.strokeWidth);
+        },
+        /* The number and the unit sit in the middle of the ring, the unit right under
+           the number. The title no longer goes inside the circle: it is drawn above
+           it, so the value is centred on the ring and not pushed down. */
         valueY() {
-            return this.widget.unit ? 58 : 65;
+            if (this.isDonut) return this.widget.unit ? 58 : 65;
+            return this.halfCenterY + (this.widget.unit ? -2 : 5);
         },
         unitY() {
-            return 70;
+            return this.isDonut ? 70 : this.halfCenterY + 10;
         },
         displayValue() {
             if (this.value === null) return '—';
@@ -115,7 +161,7 @@ const GaugeWidget = {
             return Math.min(1, Math.max(0, (this.value - this.minVal) / range));
         },
         dashOffset() {
-            return this.circumference * (1 - this.fraction);
+            return this.circumference * (1 - this.arcSpan * this.fraction);
         },
         gaugeColor() {
             if (this.widget.colors) {
