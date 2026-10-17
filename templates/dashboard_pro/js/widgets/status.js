@@ -36,14 +36,12 @@ const StatusWidget = {
         { key: 'st1', status: '0', title: window.__t('default_off'), icon: 'fas fa-power-off', color: '#ef4444', exec_type: 'empty' },
         { key: 'st2', status: '1', title: window.__t('default_on'), icon: 'fas fa-check', color: '#22c55e', exec_type: 'empty' },
     ]) }),
-    /* Шапки у карточки нет: верхняя иконка дублировала ту, что стоит рядом с
-       текстом состояния, а название выводилось служебным «Статус». Остаётся
-       иконка состояния слева, справа от неё - текст состояния, под текстом -
-       строка информации об объекте (как у «Реле»). Поле «Название» на карточке
-       не выводится, оно остаётся именем виджета в списке редактора. */
+    /* У класса .widget-v-card__body в CSS направление column, поэтому строку
+       задаём явно: иконка состояния идёт в начале карточки, а надписи - справа
+       от неё (текст состояния, под ним строка информации). */
     template: `
         <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled }" :style="cardStyle" @click="runAction">
-            <div class="widget-v-card__body" style="display:flex;align-items:center;gap:12px;padding:10px 12px;flex:1;min-width:0">
+            <div class="widget-v-card__body" style="display:flex;flex-direction:row;align-items:center;gap:12px;padding:10px 12px;flex:1;min-width:0">
                 <i v-if="statusIcon" :class="statusIcon" :style="'font-size:2rem;flex-shrink:0;color:' + (statusColor || 'rgba(255,255,255,.6)')"></i>
                 <div style="min-width:0;flex:1">
                     <div v-if="statusText" style="font-size:1.1rem;font-weight:500;color:rgba(255,255,255,.87)">{{ statusText }}</div>
