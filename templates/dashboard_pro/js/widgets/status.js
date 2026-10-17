@@ -36,11 +36,13 @@ const StatusWidget = {
         { key: 'st1', status: '0', title: window.__t('default_off'), icon: 'fas fa-power-off', color: '#ef4444', exec_type: 'empty' },
         { key: 'st2', status: '1', title: window.__t('default_on'), icon: 'fas fa-check', color: '#22c55e', exec_type: 'empty' },
     ]) }),
-    /* У класса .widget-v-card__body в CSS направление column, поэтому строку
-       задаём явно: иконка состояния идёт в начале карточки, а надписи - справа
-       от неё (текст состояния, под ним строка информации). */
+    /* Название, если оно вписано, идёт строкой над иконкой; шапки с иконкой у
+       карточки нет. Ниже строка: иконка состояния в начале карточки, а надписи
+       справа от неё (текст состояния, под ним строка информации). Направление
+       строки задаём явно: у .widget-v-card__body в CSS стоит column. */
     template: `
         <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled }" :style="cardStyle" @click="runAction">
+            <div v-if="widget.title" class="widget-v-card__title" style="padding:8px 12px 0;min-width:0">{{ widget.title }}</div>
             <div class="widget-v-card__body" style="display:flex;flex-direction:row;align-items:center;gap:12px;padding:10px 12px;flex:1;min-width:0">
                 <i v-if="statusIcon" :class="statusIcon" :style="'font-size:2rem;flex-shrink:0;color:' + (statusColor || 'rgba(255,255,255,.6)')"></i>
                 <div style="min-width:0;flex:1">
