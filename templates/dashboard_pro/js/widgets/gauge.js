@@ -31,11 +31,17 @@ const GaugeWidget = {
             { key: 'bg_image', label: 'field_image_url', type: 'text', row: 'bg_row', showIf: { bg_mode: 'image' } },
             { key: 'bg_object', label: 'field_bg_object', type: 'object', row: 'bg_row', showIf: { bg_mode: 'property' } },
             { key: 'bg_property', label: 'field_bg_property', type: 'property', row: 'bg_row', showIf: { bg_mode: 'property' } },
+            /* «Открывать историю» — как в Mboard: клик по виджету открывает общий
+               диалог истории значения (см. window.dpHistory в js/dpdialog.js).
+               Цвет линии нужен только при включённом выключателе, поэтому он
+               показывается по showIf, но остаётся в том же ряду. */
+            { key: 'view_history', label: 'field_view_history', type: 'switch', row: 'hist_row', default: false },
+            { key: 'history_color', label: 'field_history_color', type: 'color', row: 'hist_row', showIf: { view_history: true } },
         ],
     },
-    defaults: { icon: 'fas fa-gauge-high', icon_type: 'icon', minValue: 0, maxValue: 100, round: 0, height: 180, unit: '', thickness: 10, donut: true, colors: JSON.stringify([{color:'#a9d70b'},{color:'#f9c802'},{color:'#ff0000'}]) },
+    defaults: { icon: 'fas fa-gauge-high', icon_type: 'icon', minValue: 0, maxValue: 100, round: 0, height: 180, unit: '', thickness: 10, donut: true, view_history: false, history_color: '#1976d2', colors: JSON.stringify([{color:'#a9d70b'},{color:'#f9c802'},{color:'#ff0000'}]) },
     template: `
-        <div class="widget-v-card" :style="cardStyle" style="display:flex;flex-direction:column;align-items:center">
+        <div class="widget-v-card" :class="{ 'widget-v-card--clickable': widget.view_history }" :style="cardStyle" @click="onCardClick" style="display:flex;flex-direction:column;align-items:center">
             <div v-if="showIcon || widget.title" class="widget-v-card__header" style="align-self:stretch;justify-content:center">
                 <img v-if="iconSrc" class="widget-v-card__icon widget-v-card__icon--img" :src="iconSrc" alt="">
                 <i v-else-if="showIcon" :class="widget.icon" class="widget-v-card__icon"></i>
@@ -215,6 +221,25 @@ const GaugeWidget = {
                     this.value = Number(d.value);
                 }
             } catch (e) { /* silent */ }
+        },
+        /* История значения — только при включённом выключателе «Открывать историю».
+           В режиме правки панели клик по карточке двигает виджет, поэтому там диалог
+           не открывается. Сам диалог и запрос данных живут в js/dpdialog.js. */
+        onCardClick() {
+            if (!this.widget.view_history) return;
+            if (document.querySelector('.main.edit-mode')) return;
+            if (typeof window.dpHistory !== 'function') return;
+            const object = this.widget.object_value || this.widget.object;
+            const property = this.widget.property;
+            if (!object) return;
+            window.dpHistory({
+                object: object,
+                property: property,
+                title: this.widget.title || (object + (property ? '.' + property : '')),
+                color: this.widget.history_color || '#1976d2',
+                unit: this.widget.unit || '',
+                round: this.widget.round != null ? Number(this.widget.round) : 2
+            });
         }
     }
 };
