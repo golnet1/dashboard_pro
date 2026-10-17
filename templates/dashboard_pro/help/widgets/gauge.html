@@ -81,13 +81,13 @@
         <img class="help-thumb" src="../img/gauge.png" alt="Скриншот: Индикатор" width="300" height="180" loading="lazy">
         <div class="help-card" id="gauge">
             <div class="help-card__head"><h3>Индикатор</h3><span class="badge">gauge</span><a class="help-top" href="../widgets.html">↑ к списку виджетов</a></div>
-<p>Круговой индикатор (дуга) с числом внутри.</p>
+<p>Круговой индикатор (дуга) с числом внутри. Название выводится сверху по центру — над кругом, иконка (если она задана) стоит перед названием, а единица измерения — под числом.</p>
             <h4>Все поля</h4>
             <p>Ниже — полный список полей настройки виджета: каждое поле, его ключ в файле виджета, тип и значение по умолчанию. Ключ нужен, если вы правите код виджета вручную или собираете свой виджет в конструкторе.</p>
             <h5>Основное <span class="badge">params</span></h5>
             <table>
                 <tr><th>Поле</th><th>Тип</th><th>По умолчанию</th><th>Описание</th></tr>
-                <tr><td>Название<br><code>title</code></td><td><code>text</code></td><td>—</td><td>Заголовок карточки. Если пусто, виджет подставляет своё название.</td></tr>
+                <tr><td>Название<br><code>title</code></td><td><code>text</code></td><td>—</td><td>Название виджета: выводится сверху по центру, над кругом. Если есть иконка, она показывается перед названием. Если поле пустое, строки с названием нет.</td></tr>
                 <tr><td>Тип иконки<br><code>icon_type</code></td><td><code>select</code></td><td><code>icon</code></td><td>Откуда берётся иконка: из набора Font Awesome, из свойства объекта или по ссылке на картинку. От этой настройки зависит, какие из трёх полей ниже показываются.</td></tr>
                 <tr><td>Иконка<br><code>icon</code></td><td><code>icon_picker</code></td><td><code>fas fa-gauge-high</code></td><td>Класс иконки Font Awesome, например <code>fas fa-lightbulb</code>. <span class="help-note-inline">Показывается: пока <b>Тип иконки</b> = <code>icon</code>.</span></td></tr>
                 <tr><td>Объект (иконка)<br><code>icon_object</code></td><td><code>object</code></td><td>—</td><td>Объект, свойство которого даёт иконку. Показывается, когда выбран тип «Свойство». <span class="help-note-inline">Показывается: пока <b>Тип иконки</b> = <code>property</code>.</span></td></tr>
@@ -98,6 +98,7 @@
                 <tr><td>Минимум<br><code>minValue</code></td><td><code>number</code></td><td>0</td><td>Минимум шкалы индикатора.</td></tr>
                 <tr><td>Максимум<br><code>maxValue</code></td><td><code>number</code></td><td>100</td><td>Максимум шкалы индикатора.</td></tr>
                 <tr><td>Округление<br><code>round</code></td><td><code>number</code></td><td>0</td><td>Сколько знаков после запятой оставлять у значения. Пусто — не округлять.</td></tr>
+                <tr><td>Единица измерения<br><code>unit</code></td><td><code>text</code></td><td>—</td><td>Подпись к значению: выводится под числом, внутри круга. Например <code>°C</code>, <code>%</code>, <code>кВт</code>. Если поле пустое, подписи нет.</td></tr>
                 <tr><td>Цвета градиента (JSON)<br><code>colors</code></td><td><code>textarea</code></td><td><code>[{"color":"#a9d70b"},{"c…</code></td><td>Список цветов градиента в JSON: <code>[{"color":"#a9d70b"},{"color":"#f9c802"}]</code>. Порядок цветов соответствует порядку значений.</td></tr>
             </table>
             <h5>Дополнительно <span class="badge">advanced</span></h5>

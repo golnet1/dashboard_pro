@@ -17,6 +17,7 @@ const GaugeWidget = {
             { key: 'minValue', label: 'field_min', type: 'number', row: 'range' },
             { key: 'maxValue', label: 'field_max', type: 'number', row: 'range' },
             { key: 'round', label: 'field_rounding', type: 'number', placeholder: '0' },
+            { key: 'unit', label: 'field_unit', type: 'text', placeholder: 'ph_percent' },
             { key: 'colors', label: 'field_gradient_colors', type: 'textarea', rows: 2, placeholder: '[{"color":"#a9d70b"},{"color":"#f9c802"},{"color":"#ff0000"}]' },
         ],
         advanced: [
@@ -27,11 +28,13 @@ const GaugeWidget = {
             { key: 'bg_property', label: 'field_bg_property', type: 'property', row: 'bg_row', showIf: { bg_mode: 'property' } },
         ],
     },
-    defaults: { icon: 'fas fa-gauge-high', icon_type: 'icon', minValue: 0, maxValue: 100, round: 0, height: 180, colors: JSON.stringify([{color:'#a9d70b'},{color:'#f9c802'},{color:'#ff0000'}]) },
+    defaults: { icon: 'fas fa-gauge-high', icon_type: 'icon', minValue: 0, maxValue: 100, round: 0, height: 180, unit: '', colors: JSON.stringify([{color:'#a9d70b'},{color:'#f9c802'},{color:'#ff0000'}]) },
     template: `
         <div class="widget-v-card" :style="cardStyle" style="display:flex;flex-direction:column;align-items:center">
-            <div v-if="iconSrc" class="widget-v-card__header" style="align-self:stretch">
-                <img class="widget-v-card__icon widget-v-card__icon--img" :src="iconSrc" alt="">
+            <div v-if="showIcon || widget.title" class="widget-v-card__header" style="align-self:stretch;justify-content:center">
+                <img v-if="iconSrc" class="widget-v-card__icon widget-v-card__icon--img" :src="iconSrc" alt="">
+                <i v-else-if="showIcon" :class="widget.icon" class="widget-v-card__icon"></i>
+                <div v-if="widget.title" class="widget-v-card__title">{{ widget.title }}</div>
             </div>
             <div class="widget-v-card__body" style="align-items:center;justify-content:center">
                 <svg viewBox="0 0 120 120" style="width:80%;max-width:200px;flex:1">
@@ -40,8 +43,7 @@ const GaugeWidget = {
                         :stroke-dasharray="circumference" :stroke-dashoffset="dashOffset"
                         transform="rotate(-90, 60, 60)" style="transition: stroke-dashoffset .5s"/>
                     <text x="60" :y="valueY" text-anchor="middle" fill="rgba(255,255,255,.87)" font-size="14" font-weight="700">{{ displayValue }}</text>
-                    <text x="60" :y="unitY" text-anchor="middle" fill="rgba(255,255,255,.5)" font-size="6" v-if="widget.unit">{{ widget.unit }}</text>
-                    <text x="60" y="78" text-anchor="middle" fill="rgba(255,255,255,.6)" font-size="7" v-if="hasTitle">{{ widget.title }}</text>
+                    <text x="60" :y="unitY" text-anchor="middle" fill="rgba(255,255,255,.5)" font-size="7" v-if="widget.unit">{{ widget.unit }}</text>
                 </svg>
             </div>
         </div>`,
@@ -57,15 +59,19 @@ const GaugeWidget = {
         if (this.timer) clearInterval(this.timer);
     },
     computed: {
-        hasTitle() {
-            return !!this.widget.title;
+        /* The icon stands in front of the title: a Font Awesome class when the type
+           is "icon", or the picture the mixin resolved from a url or a property. */
+        showIcon() {
+            return this.iconType === 'icon' ? !!this.widget.icon : !!this.iconSrc;
         },
+        /* The number and the unit sit in the middle of the circle, the unit right
+           under the number. The title no longer goes inside the circle: it is drawn
+           above it, so the value is centred on the ring and not pushed down. */
         valueY() {
-            if (this.hasTitle) return this.widget.unit ? 48 : 52;
-            return this.widget.unit ? 56 : 64;
+            return this.widget.unit ? 58 : 65;
         },
         unitY() {
-            return this.hasTitle ? 62 : 72;
+            return 70;
         },
         displayValue() {
             if (this.value === null) return '—';
