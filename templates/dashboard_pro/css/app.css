@@ -56,6 +56,7 @@ a.user-menu__item { text-decoration: none; color: inherit; }
 .hs-limit { color: #ffc107; font-size: .85rem; padding: 8px 0; }
 .app-bar__actions button { background: none; border: none; color: rgba(255,255,255,.85); font-size: 1rem; padding: .5rem .6rem; cursor: pointer; border-radius:var(--wpb-radius-default, 0px); }
 .app-bar__actions button:hover { background: rgba(255,255,255,.15); color: #fff; }
+.app-bar__actions button:active { background: rgba(255,255,255,.35); color: #fff; transform: scale(.92); }
 .app-bar__actions button.active { background: rgba(255,255,255,.2); color: #fff; }
 .app-bar__actions button.has-unsaved { position: relative; }
 .app-bar__actions button.has-unsaved::after { content: ''; position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; border-radius: 50%; background: #ffc107; box-shadow: 0 0 6px rgba(255,193,7,.8); }
@@ -63,6 +64,15 @@ a.user-menu__item { text-decoration: none; color: inherit; }
 .app-bar__actions button.ws-online { color: #22c55e; }
 .app-bar__actions button.ws-pulse { animation: ws-pulse .4s ease-out; }
 @keyframes ws-pulse { 0% { background: rgba(255,255,255,.3); } 100% { background: transparent; } }
+/* нажатие кнопки обновления по сокету: вспышка, лёгкое сжатие и оборот значка */
+.app-bar__actions button.ws-press { animation: ws-press .6s ease-out; }
+.app-bar__actions button.ws-press i { animation: ws-press-turn .6s ease-out; }
+@keyframes ws-press {
+  0% { background: rgba(255,255,255,.55); transform: scale(.85); }
+  55% { background: rgba(255,255,255,.28); transform: scale(1.08); }
+  100% { background: transparent; transform: scale(1); }
+}
+@keyframes ws-press-turn { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
 .sidebar { width: var(--sidebar-width); background: var(--sidebar); color: #fff; display: flex; flex-direction: column; flex-shrink: 0; height: 100vh; position: fixed; left: 0; top: 0; z-index: 90; transition: width .25s ease, transform .25s ease; }
 .sidebar-overlay { display: none; }

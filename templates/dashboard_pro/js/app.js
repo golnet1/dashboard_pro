@@ -339,6 +339,10 @@ const widgetUsage = computed(() => {
         const wsBytesReceived = ref(0);
         const wsBytesSent = ref(0);
         const wsPulse = ref(false);
+        /* Нажатие кнопки обновления по сокету: класс вешается на короткое время,
+           пока идёт вспышка и поворот значка, чтобы нажатие было видно. */
+        const wsPress = ref(false);
+        let wsPressTimer = null;
         const wsStatus = ref(null);
         const wsRev = reactive({});
         /* Виджеты группы рендерятся внутри group.js, а не в index.html, поэтому
@@ -4222,6 +4226,13 @@ if (f.key) {
         }
 
         function forceRefresh() {
+            /* Нажатие должно быть видно: вспышка и оборот значка. Класс снимается
+               и вешается заново, иначе браузер не перезапустит уже проигранную
+               анимацию при повторном нажатии. */
+            if (wsPressTimer) clearTimeout(wsPressTimer);
+            wsPress.value = false;
+            requestAnimationFrame(() => { wsPress.value = true; });
+            wsPressTimer = setTimeout(() => { wsPress.value = false; wsPressTimer = null; }, 620);
             wsRemountWidgets();
             headerValueRefresh();
             bgColorRefresh();
@@ -4475,7 +4486,7 @@ onMounted(() => {
             showIconPicker, iconTarget, iconSearch, iconCategory, iconCategorySearch, iconPage, iconCategories, filteredIconCategories, filteredIcons, totalPages, paginatedIcons, openIconPicker, selectIcon, iconPicked,
             showDirPicker, dirTarget, dirPickerPath, dirPickerItems, dirPickerUp, dirPickerLoading, dirPickerError, dirPickerPicked, openDirPicker, dirPickerGo, closeDirPicker, dirPickerOk,
             objects, iconProperties, infoProperties, widgetProperties, bgProperties, extraProperties, scripts, methodCache, loadObjects, loadScripts, loadIconProperties, loadInfoProperties, loadWidgetProperties, loadBgProperties, loadObjectMethods, widgetBgStyle, ownWidgetRadius,
-            isAdmin, toggleEditMode, wsConnected, wsTooltip, wsStatus, wsPulse, wsBytesSent, wsBytesReceived, wsRev, user, userMenuOpen, sidebarMini, toggleSidebar, expandedGroups, childPanels, toggleGroup, forceRefresh, formatBytes,
+            isAdmin, toggleEditMode, wsConnected, wsTooltip, wsStatus, wsPulse, wsPress, wsBytesSent, wsBytesReceived, wsRev, user, userMenuOpen, sidebarMini, toggleSidebar, expandedGroups, childPanels, toggleGroup, forceRefresh, formatBytes,
             showNotifications, notifications, unreadCount, checkNotifications, markNotificationsRead, notifAvatarUrl, notifAvatarFallback,
             chatOpen, chatMessages, chatText, chatLoading, chatThinking, chatMessageIsMine, chatAvatar, chatAvatarError, loadChat, sendChat, sendChatText, toggleChat, formatTime, chatSurfaceMount, chatSurfaceUnmount, chatSurfaceVisible,
             widgetList, widgetUsage, exportWidgetZip, setWidgetEnabled, copyWidgetDef, deleteWidgetDef, pickWidgetZip, widgetName,
