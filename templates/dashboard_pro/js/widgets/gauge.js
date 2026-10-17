@@ -47,9 +47,9 @@ const GaugeWidget = {
                         :transform="ringRotation" style="transition: stroke-dashoffset .5s"/>
                     <text x="60" :y="valueY" text-anchor="middle" fill="rgba(255,255,255,.87)" font-size="14" font-weight="700">{{ displayValue }}</text>
                     <text x="60" :y="unitY" text-anchor="middle" fill="rgba(255,255,255,.5)" font-size="7" v-if="widget.unit && isDonut">{{ widget.unit }}</text>
-                    <text x="5" :y="scaleY" text-anchor="start" fill="rgba(255,255,255,.5)" font-size="7" v-if="!isDonut">{{ minLabel }}</text>
+                    <text :x="scaleMinX" :y="scaleY" text-anchor="middle" fill="rgba(255,255,255,.5)" font-size="7" v-if="!isDonut">{{ minLabel }}</text>
                     <text x="60" :y="scaleY" text-anchor="middle" fill="rgba(255,255,255,.5)" font-size="7" v-if="!isDonut && widget.unit">{{ widget.unit }}</text>
-                    <text x="115" :y="scaleY" text-anchor="end" fill="rgba(255,255,255,.5)" font-size="7" v-if="!isDonut">{{ maxLabel }}</text>
+                    <text :x="scaleMaxX" :y="scaleY" text-anchor="middle" fill="rgba(255,255,255,.5)" font-size="7" v-if="!isDonut">{{ maxLabel }}</text>
                 </svg>
             </div>
         </div>`,
@@ -134,10 +134,18 @@ const GaugeWidget = {
         viewBox() {
             return this.isDonut ? '4 4 112 112' : '4 4 112 70';
         },
-        /* The scale line under the half ring: the number sits at the foot of one end
-           of the band, the maximum at the other, and the unit keeps the middle. */
+        /* The scale line under the half ring: the numbers sit under the middle of the
+           band's cut at either end — the flat bottom of the ring runs from the outer
+           edge (x = 5) inwards by the thickness, so the number is centred on that stub
+           — and the unit keeps the middle of the line. */
         scaleY() {
             return 70;
+        },
+        scaleMinX() {
+            return 5 + this.strokeWidth / 2;
+        },
+        scaleMaxX() {
+            return 115 - this.strokeWidth / 2;
         },
         minLabel() {
             return String(this.minVal);
