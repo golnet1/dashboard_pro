@@ -36,8 +36,8 @@ const GaugeWidget = {
                 <i v-else-if="showIcon" :class="widget.icon" class="widget-v-card__icon"></i>
                 <div v-if="widget.title" class="widget-v-card__title">{{ widget.title }}</div>
             </div>
-            <div class="widget-v-card__body" style="align-items:center;justify-content:center">
-                <svg viewBox="0 0 120 120" style="width:80%;max-width:200px;flex:1">
+            <div class="widget-v-card__body" style="align-items:center;justify-content:center;min-height:0" :style="bodyStyle">
+                <svg viewBox="4 4 112 112" style="flex:1;width:100%;height:100%">
                     <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="10"/>
                     <circle cx="60" cy="60" r="50" fill="none" :stroke="gaugeColor" stroke-width="10" stroke-linecap="round"
                         :stroke-dasharray="circumference" :stroke-dashoffset="dashOffset"
@@ -63,6 +63,18 @@ const GaugeWidget = {
            is "icon", or the picture the mixin resolved from a url or a property. */
         showIcon() {
             return this.iconType === 'icon' ? !!this.widget.icon : !!this.iconSrc;
+        },
+        /* The card body is a flex item, and its automatic minimum size would be the
+           height the square ring asks for, so with "flex:1" alone the ring grew past
+           the card and was cut by "overflow:hidden" (200 px tall in a 180 px card).
+           min-height:0 (set in the template) keeps the body inside the card, the svg
+           fills the body, and the ring takes the smaller side of it. The viewBox is
+           tightened to the drawn ring (r=50 plus the 10 wide stroke, with a unit of
+           margin) so that the ring reaches the edge of the widget instead of the
+           8 percent that the old 0 0 120 120 box left around it. The number and the
+           unit are drawn in viewBox units, so they scale together with the ring. */
+        bodyStyle() {
+            return (this.showIcon || this.widget.title) ? { padding: '0 12px 12px' } : { padding: '0' };
         },
         /* The number and the unit sit in the middle of the circle, the unit right
            under the number. The title no longer goes inside the circle: it is drawn
