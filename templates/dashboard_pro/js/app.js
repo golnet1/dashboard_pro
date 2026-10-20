@@ -1841,7 +1841,7 @@ function loadScript(src, version) {
                    пробросе портов это чужой сервер. Если сервер сообщил другой
                    адрес - переподключаемся к правильному. */
                 if (wsCurrentUrl && wsBuildUrl() !== wsCurrentUrl) {
-                    try { if (wsSocket) wsSocket.close(); } catch (e) {}
+                    wsDropSocket();
                     if (wsReconnectTimer) { clearTimeout(wsReconnectTimer); wsReconnectTimer = null; }
                     initWebSocket();
                 }
@@ -3088,7 +3088,7 @@ if (f.key) {
                при расхождении переподключаемся - тем же путём, что и при
                первой загрузке настроек. */
             if (wsCurrentUrl && wsBuildUrl() !== wsCurrentUrl) {
-                try { if (wsSocket) wsSocket.close(); } catch (e) {}
+                wsDropSocket();
                 if (wsReconnectTimer) { clearTimeout(wsReconnectTimer); wsReconnectTimer = null; }
                 initWebSocket();
             }
@@ -4068,6 +4068,33 @@ if (f.key) {
             if (wsHeartbeatTimer) { clearInterval(wsHeartbeatTimer); wsHeartbeatTimer = null; }
         }
 
+        /* Единственное место, где ставится переподключение. Сокет закрывается
+           сам и приходит onclose, но об этом узнаёт и heartbeat (wsMarkDead).
+           Если каждый из них заведёт свой таймер, через 5 секунд поднимутся
+           два сокета: wsSocket укажет на один, второй останется брошенным и
+           никогда не закроется. На сервере такие брошенные соединения висят
+           до лимита, и новые клиенты перестают подключаться. Поэтому таймер
+           один, и повторная постановка его не удваивает. */
+        function wsScheduleReconnect() {
+            if (wsReconnectTimer) return;
+            wsReconnectTimer = setTimeout(function () {
+                wsReconnectTimer = null;
+                initWebSocket();
+            }, 5000);
+        }
+
+        /* Забыть текущий сокет: снять обработчики и закрыть. Без снятия
+           onclose старого сокета вызвал бы реконнект ещё раз - уже для
+           сокета, который никому не нужен. */
+        function wsDropSocket() {
+            wsStopHeartbeat();
+            const s = wsSocket;
+            wsSocket = null;
+            if (!s) return;
+            s.onopen = s.onmessage = s.onerror = s.onclose = null;
+            try { s.close(); } catch (e) {}
+        }
+
         function wsStartHeartbeat() {
             wsStopHeartbeat();
             wsHeartbeatTimer = setInterval(function () {
@@ -4101,10 +4128,9 @@ if (f.key) {
             wsConnected.value = false;
             wsSetLive(false);
             wsSubscribedProps = [];
-            wsStopHeartbeat();
+            wsDropSocket();
             wsRemountWidgets();
-            try { if (wsSocket) wsSocket.close(); } catch (e) {}
-            if (!wsReconnectTimer) wsReconnectTimer = setTimeout(initWebSocket, 5000);
+            wsScheduleReconnect();
         }
 
         /* raw send for high-rate widgets (colour music): their writes go over the
@@ -4207,9 +4233,13 @@ if (f.key) {
 
         function initWebSocket() {
             const wsUrl = wsBuildUrl();
+            /* Прежний сокет обязательно закрываем перед новым: иначе при
+               смене адреса и при каждом реконнекте на сервере оставался бы
+               висеть брошенный клиент, пока не исчерпает лимит подключений. */
+            wsDropSocket();
             try {
                 wsSocket = new WebSocket(wsUrl);
-            } catch (e) { console.error('WS creation failed', e); return; }
+            } catch (e) { console.error('WS creation failed', e); wsScheduleReconnect(); return; }
             wsCurrentUrl = wsUrl;
             wsSocket.onopen = function() {
                 wsConnected.value = true;
@@ -4332,12 +4362,16 @@ if (f.key) {
                 } catch (e) { /* silent */ }
             };
             wsSocket.onclose = function() {
+                /* Закрытие «осиротевшего» сокета (его уже заменили при
+                   переподключении) не должно поднимать новый канал: иначе
+                   старый сокет тянул бы за собой ещё одно подключение. */
+                if (this !== wsSocket) return;
                 wsConnected.value = false;
                 wsSetLive(false);
                 wsSubscribedProps = [];
                 wsStopHeartbeat();
                 wsRemountWidgets();
-                wsReconnectTimer = setTimeout(initWebSocket, 5000);
+                wsScheduleReconnect();
             };
         }
 
