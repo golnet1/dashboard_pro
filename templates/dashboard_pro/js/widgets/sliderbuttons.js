@@ -31,20 +31,22 @@ const SliderButtonsWidget = {
             { key: 'object_alive', label: 'field_alive_flag', type: 'object', row: 'alive_row' },
             { key: 'property_alive', label: 'field_alive_property', type: 'property', row: 'alive_row' },
             { key: 'alive_timeout', label: 'field_alive_timeout', type: 'number', step: 1 },
+            { key: 'view_history', label: 'field_view_history', type: 'switch', row: 'hist_row', default: false },
+            { key: 'history_color', label: 'field_history_color', type: 'color', row: 'hist_row', showIf: { view_history: true } },
         ],
     },
-    defaults: { icon: 'fas fa-plus-minus', icon_type: 'icon', property: 'level', min: 0, max: 100, step: 1, unit: '', round: false, prepend_icon: '', append_icon: '', height: 130 },
+    defaults: { icon: 'fas fa-plus-minus', icon_type: 'icon', property: 'level', min: 0, max: 100, step: 1, unit: '', round: false, prepend_icon: '', append_icon: '', height: 130, view_history: false, history_color: '#1976d2' },
     template: `
-        <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled }" :style="cardStyle" style="display:flex;flex-direction:column">
+        <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled, 'widget-v-card--clickable': widget.view_history }" :style="cardStyle" style="display:flex;flex-direction:column" @click="onHistClick">
             <div class="widget-v-card__header">
                 <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon"></i>
                 <div class="widget-v-card__title">{{ widget.title || t('widget_sliderbuttons') }}</div>
             </div>
             <div class="widget-v-card__body" style="padding:8px 12px 12px;display:flex;flex-direction:column">
                 <div style="display:flex;align-items:center;gap:10px;flex:1">
-                    <button type="button" @click="stepDown" :disabled="aliveDisabled" :style="btnStyle" aria-label="-"><i v-if="widget.prepend_icon" :class="widget.prepend_icon"></i><template v-else>−</template></button>
+                    <button type="button" @click.stop="stepDown" :disabled="aliveDisabled" :style="btnStyle" aria-label="-"><i v-if="widget.prepend_icon" :class="widget.prepend_icon"></i><template v-else>−</template></button>
                     <span style="flex:1;text-align:center;font-size:1.05rem;font-weight:600;color:var(--on-theme-high);white-space:nowrap">{{ value }} <span v-if="widget.unit" style="margin-left:4px">{{ widget.unit }}</span></span>
-                    <button type="button" @click="stepUp" :disabled="aliveDisabled" :style="btnStyle" aria-label="+"><i v-if="widget.append_icon" :class="widget.append_icon"></i><template v-else>+</template></button>
+                    <button type="button" @click.stop="stepUp" :disabled="aliveDisabled" :style="btnStyle" aria-label="+"><i v-if="widget.append_icon" :class="widget.append_icon"></i><template v-else>+</template></button>
                 </div>
             </div>
         </div>`,

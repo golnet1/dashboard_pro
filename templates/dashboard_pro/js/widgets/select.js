@@ -26,11 +26,13 @@ const SelectWidget = {
             { key: 'object_alive', label: 'field_alive_flag', type: 'object', row: 'alive_row' },
             { key: 'property_alive', label: 'field_alive_property', type: 'property', row: 'alive_row' },
             { key: 'alive_timeout', label: 'field_alive_timeout', type: 'number', step: 1 },
+            { key: 'view_history', label: 'field_view_history', type: 'switch', row: 'hist_row', default: false },
+            { key: 'history_color', label: 'field_history_color', type: 'color', row: 'hist_row', showIf: { view_history: true } },
         ],
     },
-    defaults: () => ({ icon: 'fas fa-list', icon_type: 'icon', height: 130, items: JSON.stringify([{state:window.__t('default_off'),title:window.__t('default_off')},{state:window.__t('default_on'),title:window.__t('default_on')}]) }),
+    defaults: () => ({ icon: 'fas fa-list', icon_type: 'icon', height: 130, view_history: false, history_color: '#1976d2', items: JSON.stringify([{state:window.__t('default_off'),title:window.__t('default_off')},{state:window.__t('default_on'),title:window.__t('default_on')}]) }),
     template: `
-        <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled }" :style="cardStyle">
+        <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled, 'widget-v-card--clickable': widget.view_history }" :style="cardStyle" @click="onHistClick">
             <div class="widget-v-card__header">
                 <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon"></i>
                 <div class="widget-v-card__title">{{ widget.title || t('widget_select') }}</div>

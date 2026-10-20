@@ -28,11 +28,13 @@ const ProgressBarWidget = {
             { key: 'bg_property', label: 'field_bg_property', type: 'property', row: 'bg_row', showIf: { bg_mode: 'property' } },
             { key: 'pre_info', label: 'field_info_prefix', type: 'text', row: 'info_affix' },
             { key: 'pos_info', label: 'field_info_postfix', type: 'text', row: 'info_affix' },
+            { key: 'view_history', label: 'field_view_history', type: 'switch', row: 'hist_row', default: false },
+            { key: 'history_color', label: 'field_history_color', type: 'color', row: 'hist_row', showIf: { view_history: true } },
         ],
     },
-    defaults: { icon: 'fas fa-chart-bar', icon_type: 'icon', level_min: 0, level_max: 100, striped: false, rounded: false, color_progress: 'primary', height: 100 },
+    defaults: { icon: 'fas fa-chart-bar', icon_type: 'icon', level_min: 0, level_max: 100, striped: false, rounded: false, color_progress: 'primary', height: 100, view_history: false, history_color: '#1976d2' },
     template: `
-        <div class="widget-v-card" :style="cardStyle">
+        <div class="widget-v-card" :class="{ 'widget-v-card--clickable': widget.view_history }" :style="cardStyle" @click="onHistClick">
             <div class="widget-v-card__header" v-if="widget.title || widget.icon">
                 <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon"></i>
                 <div class="widget-v-card__title">{{ widget.title || t('widget_progressbar') }}</div>

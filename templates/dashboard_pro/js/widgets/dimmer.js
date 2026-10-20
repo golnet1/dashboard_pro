@@ -42,11 +42,13 @@ const DimmerWidget = {
             { key: 'pos_info', label: 'field_info_postfix', type: 'text', row: 'info_affix' },
             { key: 'background', label: 'field_icon_bg', type: 'checkbox', row: 'icon_hl' },
             { key: 'round', label: 'field_icon_round', type: 'checkbox', row: 'icon_hl' },
+            { key: 'view_history', label: 'field_view_history', type: 'switch', row: 'hist_row', default: false },
+            { key: 'history_color', label: 'field_history_color', type: 'color', row: 'hist_row', showIf: { view_history: true } },
         ],
     },
-    defaults: { icon: 'fas fa-lightbulb', icon_type: 'icon', property: 'level', level_min: 0, level_max: 100, level_step: 1, background: false, round: false, height: 115 },
+    defaults: { icon: 'fas fa-lightbulb', icon_type: 'icon', property: 'level', level_min: 0, level_max: 100, level_step: 1, background: false, round: false, height: 115, view_history: false, history_color: '#1976d2' },
     template: `
-        <div class="widget-v-card" :style="cardStyle">
+        <div class="widget-v-card" :class="{ 'widget-v-card--clickable': widget.view_history }" :style="cardStyle" @click="onHistClick">
             <div class="widget-v-card__header">
                 <i v-if="widget.icon" class="widget-v-card__icon" :class="[widget.icon, iconHlClass]" style="display:inline-flex;align-items:center;justify-content:center;width:35px;height:35px;padding:0"></i>
                 <div class="widget-v-card__title">{{ widget.title || t('widget_dimmer') }}</div>
@@ -59,7 +61,7 @@ const DimmerWidget = {
                 <span v-if="widget.pre_info">{{ widget.pre_info }}</span><span v-if="infoValue">{{ infoDisplay }}</span><span v-if="widget.pos_info">{{ widget.pos_info }}</span>
             </div>
             <div class="widget-v-card__body" style="padding:12px 12px 12px">
-                <div class="v-slider theme--dark" style="width:100%">
+                <div class="v-slider theme--dark" style="width:100%" @click.stop>
                     <input type="range" class="v-slider__input" :min="min" :max="max" :step="step" v-model.number="level" @change="onChange" :disabled="loading">
                     <div class="v-slider__track"><div class="v-slider__track-fill" :style="{width: levelPerc + '%'}"></div></div>
                     <div class="v-slider__thumb-container" :style="{left: levelPerc + '%'}"><div class="v-slider__thumb"></div></div>
@@ -114,6 +116,10 @@ const DimmerWidget = {
         }
     },
     methods: {
+        /* история уровня открывается по свойству уровня, а не по статусу вкл/выкл */
+        histSource() {
+            return { object: this.levelObject(), property: this.levelProperty() };
+        },
         uiState() {
             const id = this.widget && this.widget.id;
             if (!id) return null;
@@ -223,7 +229,7 @@ hasSeparateLevel() {
             if (!this.widget.object_info) return;
             try {
                 const params = this.widget.property_info ? { object: this.widget.object_info, property: this.widget.property_info } : { object: this.widget.object_info };
-                const d = await dpHttp('getProperty?' + new URLSearchParams(params));
+                const d = await dpAPI('getProperty?' + new URLSearchParams(params));
                 if (d && !d.error) this.setInfo(d.value);
             } catch (e) { /* silent */ }
         },

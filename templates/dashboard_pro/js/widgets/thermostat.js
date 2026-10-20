@@ -38,11 +38,13 @@ const ThermostatWidget = {
             { key: 'alive_timeout', label: 'field_alive_timeout', type: 'number', step: 1 },
             { key: 'background', label: 'field_icon_bg', type: 'checkbox', row: 'icon_hl' },
             { key: 'round', label: 'field_icon_round', type: 'checkbox', row: 'icon_hl' },
+            { key: 'view_history', label: 'field_view_history', type: 'switch', row: 'hist_row', default: false },
+            { key: 'history_color', label: 'field_history_color', type: 'color', row: 'hist_row', showIf: { view_history: true } },
         ],
     },
-    defaults: { icon: 'fas fa-thermometer-half', icon_type: 'icon', min: 5, max: 35, background: false, round: false, height: 140 },
+    defaults: { icon: 'fas fa-thermometer-half', icon_type: 'icon', min: 5, max: 35, background: false, round: false, height: 140, view_history: false, history_color: '#1976d2' },
     template: `
-        <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled }" :style="cardStyle" style="display:flex;flex-direction:column">
+        <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled, 'widget-v-card--clickable': widget.view_history }" :style="cardStyle" style="display:flex;flex-direction:column" @click="onHistClick">
             <div class="widget-v-card__header">
                 <i v-if="widget.icon" class="widget-v-card__icon" :class="[widget.icon, iconHlClass]" style="display:inline-flex;align-items:center;justify-content:center;width:35px;height:35px;padding:0"></i>
                 <div class="widget-v-card__title">{{ widget.title || t('widget_thermostat') }}</div>
@@ -53,12 +55,12 @@ const ThermostatWidget = {
             </div>
             <div class="widget-v-card__body" style="padding:8px 12px 12px;display:flex;flex-direction:column;align-items:center;gap:8px">
                 <div style="display:flex;align-items:center;gap:16px">
-                    <button @click="adjustTarget(-1)" :disabled="loading || aliveDisabled" style="width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.05);color:rgba(255,255,255,.8);font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center">−</button>
+                    <button @click.stop="adjustTarget(-1)" :disabled="loading || aliveDisabled" style="width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.05);color:rgba(255,255,255,.8);font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center">−</button>
                     <div style="text-align:center">
                         <div style="font-size:2.2rem;font-weight:300;color:rgba(255,255,255,.87)">{{ target }}</div>
                         <div style="font-size:.7rem;color:rgba(255,255,255,.4)">°C</div>
                     </div>
-                    <button @click="adjustTarget(1)" :disabled="loading || aliveDisabled" style="width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.05);color:rgba(255,255,255,.8);font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center">+</button>
+                    <button @click.stop="adjustTarget(1)" :disabled="loading || aliveDisabled" style="width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.05);color:rgba(255,255,255,.8);font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center">+</button>
                 </div>
                 <div v-if="currentTemp !== null" style="font-size:.8rem;color:rgba(255,255,255,.5)">{{ t('current_label') }} {{ currentTemp }}°C</div>
             </div>
@@ -95,6 +97,12 @@ const ThermostatWidget = {
         if (this.availTimer) clearInterval(this.availTimer);
     },
     methods: {
+        /* история — по текущей температуре; если её нет, по заданной */
+        histSource() {
+            if (this.widget.object_current) return { object: this.widget.object_current, property: this.widget.property_current || '' };
+            if (this.widget.object_target) return { object: this.widget.object_target, property: this.widget.property_target || '' };
+            return { object: this.widget.object_value || this.widget.object || '', property: this.widget.property || '' };
+        },
         uiState() {
             const id = this.widget && this.widget.id;
             if (!id) return null;

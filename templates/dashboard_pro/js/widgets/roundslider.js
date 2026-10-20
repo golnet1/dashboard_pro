@@ -28,16 +28,18 @@ const RoundSliderWidget = {
             { key: 'object_alive', label: 'field_alive_flag', type: 'object', row: 'alive_row' },
             { key: 'property_alive', label: 'field_alive_property', type: 'property', row: 'alive_row' },
             { key: 'alive_timeout', label: 'field_alive_timeout', type: 'number', step: 1 },
+            { key: 'view_history', label: 'field_view_history', type: 'switch', row: 'hist_row', default: false },
+            { key: 'history_color', label: 'field_history_color', type: 'color', row: 'hist_row', showIf: { view_history: true } },
         ],
     },
-    defaults: { icon: 'fas fa-circle', icon_type: 'icon', min: 0, max: 100, step: 1, unit: '%', height: 170 },
+    defaults: { icon: 'fas fa-circle', icon_type: 'icon', min: 0, max: 100, step: 1, unit: '%', height: 170, view_history: false, history_color: '#1976d2' },
     template: `
-        <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled }" :style="cardStyle">
+        <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled, 'widget-v-card--clickable': widget.view_history }" :style="cardStyle">
             <div class="widget-v-card__body" style="display:flex;align-items:center;justify-content:center;flex:1;padding:0;overflow:hidden;position:relative">
-                <canvas ref="canvas" style="display:block;cursor:pointer" @mousedown="startDrag" @mousemove="onDrag" @mouseup="endDrag" @mouseleave="endDrag"></canvas>
+                <canvas ref="canvas" style="display:block;cursor:pointer" @mousedown="startDrag" @mousemove="onDrag" @mouseup="endDrag" @mouseleave="endDrag" @click.stop></canvas>
                 <img v-if="iconSrc" :src="iconSrc" alt="" style="position:absolute;top:4px;left:8px;width:1rem;height:1rem;object-fit:contain;opacity:.6;pointer-events:none">
                 <i v-else-if="widget.icon" :class="widget.icon" style="position:absolute;top:4px;left:8px;font-size:1rem;color:rgba(255,255,255,.6);pointer-events:none"></i>
-                <div style="position:absolute;display:flex;flex-direction:column;align-items:center;pointer-events:none">
+                <div style="position:absolute;display:flex;flex-direction:column;align-items:center;pointer-events:none" :style="widget.view_history ? 'pointer-events:auto;cursor:pointer' : ''" @click="onHistClick">
                     <div style="font-size:1.2rem;font-weight:500;color:rgba(255,255,255,.87)">{{ displayValue }}<span v-if="widget.unit" style="margin-left:4px">{{ widget.unit }}</span></div>
                     <div v-if="widget.title" style="margin-top:4px;font-size:1.2rem;font-weight:500;color:rgba(255,255,255,.6);white-space:nowrap">{{ widget.title }}</div>
                 </div>

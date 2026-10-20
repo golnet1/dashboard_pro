@@ -30,17 +30,19 @@ const SliderWidget = {
             { key: 'object_alive', label: 'field_alive_flag', type: 'object', row: 'alive_row' },
             { key: 'property_alive', label: 'field_alive_property', type: 'property', row: 'alive_row' },
             { key: 'alive_timeout', label: 'field_alive_timeout', type: 'number', step: 1 },
+            { key: 'view_history', label: 'field_view_history', type: 'switch', row: 'hist_row', default: false },
+            { key: 'history_color', label: 'field_history_color', type: 'color', row: 'hist_row', showIf: { view_history: true } },
         ],
     },
-    defaults: { icon: 'fas fa-sliders-h', icon_type: 'icon', property: 'level', min: 0, max: 100, step: 1, unit: '', prepend_icon: '', append_icon: '', height: 100 },
+    defaults: { icon: 'fas fa-sliders-h', icon_type: 'icon', property: 'level', min: 0, max: 100, step: 1, unit: '', prepend_icon: '', append_icon: '', height: 100, view_history: false, history_color: '#1976d2' },
     template: `
-        <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled }" :style="cardStyle">
+        <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled, 'widget-v-card--clickable': widget.view_history }" :style="cardStyle" @click="onHistClick">
             <div class="widget-v-card__header">
                 <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon"></i>
                 <div class="widget-v-card__title">{{ widget.title || t('widget_slider') }}: <span style="font-size:1rem;font-weight:600;color:var(--on-theme-high)">{{ currentValue }}<span v-if="widget.unit" style="margin-left:4px">{{ widget.unit }}</span></span></div>
             </div>
             <div class="widget-v-card__body" style="padding:0 12px 12px">
-                <div class="v-slider theme--dark" style="width:100%;margin-top:8px">
+                <div class="v-slider theme--dark" style="width:100%;margin-top:8px" @click.stop>
                     <i v-if="widget.prepend_icon" :class="widget.prepend_icon" style="font-size:.85rem;color:rgba(255,255,255,.5);margin-right:4px;cursor:pointer" @click="down"></i>
                     <input type="range" class="v-slider__input" :min="min" :max="max" :step="step" v-model.number="currentValue" @change="onChange" :disabled="loading">
                     <div class="v-slider__track"><div class="v-slider__track-fill" :style="{width: fillPercent + '%'}"></div></div>

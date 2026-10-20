@@ -270,7 +270,7 @@ const RGBWidget = {
             if (!this.widget.object_info) return;
             try {
                 const params = this.widget.property_info ? { object: this.widget.object_info, property: this.widget.property_info } : { object: this.widget.object_info };
-                const d = await dpHttp('getProperty?' + new URLSearchParams(params));
+                const d = await dpAPI('getProperty?' + new URLSearchParams(params));
                 if (d && !d.error) this.setInfo(d.value);
             } catch (e) { /* silent */ }
         },

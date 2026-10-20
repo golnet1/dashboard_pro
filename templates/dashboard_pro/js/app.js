@@ -453,10 +453,10 @@ const headerStatusSectionOn = computed(() => headerHas('status'));
             HEADER_STATUS_BUILTIN.forEach(async (b) => {
                 try {
                     let raw = '';
-                    let res = await dpHttp('getProperty?' + new URLSearchParams({ object: b.key, property: 'stateTitle' }));
+                    let res = await dpAPI('getProperty?' + new URLSearchParams({ object: b.key, property: 'stateTitle' }));
                     raw = res && res.value != null ? res.value : '';
                     if (raw === '') {
-                        res = await dpHttp('getProperty?' + new URLSearchParams({ object: b.key, property: 'status' }));
+                        res = await dpAPI('getProperty?' + new URLSearchParams({ object: b.key, property: 'status' }));
                         raw = res && res.value != null ? res.value : '';
                     }
                     if (typeof raw === 'object') {
@@ -475,7 +475,7 @@ const headerStatusSectionOn = computed(() => headerHas('status'));
                         value = (res && res.result !== undefined) ? res.result : (res && res.value);
                     } else {
                         if (!it.object) return;
-                        const res = await dpHttp('getProperty?' + new URLSearchParams({ object: it.object, property: it.property || 'status' }));
+                        const res = await dpAPI('getProperty?' + new URLSearchParams({ object: it.object, property: it.property || 'status' }));
                         value = res && res.value;
                         if (typeof value === 'object') {
                             const parsed = hsParseStatus(value);
@@ -1771,7 +1771,7 @@ function loadScript(src, version) {
            reached the panel. The token changes on every install, and the base follows the
            module, so a module update also refreshes the widgets. */
         const WIDGET_TOKEN_KEY = 'dp_widget_token';
-        const WIDGET_TOKEN_BASE = 293;
+        const WIDGET_TOKEN_BASE = 295;
         function widgetToken() {
             let token = 0;
             try { token = parseInt(localStorage.getItem(WIDGET_TOKEN_KEY) || '0', 10) || 0; } catch (e) { token = 0; }
@@ -4586,6 +4586,40 @@ app.config.globalProperties.t = window.__t;
         }
     };
 
+    /* «Открывать историю» — как в gauge и в Mboard: переключатель в «Дополнительно»,
+       клик по карточке в режиме просмотра открывает общий диалог истории
+       (window.dpHistory в js/dpdialog.js). Объект и свойство по умолчанию — те
+       основные поля, что виджет читает для показа; диммер, термостат и статус
+       показывают значение из отдельных полей и переопределяют histSource(). */
+    const widgetHistoryMixin = {
+        methods: {
+            /* Откуда берётся история: объект и свойство, значение которых показывает виджет. */
+            histSource() {
+                return {
+                    object: (this.widget && (this.widget.object_value || this.widget.object)) || '',
+                    property: (this.widget && this.widget.property) || ''
+                };
+            },
+            /* Открыть историю — только при включённом переключателе и вне режима правки
+               (там клик двигает виджет по панели). */
+            onHistClick() {
+                if (!this.widget || !this.widget.view_history) return;
+                if (document.querySelector('.main.edit-mode')) return;
+                if (typeof window.dpHistory !== 'function') return;
+                const src = this.histSource() || {};
+                if (!src.object) return;
+                window.dpHistory({
+                    object: src.object,
+                    property: src.property,
+                    title: this.widget.title || (src.object + (src.property ? '.' + src.property : '')),
+                    color: this.widget.history_color || '#1976d2',
+                    unit: this.widget.unit || '',
+                    round: 2
+                });
+            }
+        }
+    };
+
     function registerWidgetComponent(type) {
     if (app.component('widget-' + type)) return app.component('widget-' + type);
     const comp = (window.DpWidgets && window.DpWidgets[type]) || null;
@@ -4595,7 +4629,7 @@ app.config.globalProperties.t = window.__t;
            them, so a widget that never draws a picture is not touched */
         const base = { template: '<div>' + (widgetName(type) || type) + '</div>' };
         const src = c === base ? base : c;
-        return { ...src, mixins: [widgetIconMixin].concat(src.mixins || []) };
+        return { ...src, mixins: [widgetIconMixin, widgetHistoryMixin].concat(src.mixins || []) };
     };
     app.component('widget-' + type,
         withIcon(comp) || { template: '<div>' + (widgetName(type) || type) + '</div>' });

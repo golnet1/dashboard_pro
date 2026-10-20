@@ -30,9 +30,11 @@ const StatusWidget = {
             { key: 'bg_object', label: 'field_bg_object', type: 'object', row: 'bg_row', showIf: { bg_mode: 'property' } },
             { key: 'bg_property', label: 'field_bg_property', type: 'property', row: 'bg_row', showIf: { bg_mode: 'property' } },
             { key: 'alive_timeout', label: 'field_alive_timeout', type: 'number', step: 1 },
+            { key: 'view_history', label: 'field_view_history', type: 'switch', row: 'hist_row', default: false },
+            { key: 'history_color', label: 'field_history_color', type: 'color', row: 'hist_row', showIf: { view_history: true } },
         ],
     },
-    defaults: () => ({ icon: 'fas fa-info-circle', icon_type: 'icon', height: 130, pre_info: '', pos_info: '', statuses: JSON.stringify([
+    defaults: () => ({ icon: 'fas fa-info-circle', icon_type: 'icon', height: 130, pre_info: '', pos_info: '', view_history: false, history_color: '#1976d2', statuses: JSON.stringify([
         { key: 'st1', status: '0', title: window.__t('default_off'), icon: 'fas fa-power-off', color: '#ef4444', exec_type: 'empty' },
         { key: 'st2', status: '1', title: window.__t('default_on'), icon: 'fas fa-check', color: '#22c55e', exec_type: 'empty' },
     ]) }),
@@ -41,7 +43,7 @@ const StatusWidget = {
        справа от неё (текст состояния, под ним строка информации). Направление
        строки задаём явно: у .widget-v-card__body в CSS стоит column. */
     template: `
-        <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled }" :style="cardStyle" @click="runAction">
+        <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled, 'widget-v-card--clickable': widget.view_history }" :style="cardStyle" @click="onCardClick">
             <div v-if="widget.title" class="widget-v-card__title" style="padding:8px 12px 0;min-width:0">{{ widget.title }}</div>
             <div class="widget-v-card__body" style="display:flex;flex-direction:row;align-items:center;gap:12px;padding:10px 12px;flex:1;min-width:0">
                 <i v-if="statusIcon" :class="statusIcon" :style="'font-size:2rem;flex-shrink:0;color:' + (statusColor || 'rgba(255,255,255,.6)')"></i>
@@ -143,7 +145,7 @@ const StatusWidget = {
             if (!this.widget.object_info) return;
             try {
                 const params = this.widget.property_info ? { object: this.widget.object_info, property: this.widget.property_info } : { object: this.widget.object_info };
-                const d = await dpHttp('getProperty?' + new URLSearchParams(params));
+                const d = await dpAPI('getProperty?' + new URLSearchParams(params));
                 if (d && !d.error) this.setInfo(d.value);
             } catch (e) { /* silent */ }
         },
@@ -163,6 +165,18 @@ const StatusWidget = {
                 const d = await dpAPI('getProperty?' + new URLSearchParams({ object: this.widget.object_alive, property: this.widget.property_alive }));
                 this.isAlive = !d.error && String(d.value) !== '0';
             } catch (e) { /* keep current state on transient error */ }
+        },
+        /* клик по карточке: при включённой истории открываем её, иначе — привязанное действие */
+        onCardClick() {
+            if (this.widget.view_history) { this.onHistClick(); return; }
+            this.runAction();
+        },
+        /* история — по свойству состояния */
+        histSource() {
+            return {
+                object: this.widget.object_status || this.widget.object_value || this.widget.object || '',
+                property: this.widget.property_status || this.widget.property || ''
+            };
         },
         async runAction() {
             const s = this.current;

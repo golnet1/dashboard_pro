@@ -26,11 +26,13 @@ const ValueWidget = {
             { key: 'property_info', label: 'field_info_property', type: 'property', row: 'info_row' },
             { key: 'pre_info', label: 'field_info_prefix', type: 'text', row: 'info_affix' },
             { key: 'pos_info', label: 'field_info_postfix', type: 'text', row: 'info_affix' },
+            { key: 'view_history', label: 'field_view_history', type: 'switch', row: 'hist_row', default: false },
+            { key: 'history_color', label: 'field_history_color', type: 'color', row: 'hist_row', showIf: { view_history: true } },
         ],
     },
-    defaults: { icon: 'fas fa-hashtag', icon_type: 'icon', aliasLabels: null, height: 90 },
+    defaults: { icon: 'fas fa-hashtag', icon_type: 'icon', aliasLabels: null, height: 90, view_history: false, history_color: '#1976d2' },
     template: `
-        <div class="widget-v-card" :style="cardStyle">
+        <div class="widget-v-card" :class="{ 'widget-v-card--clickable': widget.view_history }" :style="cardStyle" @click="onHistClick">
             <div class="widget-v-card__header">
                 <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon"></i>
                 <div class="widget-v-card__title">{{ widget.title || t('widget_value') }}</div>
@@ -108,7 +110,7 @@ const ValueWidget = {
             if (!this.widget.object_info) return;
             try {
                 const params = this.widget.property_info ? { object: this.widget.object_info, property: this.widget.property_info } : { object: this.widget.object_info };
-                const d = await dpHttp('getProperty?' + new URLSearchParams(params));
+                const d = await dpAPI('getProperty?' + new URLSearchParams(params));
                 if (d && !d.error) this.setInfo(d.value);
             } catch (e) { /* silent */ }
         },

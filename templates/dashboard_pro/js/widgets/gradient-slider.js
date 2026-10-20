@@ -28,11 +28,13 @@ const GradientSliderWidget = {
             { key: 'object_alive', label: 'field_alive_flag', type: 'object', row: 'alive_row' },
             { key: 'property_alive', label: 'field_alive_property', type: 'property', row: 'alive_row' },
             { key: 'alive_timeout', label: 'field_alive_timeout', type: 'number', step: 1 },
+            { key: 'view_history', label: 'field_view_history', type: 'switch', row: 'hist_row', default: false },
+            { key: 'history_color', label: 'field_history_color', type: 'color', row: 'hist_row', showIf: { view_history: true } },
         ],
     },
-    defaults: { icon: 'fas fa-fill-drip', icon_type: 'icon', property: 'level', min: 0, max: 100, step: 1, height: 75, colors: JSON.stringify([{color:'#a855f7'},{color:'#3b82f6'},{color:'#22c55e'},{color:'#facc15'},{color:'#ef4444'}]) },
+    defaults: { icon: 'fas fa-fill-drip', icon_type: 'icon', property: 'level', min: 0, max: 100, step: 1, height: 75, view_history: false, history_color: '#1976d2', colors: JSON.stringify([{color:'#a855f7'},{color:'#3b82f6'},{color:'#22c55e'},{color:'#facc15'},{color:'#ef4444'}]) },
     template: `
-        <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled }" :style="cardStyle" style="display:flex;flex-direction:column">
+        <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled, 'widget-v-card--clickable': widget.view_history }" :style="cardStyle" style="display:flex;flex-direction:column" @click="onHistClick">
             <div v-if="iconSrc" class="widget-v-card__header">
                 <img class="widget-v-card__icon widget-v-card__icon--img" :src="iconSrc" alt="">
             </div>
@@ -42,7 +44,8 @@ const GradientSliderWidget = {
                      :style="trackStyle"
                      style="position:relative;height:12px;border-radius:6px;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none"
                      @mousedown.stop="onDown" @mousemove.stop="onMove" @mouseup.stop="onUp" @mouseleave.stop="onUp"
-                     @touchstart.stop.prevent="onDown" @touchmove.stop.prevent="onMove" @touchend.stop="onUp">
+                     @touchstart.stop.prevent="onDown" @touchmove.stop.prevent="onMove" @touchend.stop="onUp"
+                     @click.stop>
                     <div style="position:absolute;top:0;margin-left:-7px;z-index:2;pointer-events:none" :style="{ left: pctDisplay + '%' }">
                         <div style="width:14px;height:14px;border-radius:6px;margin-top:-2px;background:#f8f8f8;box-shadow:0 1px 4px rgba(0,0,0,.37);border:1px solid rgba(0,0,0,.35)"></div>
                     </div>

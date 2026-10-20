@@ -49,11 +49,13 @@ const CurtainWidget = {
             { key: 'pos_info', label: 'field_info_postfix', type: 'text', row: 'info_affix' },
             { key: 'background', label: 'field_icon_bg', type: 'checkbox', row: 'icon_hl' },
             { key: 'round', label: 'field_icon_round', type: 'checkbox', row: 'icon_hl' },
+            { key: 'view_history', label: 'field_view_history', type: 'switch', row: 'hist_row', default: false },
+            { key: 'history_color', label: 'field_history_color', type: 'color', row: 'hist_row', showIf: { view_history: true } },
         ],
     },
-    defaults: { icon: 'fas fa-warehouse', icon_type: 'icon', cover_type: 'curtain', gate_side: 'left', cover_image: '', cover_image_night: '', property: 'position', level_min: 0, level_max: 100, level_step: 10, invert: false, anim_speed: 10, show_percent: true, background: false, round: false, height: 210, title: '' },
+    defaults: { icon: 'fas fa-warehouse', icon_type: 'icon', cover_type: 'curtain', gate_side: 'left', cover_image: '', cover_image_night: '', property: 'position', level_min: 0, level_max: 100, level_step: 10, invert: false, anim_speed: 10, show_percent: true, background: false, round: false, height: 210, title: '', view_history: false, history_color: '#1976d2' },
     template: `
-        <div class="widget-v-card" :style="cardStyle">
+        <div class="widget-v-card" :class="{ 'widget-v-card--clickable': widget.view_history }" :style="cardStyle" @click="onHistClick">
             <div class="widget-v-card__header" v-if="showHeader">
                 <i v-if="widget.icon" class="widget-v-card__icon" :class="[widget.icon, iconHlClass]" style="display:inline-flex;align-items:center;justify-content:center;width:35px;height:35px;padding:0"></i>
                 <div class="widget-v-card__title" v-if="hasTitle">{{ widget.title }}</div>
@@ -65,7 +67,7 @@ const CurtainWidget = {
             </div>
             <div class="widget-v-card__body" style="padding:12px;display:flex;flex-direction:column">
                 <div ref="pic" class="ct-pic" :style="'cursor:' + cursor + ';touch-action:none;user-select:none;position:relative;flex:1;min-height:90px;border-radius:8px;overflow:hidden;background:#0c1522'"
-                     @pointerdown="onDown" @pointermove="onMove" @pointerup="onUp" @pointercancel="onUp" @dblclick="toggleFull">
+                     @pointerdown="onDown" @pointermove="onMove" @pointerup="onUp" @pointercancel="onUp" @dblclick="toggleFull" @click.stop>
                     <svg viewBox="0 0 100 60" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%;display:block">
                         <defs>
                             <linearGradient :id="'ctGlass' + uid" x1="0" y1="0" x2="0" y2="1">
@@ -111,7 +113,7 @@ const CurtainWidget = {
                         <rect x="0" y="0" width="100" height="60" fill="none" stroke="#5b6b82" stroke-width="1" vector-effect="non-scaling-stroke"/>
                     </svg>
                 </div>
-                <div class="ct-controls">
+                <div class="ct-controls" @click.stop>
                     <button type="button" class="ct-ctl" :disabled="aliveDisabled" @click="stepDown" aria-label="-"><i class="fas fa-minus"></i></button>
                     <button type="button" class="ct-ctl" :disabled="aliveDisabled" @click="closeFull" :title="t('cover_close')"><i :class="widget.icon_close || 'fas fa-arrow-down'"></i></button>
                     <button type="button" class="ct-ctl" :disabled="aliveDisabled" @click="stopMove" :title="t('cover_stop')"><i class="fas fa-stop"></i></button>
@@ -395,7 +397,7 @@ const CurtainWidget = {
             if (!this.widget.object_info) return;
             try {
                 const params = this.widget.property_info ? { object: this.widget.object_info, property: this.widget.property_info } : { object: this.widget.object_info };
-                const d = await dpHttp('getProperty?' + new URLSearchParams(params));
+                const d = await dpAPI('getProperty?' + new URLSearchParams(params));
                 if (d && !d.error) this.setInfo(d.value);
             } catch (e) { /* silent */ }
         },
