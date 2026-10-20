@@ -1152,6 +1152,7 @@ $frontend = array(
     'month_oct' => 'Октябрь',
     'month_sep' => 'Сентябрь',
     'no_data' => 'Нет данных',
+    'graph_last_data' => 'последние данные',
     'no_events' => 'Нет событий',
     'no_images' => 'Нет изображений',
     'no_panel' => 'Нет панели',

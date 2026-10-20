@@ -37,7 +37,8 @@ const GraphWidget = {
         </div>`,
     data() { return {
         seriesSpec: [], seriesPoints: [], timer: null, fetching: false,
-        zoomRange: null, dragStart: null
+        zoomRange: null, dragStart: null,
+        stale: null
     }; },
     computed: {
         chartType() { return this.widget.chart_type === 'bar' ? 'bar' : 'line'; },
@@ -62,6 +63,27 @@ const GraphWidget = {
             }
             return arr;
         },
+        /* A property whose source has gone quiet (a dead sensor, a boiler that is
+           off) holds a real history, but none of it falls inside the window of the
+           widget. The request then comes back empty, the canvas says "no data", and
+           the graph looks broken although the data is in the database. Below the
+           window is widened a few times, so the last recorded points are found and
+           drawn instead; the legend then names the moment those points were taken.
+           The widening is bounded, so a property that never had any history still
+           reports "no data" instead of querying the whole table. */
+        async fetchSeries(s, days) {
+            const steps = [1, 7, 30, 365];
+            let last = days;
+            for (let i = 0; i < steps.length; i++) {
+                const widen = days * steps[i];
+                if (i > 0 && widen <= last) continue;
+                last = widen;
+                const d = await dpAPI('history?' + new URLSearchParams({ object: s.object, property: s.property || '', days: String(widen) }));
+                const pts = (d && Array.isArray(d.data)) ? d.data : [];
+                if (pts.length) return { pts: this.downsample(pts, 1500), wider: i > 0 };
+            }
+            return { pts: [], wider: false };
+        },
         async fetchData() {
             if (this.fetching) return;
             this.fetching = true;
@@ -70,16 +92,35 @@ const GraphWidget = {
                 const days = Math.max(0.1, period / 24);
                 const list = await Promise.all(this.seriesSpec.map(async s => {
                     const varname = s.object ? (s.property ? s.object + '.' + s.property : s.object) : '';
-                    if (!varname) return [];
+                    if (!varname) return { pts: [], wider: false };
                     try {
-                        const d = await dpAPI('history?' + new URLSearchParams({ object: s.object, property: s.property || '', days: String(days) }));
-                        return (d && Array.isArray(d.data)) ? this.downsample(d.data, 1500) : [];
-                    } catch(e) { return []; }
+                        return await this.fetchSeries(s, days);
+                    } catch(e) { return { pts: [], wider: false }; }
                 }));
-                this.seriesPoints = list;
+                this.seriesPoints = list.map(r => r.pts);
+                this.stale = this.staleInfo(list, days);
                 this.draw();
             } catch(e) {}
             this.fetching = false;
+        },
+        /* The moment the last point was taken decides whether the picture may be
+           trusted as current. A reading older than the window of the widget is
+           called stale, and every stale point is treated the same way, whether it
+           came from a widened request or simply sits at the near edge of the
+           window (a source that stopped an hour ago, with a two day window). */
+        staleInfo(list, days) {
+            let last = null;
+            list.forEach(r => {
+                if (!r.wider || !Array.isArray(r.pts)) return;
+                r.pts.forEach(p => {
+                    const ts = parseInt(p.timestamp);
+                    if (!isNaN(ts) && (last === null || ts > last)) last = ts;
+                });
+            });
+            if (last === null) return null;
+            const ageHours = (Date.now() / 1000 - last) / 3600;
+            if (ageHours <= days * 24) return null;
+            return { at: last, ageHours };
         },
         canvasDown(e) {
             if (!this.widget.enableZoom) return;
@@ -171,6 +212,10 @@ const GraphWidget = {
                     ctx.fillText(this.fmtTime(tk.t, span), x, h - padB + 3);
                 });
             }
+
+            /* Points that lie outside the window of the widget are marked above the
+               frame, so a picture that is not current cannot be mistaken for one that is. */
+            if (this.stale) this.drawStaleMark(ctx, w);
 
             const plot = (s, raw) => {
                 const pts = this.zoomRange ? this.slicePoints(raw) : raw;
@@ -322,7 +367,13 @@ const GraphWidget = {
                 if (!Array.isArray(pts) || !pts.length) continue;
                 if (spec.scale === 'none') continue;
                 const color = spec.color || '#42a5f5';
-                const title = (spec.title || '').trim() || (spec.object ? spec.object + (spec.property ? '.' + spec.property : '') : 'Серия');
+                let title = (spec.title || '').trim() || (spec.object ? spec.object + (spec.property ? '.' + spec.property : '') : 'Серия');
+                /* A series drawn from points older than the window is named as such:
+                   otherwise the legend reads as if the line were up to date. */
+                if (this.stale && Array.isArray(pts) && pts.length) {
+                    const tsLast = parseInt(pts[pts.length - 1].timestamp);
+                    if (!isNaN(tsLast) && tsLast === this.stale.at) title += ' (' + this.t('graph_last_data') + ')';
+                }
                 const txt = title.length > 30 ? title.slice(0, 27) + '...' : title;
                 const tw = ctx.measureText(txt).width;
                 if (x + 18 + tw > w - 8) break;
@@ -340,6 +391,29 @@ const GraphWidget = {
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText(this.t('no_data'), w / 2, h / 2);
+        },
+        drawStaleMark(ctx, w) {
+            const s = this.stale;
+            if (!s) return;
+            const d = new Date(s.at * 1000);
+            const p = n => (n < 10 ? '0' : '') + n;
+            const when = p(d.getDate()) + '.' + p(d.getMonth() + 1) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+            let age;
+            if (s.ageHours < 48) age = Math.round(s.ageHours) + ' ' + this.t('unit_hour');
+            else age = Math.round(s.ageHours / 24) + ' ' + this.t('unit_day');
+            const txt = this.t('graph_last_data') + ' ' + when + ' (' + age + ' ' + this.t('ago_suffix') + ')';
+            ctx.font = '11px sans-serif';
+            const tw = ctx.measureText(txt).width;
+            const x = Math.max(6, w - 8 - tw - 12);
+            ctx.fillStyle = 'rgba(0,0,0,0.35)';
+            ctx.beginPath();
+            if (ctx.roundRect) ctx.roundRect(x, 4, tw + 12, 18, 4);
+            else ctx.rect(x, 4, tw + 12, 18);
+            ctx.fill();
+            ctx.fillStyle = 'rgba(255,214,102,0.95)';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(txt, x + 6, 13);
         },
         niceTicks(min, max, count) {
             count = count || 4;
