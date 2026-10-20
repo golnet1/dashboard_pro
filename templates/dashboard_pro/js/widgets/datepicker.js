@@ -16,6 +16,7 @@ const DatePickerWidget = {
             { key: 'property', label: 'field_property', type: 'property', row: 'obj_prop' },
         ],
         advanced: [
+            { key: 'refresh_interval', label: 'field_refresh_interval', type: 'number', row: 'refresh_row', step: 1 },
             { key: 'format', label: 'field_date_format', type: 'select', options: [{value:'YYYY-MM-DD',label:'YYYY-MM-DD'},{value:'DD.MM.YYYY',label:'DD.MM.YYYY'},{value:'MM/DD/YYYY',label:'MM/DD/YYYY'}] },
             { key: 'bg_mode', label: 'field_bg_mode', type: 'select', row: 'bg_row', options: [{value:'default',label:'opt_default'},{value:'image',label:'opt_image'},{value:'color',label:'opt_custom_color'},{value:'property',label:'opt_color_property'}] },
             { key: 'color', label: 'field_color', type: 'color', row: 'bg_row', showIf: { bg_mode: 'color' } },
@@ -99,7 +100,7 @@ const DatePickerWidget = {
     mounted() {
         this.loadValue();
         let obj = this.obj;
-        if (obj && !window.__dpWsLive) this.timer = setInterval(() => this.loadValue(), 5000);
+        if (obj) this.timer = setInterval(() => this.loadValue(), window.__dpPollInterval(this.widget, 5));
         if (this.widget.object_alive && this.widget.property_alive) {
             this.checkAlive();
             this.availTimer = setInterval(() => this.checkAlive(), (this.widget.alive_timeout || 3) * 1000);

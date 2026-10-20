@@ -80,7 +80,7 @@ const TrendWidget = {
     },
     mounted() {
         this.load();
-        if (this.widget.object && !window.__dpWsLive) this.timer = setInterval(() => this.load(), (this.widget.interval || 30) * 1000);
+        if (this.widget.object) this.timer = setInterval(() => this.load(), window.__dpPollInterval(this.widget, this.widget.interval || 30));
     },
     beforeUnmount() {
         if (this.timer) clearInterval(this.timer);

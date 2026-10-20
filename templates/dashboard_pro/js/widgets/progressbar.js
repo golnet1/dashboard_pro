@@ -21,6 +21,7 @@ const ProgressBarWidget = {
             { key: 'color_progress', label: 'field_progress_color', type: 'color', default: 'primary', placeholder: 'ph_color_value' },
         ],
         advanced: [
+            { key: 'refresh_interval', label: 'field_refresh_interval', type: 'number', row: 'refresh_row', step: 1 },
             { key: 'bg_mode', label: 'field_bg_mode', type: 'select', row: 'bg_row', options: [{value:'default',label:'opt_default'},{value:'image',label:'opt_image'},{value:'color',label:'opt_custom_color'},{value:'property',label:'opt_color_property'}] },
             { key: 'color', label: 'field_color', type: 'color', row: 'bg_row', showIf: { bg_mode: 'color' } },
             { key: 'bg_image', label: 'field_image_url', type: 'text', row: 'bg_row', showIf: { bg_mode: 'image' } },
@@ -60,7 +61,7 @@ const ProgressBarWidget = {
         this.max = this.widget.level_max != null ? Number(this.widget.level_max) : 100;
         this.loadValue();
         let obj = this.widget.object_value || this.widget.object;
-        if (obj && !window.__dpWsLive) this.timer = setInterval(() => this.loadValue(), 5000);
+        if (obj) this.timer = setInterval(() => this.loadValue(), window.__dpPollInterval(this.widget, 5));
     },
     beforeUnmount() {
         if (this.timer) clearInterval(this.timer);

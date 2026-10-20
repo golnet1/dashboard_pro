@@ -280,6 +280,14 @@ class dashboard_pro extends module
                     if (isset($settings['levels'])) {
                         $settings['levels'] = $this->normalizeNotifLevels($settings['levels']);
                     }
+                    /* Адрес websocket задаёт сервер, а не клиент: страница лишь
+                       получает его. Если сохранить присланное значение, панель
+                       однажды запомнит чужой адрес и будет ходить не туда. */
+                    unset($settings['wsHost'], $settings['wsPort']);
+                    if (isset($settings['refreshInterval'])) {
+                        $iv = (int)$settings['refreshInterval'];
+                        $settings['refreshInterval'] = ($iv > 0 && $iv <= 3600) ? $iv : 5;
+                    }
                 }
                 $this->saveDashboardSettings($settings);
                 $this->dLog('settings saved');
@@ -3043,6 +3051,15 @@ function widgetUsageInfo($type)
            строки, и добавить уровень было бы не от чего. */
         $out['notifyLevel'] = isset($out['notifyLevel']) ? max(0, (int)$out['notifyLevel']) : 0;
         $out['levels'] = $this->normalizeNotifLevels(isset($out['levels']) ? $out['levels'] : null);
+        /* Адрес websocket отдаёт сам сервер: панель может быть открыта через
+           проброс портов, и тогда "хост панели + 8001" указывает на чужой
+           сервер. Здесь же стоит настоящий адрес этого сервера, поэтому
+           фронтенд не угадывает порт, а спрашивает его. */
+        $out['wsPort'] = $this->ttsWsPort();
+        $ws_host = gg('ThisComputer.websockets_server');
+        if ($ws_host) {
+            $out['wsHost'] = $ws_host;
+        }
         return $out;
     }
 

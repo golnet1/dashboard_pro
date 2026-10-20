@@ -627,6 +627,21 @@
                                                 </div>
                                             </div>
                                         </div>
+                                        <div class="v-list-item theme--dark">
+                                            <div class="v-list-item__content">
+                                                <div class="v-input theme--dark v-text-field">
+                                                    <div class="v-input__control">
+                                                        <div class="v-input__slot">
+                                                            <div class="v-text-field__slot">
+                                                                <label class="v-label theme--dark" :class="{ 'v-label--active': settings.refreshInterval !== undefined && settings.refreshInterval !== null && settings.refreshInterval !== '' }" style="left:0;right:auto;position:absolute">{{ t('field_refresh_interval') }}</label>
+                                                                 <input type="number" v-model.number="settings.refreshInterval" @change="settingsChanged()" min="1" max="3600" style="background:transparent;border:none;color:#fff;outline:none;width:100%;padding:18px 0 4px;font-size:16px">
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="v-text-field__details"><div class="v-messages theme--dark"><div class="v-messages__wrapper"><div class="v-messages__message">{{ t('field_refresh_interval_desc') }}</div></div></div></div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="v-card v-sheet theme--dark" style="background:rgba(48,48,48,var(--card-alpha,1));border-color:rgba(48,48,48,.56)">
@@ -2532,7 +2547,7 @@
                 <div class="modal-body" style="text-align:center;padding:2rem 1.5rem">
                     <i class="fas fa-chart-line" style="font-size:3rem;color:var(--primary);margin-bottom:1rem"></i>
                     <h3 style="margin-bottom:.3rem">Dashboard Pro</h3>
-                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 01.20.11</p>
+                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 01.20.12</p>
                     <p style="color:var(--text-secondary);font-size:.8rem">{{ t('app_desc') }}</p>
                     <div class="about-links" style="margin-top:1rem;font-size:.85rem;color:var(--text-secondary);line-height:1.8">
                         <div>{{ t('about_telegram') }}: <a href="https://t.me/+9ZFQaxs_Ukw4NmMy" target="_blank" rel="noopener">Telegram</a></div>
@@ -2581,7 +2596,7 @@
     </div>
 
     <script src="js/dpdialog.js?v=2"></script>
-<script src="js/api.js?v=21"></script>
+<script src="js/api.js?v=22"></script>
     <script src="js/auth.js?v=16"></script>
     <script src="js/sidebar.js?v=10"></script>
 <script src="js/widget-config.js?v=13"></script>
@@ -2589,6 +2604,6 @@
 <script src="js/lib/hls.min.js?v=1"></script>
     <script src="js/dpbuilder.js?v=74"></script>
     <script src="js/dpbuilder-ui.js?v=64"></script>
-    <script src="js/app.js?v=464"></script>
+    <script src="js/app.js?v=465"></script>
 </body>
 </html>

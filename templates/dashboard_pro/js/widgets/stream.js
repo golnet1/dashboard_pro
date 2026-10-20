@@ -23,6 +23,7 @@ const StreamWidget = {
             { key: 'ptz', label: 'field_stream_ptz', type: 'checkbox', default: false, showIf: { source_type: 'onvif' } },
         ],
         advanced: [
+            { key: 'refresh_interval', label: 'field_refresh_interval', type: 'number', row: 'refresh_row', step: 1 },
             { key: 'quality', label: 'field_stream_quality', type: 'select', default: '', options: [{value:'',label:'field_stream_quality_orig'},{value:'720',label:'field_stream_quality_720'},{value:'480',label:'field_stream_quality_480'},{value:'360',label:'field_stream_quality_360'}] },
             { key: 'fps_limit', label: 'field_stream_fps', type: 'select', default: '', options: [{value:'',label:'field_stream_fps_auto'},{value:'15',label:'field_stream_fps_15'},{value:'10',label:'field_stream_fps_10'},{value:'5',label:'field_stream_fps_5'}] },
             { key: 'color', label: 'field_color', type: 'color' },
@@ -125,7 +126,7 @@ const StreamWidget = {
     },
     mounted() {
         this.loadObjValue();
-        if (this.widget.object && !window.__dpWsLive) this.valueTimer = setInterval(() => this.loadObjValue(), 3000);
+        if (this.widget.object) this.valueTimer = setInterval(() => this.loadObjValue(), window.__dpPollInterval(this.widget, 3));
         this.resolveOnvif();
         this._onUnload = () => { this.releaseStream(); };
         window.addEventListener('beforeunload', this._onUnload);

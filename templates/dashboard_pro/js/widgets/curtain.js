@@ -35,6 +35,7 @@ const CurtainWidget = {
             { key: 'object_stop', label: 'field_stop_method', type: 'method', parent: 'object_stop', row: 'm_stop' },
         ],
         advanced: [
+            { key: 'refresh_interval', label: 'field_refresh_interval', type: 'number', row: 'refresh_row', step: 1 },
             { key: 'bg_mode', label: 'field_bg_mode', type: 'select', row: 'bg_row', options: [{value:'default',label:'opt_default'},{value:'image',label:'opt_image'},{value:'color',label:'opt_custom_color'},{value:'property',label:'opt_color_property'}] },
             { key: 'color', label: 'field_color', type: 'color', row: 'bg_row', showIf: { bg_mode: 'color' } },
             { key: 'bg_image', label: 'field_image_url', type: 'text', row: 'bg_row', showIf: { bg_mode: 'image' } },
@@ -175,7 +176,7 @@ const CurtainWidget = {
         this.min = w.level_min != null ? Number(w.level_min) : 0;
         this.max = w.level_max != null ? Number(w.level_max) : 100;
         this.loadState();
-        if (!window.__dpWsLive) this.timer = setInterval(() => this.loadState(), 5000);
+        this.timer = setInterval(() => this.loadState(), window.__dpPollInterval(this.widget, 5));
         if (w.object_alive && w.property_alive) this.checkAlive();
         if (w.object_info) this.loadInfo();
         this.updateDayNight();

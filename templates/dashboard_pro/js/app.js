@@ -360,7 +360,7 @@ const widgetUsage = computed(() => {
             { level: 2, color: '#ff9800', icon: 'fas fa-bell' },
             { level: 3, color: '#f44336', icon: 'fas fa-bell' }
         ];
-        const settings = ref({ appTitle: '', theme: 'light', defaultPanel: '', debug: false, font: 'Roboto', hideMenu: false, hideChat: false, menuBg: '', panelBg: '', usePanelImage: true, useHeaderImage: false, cardsOpacity: 44, menuOpacity: 16, dialogOpacity: 12, primaryColor: '#1976d2', lightThemeColor: '#ffffff', darkThemeColor: '#303030', iconSize: 0, titleSize: 0, subtitleSize: 0, widgetSize: 0, grid: false, noOverlap: false, gridStep: 10, roundedWidgets: false, widgetRadius: 12, compactHeader: false, headerStatusItems: [], notifyLevel: 0, levels: DEFAULT_NOTIF_LEVELS.map(l => ({ ...l })) });
+        const settings = ref({ appTitle: '', theme: 'light', defaultPanel: '', debug: false, font: 'Roboto', hideMenu: false, hideChat: false, menuBg: '', panelBg: '', usePanelImage: true, useHeaderImage: false, cardsOpacity: 44, menuOpacity: 16, dialogOpacity: 12, primaryColor: '#1976d2', lightThemeColor: '#ffffff', darkThemeColor: '#303030', iconSize: 0, titleSize: 0, subtitleSize: 0, widgetSize: 0, grid: false, noOverlap: false, gridStep: 10, roundedWidgets: false, widgetRadius: 12, compactHeader: false, headerStatusItems: [], notifyLevel: 0, refreshInterval: 5, wsHost: '', wsPort: 8001, levels: DEFAULT_NOTIF_LEVELS.map(l => ({ ...l })) });
 
         const headerNow = ref(new Date());
         const headerTime = computed(() => headerNow.value.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
@@ -1771,7 +1771,7 @@ function loadScript(src, version) {
            reached the panel. The token changes on every install, and the base follows the
            module, so a module update also refreshes the widgets. */
         const WIDGET_TOKEN_KEY = 'dp_widget_token';
-        const WIDGET_TOKEN_BASE = 295;
+        const WIDGET_TOKEN_BASE = 296;
         function widgetToken() {
             let token = 0;
             try { token = parseInt(localStorage.getItem(WIDGET_TOKEN_KEY) || '0', 10) || 0; } catch (e) { token = 0; }
@@ -1836,6 +1836,15 @@ function loadScript(src, version) {
                 const s = await dpAPI('settings');
                 if (!s.error) Object.assign(settings.value, s);
                 applySettings();
+                /* Настройки принесли адрес websocket. Сокет к этому моменту уже
+                   открыт по угаданному адресу (хост панели + порт), и при
+                   пробросе портов это чужой сервер. Если сервер сообщил другой
+                   адрес - переподключаемся к правильному. */
+                if (wsCurrentUrl && wsBuildUrl() !== wsCurrentUrl) {
+                    try { if (wsSocket) wsSocket.close(); } catch (e) {}
+                    if (wsReconnectTimer) { clearTimeout(wsReconnectTimer); wsReconnectTimer = null; }
+                    initWebSocket();
+                }
                 /* Панель по умолчанию из настроек открывается при запуске и имеет
                    приоритет над запомненной: её выбрал администратор, и каждый
                    вход должен начинаться с неё. Настройки читаются позже панелей,
@@ -4008,9 +4017,77 @@ if (f.key) {
         let wsReconnectTimer = null;
         let notifRefreshTimer = null;
         let wsSubscribedProps = [];
+        let wsHeartbeatTimer = null;
+        let wsCurrentUrl = '';
+
+        /* Открытый сокет ещё не значит живой канал: при пробросе порта TCP
+           принимает соединение, даже когда за ним ничего нет, рукопожатие
+           проходит, onopen срабатывает — а данных не будет. Поэтому «жив»
+           определяется не фактом рукопожатия, а тем, что сервер отвечает и сам
+           присылает сообщения. Как только ответов нет дольше WS_IDLE_LIMIT,
+           канал считается мёртвым: панель опускает флаг, закрывает сокет и
+           уходит на HTTP-опрос по интервалу виджета. */
+        const WS_HEARTBEAT_MS = 10000;
+        const WS_IDLE_LIMIT = 25000;
+        window.__dpWsLastMessageAt = 0;
+        window.__dpWsStaleMs = WS_IDLE_LIMIT;
 
         function wsSetLive(live) {
             window.__dpWsLive = !!live;
+        }
+
+        /* Период HTTP-опроса: настройка виджета важнее общей настройки панели,
+           общая важнее значения по умолчанию. Возвращает миллисекунды. */
+        window.__dpPollInterval = function (widget, fallbackSec) {
+            const own = widget && Number(widget.refresh_interval);
+            if (own > 0) return own * 1000;
+            const common = Number(settings.value.refreshInterval);
+            if (common > 0) return common * 1000;
+            return (fallbackSec || 5) * 1000;
+        };
+
+        /* Нужно ли сейчас идти в сеть. Пока канал жив и свеж, виджеты читают из
+           websocket-кэша, и опрос по HTTP не требуется; иначе — обязателен. */
+        window.__dpNeedHttpPoll = function () {
+            if (!wsConnected.value || !window.__dpWsLive) return true;
+            const last = window.__dpWsLastMessageAt || 0;
+            return !last || (Date.now() - last) > WS_IDLE_LIMIT;
+        };
+
+        function wsStopHeartbeat() {
+            if (wsHeartbeatTimer) { clearInterval(wsHeartbeatTimer); wsHeartbeatTimer = null; }
+        }
+
+        function wsStartHeartbeat() {
+            wsStopHeartbeat();
+            wsHeartbeatTimer = setInterval(function () {
+                if (!wsSocket || wsSocket.readyState !== 1) return;
+                const silentFor = Date.now() - (window.__dpWsLastMessageAt || 0);
+                if (silentFor > WS_IDLE_LIMIT) {
+                    /* сервер молчит: закрываем сокет, onclose опустит флаг и
+                       включит HTTP-опрос, реконнект пойдёт своим чередом */
+                    wsMarkDead();
+                    return;
+                }
+                try {
+                    const payload = JSON.stringify({ action: 'status' });
+                    wsBytesSent.value += payload.length;
+                    wsSocket.send(payload);
+                } catch (e) { wsMarkDead(); }
+            }, WS_HEARTBEAT_MS);
+        }
+
+        /* Разрыв «полуоткрытого» канала: onclose придёт не всегда, поэтому
+           состояние снимаем здесь же, не дожидаясь события. */
+        function wsMarkDead() {
+            if (!wsConnected.value && !window.__dpWsLive) return;
+            wsConnected.value = false;
+            wsSetLive(false);
+            wsSubscribedProps = [];
+            wsStopHeartbeat();
+            wsRemountWidgets();
+            try { if (wsSocket) wsSocket.close(); } catch (e) {}
+            if (!wsReconnectTimer) wsReconnectTimer = setTimeout(initWebSocket, 5000);
         }
 
         /* raw send for high-rate widgets (colour music): their writes go over the
@@ -4093,16 +4170,35 @@ if (f.key) {
             wsPanelWidgets(currentPanel.value?.widgets, w => queueWsRemount(w.id));
         }
 
-        function initWebSocket() {
+        function wsBuildUrl() {
             const loc = window.location;
             const protocol = loc.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = protocol + '//' + loc.hostname + ':8001/majordomo';
+            /* Адрес websocket: если сервер его сообщил (настройка панели), берём
+               оттуда - при пробросе портов "хост панели + 8001" ведёт на другой
+               сервер, и подписка приходит с чужими объектами. Когда настройки
+               ещё не загружены или сервер их не отдал, остаётся прежнее
+               поведение: хост панели и стандартный порт. */
+            const cfgHost = (settings.value.wsHost || '').trim();
+            const cfgPort = Number(settings.value.wsPort) || 8001;
+            if (cfgHost) {
+                const withScheme = /^wss?:\/\//i.test(cfgHost) ? cfgHost : (protocol + '//' + cfgHost);
+                const stripped = withScheme.replace(/\/+$/, '');
+                return /:\d+$/.test(stripped) ? (stripped + '/majordomo') : (stripped + ':' + cfgPort + '/majordomo');
+            }
+            return protocol + '//' + loc.hostname + ':' + cfgPort + '/majordomo';
+        }
+
+        function initWebSocket() {
+            const wsUrl = wsBuildUrl();
             try {
                 wsSocket = new WebSocket(wsUrl);
             } catch (e) { console.error('WS creation failed', e); return; }
+            wsCurrentUrl = wsUrl;
             wsSocket.onopen = function() {
                 wsConnected.value = true;
                 wsSetLive(true);
+                window.__dpWsLastMessageAt = Date.now();
+                wsStartHeartbeat();
                 if (wsReconnectTimer) { clearTimeout(wsReconnectTimer); wsReconnectTimer = null; }
                 const subEvents = JSON.stringify({ action: 'Subscribe', data: { TYPE: 'events', EVENTS: 'SAY,DASHBOARD_PRO' } });
                 wsBytesSent.value += subEvents.length;
@@ -4117,6 +4213,8 @@ if (f.key) {
                 console.error('WS error', e);
             };
             wsSocket.onmessage = function(msg) {
+                /* любой ответ сервера, включая ping, доказывает, что канал жив */
+                window.__dpWsLastMessageAt = Date.now();
                 wsBytesReceived.value += typeof msg.data === 'string' ? msg.data.length : (msg.data ? (msg.data.size || msg.data.byteLength || 0) : 0);
                 try {
                     const data = JSON.parse(msg.data);
@@ -4220,6 +4318,7 @@ if (f.key) {
                 wsConnected.value = false;
                 wsSetLive(false);
                 wsSubscribedProps = [];
+                wsStopHeartbeat();
                 wsRemountWidgets();
                 wsReconnectTimer = setTimeout(initWebSocket, 5000);
             };
@@ -4233,6 +4332,13 @@ if (f.key) {
             wsPress.value = false;
             requestAnimationFrame(() => { wsPress.value = true; });
             wsPressTimer = setTimeout(() => { wsPress.value = false; wsPressTimer = null; }, 620);
+            /* Кнопка — это резервное обновление, а не «дёрнуть websocket».
+               Поэтому кэш сбрасывается, и виджеты перечитывают данные: при
+               живом канале значения придут по подписке, при мёртвом — уйдут по
+               HTTP. Иначе нажатие возвращало бы то же самое «залипшее» значение
+               из кэша, и кнопка выглядела бы нерабочей. */
+            window.__dpWsCache = {};
+            window.__dpKvCache = {};
             wsRemountWidgets();
             headerValueRefresh();
             bgColorRefresh();
@@ -4240,6 +4346,9 @@ if (f.key) {
                 const payload = JSON.stringify({ action: 'status' });
                 wsBytesSent.value += payload.length;
                 wsSocket.send(payload);
+            } else {
+                /* канал считался живым, хотя данных нет: переподключаемся */
+                initWebSocket();
             }
         }
 

@@ -22,6 +22,19 @@ function getPropertyCacheKey(object, property) {
     return (object + '.' + property).toLowerCase();
 }
 
+/* Пока канал жив, значение из websocket-кэша годится. Но «жив» — это не
+   «рукопожатие прошло»: app.js опускает флаг __dpWsLive, когда канал перестал
+   отвечать (heartbeat). Поэтому доверяем кэшу только при опущенном флаге и
+   только свежей записи, иначе идём по HTTP — панель не должна замирать на
+   устаревшем значении из-за «полуоткрытого» сокета. */
+function wsCacheUsable() {
+    if (!window.__dpWsLive) return false;
+    const last = window.__dpWsLastMessageAt || 0;
+    if (!last) return false;
+    const maxAge = (window.__dpWsStaleMs || 45000);
+    return (Date.now() - last) <= maxAge;
+}
+
 function readProperty(path, opts) {
     const qsIdx = path.indexOf('?');
     const params = new URLSearchParams(qsIdx >= 0 ? path.slice(qsIdx + 1) : '');
@@ -29,17 +42,9 @@ function readProperty(path, opts) {
     const property = (params.get('property') || '').trim();
     const key = getPropertyCacheKey(object, property);
     if (!key) return readKv(path, opts);
-    const cached = window.__dpWsCache[key];
-    if (cached && cached.seeded) {
-        return Promise.resolve({ value: cached.value });
-    }
-    if (window.__dpWsLive) {
-        const base = (object || '').toLowerCase();
-        const baseEntry = window.__dpWsCache[base];
-        if (baseEntry && baseEntry.seeded) {
-            return Promise.resolve({ value: baseEntry.value });
-        }
-        if (cached) {
+    if (wsCacheUsable()) {
+        const cached = window.__dpWsCache[key];
+        if (cached && cached.seeded) {
             return Promise.resolve({ value: cached.value });
         }
     }
@@ -51,9 +56,14 @@ function readProperty(path, opts) {
     });
 }
 
+/* Списки (history, getProperties) при живом канале не меняются между
+   перерисовками, поэтому в этом режиме их можно держать в памяти. Как только
+   канал опущен, кэш не используется вовсе: иначе кнопка «Обновить» и
+   fallback-опрос возвращали бы одно и то же старое значение. */
 function readKv(path, opts) {
     const key = path.toLowerCase();
-    if (key in window.__dpKvCache) {
+    const forceFresh = opts && opts.fresh;
+    if (!forceFresh && wsCacheUsable() && (key in window.__dpKvCache)) {
         return Promise.resolve(window.__dpKvCache[key]);
     }
     return dpHttp(path, opts).then(res => {
@@ -141,7 +151,7 @@ const dpAPI = (path, opts) => {
             .then(r => r.json())
             .catch(e => ({ error: 'method failed' }));
     }
-    if (window.__dpWsLive && typeof path === 'string') {
+    if (typeof path === 'string') {
         if (path.startsWith('getProperty')) return readProperty(path, opts);
         if (path.startsWith('getProperties') || path.startsWith('history')) return readKv(path, opts);
     }

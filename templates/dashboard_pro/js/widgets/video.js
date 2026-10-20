@@ -17,6 +17,7 @@ const VideoWidget = {
             { key: 'nocontrols', label: 'field_video_nocontrols', type: 'checkbox', default: false },
         ],
         advanced: [
+            { key: 'refresh_interval', label: 'field_refresh_interval', type: 'number', row: 'refresh_row', step: 1 },
             { key: 'color', label: 'field_color', type: 'color' },
         ],
     },
@@ -43,7 +44,7 @@ const VideoWidget = {
     },
     mounted() {
         this.loadObjValue();
-        if (this.widget.object && !window.__dpWsLive) this.valueTimer = setInterval(() => this.loadObjValue(), 3000);
+        if (this.widget.object) this.valueTimer = setInterval(() => this.loadObjValue(), window.__dpPollInterval(this.widget, 3));
         this.$nextTick(() => this.setup());
     },
     beforeUnmount() {

@@ -21,6 +21,7 @@ const GroupWidget = {
         ],
         widgets: [],
         advanced: [
+            { key: 'refresh_interval', label: 'field_refresh_interval', type: 'number', row: 'refresh_row', step: 1 },
             { key: 'object_alive', label: 'field_alive_flag', type: 'object', row: 'alive_row' },
             { key: 'property_alive', label: 'field_alive_property', type: 'property', row: 'alive_row' },
             { key: 'bg_mode', label: 'field_bg_mode', type: 'select', row: 'bg_row', options: [{value:'default',label:'opt_default'},{value:'image',label:'opt_image'},{value:'color',label:'opt_custom_color'},{value:'property',label:'opt_color_property'}] },
@@ -56,7 +57,7 @@ const GroupWidget = {
     },
     mounted() {
         this.checkAvailable();
-        if (!window.__dpWsLive) this.availTimer = setInterval(() => this.checkAvailable(), 3000);
+        this.availTimer = setInterval(() => this.checkAvailable(), window.__dpPollInterval(this.widget, 3));
     },
     beforeUnmount() { if (this.availTimer) clearInterval(this.availTimer); },
     computed: {

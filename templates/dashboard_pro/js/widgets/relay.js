@@ -22,6 +22,7 @@ const RelayWidget = {
             { key: 'object_off', label: 'field_off_method', type: 'method', parent: 'object_off', row: 'm_off' },
         ],
         advanced: [
+            { key: 'refresh_interval', label: 'field_refresh_interval', type: 'number', row: 'refresh_row', step: 1 },
             { key: 'bg_mode', label: 'field_bg_mode', type: 'select', row: 'bg_row', options: [{value:'default',label:'opt_default'},{value:'image',label:'opt_image'},{value:'color',label:'opt_custom_color'},{value:'property',label:'opt_color_property'}] },
             { key: 'color', label: 'field_color', type: 'color', row: 'bg_row', showIf: { bg_mode: 'color' } },
             { key: 'bg_image', label: 'field_image_url', type: 'text', row: 'bg_row', showIf: { bg_mode: 'image' } },
@@ -62,7 +63,7 @@ const RelayWidget = {
     },
     mounted() {
         this.poll();
-        if (!window.__dpWsLive) this.timer = setInterval(() => this.poll(), 3000);
+        this.timer = setInterval(() => this.poll(), window.__dpPollInterval(this.widget, 3));
         if (this.widget.object_info) this.loadInfo();
         this.secTimer = setInterval(() => { if (this.infoValue) this.infoTick++; }, 1000);
     },
