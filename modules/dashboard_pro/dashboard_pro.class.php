@@ -282,8 +282,16 @@ class dashboard_pro extends module
                     }
                     /* Адрес websocket задаёт сервер, а не клиент: страница лишь
                        получает его. Если сохранить присланное значение, панель
-                       однажды запомнит чужой адрес и будет ходить не туда. */
-                    unset($settings['wsHost'], $settings['wsPort']);
+                       однажды запомнит чужой адрес и будет ходить не туда.
+                       Поэтому со страницы идёт не адрес, а только намерение
+                       "ходить на адрес сервера". Включено - в
+                       ThisComputer.websockets_server пишется реальный локальный
+                       IP этого сервера, выключено - свойство очищается. Пустое
+                       свойство и означает "выключено": по нему же работает и
+                       сама страница дашборда, которой ядро отдаёт WS_HOST. */
+                    $useServerWs = !empty($settings['wsUseServer']);
+                    unset($settings['wsHost'], $settings['wsPort'], $settings['wsUseServer']);
+                    $this->applyWebsocketServerAddress($useServerWs);
                     if (isset($settings['refreshInterval'])) {
                         $iv = (int)$settings['refreshInterval'];
                         $settings['refreshInterval'] = ($iv > 0 && $iv <= 3600) ? $iv : 5;
@@ -3056,11 +3064,76 @@ function widgetUsageInfo($type)
            сервер. Здесь же стоит настоящий адрес этого сервера, поэтому
            фронтенд не угадывает порт, а спрашивает его. */
         $out['wsPort'] = $this->ttsWsPort();
+        /* Выключатель "адрес сервера" в настройках панели связан со свойством
+           ThisComputer.websockets_server: заполнено - включено, пусто -
+           выключено. Отдельного флага нет намеренно - то же свойство читает
+           ядро и сама страница дашборда, и разойтись им негде. Когда оно
+           пустое, wsHost не отдаём: фронтенд остаётся на прежнем поведении
+           "хост панели + порт". */
+        $out['wsUseServer'] = $this->websocketServerAddress() !== '' ? 1 : 0;
         $ws_host = gg('ThisComputer.websockets_server');
         if ($ws_host) {
             $out['wsHost'] = $ws_host;
+        } else {
+            unset($out['wsHost']);
         }
         return $out;
+    }
+
+    /* Адрес сервера для подключения к websocket. Пусто - выключатель выключен,
+       и панель ходит по адресу открытой страницы. */
+    function websocketServerAddress()
+    {
+        $ip = gg('ThisComputer.websockets_server');
+        return $ip ? (string)$ip : '';
+    }
+
+    /* Запись выключателя: включён - в свойство кладём реальный локальный IP
+       этого сервера, выключен - очищаем. Значение не приходит со страницы и
+       потому не может быть подделано. */
+    function applyWebsocketServerAddress($enabled)
+    {
+        if ($enabled) {
+            $ip = $this->serverLocalIp();
+            if ($ip) {
+                sg('ThisComputer.websockets_server', $ip);
+                return;
+            }
+            /* IP определить не удалось: свойство не трогаем, иначе выключили бы
+               то, что включено, из-за разовой осечки сети. */
+            return;
+        }
+        sg('ThisComputer.websockets_server', '');
+    }
+
+    /* Реальный локальный адрес сервера: спрашиваем у ядра, а если функция
+       недоступна (ядро старой версии), определяем сами тем же способом -
+       через UDP-сокет к внешнему адресу, он не шлёт пакетов, но даёт имя
+       исходящего интерфейса. */
+    function serverLocalIp()
+    {
+        if (function_exists('getLocalIp')) {
+            $ip = @getLocalIp();
+            if ($ip) return $ip;
+        }
+        if (!empty($_SERVER['SERVER_ADDR']) && $_SERVER['SERVER_ADDR'] !== '127.0.0.1') {
+            return $_SERVER['SERVER_ADDR'];
+        }
+        if (function_exists('socket_create')) {
+            $s = @socket_create(AF_INET, SOCK_DGRAM, SOL_UDP);
+            if ($s) {
+                if (@socket_connect($s, '8.8.8.8', 53)) {
+                    $ip = '';
+                    $port = 0;
+                    @socket_getsockname($s, $ip, $port);
+                    @socket_close($s);
+                    if ($ip) return $ip;
+                } else {
+                    @socket_close($s);
+                }
+            }
+        }
+        return '';
     }
 
     /* --- Уровни уведомлений -------------------------------------------------

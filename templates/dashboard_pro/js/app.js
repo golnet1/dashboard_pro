@@ -360,7 +360,7 @@ const widgetUsage = computed(() => {
             { level: 2, color: '#ff9800', icon: 'fas fa-bell' },
             { level: 3, color: '#f44336', icon: 'fas fa-bell' }
         ];
-        const settings = ref({ appTitle: '', theme: 'light', defaultPanel: '', debug: false, font: 'Roboto', hideMenu: false, hideChat: false, menuBg: '', panelBg: '', usePanelImage: true, useHeaderImage: false, cardsOpacity: 44, menuOpacity: 16, dialogOpacity: 12, primaryColor: '#1976d2', lightThemeColor: '#ffffff', darkThemeColor: '#303030', iconSize: 0, titleSize: 0, subtitleSize: 0, widgetSize: 0, grid: false, noOverlap: false, gridStep: 10, roundedWidgets: false, widgetRadius: 12, compactHeader: false, headerStatusItems: [], notifyLevel: 0, refreshInterval: 5, wsHost: '', wsPort: 8001, levels: DEFAULT_NOTIF_LEVELS.map(l => ({ ...l })) });
+        const settings = ref({ appTitle: '', theme: 'light', defaultPanel: '', debug: false, font: 'Roboto', hideMenu: false, hideChat: false, menuBg: '', panelBg: '', usePanelImage: true, useHeaderImage: false, cardsOpacity: 44, menuOpacity: 16, dialogOpacity: 12, primaryColor: '#1976d2', lightThemeColor: '#ffffff', darkThemeColor: '#303030', iconSize: 0, titleSize: 0, subtitleSize: 0, widgetSize: 0, grid: false, noOverlap: false, gridStep: 10, roundedWidgets: false, widgetRadius: 12, compactHeader: false, headerStatusItems: [], notifyLevel: 0, refreshInterval: 5, wsHost: '', wsPort: 8001, wsUseServer: 0, levels: DEFAULT_NOTIF_LEVELS.map(l => ({ ...l })) });
 
         const headerNow = ref(new Date());
         const headerTime = computed(() => headerNow.value.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
@@ -3082,6 +3082,16 @@ if (f.key) {
                 }
             }
             applySettings();
+            /* Выключатель «адрес сервера» меняет адрес websocket: если он
+               переключился, открытый сокет ведёт на прежний адрес, и панель
+               молча ходила бы не туда. Сверяем построенный адрес с текущим и
+               при расхождении переподключаемся - тем же путём, что и при
+               первой загрузке настроек. */
+            if (wsCurrentUrl && wsBuildUrl() !== wsCurrentUrl) {
+                try { if (wsSocket) wsSocket.close(); } catch (e) {}
+                if (wsReconnectTimer) { clearTimeout(wsReconnectTimer); wsReconnectTimer = null; }
+                initWebSocket();
+            }
             if (activeVoiceEngine && settings.value.ttsEngine && settings.value.ttsEngine !== activeVoiceEngine) {
                 /* Плеер озвучки подключается один раз за загрузку страницы, и
                    второй модуль рядом с первым играл бы каждую фразу дважды.
