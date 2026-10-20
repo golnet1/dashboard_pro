@@ -4070,7 +4070,14 @@ if (f.key) {
                     return;
                 }
                 try {
-                    const payload = JSON.stringify({ action: 'status' });
+                    /* Поле data обязательно: сервер разбирает запрос как
+                       $decodedData['data'] и на запрос без него не отвечает
+                       вовсе. Без ответа метка последнего сообщения не растёт,
+                       канал выглядит мёртвым через WS_IDLE_LIMIT, кнопка
+                       краснеет, и панель уходит на HTTP-опрос - хотя сокет
+                       открыт и сервер жив. Пустой объект закрывает этот
+                       разрыв: сервер отвечает, метка обновляется. */
+                    const payload = JSON.stringify({ action: 'status', data: {} });
                     wsBytesSent.value += payload.length;
                     wsSocket.send(payload);
                 } catch (e) { wsMarkDead(); }
