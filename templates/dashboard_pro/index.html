@@ -333,6 +333,17 @@
                                                 <div class="v-list-item__subtitle">{{ t('main_page_redirect_desc') }}</div>
                                             </div>
                                         </div>
+                                        <div class="v-list-item theme--dark">
+                                            <div class="v-list-item__action">
+                                                <div class="v-input theme--dark v-input--selection-controls v-input--switch primary--text" :class="{ 'input--is-checked': settings.wsUseServer }">
+                                                    <div class="v-input__control"><div class="v-input__slot v-input__slot--switch"><div class="v-input--switch__track" @click.stop="settings.wsUseServer = settings.wsUseServer ? 0 : 1; settingsChanged()"><div class="v-input--switch__thumb"></div></div></div></div>
+                                                </div>
+                                            </div>
+                                            <div class="v-list-item__content py-0">
+                                                <div class="v-list-item__title">{{ t('field_ws_use_server') }}</div>
+                                                <div class="v-list-item__subtitle">{{ t('field_ws_use_server_desc') }}</div>
+                                            </div>
+                                        </div>
                                         <div class="v-list-item theme--dark" v-if="(settings.ttsModules || []).length">
                                             <div class="v-list-item__content py-0">
                                                 <div class="v-list-item__title">{{ t('tts_engine') }}</div>
@@ -640,17 +651,6 @@
                                                     </div>
                                                     <div class="v-text-field__details"><div class="v-messages theme--dark"><div class="v-messages__wrapper"><div class="v-messages__message">{{ t('field_refresh_interval_desc') }}</div></div></div></div>
                                                 </div>
-                                            </div>
-                                        </div>
-                                        <div class="v-list-item theme--dark">
-                                            <div class="v-list-item__action">
-                                                <div class="v-input theme--dark v-input--selection-controls v-input--switch primary--text" :class="{ 'input--is-checked': settings.wsUseServer }">
-                                                    <div class="v-input__control"><div class="v-input__slot v-input__slot--switch"><div class="v-input--switch__track" @click.stop="settings.wsUseServer = settings.wsUseServer ? 0 : 1; settingsChanged()"><div class="v-input--switch__thumb"></div></div></div></div>
-                                                </div>
-                                            </div>
-                                            <div class="v-list-item__content py-0">
-                                                <div class="v-list-item__title">{{ t('field_ws_use_server') }}</div>
-                                                <div class="v-list-item__subtitle">{{ t('field_ws_use_server_desc') }}</div>
                                             </div>
                                         </div>
                                     </div>
@@ -2558,7 +2558,7 @@
                 <div class="modal-body" style="text-align:center;padding:2rem 1.5rem">
                     <i class="fas fa-chart-line" style="font-size:3rem;color:var(--primary);margin-bottom:1rem"></i>
                     <h3 style="margin-bottom:.3rem">Dashboard Pro</h3>
-                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 01.20.16</p>
+                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 01.20.17</p>
                     <p style="color:var(--text-secondary);font-size:.8rem">{{ t('app_desc') }}</p>
                     <div class="about-links" style="margin-top:1rem;font-size:.85rem;color:var(--text-secondary);line-height:1.8">
                         <div>{{ t('about_telegram') }}: <a href="https://t.me/+9ZFQaxs_Ukw4NmMy" target="_blank" rel="noopener">Telegram</a></div>
@@ -2615,6 +2615,6 @@
 <script src="js/lib/hls.min.js?v=1"></script>
     <script src="js/dpbuilder.js?v=74"></script>
     <script src="js/dpbuilder-ui.js?v=64"></script>
-    <script src="js/app.js?v=469"></script>
+    <script src="js/app.js?v=470"></script>
 </body>
 </html>
