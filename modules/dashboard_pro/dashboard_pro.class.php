@@ -117,6 +117,36 @@ class dashboard_pro extends module
                 $session->save();
             }
         }
+        /* Общий шлагбаум: всё, что пишет или выполняет что-то на сервере,
+           требует вошедшего пользователя. Эндпоинты, которые только читают
+           (panels GET, settings GET, lang, test и подобные), пропускаются:
+           без логина они отдают пусто или базовые значения, но ничего не
+           меняют и ни к чьим данным не дают доступа. Список ведётся явно,
+           чтобы новый пишущий эндпоинт нельзя было забыть закрыть - о нём
+           напомнит эта же проверка. */
+        $writeEndpoints = array(
+            'chat', 'notifications', 'cleanupWidgets',
+            'restorePanels', 'wizard', 'execCommand', 'tvKey', 'scriptRun',
+            'say', 'exportToUser', 'setProperty', 'cmRun', 'objectSave',
+            'objectDelete', 'widgetSetEnabled', 'widgetInstall', 'widgetCopy',
+            'widgetDelete', 'widgetReorder', 'widgetBuild',
+        );
+        $endpoint = (string)($params['request'][0] ?? '');
+        if (in_array($endpoint, $writeEndpoints, true) && $this->getUserLogin() === '') {
+            return ['error' => 'not authorized'];
+        }
+        /* Панели и настройки читаются методом GET, а пишутся POST: без логина
+           чтение отдаёт пусто, но запись отклоняется. */
+        if (in_array($endpoint, array('panels', 'settings'), true)
+            && strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET')) === 'POST'
+            && $this->getUserLogin() === '') {
+            return ['error' => 'not authorized'];
+        }
+        /* Авторизованное обращение продлевает сессию панели: без этого она
+           умирает через 24 минуты простоя и уносит с собой логин. */
+        if ($this->getUserLogin() !== '') {
+            $this->touchPanelSession();
+        }
         if ($params['request'][0] == 'test') {
             $this->dLog('test ok');
             return ['status' => 'ok', 'time' => time(), 'session' => $session ? 'active' : 'none'];
@@ -2205,19 +2235,15 @@ class dashboard_pro extends module
     function loadPanels()
     {
         $login = $this->getUserLogin();
-        if ($login) {
-            $this->ensureClassAndObject($login);
-            $data = $this->loadShardedProperty($login, 'panels');
-            if ($data !== null) {
-                $decoded = json_decode($data, true);
-                if (is_array($decoded)) {
-                    return $decoded;
-                }
-            }
+        /* Панели есть только у конкретного пользователя. Без логина читать
+           нечего: общего набора нет намеренно, иначе анонимный (или потерявший
+           сессию) клиент сохранил бы пустоту поверх чужих панелей. */
+        if (!$login) {
             return array();
         }
-        $data = gg('dashboard_pro_panels');
-        if ($data) {
+        $this->ensureClassAndObject($login);
+        $data = $this->loadShardedProperty($login, 'panels');
+        if ($data !== null) {
             $decoded = json_decode($data, true);
             if (is_array($decoded)) {
                 return $decoded;
@@ -2229,12 +2255,30 @@ class dashboard_pro extends module
     function savePanels($panels)
     {
         $login = $this->getUserLogin();
-        if ($login) {
-            $this->ensureClassAndObject($login);
-            $this->saveShardedProperty($login, 'panels', json_encode($panels));
-        } else {
-            sg('dashboard_pro_panels', json_encode($panels));
+        /* Запись без логина отклоняется: сохранять чужому некуда, а молчаливая
+           запись в общий набор как раз и стирала панели при потерянной сессии. */
+        if (!$login) {
+            return false;
         }
+        $this->ensureClassAndObject($login);
+        /* Пустой набор поверх непустого не сохраняем. Панель шлёт "сохранить" на
+           каждое своё действие, и одного раза с пустым состоянием (например,
+           данные ещё не загрузились) хватило бы, чтобы стереть всё. Если нужно
+           действительно очистить - панели удаляются по одной, и набор остаётся
+           непустым; полностью пустой набор ставит только явный сброс, который
+           идёт мимо этой ветки. */
+        $incoming = is_array($panels) ? $panels : array();
+        if (count($incoming) === 0) {
+            $existing = $this->loadShardedProperty($login, 'panels');
+            $decoded = $existing !== null ? json_decode($existing, true) : null;
+            if (is_array($decoded) && count($decoded) > 0) {
+                $this->dErr('panels: отклонена запись пустого набора поверх '
+                    . count($decoded) . ' панелей');
+                return false;
+            }
+        }
+        $this->saveShardedProperty($login, 'panels', json_encode($panels));
+        return true;
     }
 
 function countWidgetUsage($type)
@@ -2989,17 +3033,14 @@ function widgetUsageInfo($type)
     function loadDashboardSettings()
     {
         $login = $this->getUserLogin();
-        if ($login) {
-            $this->ensureClassAndObject($login);
-            $data = $this->loadShardedProperty($login, 'settings');
-            if ($data !== null) {
-                $decoded = json_decode($data, true);
-                if (is_array($decoded)) return $decoded;
-            }
+        /* Общего набора настроек нет: без логина отдаём только базовые
+           значения для внутренней работы, в ThisComputer.* не лезем. */
+        if (!$login) {
             return $this->defaultSettings();
         }
-        $data = gg('dashboard_pro_settings');
-        if ($data) {
+        $this->ensureClassAndObject($login);
+        $data = $this->loadShardedProperty($login, 'settings');
+        if ($data !== null) {
             $decoded = json_decode($data, true);
             if (is_array($decoded)) return $decoded;
         }
@@ -3009,12 +3050,14 @@ function widgetUsageInfo($type)
     function saveDashboardSettings($settings)
     {
         $login = $this->getUserLogin();
-        if ($login) {
-            $this->ensureClassAndObject($login);
-            $this->saveShardedProperty($login, 'settings', json_encode($settings));
-        } else {
-            sg('dashboard_pro_settings', json_encode($settings));
+        /* Настройки тоже принадлежат конкретному пользователю: без логина
+           сохранять их некуда и незачем, поэтому запись отклоняется. */
+        if (!$login) {
+            return false;
         }
+        $this->ensureClassAndObject($login);
+        $this->saveShardedProperty($login, 'settings', json_encode($settings));
+        return true;
     }
 
     function defaultSettings()
@@ -3492,6 +3535,22 @@ function widgetUsageInfo($type)
     {
         $title = (string)$title;
         return $title !== '' && preg_match('/^[A-Za-z0-9_\-]{1,64}$/', $title) === 1;
+    }
+
+    /* Панель открыта долго и может простаивать: системный чистильщик сессий
+       (phpsessionclean раз в полчаса) удаляет файлы старше 24 минут простоя, и
+       вместе с файлом пропадает логин панели - пользователь внезапно остаётся
+       без своих панелей. Продлеваем жизнь сессии сами: пока к панели есть
+       авторизованное обращение, переписываем метку времени в сессии, а вместе с
+       ней обновляется и время правки файла, по которому чистильщик считает
+       сессию свежей. Это надёжнее правки php.ini: настройка живёт рядом с
+       панелью и не зависит от версии PHP на сервере. */
+    function touchPanelSession()
+    {
+        global $session;
+        if (!$session) return;
+        $session->data['DP_PRO_TOUCH'] = time();
+        $session->save();
     }
 
     function ensureRememberTable()
