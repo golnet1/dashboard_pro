@@ -40,6 +40,17 @@ button, input, select, textarea, option { font-family: inherit; }
 .user-menu__item--danger:hover i { color: #e0e0e0; }
 a.user-menu__item { text-decoration: none; color: inherit; }
 .app-bar__actions { display: flex; align-items: center; gap: 2px; }
+/* Выключатель и кнопка в шапке: те же настройки, что у виджетов relay/button */
+.app-bar__switch { display: inline-flex; align-items: center; gap: .5rem; padding: .3rem .5rem; border-radius: var(--wpb-radius-default, 0px); color: rgba(255,255,255,.9); cursor: pointer; user-select: none; }
+.app-bar__switch:hover { background: rgba(255,255,255,.15); }
+.app-bar__switch i { font-size: .95rem; }
+.app-bar__switch-label { font-size: .85rem; white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+.app-bar__switch .v-input--switch { pointer-events: none; }
+.app-bar__switch--disabled { opacity: .4; pointer-events: none; }
+.app-bar__actions .app-bar__button { display: inline-flex; align-items: center; gap: .45rem; padding: .4rem .7rem; border: none; border-radius: var(--wpb-radius-default, 0px); color: #fff; cursor: pointer; font-size: .85rem; line-height: 1; }
+.app-bar__actions .app-bar__button:hover { background: rgba(255,255,255,.15); color: #fff; filter: brightness(1.12); }
+.app-bar__actions .app-bar__button:disabled { opacity: .45; cursor: not-allowed; filter: none; }
+.app-bar__button i { font-size: .95rem; }
 .app-bar__actions .app-bar__clock { display: flex; flex-direction: column; align-items: center; line-height: 1.15; margin: 0 4px 0 0; padding: 0 4px; white-space: nowrap; }
 .app-bar__actions .app-bar__clock-time { font-size: 1.05rem; font-weight: 600; color: rgba(255,255,255,.95); font-variant-numeric: tabular-nums; }
 .app-bar__actions .app-bar__clock-date { font-size: .72rem; color: rgba(255,255,255,.6); font-variant-numeric: tabular-nums; }

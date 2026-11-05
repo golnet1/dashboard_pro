@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Ubuntu">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Arimo:400,600,700">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700">
-    <link rel="stylesheet" href="css/app.css?v=166">
+    <link rel="stylesheet" href="css/app.css?v=167">
     <link rel="stylesheet" href="css/leaflet.css?v=1">
     <script src="js/lib/vue.global.prod.js"></script>
 <style>
@@ -176,6 +176,23 @@
                                 <span v-if="it.showLabel" class="app-bar__value app-bar__value--plain">{{ it.label }}</span>
                             </a>
                             <span v-else class="app-bar__value" :title="t('hdr_link_empty')" @click="openHeaderLinkDialog(it.idx)">{{ t('hdr_link_empty') }}</span>
+                        </div>
+                    </template>
+                    <template v-for="it in headerSwitchSlots" :key="it.key">
+                        <div class="app-bar__actions" :style="headerStyleAt(it.idx, it.type)">
+                            <div class="app-bar__switch" :class="{ 'app-bar__switch--disabled': it.disabled }" :title="it.title || it.hint || t('hdr_item_switch')" @click="headerSwitchToggle(it)">
+                                <i v-if="it.showIcon" :class="it.icon"></i>
+                                <span v-if="it.showLabel" class="app-bar__switch-label">{{ it.title || t('hdr_item_switch') }}</span>
+                                <div class="v-input--switch" :class="{ 'input--is-checked': it.on }"><div class="v-input--switch__track"><div class="v-input--switch__thumb"></div></div></div>
+                            </div>
+                        </div>
+                    </template>
+                    <template v-for="it in headerButtonSlots" :key="it.key">
+                        <div class="app-bar__actions" :style="headerStyleAt(it.idx, it.type)">
+                            <button type="button" class="app-bar__button" :style="{ backgroundColor: it.color }" :disabled="it.disabled" :title="it.title || it.hint || t('hdr_item_button')" @click="headerButtonRun(it)">
+                                <i v-if="it.showIcon" :class="it.icon"></i>
+                                <span v-if="it.showLabel">{{ it.title || t('hdr_item_button') }}</span>
+                            </button>
                         </div>
                     </template>
                     <div v-if="headerHas('menu')" class="app-bar__actions" style="position:relative" :style="headerSlotStyle('menu')">
@@ -733,12 +750,16 @@
                                          <div class="hsb__card-hint" v-if="it.t === 'value'">{{ headerValueHint(it.cfg) || t('hdr_value_hint') }}</div>
                                          <div class="hsb__card-hint" v-else-if="it.t === 'panel'">{{ headerPanelHint(it.cfg) || t('hdr_panel_none') }}</div>
                                           <div class="hsb__card-hint" v-else-if="it.t === 'link'">{{ headerLinkHint(it.cfg) || t('hdr_link_empty') }}</div>
+                                         <div class="hsb__card-hint" v-else-if="it.t === 'switch'">{{ headerSwitchHint(it.cfg) || t('hdr_switch_none') }}</div>
+                                         <div class="hsb__card-hint" v-else-if="it.t === 'button'">{{ headerButtonHint(it.cfg) || t('hdr_button_none') }}</div>
                                          <div class="hsb__card-hint" v-else-if="it.t === 'status'">{{ headerStatusItems.length }}/7</div>
                                          <div class="hsb__card-hint" v-else-if="it.t === 'spacer'">{{ headerSpacerHint }}</div>
                                          <div class="hsb__card-actions">
                                              <button v-if="it.t === 'value'" class="icon-btn" @click="openHeaderValueDialog(idx)" :title="t('edit')"><i class="fas fa-pen"></i></button>
                                              <button v-if="it.t === 'panel'" class="icon-btn" @click="openHeaderPanelDialog(idx)" :title="t('edit')"><i class="fas fa-pen"></i></button>
                                               <button v-if="it.t === 'link'" class="icon-btn" @click="openHeaderLinkDialog(idx)" :title="t('edit')"><i class="fas fa-pen"></i></button>
+                                             <button v-if="it.t === 'switch'" class="icon-btn" @click="openHeaderSwitchDialog(idx)" :title="t('edit')"><i class="fas fa-pen"></i></button>
+                                             <button v-if="it.t === 'button'" class="icon-btn" @click="openHeaderButtonDialog(idx)" :title="t('edit')"><i class="fas fa-pen"></i></button>
                                              <button v-if="it.t === 'status'" class="icon-btn" @click="openHeaderStatusEditor" :title="t('edit')"><i class="fas fa-pen"></i></button>
                                              <i v-if="!headerCanRemove(it.t)" class="fas fa-lock hsb__card-lock" :title="t('hdr_cant_remove')"></i>
                                              <button v-else class="icon-btn" @click="headerItemRemove(idx)" :title="t('delete_widget')"><i class="fas fa-trash"></i></button>
@@ -1055,6 +1076,289 @@
                                     </div>
                                 </div>
                             </div>
+        <!-- ===== Header Switch Editor ===== -->
+        <div id="hsw-edit" class="v-dialog__content v-dialog__content--active" v-if="headerSwitchOpen" style="z-index:202">
+            <div class="v-dialog v-dialog--active v-dialog--persistent v-dialog--scrollable" style="width:560px" tabindex="0">
+                <div class="v-card v-sheet theme--dark" style="background-color:rgba(48,48,48,var(--dialog-alpha,1));border-color:#303030;display:flex;flex-direction:column;max-height:80vh">
+                    <div class="v-card__title" style="flex-shrink:0"><span class="headline_m">{{ t('hdr_switch_dialog') }}</span></div>
+                    <hr role="separator" class="v-divider theme--dark" style="flex-shrink:0">
+                    <div class="v-card__text pa-4" style="overflow-y:auto;flex:1">
+                        <div class="v-input v-text-field">
+                            <div class="v-input__control">
+                                <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': headerSwitchForm.title }">{{ t('title') }}</label><input v-model="headerSwitchForm.title" :placeholder="t('hdr_item_switch')"></div>
+                                <div class="v-input__details"><div class="v-messages"></div></div>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2" style="align-items:flex-start">
+                            <div class="v-input v-text-field" style="flex:1;min-width:0">
+                                <div class="v-input__control">
+                                    <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': headerSwitchForm.icon }">{{ t('icon') }}</label><input v-model="headerSwitchForm.icon" placeholder="fas fa-power-off"></div>
+                                    <div class="v-input__details"><div class="v-messages"></div></div>
+                                </div>
+                            </div>
+                            <button class="icon-btn" :title="t('pick_icon')" @click="openIconPicker('hsw')" style="margin-top:16px;flex-shrink:0"><i :class="headerSwitchForm.icon || 'fas fa-power-off'"></i></button>
+                            <button class="icon-btn" :title="t('clear')" @click="headerSwitchForm.icon=''" style="margin-top:16px;flex-shrink:0"><i class="fas fa-backspace"></i></button>
+                        </div>
+                        <div class="v-input v-text-field v-select">
+                            <div class="v-input__control">
+                                <div class="v-input__slot"><label class="v-label v-label--active">{{ t('hdr_display') }}</label>
+                                    <select v-model="headerSwitchForm.display">
+                                        <option value="icon" style="background:#1e1e1e;color:#fff">{{ t('hdr_display_icon') }}</option>
+                                        <option value="label" style="background:#1e1e1e;color:#fff">{{ t('hdr_display_label') }}</option>
+                                        <option value="both" style="background:#1e1e1e;color:#fff">{{ t('hdr_display_both') }}</option>
+                                    </select>
+                                    <div class="v-input__append-inner"><i class="fas fa-caret-down"></i></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2" style="align-items:flex-start">
+                            <div class="v-input v-text-field v-select" style="flex:1;min-width:0">
+                                <div class="v-input__control">
+                                    <div class="v-input__slot"><label class="v-label v-label--active">{{ t('object') }}</label>
+                                        <select v-model="headerSwitchForm.object" @change="headerSwitchForm.property = ''; headerSwitchLoadProps()">
+                                            <option value="" style="background:#1e1e1e;color:#fff">{{ t('select_default') }}</option>
+                                            <option v-for="o in objects" :key="o.ID" :value="o.TITLE" style="background:#1e1e1e;color:#fff">{{ itemLabel(o) }}</option>
+                                        </select>
+                                        <div class="v-input__append-inner"><i class="fas fa-caret-down"></i></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="v-input v-text-field v-select" style="flex:1;min-width:0">
+                                <div class="v-input__control">
+                                    <div class="v-input__slot"><label class="v-label v-label--active">{{ t('property') }}</label>
+                                        <select v-model="headerSwitchForm.property">
+                                            <option value="" style="background:#1e1e1e;color:#fff">{{ t('select_default') }}</option>
+                                            <option v-for="prop in headerSwitchProps" :key="prop.ID" :value="prop.TITLE" style="background:#1e1e1e;color:#fff">{{ itemLabel(prop) }}</option>
+                                        </select>
+                                        <div class="v-input__append-inner"><i class="fas fa-caret-down"></i></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2" style="align-items:flex-start">
+                            <div class="v-input v-text-field v-select" style="flex:1;min-width:0">
+                                <div class="v-input__control">
+                                    <div class="v-input__slot"><label class="v-label v-label--active">{{ t('field_switch_object') }}</label>
+                                        <select :value="headerMethodObj(headerSwitchForm.object_switch)" @change="headerMethodSet(headerSwitchForm, 'object_switch', $event.target.value, true)">
+                                            <option value="" style="background:#1e1e1e;color:#fff">{{ t('select_default') }}</option>
+                                            <option v-for="o in objects" :key="o.ID" :value="o.TITLE" style="background:#1e1e1e;color:#fff">{{ itemLabel(o) }}</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="v-input v-text-field v-select" style="flex:1;min-width:0">
+                                <div class="v-input__control">
+                                    <div class="v-input__slot"><label class="v-label v-label--active">{{ t('field_switch_method') }}</label>
+                                        <select :value="headerMethodName(headerSwitchForm.object_switch)" @change="headerMethodSet(headerSwitchForm, 'object_switch', $event.target.value, false)">
+                                            <option value="" style="background:#1e1e1e;color:#fff">{{ t('select_default') }}</option>
+                                            <option v-for="m in headerMethodList(headerSwitchForm.object_switch)" :key="m.ID" :value="m.TITLE" style="background:#1e1e1e;color:#fff">{{ itemLabel(m) }}</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2" style="align-items:flex-start">
+                            <div class="v-input v-text-field v-select" style="flex:1;min-width:0">
+                                <div class="v-input__control">
+                                    <div class="v-input__slot"><label class="v-label v-label--active">{{ t('field_on_object') }}</label>
+                                        <select :value="headerMethodObj(headerSwitchForm.object_on)" @change="headerMethodSet(headerSwitchForm, 'object_on', $event.target.value, true)">
+                                            <option value="" style="background:#1e1e1e;color:#fff">{{ t('select_default') }}</option>
+                                            <option v-for="o in objects" :key="o.ID" :value="o.TITLE" style="background:#1e1e1e;color:#fff">{{ itemLabel(o) }}</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="v-input v-text-field v-select" style="flex:1;min-width:0">
+                                <div class="v-input__control">
+                                    <div class="v-input__slot"><label class="v-label v-label--active">{{ t('field_on_method') }}</label>
+                                        <select :value="headerMethodName(headerSwitchForm.object_on)" @change="headerMethodSet(headerSwitchForm, 'object_on', $event.target.value, false)">
+                                            <option value="" style="background:#1e1e1e;color:#fff">{{ t('select_default') }}</option>
+                                            <option v-for="m in headerMethodList(headerSwitchForm.object_on)" :key="m.ID" :value="m.TITLE" style="background:#1e1e1e;color:#fff">{{ itemLabel(m) }}</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2" style="align-items:flex-start">
+                            <div class="v-input v-text-field v-select" style="flex:1;min-width:0">
+                                <div class="v-input__control">
+                                    <div class="v-input__slot"><label class="v-label v-label--active">{{ t('field_off_object') }}</label>
+                                        <select :value="headerMethodObj(headerSwitchForm.object_off)" @change="headerMethodSet(headerSwitchForm, 'object_off', $event.target.value, true)">
+                                            <option value="" style="background:#1e1e1e;color:#fff">{{ t('select_default') }}</option>
+                                            <option v-for="o in objects" :key="o.ID" :value="o.TITLE" style="background:#1e1e1e;color:#fff">{{ itemLabel(o) }}</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="v-input v-text-field v-select" style="flex:1;min-width:0">
+                                <div class="v-input__control">
+                                    <div class="v-input__slot"><label class="v-label v-label--active">{{ t('field_off_method') }}</label>
+                                        <select :value="headerMethodName(headerSwitchForm.object_off)" @change="headerMethodSet(headerSwitchForm, 'object_off', $event.target.value, false)">
+                                            <option value="" style="background:#1e1e1e;color:#fff">{{ t('select_default') }}</option>
+                                            <option v-for="m in headerMethodList(headerSwitchForm.object_off)" :key="m.ID" :value="m.TITLE" style="background:#1e1e1e;color:#fff">{{ itemLabel(m) }}</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="hsb__card-hint" style="margin-top:.5rem" v-if="!headerSwitchCanSave()">{{ t('hdr_need_switch') }}</div>
+                        <div class="hsb__card-hint" style="margin-top:.5rem" v-else>{{ t('hdr_switch_hint') }}</div>
+                    </div>
+                    <div class="v-card__actions" style="flex-shrink:0">
+                        <button type="button" class="v-btn v-btn--text theme--dark v-size--default primary--text" @click="headerSwitchOpen = false">{{ t('cancel') }}</button>
+                        <button type="button" class="btn-primary" :disabled="!headerSwitchCanSave()" @click="headerSwitchSave()">{{ t('save') }}</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== Header Button Editor ===== -->
+        <div id="hb-edit" class="v-dialog__content v-dialog__content--active" v-if="headerButtonOpen" style="z-index:202">
+            <div class="v-dialog v-dialog--active v-dialog--persistent v-dialog--scrollable" style="width:560px" tabindex="0">
+                <div class="v-card v-sheet theme--dark" style="background-color:rgba(48,48,48,var(--dialog-alpha,1));border-color:#303030;display:flex;flex-direction:column;max-height:80vh">
+                    <div class="v-card__title" style="flex-shrink:0"><span class="headline_m">{{ t('hdr_button_dialog') }}</span></div>
+                    <hr role="separator" class="v-divider theme--dark" style="flex-shrink:0">
+                    <div class="v-card__text pa-4" style="overflow-y:auto;flex:1">
+                        <div class="v-input v-text-field">
+                            <div class="v-input__control">
+                                <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': headerButtonForm.title }">{{ t('title') }}</label><input v-model="headerButtonForm.title" :placeholder="t('hdr_item_button')"></div>
+                                <div class="v-input__details"><div class="v-messages"></div></div>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2" style="align-items:flex-start">
+                            <div class="v-input v-text-field" style="flex:1;min-width:0">
+                                <div class="v-input__control">
+                                    <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': headerButtonForm.icon }">{{ t('icon') }}</label><input v-model="headerButtonForm.icon" placeholder="fas fa-play"></div>
+                                    <div class="v-input__details"><div class="v-messages"></div></div>
+                                </div>
+                            </div>
+                            <button class="icon-btn" :title="t('pick_icon')" @click="openIconPicker('hb')" style="margin-top:16px;flex-shrink:0"><i :class="headerButtonForm.icon || 'fas fa-play'"></i></button>
+                            <button class="icon-btn" :title="t('clear')" @click="headerButtonForm.icon=''" style="margin-top:16px;flex-shrink:0"><i class="fas fa-backspace"></i></button>
+                        </div>
+                        <div class="v-input v-text-field v-select">
+                            <div class="v-input__control">
+                                <div class="v-input__slot"><label class="v-label v-label--active">{{ t('hdr_display') }}</label>
+                                    <select v-model="headerButtonForm.display">
+                                        <option value="icon" style="background:#1e1e1e;color:#fff">{{ t('hdr_display_icon') }}</option>
+                                        <option value="label" style="background:#1e1e1e;color:#fff">{{ t('hdr_display_label') }}</option>
+                                        <option value="both" style="background:#1e1e1e;color:#fff">{{ t('hdr_display_both') }}</option>
+                                    </select>
+                                    <div class="v-input__append-inner"><i class="fas fa-caret-down"></i></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="v-input v-text-field v-select">
+                            <div class="v-input__control">
+                                <div class="v-input__slot"><label class="v-label v-label--active">{{ t('field_button_type') }}</label>
+                                    <select v-model="headerButtonForm.button_type">
+                                        <option value="script" style="background:#1e1e1e;color:#fff">{{ t('opt_script') }}</option>
+                                        <option value="method" style="background:#1e1e1e;color:#fff">{{ t('opt_method') }}</option>
+                                        <option value="panel" style="background:#1e1e1e;color:#fff">{{ t('opt_panel') }}</option>
+                                    </select>
+                                    <div class="v-input__append-inner"><i class="fas fa-caret-down"></i></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div v-if="headerButtonForm.button_type === 'method'" class="d-flex gap-2" style="align-items:flex-start">
+                            <div class="v-input v-text-field v-select" style="flex:1;min-width:0">
+                                <div class="v-input__control">
+                                    <div class="v-input__slot"><label class="v-label v-label--active">{{ t('field_method_object') }}</label>
+                                        <select :value="headerMethodObj(headerButtonForm.method)" @change="headerMethodSet(headerButtonForm, 'method', $event.target.value, true)">
+                                            <option value="" style="background:#1e1e1e;color:#fff">{{ t('select_default') }}</option>
+                                            <option v-for="o in objects" :key="o.ID" :value="o.TITLE" style="background:#1e1e1e;color:#fff">{{ itemLabel(o) }}</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="v-input v-text-field v-select" style="flex:1;min-width:0">
+                                <div class="v-input__control">
+                                    <div class="v-input__slot"><label class="v-label v-label--active">{{ t('field_method') }}</label>
+                                        <select :value="headerMethodName(headerButtonForm.method)" @change="headerMethodSet(headerButtonForm, 'method', $event.target.value, false)">
+                                            <option value="" style="background:#1e1e1e;color:#fff">{{ t('select_default') }}</option>
+                                            <option v-for="m in headerMethodList(headerButtonForm.method)" :key="m.ID" :value="m.TITLE" style="background:#1e1e1e;color:#fff">{{ itemLabel(m) }}</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div v-if="headerButtonForm.button_type === 'script'" class="v-input v-text-field v-select">
+                            <div class="v-input__control">
+                                <div class="v-input__slot"><label class="v-label v-label--active">{{ t('field_script') }}</label>
+                                    <select v-model="headerButtonForm.script">
+                                        <option value="" style="background:#1e1e1e;color:#fff">{{ t('select_default') }}</option>
+                                        <option v-for="s in scripts" :key="s.ID" :value="s.TITLE" style="background:#1e1e1e;color:#fff">{{ s.TITLE }}{{ s.DESCRIPTION ? ' - ' + s.DESCRIPTION : '' }}</option>
+                                    </select>
+                                    <div class="v-input__append-inner"><i class="fas fa-caret-down"></i></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div v-if="headerButtonForm.button_type === 'panel'" class="v-input v-text-field v-select">
+                            <div class="v-input__control">
+                                <div class="v-input__slot"><label class="v-label v-label--active">{{ t('field_panel') }}</label>
+                                    <select v-model="headerButtonForm.panel">
+                                        <option value="" style="background:#1e1e1e;color:#fff">{{ t('select_default') }}</option>
+                                        <option v-for="p in headerPanelList" :key="p.name" :value="p.name" style="background:#1e1e1e;color:#fff">{{ p.title || p.name }}</option>
+                                    </select>
+                                    <div class="v-input__append-inner"><i class="fas fa-caret-down"></i></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div v-if="headerButtonForm.button_type === 'script' || headerButtonForm.button_type === 'method'" class="v-input v-text-field">
+                            <div class="v-input__control">
+                                <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': headerButtonForm.param }">{{ t('field_param') }}</label><input v-model="headerButtonForm.param"></div>
+                                <div class="v-input__details"><div class="v-messages"></div></div>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2" style="align-items:center">
+                            <div class="v-input v-text-field" style="flex:1;min-width:0">
+                                <div class="v-input__control">
+                                    <div class="v-input__slot"><label class="v-label v-label--active">{{ t('field_color') }}</label><input v-model="headerButtonForm.color" placeholder="#1565c0"></div>
+                                    <div class="v-input__details"><div class="v-messages"></div></div>
+                                </div>
+                            </div>
+                            <input type="color" v-model="headerButtonForm.color" style="width:40px;height:38px;margin-top:16px;padding:2px;background:transparent;border:1px solid rgba(255,255,255,.2);border-radius:4px;cursor:pointer;flex-shrink:0">
+                        </div>
+                        <div class="d-flex gap-2" style="align-items:flex-start">
+                            <div class="v-input v-text-field v-select" style="flex:1;min-width:0">
+                                <div class="v-input__control">
+                                    <div class="v-input__slot"><label class="v-label v-label--active">{{ t('field_alive_flag') }}</label>
+                                        <select v-model="headerButtonForm.object_alive" @change="headerButtonForm.property_alive = ''; headerButtonLoadProps()">
+                                            <option value="" style="background:#1e1e1e;color:#fff">{{ t('select_default') }}</option>
+                                            <option v-for="o in objects" :key="o.ID" :value="o.TITLE" style="background:#1e1e1e;color:#fff">{{ itemLabel(o) }}</option>
+                                        </select>
+                                        <div class="v-input__append-inner"><i class="fas fa-caret-down"></i></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="v-input v-text-field v-select" style="flex:1;min-width:0">
+                                <div class="v-input__control">
+                                    <div class="v-input__slot"><label class="v-label v-label--active">{{ t('field_alive_property') }}</label>
+                                        <select v-model="headerButtonForm.property_alive">
+                                            <option value="" style="background:#1e1e1e;color:#fff">{{ t('select_default') }}</option>
+                                            <option v-for="prop in headerButtonProps" :key="prop.ID" :value="prop.TITLE" style="background:#1e1e1e;color:#fff">{{ itemLabel(prop) }}</option>
+                                        </select>
+                                        <div class="v-input__append-inner"><i class="fas fa-caret-down"></i></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="v-input v-text-field" style="width:110px;flex-shrink:0">
+                                <div class="v-input__control">
+                                    <div class="v-input__slot"><label class="v-label v-label--active">{{ t('field_alive_timeout') }}</label><input type="number" min="1" v-model.number="headerButtonForm.alive_timeout"></div>
+                                    <div class="v-input__details"><div class="v-messages"></div></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="hsb__card-hint" style="margin-top:.5rem" v-if="!headerButtonCanSave()">{{ t('hdr_need_button') }}</div>
+                        <div class="hsb__card-hint" style="margin-top:.5rem" v-else>{{ t('hdr_button_hint') }}</div>
+                    </div>
+                    <div class="v-card__actions" style="flex-shrink:0">
+                        <button type="button" class="v-btn v-btn--text theme--dark v-size--default primary--text" @click="headerButtonOpen = false">{{ t('cancel') }}</button>
+                        <button type="button" class="btn-primary" :disabled="!headerButtonCanSave()" @click="headerButtonSave()">{{ t('save') }}</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- ===== Header Link Editor ===== -->
         <div id="hl-edit" class="v-dialog__content v-dialog__content--active" v-if="headerLinkOpen" style="z-index:202">
             <div class="v-dialog v-dialog--active v-dialog--persistent" style="width:520px" tabindex="0">
@@ -2570,7 +2874,7 @@
                 <div class="modal-body" style="text-align:center;padding:2rem 1.5rem">
                     <i class="fas fa-chart-line" style="font-size:3rem;color:var(--primary);margin-bottom:1rem"></i>
                     <h3 style="margin-bottom:.3rem">Dashboard Pro</h3>
-                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 01.20.22</p>
+                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 01.20.23</p>
                     <p style="color:var(--text-secondary);font-size:.8rem">{{ t('app_desc') }}</p>
                     <div class="about-links" style="margin-top:1rem;font-size:.85rem;color:var(--text-secondary);line-height:1.8">
                         <div>{{ t('about_telegram') }}: <a href="https://t.me/+9ZFQaxs_Ukw4NmMy" target="_blank" rel="noopener">Telegram</a></div>
@@ -2627,6 +2931,6 @@
 <script src="js/lib/hls.min.js?v=1"></script>
     <script src="js/dpbuilder.js?v=74"></script>
     <script src="js/dpbuilder-ui.js?v=64"></script>
-    <script src="js/app.js?v=474"></script>
+    <script src="js/app.js?v=475"></script>
 </body>
 </html>

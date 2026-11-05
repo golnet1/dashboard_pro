@@ -511,6 +511,21 @@ const headerStatusSectionOn = computed(() => headerHas('status'));
             });
         }
 
+        /* Состояние выключателя и признак доступности кнопки приходят тем же
+           способом, что и значения: ключ object.property в нижнем регистре. */
+        function wsApplyHeaderSwitch(keyLower, value) {
+            const txt = (value === undefined || value === null) ? '' : String(value);
+            headerItems.value.forEach(it => {
+                if (it.t === 'switch') {
+                    const k = headerSwitchKey(it.cfg);
+                    if (k && k.toLowerCase() === keyLower) headerSwitchStates[k] = txt;
+                } else if (it.t === 'button') {
+                    const k = headerAliveKey(it.cfg);
+                    if (k && k.toLowerCase() === keyLower) headerAliveStates[k] = txt;
+                }
+            });
+        }
+
         /* The colour of «по свойству» arrives with the socket under the lower-case
            key of object.property, so the widget is found by that same key. Only a
            value that is really a colour is kept: anything else takes the widget
@@ -656,7 +671,7 @@ const headerStatusSectionOn = computed(() => headerHas('status'));
 
 /* ---- Шапка: состав и порядок элементов ---- */
         const HEADER_UNLIMITED = 99;
-        const HEADER_ITEM_TYPES = ['navigator', 'title', 'spacer', 'divider', 'status', 'time', 'updater', 'events', 'theme', 'edit', 'panel', 'value', 'menu'];
+        const HEADER_ITEM_TYPES = ['navigator', 'title', 'spacer', 'divider', 'status', 'time', 'updater', 'events', 'theme', 'edit', 'panel', 'value', 'switch', 'button', 'menu'];
         const HEADER_ITEM_DEFS = [
             { type: 'navigator', icon: 'fas fa-bars', key: 'hdr_item_navigator', max: 1 },
             { type: 'title', icon: 'fas fa-font', key: 'hdr_item_title', max: 1 },
@@ -670,6 +685,8 @@ const headerStatusSectionOn = computed(() => headerHas('status'));
             { type: 'edit', icon: 'fas fa-edit', key: 'hdr_item_edit', max: 1, min: 1 },
             { type: 'panel', icon: 'fas fa-caret-square-down', key: 'hdr_item_panel', max: HEADER_UNLIMITED },
             { type: 'value', icon: 'fas fa-bold', key: 'hdr_item_value', max: HEADER_UNLIMITED },
+            { type: 'switch', icon: 'fas fa-toggle-on', key: 'hdr_item_switch', max: HEADER_UNLIMITED },
+            { type: 'button', icon: 'fas fa-hand-pointer', key: 'hdr_item_button', max: HEADER_UNLIMITED },
             { type: 'link', icon: 'fas fa-link', key: 'hdr_item_link', max: HEADER_UNLIMITED },
             { type: 'menu', icon: 'far fa-user-circle', key: 'hdr_item_menu', max: 1, min: 1 }
         ];
@@ -774,6 +791,70 @@ const headerStatusSectionOn = computed(() => headerHas('status'));
                означают, что в шапке их просто не будет. */
             label: (it.cfg && it.cfg.label) || '', unit: (it.cfg && it.cfg.unit) || ''
         })));
+
+        /* ---- Шапка: выключатель ---- */
+        const headerSwitchStates = reactive({});
+        const headerAliveStates = reactive({});
+        function headerSwitchKey(cfg) {
+            return (cfg && cfg.object) ? (cfg.object + '.' + (cfg.property || 'status')) : '';
+        }
+        function headerSwitchIsOn(cfg) {
+            const k = headerSwitchKey(cfg);
+            if (!k) return false;
+            const v = headerSwitchStates[k];
+            if (v === undefined || v === null || v === '') return false;
+            const s = String(v).toLowerCase();
+            return s === '1' || s === 'on' || s === 'true';
+        }
+        function headerSwitchHint(cfg) {
+            const k = headerSwitchKey(cfg);
+            if (k) return k;
+            return (cfg && (cfg.object_switch || cfg.object_on || cfg.object_off)) || '';
+        }
+        const headerSwitchSlots = computed(() => headerInst('switch').map(it => ({
+            type: it.type, key: it.key, idx: it.idx, cfg: it.cfg,
+            title: (it.cfg && it.cfg.title) || '',
+            icon: (it.cfg && it.cfg.icon) || 'fas fa-power-off',
+            on: headerSwitchIsOn(it.cfg),
+            hint: headerSwitchHint(it.cfg),
+            showIcon: headerShowsIcon(it.cfg, 'both'),
+            showLabel: headerShowsLabel(it.cfg, 'both'),
+            disabled: !headerSwitchHint(it.cfg)
+        })));
+
+        /* ---- Шапка: кнопка ---- */
+        function headerAliveKey(cfg) {
+            return (cfg && cfg.object_alive && cfg.property_alive)
+                ? (cfg.object_alive + '.' + cfg.property_alive) : '';
+        }
+        function headerButtonAlive(cfg) {
+            const k = headerAliveKey(cfg);
+            if (!k) return true;
+            const v = headerAliveStates[k];
+            /* Пока значение не пришло, кнопка доступна: краткий сбой не должен
+               запирать её навсегда, как и в виджете кнопки. */
+            return v === undefined || v === null || v === '' || String(v) !== '0';
+        }
+        function headerButtonHint(cfg) {
+            if (!cfg) return '';
+            if (cfg.button_type === 'panel') {
+                const p = headerPanelItemOf({ name: cfg.panel });
+                return p ? (p.title || p.name) : (cfg.panel || '');
+            }
+            if (cfg.button_type === 'method') return cfg.method || '';
+            if (cfg.button_type === 'script') return cfg.script || '';
+            return cfg.method || cfg.script || cfg.panel || '';
+        }
+        const headerButtonSlots = computed(() => headerInst('button').map(it => ({
+            type: it.type, key: it.key, idx: it.idx, cfg: it.cfg,
+            title: (it.cfg && it.cfg.title) || '',
+            icon: (it.cfg && it.cfg.icon) || 'fas fa-play',
+            color: (it.cfg && it.cfg.color) || '#1565c0',
+            hint: headerButtonHint(it.cfg),
+            showIcon: headerShowsIcon(it.cfg, 'both'),
+            showLabel: headerShowsLabel(it.cfg, 'both'),
+            disabled: !headerButtonHint(it.cfg) || !headerButtonAlive(it.cfg)
+        })));
         function headerItemsWrite(list, save) {
             settings.value.headerItems = list;
             if (save !== false) settingsChanged();
@@ -839,10 +920,13 @@ const headerDragIndex = ref(-1);
         function headerItemAdd(ty) {
             if (!headerDef(ty) || headerAtLimit(ty)) return;
             headerAddOpen.value = false;
-            /* Ссылка, значение объекта и выбор панели без своих значений ничего не
-               показывают, поэтому сначала диалог, и только «Сохранить» кладёт
-               элемент в шапку: «Отмена» не должна оставлять после себя запись. */
+            /* Ссылка, значение объекта, выключатель, кнопка и выбор панели без
+               своих значений ничего не показывают, поэтому сначала диалог, и
+               только «Сохранить» кладёт элемент в шапку: «Отмена» не должна
+               оставлять после себя запись. */
             if (ty === 'value') { openHeaderValueDialog(-1); return; }
+            if (ty === 'switch') { openHeaderSwitchDialog(-1); return; }
+            if (ty === 'button') { openHeaderButtonDialog(-1); return; }
             if (ty === 'link') { openHeaderLinkDialog(-1); return; }
             if (ty === 'panel') { openHeaderPanelDialog(-1); return; }
             const list = headerItems.value.slice();
@@ -937,6 +1021,231 @@ const headerDragIndex = ref(-1);
                 } catch (e) {
                     headerValueTexts[key] = '';
                 }
+            }
+        }
+
+        /* ---- Шапка: выключатель (настройки как у виджета relay) ---- */
+        const headerSwitchOpen = ref(false);
+        const headerSwitchTarget = ref(-1);
+        const headerSwitchProps = ref([]);
+        const headerSwitchForm = reactive({
+            title: '', icon: 'fas fa-power-off', display: 'both',
+            object: '', property: '', object_switch: '', object_on: '', object_off: ''
+        });
+        function headerMethodObj(val) { return getMethodObj(val); }
+        function headerMethodName(val) { return getMethodName(val); }
+        function headerMethodList(val) {
+            const obj = getMethodObj(val);
+            if (obj && !methodCache[obj]) loadObjectMethods(obj);
+            return methodCache[obj] || [];
+        }
+        function headerMethodSet(form, key, partVal, isObj) {
+            if (!form || !key) return;
+            const cur = form[key] || '';
+            const obj = isObj ? partVal : getMethodObj(cur);
+            const mth = isObj ? getMethodName(cur) : partVal;
+            form[key] = obj && mth ? (obj + '/' + mth) : (obj ? obj + '/' : '');
+            if (obj) loadObjectMethods(obj);
+        }
+        function headerMethodAddress(addr) {
+            const s = String(addr == null ? '' : addr).trim();
+            if (!s) return '';
+            const p = s.split('/');
+            if (!p[0]) return '';
+            return 'method/' + p[0] + (p[1] ? '/' + p[1] : '');
+        }
+        async function headerSwitchLoadProps() {
+            if (!headerSwitchForm.object) { headerSwitchProps.value = []; return; }
+            const res = await dpAPI('properties?object_id=' + encodeURIComponent(headerSwitchForm.object));
+            headerSwitchProps.value = res.items || [];
+        }
+        function openHeaderSwitchDialog(idx) {
+            const it = (idx >= 0) ? headerItems.value[idx] : null;
+            headerSwitchTarget.value = idx;
+            const cfg = (it && it.cfg) || {};
+            headerSwitchForm.title = cfg.title || '';
+            headerSwitchForm.icon = cfg.icon || 'fas fa-power-off';
+            headerSwitchForm.display = headerDisplayOf(cfg, 'both');
+            headerSwitchForm.object = cfg.object || '';
+            headerSwitchForm.property = cfg.property || '';
+            headerSwitchForm.object_switch = cfg.object_switch || '';
+            headerSwitchForm.object_on = cfg.object_on || '';
+            headerSwitchForm.object_off = cfg.object_off || '';
+            headerSwitchProps.value = [];
+            headerSwitchOpen.value = true;
+            if (!objects.value.length) loadObjects();
+            if (headerSwitchForm.object) headerSwitchLoadProps();
+            [headerSwitchForm.object_switch, headerSwitchForm.object_on, headerSwitchForm.object_off].forEach(v => {
+                const obj = getMethodObj(v);
+                if (obj) loadObjectMethods(obj);
+            });
+        }
+        function headerSwitchCanSave() { return !!headerSwitchForm.object; }
+        function headerSwitchSave() {
+            if (!headerSwitchCanSave()) return;
+            const cfg = {
+                title: headerSwitchForm.title.trim(),
+                icon: headerSwitchForm.icon.trim(),
+                display: headerSwitchForm.display,
+                object: headerSwitchForm.object,
+                property: headerSwitchForm.property,
+                object_switch: headerSwitchForm.object_switch || '',
+                object_on: headerSwitchForm.object_on || '',
+                object_off: headerSwitchForm.object_off || ''
+            };
+            if (!headerItemPut(headerSwitchTarget.value, 'switch', cfg)) return;
+            headerSwitchOpen.value = false;
+            headerSwitchRefresh();
+        }
+        async function headerSwitchRefresh() {
+            const states = new Map();
+            const alive = new Map();
+            headerItems.value.forEach(it => {
+                if (it.t === 'switch') {
+                    const key = headerSwitchKey(it.cfg);
+                    if (key && !states.has(key)) states.set(key, it.cfg);
+                } else if (it.t === 'button') {
+                    const key = headerAliveKey(it.cfg);
+                    if (key && !alive.has(key)) alive.set(key, it.cfg);
+                }
+            });
+            Object.keys(headerSwitchStates).forEach(k => { if (!states.has(k)) delete headerSwitchStates[k]; });
+            Object.keys(headerAliveStates).forEach(k => { if (!alive.has(k)) delete headerAliveStates[k]; });
+            for (const key of Array.from(states.keys())) {
+                const cfg = states.get(key);
+                try {
+                    const r = await dpAPI('getProperty?object=' + encodeURIComponent(cfg.object) + '&property=' + encodeURIComponent(cfg.property || 'status'));
+                    headerSwitchStates[key] = (r && r.value !== undefined && r.value !== null) ? String(r.value) : '';
+                } catch (e) {
+                    headerSwitchStates[key] = '';
+                }
+            }
+            for (const key of Array.from(alive.keys())) {
+                const cfg = alive.get(key);
+                try {
+                    const r = await dpAPI('getProperty?object=' + encodeURIComponent(cfg.object_alive) + '&property=' + encodeURIComponent(cfg.property_alive));
+                    headerAliveStates[key] = (r && r.value !== undefined && r.value !== null) ? String(r.value) : '';
+                } catch (e) {
+                    headerAliveStates[key] = '';
+                }
+            }
+        }
+        async function headerSwitchToggle(it) {
+            if (!it || it.disabled) return;
+            const cfg = it.cfg || {};
+            const key = headerSwitchKey(cfg);
+            /* Если состояние ещё не пришло, сначала спрашиваем его: иначе первый
+               клик мог бы переключить устройство в ту же сторону. */
+            if (key && headerSwitchStates[key] === undefined) await headerSwitchRefresh();
+            const was = key ? headerSwitchStates[key] : undefined;
+            const next = !headerSwitchIsOn(cfg);
+            /* Отклик сразу, а сокет/перезапрос подтвердит настоящее состояние. */
+            if (key) headerSwitchStates[key] = next ? '1' : '0';
+            try {
+                const addr = cfg.object_switch || ((cfg.object_on && cfg.object_off) ? (next ? cfg.object_on : cfg.object_off) : '');
+                const base = headerMethodAddress(addr);
+                if (base) {
+                    await dpAPI(base);
+                    return;
+                }
+                if (cfg.object) {
+                    await dpAPI('setProperty?' + new URLSearchParams({
+                        object: cfg.object, property: cfg.property || 'status', value: next ? '1' : '0'
+                    }));
+                }
+            } catch (e) {
+                console.error(e);
+                if (key) {
+                    if (was === undefined) delete headerSwitchStates[key];
+                    else headerSwitchStates[key] = was;
+                }
+            }
+        }
+
+        /* ---- Шапка: кнопка (настройки как у виджета button) ---- */
+        const headerButtonOpen = ref(false);
+        const headerButtonTarget = ref(-1);
+        const headerButtonProps = ref([]);
+        const headerButtonForm = reactive({
+            title: '', icon: 'fas fa-play', display: 'both', button_type: 'script',
+            method: '', script: '', param: '', panel: '', color: '#1565c0',
+            object_alive: '', property_alive: '', alive_timeout: 3
+        });
+        async function headerButtonLoadProps() {
+            if (!headerButtonForm.object_alive) { headerButtonProps.value = []; return; }
+            const res = await dpAPI('properties?object_id=' + encodeURIComponent(headerButtonForm.object_alive));
+            headerButtonProps.value = res.items || [];
+        }
+        function openHeaderButtonDialog(idx) {
+            const it = (idx >= 0) ? headerItems.value[idx] : null;
+            headerButtonTarget.value = idx;
+            const cfg = (it && it.cfg) || {};
+            headerButtonForm.title = cfg.title || '';
+            headerButtonForm.icon = cfg.icon || 'fas fa-play';
+            headerButtonForm.display = headerDisplayOf(cfg, 'both');
+            headerButtonForm.button_type = cfg.button_type || 'script';
+            headerButtonForm.method = cfg.method || '';
+            headerButtonForm.script = cfg.script || '';
+            headerButtonForm.param = cfg.param || '';
+            headerButtonForm.panel = cfg.panel || '';
+            headerButtonForm.color = cfg.color || '#1565c0';
+            headerButtonForm.object_alive = cfg.object_alive || '';
+            headerButtonForm.property_alive = cfg.property_alive || '';
+            headerButtonForm.alive_timeout = Number(cfg.alive_timeout) || 3;
+            headerButtonProps.value = [];
+            headerButtonOpen.value = true;
+            if (!objects.value.length) loadObjects();
+            if (!scripts.value.length) loadScripts();
+            const obj = getMethodObj(headerButtonForm.method);
+            if (obj) loadObjectMethods(obj);
+            if (headerButtonForm.object_alive) headerButtonLoadProps();
+        }
+        function headerButtonCanSave() {
+            if (headerButtonForm.button_type === 'script') return !!headerButtonForm.script;
+            if (headerButtonForm.button_type === 'method') return !!headerButtonForm.method;
+            if (headerButtonForm.button_type === 'panel') return !!headerButtonForm.panel;
+            return false;
+        }
+        function headerButtonSave() {
+            if (!headerButtonCanSave()) return;
+            const f = headerButtonForm;
+            const cfg = {
+                title: f.title.trim(),
+                icon: f.icon.trim(),
+                display: f.display,
+                button_type: f.button_type,
+                method: f.method || '',
+                script: f.script || '',
+                param: String(f.param || '').trim(),
+                panel: f.panel || '',
+                color: f.color || '#1565c0',
+                object_alive: f.object_alive || '',
+                property_alive: f.property_alive || '',
+                alive_timeout: Number(f.alive_timeout) || 3
+            };
+            if (!headerItemPut(headerButtonTarget.value, 'button', cfg)) return;
+            headerButtonOpen.value = false;
+            headerSwitchRefresh();
+        }
+        async function headerButtonRun(it) {
+            if (!it || it.disabled) return;
+            const cfg = it.cfg || {};
+            if (cfg.button_type === 'panel') {
+                const p = headerPanelItemOf({ name: cfg.panel });
+                if (p) { selectPanel(p); sidebarOpen.value = false; }
+                return;
+            }
+            try {
+                if (cfg.button_type === 'method') {
+                    const base = headerMethodAddress(cfg.method);
+                    if (base) await dpAPI(base + (cfg.param ? '?value=' + encodeURIComponent(cfg.param) : ''));
+                } else if (cfg.button_type === 'script' && cfg.script) {
+                    const params = { script: cfg.script };
+                    if (cfg.param) params.value = cfg.param;
+                    await dpAPI('scriptRun?' + new URLSearchParams(params));
+                }
+            } catch (e) {
+                console.error(e);
             }
         }
 
@@ -1880,6 +2189,7 @@ function loadScript(src, version) {
                 }
                 headerMigrateLegacy();
                 headerValueRefresh();
+                headerSwitchRefresh();
                 bgColorRefresh();
             } catch (e) {
                 console.error('loadData error', e);
@@ -3475,6 +3785,10 @@ if (f.key) {
             hsForm.icon = ic;
         } else if (iconTarget.value === 'hl') {
             headerLinkForm.icon = ic;
+        } else if (iconTarget.value === 'hsw') {
+            headerSwitchForm.icon = ic;
+        } else if (iconTarget.value === 'hb') {
+            headerButtonForm.icon = ic;
         } else if (typeof iconTarget.value === 'string' && iconTarget.value.startsWith('si:')) {
             const idx = parseInt(iconTarget.value.slice(3), 10);
             setSelectItemField(idx, 'icon', ic);
@@ -3504,6 +3818,12 @@ if (f.key) {
             }
             if (iconTarget.value === 'hl') {
                 return headerLinkForm.icon === ic;
+            }
+            if (iconTarget.value === 'hsw') {
+                return headerSwitchForm.icon === ic;
+            }
+            if (iconTarget.value === 'hb') {
+                return headerButtonForm.icon === ic;
             }
             if (typeof iconTarget.value === 'string' && iconTarget.value.startsWith('si:')) {
                 const idx = parseInt(iconTarget.value.slice(3), 10);
@@ -4178,7 +4498,10 @@ if (f.key) {
                 if (it.source === 'object' && it.object) props.add((it.object + '.' + (it.property || 'status')).toLowerCase());
             });
             headerItems.value.forEach(it => {
-                const k = it.t === 'value' ? headerValueKey(it.cfg) : '';
+                let k = '';
+                if (it.t === 'value') k = headerValueKey(it.cfg);
+                else if (it.t === 'switch') k = headerSwitchKey(it.cfg);
+                else if (it.t === 'button') k = headerAliveKey(it.cfg);
                 if (k) props.add(k.toLowerCase());
             });
             return Array.from(props);
@@ -4294,6 +4617,7 @@ if (f.key) {
                                 window.__dpWsCache[key] = { seeded: true, value: u.VALUE };
                                 wsApplyHeaderStatus(key, u.VALUE);
                                 wsApplyHeaderValue(key, u.VALUE);
+                                wsApplyHeaderSwitch(key, u.VALUE);
                                 wsApplyBgColor(key, u.VALUE);
                                 if (window.__dpWsLive) wsRefreshWidgets(key);
                             });
@@ -4402,6 +4726,7 @@ if (f.key) {
             window.__dpKvCache = {};
             wsRemountWidgets();
             headerValueRefresh();
+            headerSwitchRefresh();
             bgColorRefresh();
             if (wsSocket && wsConnected.value) {
                 const payload = JSON.stringify({ action: 'status' });
@@ -4644,10 +4969,13 @@ onMounted(() => {
             widgetMenuTarget, widgetPanelSubmenu, widgetGroupSubmenu, widgetConfirm, copyWidget, exportWidget, changeWidgetPanel, selectMoveTarget, confirmMoveWidget, moveWidgetToGroup, confirmMoveToGroup,
             showChangeObject, changeObjectGroups, openChangeObject, saveChangeObject, widgetHasChangeObjects,
             showSettingsPanel, showWidgetEditorPanel, showHeaderPanel, openHeaderSettings, settings, savePanels, saveSettingsNow, settingsChanged, commitChanges, hasUnsavedChanges, toggleTheme, cleanupOrphanWidgets, resetAll,
-            headerItems, headerDefs, headerHas, headerCount, headerAtLimit, headerCanRemove, headerInst, headerPanelSlots, headerValueSlots, headerSlotStyle, headerStyleAt, headerSpacerHint, headerDef, headerItemLabel, headerAddOpen, headerDragIndex,
+            headerItems, headerDefs, headerHas, headerCount, headerAtLimit, headerCanRemove, headerInst, headerPanelSlots, headerValueSlots, headerSwitchSlots, headerButtonSlots, headerSlotStyle, headerStyleAt, headerSpacerHint, headerDef, headerItemLabel, headerAddOpen, headerDragIndex,
             headerPanelList, headerPanelOpen, headerPanelForm, headerPanelCanSave, headerPanelItemOf, headerPanelHint, openHeaderPanelDialog, headerPanelGo, headerPanelSave,
             headerItemAdd, headerItemPut, headerItemRemove, headerItemsClear, headerItemsDefaults, headerDragStart, headerDragOver, headerDragEnd,
             headerValueOpen, headerValueProps, headerValueForm, headerValueCanSave, headerValueTexts, headerValueHint, headerValueTextOf, openHeaderValueDialog, headerValueLoadProps, headerValueSave, headerValueRefresh,
+            headerSwitchOpen, headerSwitchProps, headerSwitchForm, headerSwitchCanSave, headerSwitchHint, headerSwitchSlots, openHeaderSwitchDialog, headerSwitchLoadProps, headerSwitchSave, headerSwitchRefresh, headerSwitchToggle, headerSwitchStates,
+            headerButtonOpen, headerButtonProps, headerButtonForm, headerButtonCanSave, headerButtonHint, headerButtonSlots, openHeaderButtonDialog, headerButtonLoadProps, headerButtonSave, headerButtonRun, headerButtonAlive, headerAliveStates,
+            headerMethodObj, headerMethodName, headerMethodList, headerMethodSet,
             headerLinkSlots, linkView, closeLinkView, headerLinkOpen, headerLinkTarget, headerLinkForm, headerLinkCanSave, headerLinkHint, openHeaderLinkDialog, headerLinkGo, headerLinkSave, HEADER_LINK_FALLBACK_ICON,
             showExportDialog, exportMode, exportSelectedPanel, exportUsers, exportSelectedUser, loadExportUsers, doExport, doImport,
             showCleanupDialog, cleanupReport, cleanupBusy, cleanupReasons, applyCleanup, restorePanels, runWizard,
