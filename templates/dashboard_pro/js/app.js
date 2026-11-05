@@ -769,7 +769,10 @@ const headerStatusSectionOn = computed(() => headerHas('status'));
         })));
         const headerValueSlots = computed(() => headerInst('value').map(it => ({
             type: it.type, key: it.key, idx: it.idx, cfg: it.cfg,
-            text: headerValueTextOf(it.cfg), hint: headerValueHint(it.cfg)
+            text: headerValueTextOf(it.cfg), hint: headerValueHint(it.cfg),
+            /* Наименование и единица измерения необязательны: пустые строки
+               означают, что в шапке их просто не будет. */
+            label: (it.cfg && it.cfg.label) || '', unit: (it.cfg && it.cfg.unit) || ''
         })));
         function headerItemsWrite(list, save) {
             settings.value.headerItems = list;
@@ -831,7 +834,7 @@ const headerDragIndex = ref(-1);
         const headerValueOpen = ref(false);
         const headerValueProps = ref([]);
         const headerValueTarget = ref(-1);
-        const headerValueForm = reactive({ object: '', property: '' });
+        const headerValueForm = reactive({ object: '', property: '', label: '', unit: '' });
 
         function headerItemAdd(ty) {
             if (!headerDef(ty) || headerAtLimit(ty)) return;
@@ -887,6 +890,8 @@ const headerDragIndex = ref(-1);
             const cfg = (it && it.cfg) || {};
             headerValueForm.object = cfg.object || '';
             headerValueForm.property = cfg.property || '';
+            headerValueForm.label = cfg.label || '';
+            headerValueForm.unit = cfg.unit || '';
             headerValueProps.value = [];
             headerValueOpen.value = true;
             if (!objects.value.length) loadObjects();
@@ -905,6 +910,11 @@ const headerDragIndex = ref(-1);
         function headerValueSave() {
             if (!headerValueCanSave()) return;
             const cfg = { object: headerValueForm.object, property: headerValueForm.property };
+            /* Пустые поля не сохраняем, чтобы в настройках не было мусора. */
+            const label = String(headerValueForm.label || '').trim();
+            const unit = String(headerValueForm.unit || '').trim();
+            if (label) cfg.label = label;
+            if (unit) cfg.unit = unit;
             if (!headerItemPut(headerValueTarget.value, 'value', cfg)) return;
             headerValueOpen.value = false;
             headerValueRefresh();

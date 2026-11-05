@@ -163,7 +163,7 @@
                     </template>
                     <template v-for="it in headerValueSlots" :key="it.key">
                         <div class="app-bar__actions" :style="headerStyleAt(it.idx, it.type)">
-                            <span class="app-bar__value app-bar__value--plain" :title="it.hint || t('hdr_value_hint')">{{ it.text || '—' }}</span>
+                            <span class="app-bar__value app-bar__value--plain" :title="it.hint || t('hdr_value_hint')"><span v-if="it.label" style="margin-right:.35em">{{ it.label }}</span>{{ it.text || '—' }}<span v-if="it.unit" style="margin-left:.35em">{{ it.unit }}</span></span>
                         </div>
                     </template>
                     <template v-for="it in headerLinkSlots" :key="it.key">
@@ -1032,6 +1032,18 @@
                                                         </select>
                                                         <div class="v-input__append-inner"><i class="fas fa-caret-down"></i></div>
                                                     </div>
+                                                </div>
+                                            </div>
+                                            <div class="v-input v-text-field">
+                                                <div class="v-input__control">
+                                                    <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': headerValueForm.label }">{{ t('hdr_value_label') }}</label><input v-model="headerValueForm.label" :placeholder="t('hdr_value_label_ph')"></div>
+                                                    <div class="v-input__details"><div class="v-messages"></div></div>
+                                                </div>
+                                            </div>
+                                            <div class="v-input v-text-field">
+                                                <div class="v-input__control">
+                                                    <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': headerValueForm.unit }">{{ t('hdr_value_unit') }}</label><input v-model="headerValueForm.unit" :placeholder="t('hdr_value_unit_ph')"></div>
+                                                    <div class="v-input__details"><div class="v-messages"></div></div>
                                                 </div>
                                             </div>
                                             <div class="hsb__card-hint" style="margin-top:.5rem" v-if="!headerValueCanSave()">{{ t('hdr_need_object') }}</div>
@@ -2558,7 +2570,7 @@
                 <div class="modal-body" style="text-align:center;padding:2rem 1.5rem">
                     <i class="fas fa-chart-line" style="font-size:3rem;color:var(--primary);margin-bottom:1rem"></i>
                     <h3 style="margin-bottom:.3rem">Dashboard Pro</h3>
-                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 01.20.19</p>
+                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 01.20.20</p>
                     <p style="color:var(--text-secondary);font-size:.8rem">{{ t('app_desc') }}</p>
                     <div class="about-links" style="margin-top:1rem;font-size:.85rem;color:var(--text-secondary);line-height:1.8">
                         <div>{{ t('about_telegram') }}: <a href="https://t.me/+9ZFQaxs_Ukw4NmMy" target="_blank" rel="noopener">Telegram</a></div>
@@ -2615,6 +2627,6 @@
 <script src="js/lib/hls.min.js?v=1"></script>
     <script src="js/dpbuilder.js?v=74"></script>
     <script src="js/dpbuilder-ui.js?v=64"></script>
-    <script src="js/app.js?v=472"></script>
+    <script src="js/app.js?v=473"></script>
 </body>
 </html>
