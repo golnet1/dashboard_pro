@@ -14,6 +14,7 @@ const ValueWidget = {
             { key: 'icon_url', label: 'field_icon_url', type: 'text', row: 'icon_row', showIf: { icon_type: 'url' } },
             { key: 'object', label: 'field_object', type: 'object', row: 'obj_prop' },
             { key: 'property', label: 'field_property', type: 'property', row: 'obj_prop' },
+            { key: 'unit', label: 'field_unit', type: 'text' },
             { key: 'aliasLabels', label: 'field_alias_labels', type: 'text', placeholder: '{"1":"on","0":"off"}' },
         ],
         advanced: [
@@ -31,7 +32,7 @@ const ValueWidget = {
             { key: 'history_color', label: 'field_history_color', type: 'color', row: 'hist_row', showIf: { view_history: true } },
         ],
     },
-    defaults: { icon: 'fas fa-hashtag', icon_type: 'icon', aliasLabels: null, height: 90, view_history: false, history_color: '#1976d2' },
+    defaults: { icon: 'fas fa-hashtag', icon_type: 'icon', aliasLabels: null, height: 90, unit: '', view_history: false, history_color: '#1976d2' },
     template: `
         <div class="widget-v-card" :class="{ 'widget-v-card--clickable': widget.view_history }" :style="cardStyle" @click="onHistClick">
             <div class="widget-v-card__header">
