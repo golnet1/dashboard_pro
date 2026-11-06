@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Ubuntu">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Arimo:400,600,700">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700">
-    <link rel="stylesheet" href="css/app.css?v=167">
+    <link rel="stylesheet" href="css/app.css?v=168">
     <link rel="stylesheet" href="css/leaflet.css?v=1">
     <script src="js/lib/vue.global.prod.js"></script>
 <style>
@@ -193,6 +193,18 @@
                                 <i v-if="it.showIcon" :class="it.icon"></i>
                                 <span v-if="it.showLabel">{{ it.title || t('hdr_item_button') }}</span>
                             </button>
+                        </div>
+                    </template>
+                    <template v-for="it in headerCmenuSlots" :key="it.key">
+                        <div class="app-bar__actions app-bar__cmenu" :style="headerStyleAt(it.idx, it.type)">
+                            <button type="button" class="app-bar__cmenu-btn" :class="{ 'app-bar__cmenu-btn--open': headerCmenuOpenKey === it.key }" :title="it.title" :aria-expanded="headerCmenuOpenKey === it.key ? 'true' : 'false'" @click.stop="headerCmenuToggle(it, $event)">
+                                <i v-if="it.showIcon" :class="it.icon"></i>
+                                <span v-if="it.showLabel" class="app-bar__cmenu-label">{{ it.title }}</span>
+                                <i class="fas fa-caret-down app-bar__cmenu-caret"></i>
+                            </button>
+                            <div class="dp-cmenu-dropdown" :class="{ 'dp-cmenu-dropdown--left': headerCmenuSide === 'left' }" v-if="headerCmenuOpenKey === it.key" @click.stop>
+                                <dp-cmenu-list :items="it.items" :t="t" @pick="headerCmenuPick"></dp-cmenu-list>
+                            </div>
                         </div>
                     </template>
                     <div v-if="headerHas('menu')" class="app-bar__actions" style="position:relative" :style="headerSlotStyle('menu')">
@@ -752,6 +764,7 @@
                                           <div class="hsb__card-hint" v-else-if="it.t === 'link'">{{ headerLinkHint(it.cfg) || t('hdr_link_empty') }}</div>
                                          <div class="hsb__card-hint" v-else-if="it.t === 'switch'">{{ headerSwitchHint(it.cfg) || t('hdr_switch_none') }}</div>
                                          <div class="hsb__card-hint" v-else-if="it.t === 'button'">{{ headerButtonHint(it.cfg) || t('hdr_button_none') }}</div>
+                                          <div class="hsb__card-hint" v-else-if="it.t === 'cmenu'">{{ headerCmenuHint(it.cfg) || t('hdr_cmenu_none') }}</div>
                                          <div class="hsb__card-hint" v-else-if="it.t === 'status'">{{ headerStatusItems.length }}/7</div>
                                          <div class="hsb__card-hint" v-else-if="it.t === 'spacer'">{{ headerSpacerHint }}</div>
                                          <div class="hsb__card-actions">
@@ -760,6 +773,7 @@
                                               <button v-if="it.t === 'link'" class="icon-btn" @click="openHeaderLinkDialog(idx)" :title="t('edit')"><i class="fas fa-pen"></i></button>
                                              <button v-if="it.t === 'switch'" class="icon-btn" @click="openHeaderSwitchDialog(idx)" :title="t('edit')"><i class="fas fa-pen"></i></button>
                                              <button v-if="it.t === 'button'" class="icon-btn" @click="openHeaderButtonDialog(idx)" :title="t('edit')"><i class="fas fa-pen"></i></button>
+                                              <button v-if="it.t === 'cmenu'" class="icon-btn" @click="openHeaderCmenuDialog(idx)" :title="t('edit')"><i class="fas fa-pen"></i></button>
                                              <button v-if="it.t === 'status'" class="icon-btn" @click="openHeaderStatusEditor" :title="t('edit')"><i class="fas fa-pen"></i></button>
                                              <i v-if="!headerCanRemove(it.t)" class="fas fa-lock hsb__card-lock" :title="t('hdr_cant_remove')"></i>
                                              <button v-else class="icon-btn" @click="headerItemRemove(idx)" :title="t('delete_widget')"><i class="fas fa-trash"></i></button>
@@ -1443,6 +1457,165 @@
 
 
 
+
+        <div id="hcmenu-edit" class="v-dialog__content v-dialog__content--active" v-if="headerCmenuOpen" style="z-index:203">
+            <div class="v-dialog v-dialog--active v-dialog--persistent" style="width:820px;max-width:calc(100vw - 24px)" tabindex="0">
+                <div class="v-card v-sheet theme--dark" style="background-color:rgba(48,48,48,var(--dialog-alpha,1));border-color:#303030;display:flex;flex-direction:column;max-height:calc(100vh - 40px)">
+                    <div class="v-card__title" style="flex-shrink:0">
+                        <span class="headline_m">{{ t('hdr_cmenu_dialog') }}</span>
+                    </div>
+                    <hr role="separator" class="v-divider theme--dark">
+                    <div class="dp-cmenu-tabs">
+                        <button type="button" class="dp-cmenu-tab" :class="{ 'dp-cmenu-tab--on': headerCmenuTab === 'main' }" @click="headerCmenuTab = 'main'">
+                            <i class="fas fa-sliders-h"></i> {{ t('hdr_cmenu_tab_main') }}
+                        </button>
+                        <button type="button" class="dp-cmenu-tab" :class="{ 'dp-cmenu-tab--on': headerCmenuTab === 'items' }" @click="headerCmenuTab = 'items'">
+                            <i class="fas fa-list-ul"></i> {{ t('hdr_cmenu_tab_items') }}
+                            <span class="dp-cmenu-tab-count" v-if="headerCmenuRows.length">{{ headerCmenuRows.length }}</span>
+                        </button>
+                    </div>
+                    <div class="v-card__text pa-4 dp-cmenu-dialog">
+                        <div v-show="headerCmenuTab === 'main'">
+                            <div class="v-input v-text-field">
+                                <div class="v-input__control">
+                                    <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': headerCmenuForm.title }">{{ t('title') }}</label>
+                                        <input v-model="headerCmenuForm.title" :placeholder="t('hdr_item_cmenu')" style="background:transparent;border:none;color:#fff;outline:none;width:100%;padding:16px 0 4px;font-size:16px">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="d-flex gap-2" style="align-items:center">
+                                <div class="v-input v-text-field" style="flex:1 1 auto;min-width:0">
+                                    <div class="v-input__control">
+                                        <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': headerCmenuForm.icon }">{{ t('icon') }}</label><input v-model="headerCmenuForm.icon" placeholder="fas fa-list-ul"></div>
+                                        <div class="v-input__details"><div class="v-messages"></div></div>
+                                    </div>
+                                </div>
+                                <button type="button" class="icon-btn" :title="t('pick_icon')" @click="openIconPicker('hcmenu')" style="flex-shrink:0"><i :class="headerCmenuForm.icon || 'fas fa-list-ul'"></i></button>
+                                <button type="button" class="icon-btn" :title="t('clear')" @click="headerCmenuForm.icon = 'fas fa-list-ul'" style="flex-shrink:0"><i class="fas fa-backspace"></i></button>
+                            </div>
+                            <div class="v-input v-text-field v-select">
+                                <div class="v-input__control">
+                                    <div class="v-input__slot"><label class="v-label v-label--active">{{ t('hdr_display') }}</label>
+                                        <select v-model="headerCmenuForm.display">
+                                            <option value="icon" style="background:#1e1e1e;color:#fff">{{ t('hdr_display_icon') }}</option>
+                                            <option value="label" style="background:#1e1e1e;color:#fff">{{ t('hdr_display_label') }}</option>
+                                            <option value="both" style="background:#1e1e1e;color:#fff">{{ t('hdr_display_both') }}</option>
+                                        </select>
+                                        <div class="v-input__append-inner"><i class="fas fa-caret-down"></i></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="hsb__card-hint" style="margin-top:.5rem">{{ t('hdr_cmenu_hint') }}</div>
+                        </div>
+                        <div v-show="headerCmenuTab === 'items'" class="dp-cmenu-editor">
+                            <div class="dp-cmenu-editor__bar">
+                                <div class="dp-cmenu-editor__target"><i class="fas fa-crosshairs"></i> {{ t('hdr_cmenu_add_to') }}: <b>{{ headerCmenuAddTargetLabel }}</b></div>
+                                <div class="dp-cmenu-editor__add">
+                                    <button type="button" class="btn" @click="headerCmenuAdd('panel')" :title="t('hdr_cmenu_add_panel')"><i class="fas fa-bookmark"></i> {{ t('hdr_cmenu_add_panel') }}</button>
+                                    <button type="button" class="btn" @click="headerCmenuAdd('url')" :title="t('hdr_cmenu_add_url')"><i class="fas fa-link"></i> {{ t('hdr_cmenu_add_url') }}</button>
+                                    <button type="button" class="btn" @click="headerCmenuAdd('sub')" :title="t('hdr_cmenu_add_sub')"><i class="fas fa-folder-plus"></i> {{ t('hdr_cmenu_add_sub') }}</button>
+                                    <button type="button" class="btn" @click="headerCmenuAdd('sep')" :title="t('hdr_cmenu_add_sep')"><i class="fas fa-grip-lines"></i></button>
+                                </div>
+                            </div>
+                            <div class="dp-cmenu-editor__body">
+                                <div class="dp-cmenu-editor__tree">
+                                    <div v-for="r in headerCmenuRows" :key="r.id" class="dp-cmenu-tree-row" :class="{ 'dp-cmenu-tree-row--on': headerCmenuSel === r.id, 'dp-cmenu-tree-row--sep': r.kind === 'sep' }" :style="{ paddingLeft: (8 + r.depth * 16) + 'px' }" @click="headerCmenuSel = r.id">
+                                        <i class="fas dp-cmenu-tree-row__kind" :class="r.kind === 'sub' ? 'fa-caret-down' : (r.kind === 'sep' ? 'fa-minus' : 'fa-angle-right')"></i>
+                                        <i class="dp-cmenu-tree-row__icon" :class="r.icon"></i>
+                                        <span class="dp-cmenu-tree-row__title">{{ r.title }}</span>
+                                        <span class="dp-cmenu-tree-row__hk" v-if="r.hotkey">{{ r.hotkey }}</span>
+                                    </div>
+                                    <div class="dp-cmenu-editor__empty" v-if="!headerCmenuRows.length">{{ t('hdr_cmenu_empty') }}</div>
+                                </div>
+                                <div class="dp-cmenu-editor__form">
+                                    <div class="dp-cmenu-editor__placeholder" v-if="headerCmenuSel === '__root__' || !headerCmenuEdit">
+                                        <i class="fas fa-mouse-pointer"></i>
+                                        <div>{{ t('hdr_cmenu_select_hint') }}</div>
+                                    </div>
+                                    <template v-else>
+                                        <div class="dp-cmenu-form__title">
+                                            <i :class="headerCmenuEdit.kind === 'sep' ? 'fas fa-grip-lines' : headerCmenuEdit.kind === 'sub' ? 'fas fa-folder' : headerCmenuEdit.kind === 'url' ? 'fas fa-link' : 'fas fa-bookmark'"></i>
+                                            {{ headerCmenuEdit.kind === 'sep' ? t('hdr_cmenu_kind_sep') : headerCmenuEdit.kind === 'sub' ? t('hdr_cmenu_add_sub') : headerCmenuEdit.kind === 'url' ? t('hdr_cmenu_kind_url') : t('hdr_cmenu_kind_panel') }}
+                                        </div>
+                                        <div class="hsb__card-hint" v-if="headerCmenuEdit.kind === 'sep'" style="margin:.5rem 0 1rem">{{ t('hdr_cmenu_sep_hint') }}</div>
+                                        <template v-else>
+                                            <div class="v-input v-text-field">
+                                                <div class="v-input__control">
+                                                    <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': headerCmenuEdit.title }">{{ t('hdr_cmenu_title') }}</label>
+                                                        <input v-model="headerCmenuEdit.title" :placeholder="t('hdr_cmenu_title_ph')" style="background:transparent;border:none;color:#fff;outline:none;width:100%;padding:16px 0 4px;font-size:16px">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="v-input v-text-field" v-if="headerCmenuEdit.kind === 'url'">
+                                                <div class="v-input__control">
+                                                    <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': headerCmenuEdit.url }">{{ t('hdr_cmenu_url') }}</label>
+                                                        <input v-model="headerCmenuEdit.url" :placeholder="t('hdr_cmenu_url_ph')" style="background:transparent;border:none;color:#fff;outline:none;width:100%;padding:16px 0 4px;font-size:16px">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="v-input v-text-field v-select" v-if="headerCmenuEdit.kind === 'url'">
+                                                <div class="v-input__control">
+                                                    <div class="v-input__slot"><label class="v-label v-label--active">{{ t('hdr_link_open') }}</label>
+                                                        <select v-model="headerCmenuEdit.mode">
+                                                            <option value="panel" style="background:#1e1e1e;color:#fff">{{ t('hdr_link_open_panel') }}</option>
+                                                            <option value="window" style="background:#1e1e1e;color:#fff">{{ t('hdr_link_open_window') }}</option>
+                                                        </select>
+                                                        <div class="v-input__append-inner"><i class="fas fa-caret-down"></i></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="v-input v-text-field v-select" v-if="headerCmenuEdit.kind === 'panel'">
+                                                <div class="v-input__control">
+                                                    <div class="v-input__slot"><label class="v-label v-label--active">{{ t('hdr_cmenu_panel') }}</label>
+                                                        <select v-model="headerCmenuEdit.panel">
+                                                            <option value="" style="background:#1e1e1e;color:#fff">{{ t('hdr_cmenu_panel_ph') }}</option>
+                                                            <option v-for="p in headerCmenuPanelList" :key="p.name" :value="p.name" style="background:#1e1e1e;color:#fff">{{ p.title || p.name }}</option>
+                                                        </select>
+                                                        <div class="v-input__append-inner"><i class="fas fa-caret-down"></i></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="d-flex gap-2" style="align-items:center">
+                                                <div class="v-input v-text-field" style="flex:1 1 auto;min-width:0">
+                                                    <div class="v-input__control">
+                                                        <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': headerCmenuEdit.icon }">{{ t('icon') }}</label><input v-model="headerCmenuEdit.icon" placeholder="fas fa-bookmark"></div>
+                                                        <div class="v-input__details"><div class="v-messages"></div></div>
+                                                    </div>
+                                                </div>
+                                                <button type="button" class="icon-btn" :title="t('pick_icon')" @click="openIconPicker('hcmenu')" style="flex-shrink:0"><i :class="headerCmenuEdit.icon || 'fas fa-bookmark'"></i></button>
+                                                <button type="button" class="icon-btn" :title="t('clear')" @click="headerCmenuEdit.icon = ''" style="flex-shrink:0"><i class="fas fa-backspace"></i></button>
+                                            </div>
+                                            <div class="v-input v-text-field">
+                                                <div class="v-input__control">
+                                                    <div class="v-input__slot"><label class="v-label v-label--active">{{ t('hdr_cmenu_hotkey') }}</label>
+                                                        <input class="dp-cmenu-hk-input" :value="headerCmenuEdit.hotkey" readonly :placeholder="t('hdr_cmenu_hotkey_ph')" @keydown="headerCmenuHotkeyCapture">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="dp-cmenu-hk-row">
+                                                <span class="hsb__card-hint">{{ t('hdr_cmenu_hotkey_hint') }}</span>
+                                                <button type="button" class="icon-btn" v-if="headerCmenuEdit.hotkey" @click="headerCmenuHotkeyClear()" :title="t('hdr_cmenu_hotkey_clear')"><i class="fas fa-backspace"></i></button>
+                                            </div>
+                                            <div class="hsb__card-hint dp-cmenu-err" v-if="headerCmenuHotkeyError">{{ headerCmenuHotkeyError }}</div>
+                                        </template>
+                                    </template>
+                                </div>
+                            </div>
+                            <div class="dp-cmenu-editor__foot">
+                                <button type="button" class="icon-btn" :disabled="!headerCmenuCanMove(-1)" @click="headerCmenuMove(-1)" :title="t('move_up')"><i class="fas fa-angle-up"></i></button>
+                                <button type="button" class="icon-btn" :disabled="!headerCmenuCanMove(1)" @click="headerCmenuMove(1)" :title="t('move_down')"><i class="fas fa-angle-down"></i></button>
+                                <button type="button" class="icon-btn" :disabled="headerCmenuSel === '__root__'" @click="headerCmenuRemove()" :title="t('delete')"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="v-card__actions">
+                        <span class="hsb__card-hint dp-cmenu-err" style="margin-right:auto" v-if="!headerCmenuCanSave()">{{ t('hdr_cmenu_need_items') }}</span>
+                        <button type="button" class="v-btn v-btn--text theme--dark v-size--default primary--text" @click="headerCmenuOpen = false">{{ t('cancel') }}</button>
+                        <button type="button" class="btn-primary" :disabled="!headerCmenuCanSave()" @click="headerCmenuSave()">{{ t('save') }}</button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- ===== Header Status Editor Modal ===== -->
         <div id="hs-edit" class="v-dialog__content v-dialog__content--active" v-if="showHeaderStatusEditor" style="z-index:202">
@@ -2874,7 +3047,7 @@
                 <div class="modal-body" style="text-align:center;padding:2rem 1.5rem">
                     <i class="fas fa-chart-line" style="font-size:3rem;color:var(--primary);margin-bottom:1rem"></i>
                     <h3 style="margin-bottom:.3rem">Dashboard Pro</h3>
-                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 01.20.23</p>
+                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 01.20.24</p>
                     <p style="color:var(--text-secondary);font-size:.8rem">{{ t('app_desc') }}</p>
                     <div class="about-links" style="margin-top:1rem;font-size:.85rem;color:var(--text-secondary);line-height:1.8">
                         <div>{{ t('about_telegram') }}: <a href="https://t.me/+9ZFQaxs_Ukw4NmMy" target="_blank" rel="noopener">Telegram</a></div>
@@ -2931,6 +3104,6 @@
 <script src="js/lib/hls.min.js?v=1"></script>
     <script src="js/dpbuilder.js?v=74"></script>
     <script src="js/dpbuilder-ui.js?v=64"></script>
-    <script src="js/app.js?v=475"></script>
+    <script src="js/app.js?v=476"></script>
 </body>
 </html>

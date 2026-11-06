@@ -671,7 +671,7 @@ const headerStatusSectionOn = computed(() => headerHas('status'));
 
 /* ---- Шапка: состав и порядок элементов ---- */
         const HEADER_UNLIMITED = 99;
-        const HEADER_ITEM_TYPES = ['navigator', 'title', 'spacer', 'divider', 'status', 'time', 'updater', 'events', 'theme', 'edit', 'panel', 'value', 'switch', 'button', 'menu'];
+        const HEADER_ITEM_TYPES = ['navigator', 'title', 'spacer', 'divider', 'status', 'time', 'updater', 'events', 'theme', 'edit', 'panel', 'value', 'switch', 'button', 'cmenu', 'menu'];
         const HEADER_ITEM_DEFS = [
             { type: 'navigator', icon: 'fas fa-bars', key: 'hdr_item_navigator', max: 1 },
             { type: 'title', icon: 'fas fa-font', key: 'hdr_item_title', max: 1 },
@@ -688,6 +688,7 @@ const headerStatusSectionOn = computed(() => headerHas('status'));
             { type: 'switch', icon: 'fas fa-toggle-on', key: 'hdr_item_switch', max: HEADER_UNLIMITED },
             { type: 'button', icon: 'fas fa-hand-pointer', key: 'hdr_item_button', max: HEADER_UNLIMITED },
             { type: 'link', icon: 'fas fa-link', key: 'hdr_item_link', max: HEADER_UNLIMITED },
+            { type: 'cmenu', icon: 'fas fa-list-ul', key: 'hdr_item_cmenu', max: 5 },
             { type: 'menu', icon: 'far fa-user-circle', key: 'hdr_item_menu', max: 1, min: 1 }
         ];
         const HEADER_DEFAULT_ITEMS = ['navigator', 'title', 'spacer', 'status', 'divider', 'time', 'divider', 'updater', 'events', 'theme', 'edit', 'menu'];
@@ -929,6 +930,7 @@ const headerDragIndex = ref(-1);
             if (ty === 'button') { openHeaderButtonDialog(-1); return; }
             if (ty === 'link') { openHeaderLinkDialog(-1); return; }
             if (ty === 'panel') { openHeaderPanelDialog(-1); return; }
+            if (ty === 'cmenu') { openHeaderCmenuDialog(-1); return; }
             const list = headerItems.value.slice();
             list.push({ t: ty, cfg: {} });
             headerItemsWrite(list);
@@ -1247,6 +1249,383 @@ const headerDragIndex = ref(-1);
             } catch (e) {
                 console.error(e);
             }
+        }
+
+        /* ---- Шапка: произвольное меню ---- */
+        /* Меню хранится деревом: пункт-ссылка, подменю или разделитель.
+           Настройка идёт на отдельной вкладке, как серии графика, виджеты
+           группы и колонки таблицы: слева список, справа поля выбранного. */
+        const headerCmenuOpenKey = ref(null);
+        const headerCmenuSide = ref('right');
+        const headerCmenuOpen = ref(false);
+        const headerCmenuTarget = ref(-1);
+        const headerCmenuTab = ref('main');
+        const headerCmenuSel = ref('__root__');
+        const headerCmenuHotkeyError = ref('');
+        let headerCmenuSeq = 0;
+        const headerCmenuForm = reactive({ title: '', icon: 'fas fa-list-ul', display: 'both', items: [] });
+
+        function headerCmenuNewId() {
+            headerCmenuSeq += 1;
+            return 'cm' + Date.now().toString(36) + '_' + headerCmenuSeq;
+        }
+        function headerCmenuCloneNode(n) {
+            const src = (n && typeof n === 'object') ? n : {};
+            const kind = ['panel', 'url', 'sub', 'sep'].includes(src.kind) ? src.kind : 'panel';
+            const out = { id: src.id || headerCmenuNewId(), kind: kind };
+            if (kind === 'sep') return out;
+            out.title = String(src.title || '');
+            out.icon = String(src.icon || (kind === 'url' ? 'fas fa-link' : kind === 'sub' ? 'fas fa-folder' : 'fas fa-bookmark'));
+            if (kind === 'sub') {
+                out.children = (Array.isArray(src.children) ? src.children : []).map(headerCmenuCloneNode);
+                return out;
+            }
+            if (kind === 'panel') out.panel = String(src.panel || '');
+            if (kind === 'url') {
+                out.url = String(src.url || '');
+                out.mode = src.mode === 'window' ? 'window' : 'panel';
+            }
+            out.hotkey = String(src.hotkey || '');
+            return out;
+        }
+        function headerCmenuFind(list, id, parentId) {
+            for (let i = 0; i < (list || []).length; i++) {
+                const n = list[i];
+                if (!n) continue;
+                if (n.id === id) return { list: list, idx: i, node: n, parentId: parentId || null };
+                if (n.kind === 'sub' && Array.isArray(n.children)) {
+                    const r = headerCmenuFind(n.children, id, n.id);
+                    if (r) return r;
+                }
+            }
+            return null;
+        }
+        function headerCmenuEditNode() {
+            if (!headerCmenuSel.value || headerCmenuSel.value === '__root__') return null;
+            const loc = headerCmenuFind(headerCmenuForm.items, headerCmenuSel.value);
+            return loc ? loc.node : null;
+        }
+        const headerCmenuEdit = computed(headerCmenuEditNode);
+        function headerCmenuTargetList() {
+            const sel = headerCmenuSel.value;
+            if (!sel || sel === '__root__') return headerCmenuForm.items;
+            const loc = headerCmenuFind(headerCmenuForm.items, sel);
+            if (!loc) return headerCmenuForm.items;
+            return loc.node.kind === 'sub' ? loc.node.children : loc.list;
+        }
+        const headerCmenuAddTargetLabel = computed(() => {
+            const sel = headerCmenuSel.value;
+            if (!sel || sel === '__root__') return t('hdr_cmenu_root');
+            const loc = headerCmenuFind(headerCmenuForm.items, sel);
+            if (!loc) return t('hdr_cmenu_root');
+            if (loc.node.kind === 'sub') return loc.node.title || t('hdr_cmenu_add_sub');
+            if (loc.parentId) {
+                const p = headerCmenuFind(headerCmenuForm.items, loc.parentId);
+                if (p) return p.node.title || t('hdr_cmenu_add_sub');
+            }
+            return t('hdr_cmenu_root');
+        });
+        function headerCmenuPanelOf(name) {
+            return panels.value.find(p => p.name === name && p.panelType !== 'group') || null;
+        }
+        function headerCmenuRowTitle(n) {
+            if (!n) return '';
+            if (n.kind === 'sep') return t('hdr_cmenu_kind_sep');
+            if (n.kind === 'sub') return n.title || t('hdr_cmenu_add_sub');
+            if (n.kind === 'url') return n.title || n.url || t('hdr_cmenu_kind_url');
+            const p = headerCmenuPanelOf(n.panel);
+            return n.title || (p ? (p.title || p.name) : (n.panel || t('hdr_cmenu_kind_panel')));
+        }
+        function headerCmenuRowIcon(n) {
+            if (!n) return 'fas fa-bars';
+            if (n.kind === 'sep') return 'fas fa-grip-lines';
+            if (n.icon) return n.icon;
+            if (n.kind === 'sub') return 'fas fa-folder';
+            if (n.kind === 'url') return 'fas fa-link';
+            const p = headerCmenuPanelOf(n.panel);
+            return (p && p.icon) || 'fas fa-bookmark';
+        }
+        const headerCmenuRows = computed(() => {
+            const out = [];
+            const walk = (list, depth) => {
+                (list || []).forEach(n => {
+                    if (!n) return;
+                    out.push({
+                        id: n.id, kind: n.kind, depth: depth,
+                        title: headerCmenuRowTitle(n), icon: headerCmenuRowIcon(n),
+                        hotkey: n.hotkey || ''
+                    });
+                    if (n.kind === 'sub') walk(n.children, depth + 1);
+                });
+            };
+            walk(headerCmenuForm.items, 0);
+            return out;
+        });
+        const headerCmenuPanelList = computed(() => panels.value.filter(p => p.panelType !== 'group' && !p.hideNav));
+
+        function headerCmenuNewNode(kind) {
+            const n = { id: headerCmenuNewId(), kind: kind };
+            if (kind === 'sep') return n;
+            n.title = '';
+            n.icon = kind === 'url' ? 'fas fa-link' : kind === 'sub' ? 'fas fa-folder' : 'fas fa-bookmark';
+            if (kind === 'sub') { n.children = []; return n; }
+            if (kind === 'panel') n.panel = '';
+            if (kind === 'url') { n.url = ''; n.mode = 'panel'; }
+            n.hotkey = '';
+            return n;
+        }
+        function headerCmenuAdd(kind) {
+            const list = headerCmenuTargetList();
+            const node = headerCmenuNewNode(kind);
+            list.push(node);
+            headerCmenuSel.value = node.id;
+            headerCmenuHotkeyError.value = '';
+        }
+        function headerCmenuRemove() {
+            const sel = headerCmenuSel.value;
+            if (!sel || sel === '__root__') return;
+            const loc = headerCmenuFind(headerCmenuForm.items, sel);
+            if (!loc) return;
+            const wasIdx = loc.idx;
+            const next = loc.list[wasIdx + 1] || loc.list[wasIdx - 1];
+            const nextSel = next ? next.id : (loc.parentId || '__root__');
+            loc.list.splice(wasIdx, 1);
+            headerCmenuSel.value = nextSel;
+        }
+        function headerCmenuCanMove(dir) {
+            const sel = headerCmenuSel.value;
+            if (!sel || sel === '__root__') return false;
+            const loc = headerCmenuFind(headerCmenuForm.items, sel);
+            if (!loc) return false;
+            const to = loc.idx + dir;
+            return to >= 0 && to < loc.list.length;
+        }
+        function headerCmenuMove(dir) {
+            if (!headerCmenuCanMove(dir)) return;
+            const loc = headerCmenuFind(headerCmenuForm.items, headerCmenuSel.value);
+            const to = loc.idx + dir;
+            const tmp = loc.list[loc.idx];
+            loc.list[loc.idx] = loc.list[to];
+            loc.list[to] = tmp;
+        }
+        function headerCmenuHotkeyKey(e) {
+            if (!e) return '';
+            if (e.code && /^Key[A-Z]$/.test(e.code)) return e.code.slice(3);
+            if (e.code && /^Digit[0-9]$/.test(e.code)) return e.code.slice(5);
+            if (e.code && /^F([1-9]|1[0-2])$/.test(e.code)) return e.code;
+            return '';
+        }
+        function headerCmenuHotkeyOfEvent(e) {
+            const key = headerCmenuHotkeyKey(e);
+            if (!key) return '';
+            const parts = [];
+            if (e.ctrlKey) parts.push('Ctrl');
+            if (e.altKey) parts.push('Alt');
+            if (e.shiftKey) parts.push('Shift');
+            if (e.metaKey) parts.push('Meta');
+            parts.push(key);
+            return parts.join('+');
+        }
+        function headerCmenuHotkeyAllowed(combo) {
+            if (!combo) return false;
+            const parts = String(combo).split('+');
+            const key = parts[parts.length - 1];
+            if (/^F([1-9]|1[0-2])$/.test(key)) return true;
+            return parts.slice(0, -1).some(p => p === 'Ctrl' || p === 'Alt' || p === 'Meta');
+        }
+        function headerCmenuHotkeyDup(combo, skipId) {
+            let dup = false;
+            const walk = list => (list || []).forEach(n => {
+                if (!n || n.kind === 'sep') return;
+                if (n.id !== skipId && n.hotkey === combo) dup = true;
+                if (n.kind === 'sub') walk(n.children);
+            });
+            walk(headerCmenuForm.items);
+            return dup;
+        }
+        function headerCmenuHotkeyCapture(e) {
+            if (!e) return;
+            if (e.key === 'Tab') return;
+            e.preventDefault();
+            e.stopPropagation();
+            if (e.key === 'Backspace' || e.key === 'Delete') {
+                const n = headerCmenuEdit.value;
+                if (n) n.hotkey = '';
+                headerCmenuHotkeyError.value = '';
+                return;
+            }
+            if (e.key === 'Escape') { headerCmenuHotkeyError.value = ''; return; }
+            const combo = headerCmenuHotkeyOfEvent(e);
+            if (!headerCmenuHotkeyAllowed(combo)) {
+                headerCmenuHotkeyError.value = t('hdr_cmenu_hotkey_bad');
+                return;
+            }
+            const n = headerCmenuEdit.value;
+            if (n && headerCmenuHotkeyDup(combo, n.id)) {
+                headerCmenuHotkeyError.value = t('hdr_cmenu_hotkey_dup');
+                return;
+            }
+            if (n) n.hotkey = combo;
+            headerCmenuHotkeyError.value = '';
+        }
+        function headerCmenuHotkeyClear() {
+            const n = headerCmenuEdit.value;
+            if (n) n.hotkey = '';
+            headerCmenuHotkeyError.value = '';
+        }
+        function headerCmenuNodeReady(n, seen) {
+            if (!n) return false;
+            if (n.kind === 'sep') return true;
+            if (n.kind === 'sub') {
+                const children = n.children || [];
+                if (!String(n.title || '').trim()) return false;
+                return children.length > 0 && children.every(c => headerCmenuNodeReady(c, seen));
+            }
+            if (n.kind === 'panel') {
+                if (!n.panel || !headerCmenuPanelOf(n.panel)) return false;
+            } else if (n.kind === 'url') {
+                if (!headerLinkNormalize(n.url)) return false;
+            } else {
+                return false;
+            }
+            if (n.hotkey) {
+                if (!headerCmenuHotkeyAllowed(n.hotkey)) return false;
+                if (seen.has(n.hotkey)) return false;
+                seen.add(n.hotkey);
+            }
+            return true;
+        }
+        function headerCmenuHasAction(items) {
+            return (items || []).some(n => n && (n.kind === 'panel' || n.kind === 'url' || (n.kind === 'sub' && headerCmenuHasAction(n.children))));
+        }
+        function headerCmenuCanSave() {
+            const items = headerCmenuForm.items || [];
+            if (!items.length || !headerCmenuHasAction(items)) return false;
+            const seen = new Set();
+            return items.every(n => headerCmenuNodeReady(n, seen));
+        }
+        function openHeaderCmenuDialog(idx) {
+            const it = (idx >= 0) ? headerItems.value[idx] : null;
+            const cfg = (it && it.cfg) || {};
+            headerCmenuTarget.value = idx;
+            headerCmenuForm.title = cfg.title || '';
+            headerCmenuForm.icon = cfg.icon || 'fas fa-list-ul';
+            headerCmenuForm.display = headerDisplayOf(cfg, 'both');
+            headerCmenuForm.items = (Array.isArray(cfg.items) ? cfg.items : []).map(headerCmenuCloneNode);
+            headerCmenuTab.value = 'main';
+            headerCmenuSel.value = '__root__';
+            headerCmenuHotkeyError.value = '';
+            headerCmenuOpen.value = true;
+        }
+        function headerCmenuSave() {
+            if (!headerCmenuCanSave()) return;
+            const cfg = {
+                title: String(headerCmenuForm.title || '').trim(),
+                icon: String(headerCmenuForm.icon || '').trim(),
+                display: headerCmenuForm.display,
+                items: (headerCmenuForm.items || []).map(headerCmenuCloneNode)
+            };
+            if (!headerItemPut(headerCmenuTarget.value, 'cmenu', cfg)) return;
+            headerCmenuOpen.value = false;
+            headerCmenuOpenKey.value = null;
+        }
+        function headerCmenuCount(cfg) {
+            let n = 0;
+            const walk = list => (list || []).forEach(x => {
+                if (!x || x.kind === 'sep') return;
+                n += 1;
+                if (x.kind === 'sub') walk(x.children);
+            });
+            walk(cfg && cfg.items);
+            return n;
+        }
+        function headerCmenuHint(cfg) {
+            const n = headerCmenuCount(cfg);
+            return n ? (n + ' ' + t('hdr_cmenu_count_suffix')) : '';
+        }
+        function headerCmenuResolveNode(n) {
+            if (!n) return null;
+            if (n.kind === 'sep') return { id: n.id, kind: 'sep' };
+            if (n.kind === 'sub') return {
+                id: n.id, kind: 'sub', title: n.title || t('hdr_cmenu_add_sub'),
+                icon: n.icon || 'fas fa-folder',
+                children: (n.children || []).map(headerCmenuResolveNode).filter(Boolean)
+            };
+            if (n.kind === 'panel') {
+                const p = headerCmenuPanelOf(n.panel);
+                if (!p) return { id: n.id, kind: 'missing', title: n.title || n.panel || t('hdr_cmenu_item'), icon: n.icon || 'fas fa-folder' };
+                return {
+                    id: n.id, kind: 'link', action: 'panel', panel: p.name,
+                    title: n.title || p.title || p.name,
+                    icon: n.icon || p.icon || 'fas fa-folder',
+                    hotkey: n.hotkey || ''
+                };
+            }
+            const u = headerLinkNormalize(n.url);
+            return {
+                id: n.id, kind: u ? 'link' : 'missing', action: 'url', url: u,
+                mode: n.mode === 'window' ? 'window' : 'panel',
+                title: n.title || u || n.url || t('hdr_cmenu_item'),
+                icon: n.icon || 'fas fa-link',
+                hotkey: n.hotkey || ''
+            };
+        }
+        const headerCmenuSlots = computed(() => headerInst('cmenu').map(it => {
+            const cfg = it.cfg || {};
+            return {
+                type: it.type, key: it.key, idx: it.idx, cfg: cfg,
+                title: cfg.title || t('hdr_item_cmenu'),
+                icon: cfg.icon || 'fas fa-list-ul',
+                showIcon: headerShowsIcon(cfg, 'both'),
+                showLabel: headerShowsLabel(cfg, 'both'),
+                items: (Array.isArray(cfg.items) ? cfg.items : []).map(headerCmenuResolveNode).filter(Boolean)
+            };
+        }));
+        function headerCmenuToggle(it, e) {
+            if (!it) return;
+            const willOpen = headerCmenuOpenKey.value !== it.key;
+            if (willOpen && e && e.currentTarget && e.currentTarget.getBoundingClientRect) {
+                const r = e.currentTarget.getBoundingClientRect();
+                headerCmenuSide.value = r.left > window.innerWidth * 0.6 ? 'left' : 'right';
+            }
+            headerCmenuOpenKey.value = willOpen ? it.key : null;
+        }
+        function headerCmenuPick(item) {
+            headerCmenuOpenKey.value = null;
+            if (!item || item.kind !== 'link') return;
+            if (item.action === 'panel') {
+                const p = headerCmenuPanelOf(item.panel);
+                if (!p) return;
+                navItemClick(p);
+                return;
+            }
+            const url = headerLinkNormalize(item.url);
+            if (!url) return;
+            if (item.mode === 'window') { window.open(url, '_blank', 'noopener'); return; }
+            linkView.value = { url: url, title: item.title || url };
+            sidebarOpen.value = false;
+        }
+        function headerCmenuHotkeyIndex() {
+            const map = {};
+            const walk = list => (list || []).forEach(n => {
+                if (!n || n.kind === 'sep') return;
+                if (n.kind === 'sub') { walk(n.children); return; }
+                if (n.hotkey && !map[n.hotkey]) map[n.hotkey] = n;
+            });
+            headerItems.value.forEach(it => { if (it.t === 'cmenu') walk(it.cfg && it.cfg.items); });
+            return map;
+        }
+        function headerCmenuKeydown(e) {
+            if (!e || e.repeat || e.defaultPrevented) return;
+            const tag = e.target && e.target.tagName ? e.target.tagName : '';
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (e.target && e.target.isContentEditable)) return;
+            if (document.querySelector('.v-dialog__content') || document.querySelector('.modal-overlay')) return;
+            const combo = headerCmenuHotkeyOfEvent(e);
+            if (!combo) return;
+            const node = headerCmenuHotkeyIndex()[combo];
+            if (!node) return;
+            e.preventDefault();
+            headerCmenuPick(headerCmenuResolveNode(node));
         }
 
 /* ---- Шапка: ссылка ---- */
@@ -3789,6 +4168,8 @@ if (f.key) {
             headerSwitchForm.icon = ic;
         } else if (iconTarget.value === 'hb') {
             headerButtonForm.icon = ic;
+        } else if (iconTarget.value === 'hcmenu') {
+            if (headerCmenuForm) headerCmenuForm.icon = ic;
         } else if (typeof iconTarget.value === 'string' && iconTarget.value.startsWith('si:')) {
             const idx = parseInt(iconTarget.value.slice(3), 10);
             setSelectItemField(idx, 'icon', ic);
@@ -3824,6 +4205,9 @@ if (f.key) {
             }
             if (iconTarget.value === 'hb') {
                 return headerButtonForm.icon === ic;
+            }
+            if (iconTarget.value === 'hcmenu') {
+                return !!headerCmenuForm && headerCmenuForm.icon === ic;
             }
             if (typeof iconTarget.value === 'string' && iconTarget.value.startsWith('si:')) {
                 const idx = parseInt(iconTarget.value.slice(3), 10);
@@ -4350,6 +4734,9 @@ if (f.key) {
                 widgetMenuTarget.value = null;
                 widgetPanelSubmenu.value = null;
                 widgetGroupSubmenu.value = null;
+            }
+            if (headerCmenuOpenKey.value && !e.target.closest('.app-bar__cmenu')) {
+                headerCmenuOpenKey.value = null;
             }
         }
 
@@ -4932,6 +5319,7 @@ watch(currentPanel, (np, op) => {
 
 onMounted(() => {
     document.addEventListener('click', handleClickOutside);
+    document.addEventListener('keydown', headerCmenuKeydown);
     /* Vue снял v-cloak - загрузка до монтирования больше не нужна */
     const pre = document.getElementById('app-preload');
     if (pre && pre.parentNode) pre.parentNode.removeChild(pre);
@@ -4977,6 +5365,8 @@ onMounted(() => {
             headerButtonOpen, headerButtonProps, headerButtonForm, headerButtonCanSave, headerButtonHint, headerButtonSlots, openHeaderButtonDialog, headerButtonLoadProps, headerButtonSave, headerButtonRun, headerButtonAlive, headerAliveStates,
             headerMethodObj, headerMethodName, headerMethodList, headerMethodSet,
             headerLinkSlots, linkView, closeLinkView, headerLinkOpen, headerLinkTarget, headerLinkForm, headerLinkCanSave, headerLinkHint, openHeaderLinkDialog, headerLinkGo, headerLinkSave, HEADER_LINK_FALLBACK_ICON,
+            headerCmenuOpenKey, headerCmenuSide, headerCmenuOpen, headerCmenuTarget, headerCmenuTab, headerCmenuSel, headerCmenuHotkeyError, headerCmenuForm, headerCmenuEdit, headerCmenuAddTargetLabel, headerCmenuRows, headerCmenuPanelList, headerCmenuSlots,
+            headerCmenuAdd, headerCmenuRemove, headerCmenuCanMove, headerCmenuMove, headerCmenuHotkeyCapture, headerCmenuHotkeyClear, headerCmenuCanSave, openHeaderCmenuDialog, headerCmenuSave, headerCmenuCount, headerCmenuHint, headerCmenuToggle, headerCmenuPick,
             showExportDialog, exportMode, exportSelectedPanel, exportUsers, exportSelectedUser, loadExportUsers, doExport, doImport,
             showCleanupDialog, cleanupReport, cleanupBusy, cleanupReasons, applyCleanup, restorePanels, runWizard,
             showAddPanel, editPanelData, panelForm, panelTab, panelTabPos, panelError, createPanel, editPanel, openPanelForm, deletePanel, deleteCurrentPanel, movePanel, isPanel, isNavActive, navItemClick, showAbout, toggleField,
@@ -5208,6 +5598,42 @@ const DpSlider = {
         </div>`
 };
 app.component('dp-slider', DpSlider);
+
+/* Пункты произвольного меню в шапке. Список рекурсивный: подменю рисует
+   сам себя, а выбор пункта отдаётся наверх, в headerCmenuPick. */
+const DpCmenuList = {
+    name: 'DpCmenuList',
+    props: {
+        items: { type: Array, default: () => [] },
+        t: { type: Function, default: (k) => k }
+    },
+    emits: ['pick'],
+    template: `
+        <ul class="dp-cmenu">
+            <li v-for="item in items" :key="item.id" class="dp-cmenu__li">
+                <div v-if="item.kind === 'sep'" class="dp-cmenu__sep"></div>
+                <div v-else-if="item.kind === 'sub'" class="dp-cmenu__row dp-cmenu__row--sub">
+                    <i class="dp-cmenu__icon" :class="item.icon"></i>
+                    <span class="dp-cmenu__title">{{ item.title }}</span>
+                    <i class="fas fa-caret-right dp-cmenu__arrow"></i>
+                    <div class="dp-cmenu__sub">
+                        <dp-cmenu-list :items="item.children" :t="t" @pick="$emit('pick', $event)"></dp-cmenu-list>
+                    </div>
+                </div>
+                <div v-else-if="item.kind === 'missing'" class="dp-cmenu__row dp-cmenu__row--missing" :title="t('hdr_cmenu_missing')">
+                    <i class="dp-cmenu__icon" :class="item.icon"></i>
+                    <span class="dp-cmenu__title">{{ item.title }}</span>
+                    <i class="fas fa-triangle-exclamation dp-cmenu__warn"></i>
+                </div>
+                <button v-else type="button" class="dp-cmenu__row dp-cmenu__row--link" @click="$emit('pick', item)">
+                    <i class="dp-cmenu__icon" :class="item.icon"></i>
+                    <span class="dp-cmenu__title">{{ item.title }}</span>
+                    <span class="dp-cmenu__hk" v-if="item.hotkey">{{ item.hotkey }}</span>
+                </button>
+            </li>
+        </ul>`
+};
+app.component('dp-cmenu-list', DpCmenuList);
 
 const vm = app.mount('#app');
 window.__dp_vm = vm;
