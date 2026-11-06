@@ -1473,36 +1473,81 @@ const headerDragIndex = ref(-1);
             if (n) n.hotkey = '';
             headerCmenuHotkeyError.value = '';
         }
-        function headerCmenuNodeReady(n, seen) {
-            if (!n) return false;
-            if (n.kind === 'sep') return true;
+        /* Только что добавленный и ещё не заполненный пункт - заготовка.
+           Она не должна запирать «Сохранить», пока меню уже содержит рабочие
+           пункты: иначе добавление подменю сразу гасит кнопку. При сохранении
+           такие заготовки отбрасываются. */
+        function headerCmenuNodeDraft(n) {
+            if (!n || n.kind === 'sep') return false;
             if (n.kind === 'sub') {
-                const children = n.children || [];
-                if (!String(n.title || '').trim()) return false;
-                return children.length > 0 && children.every(c => headerCmenuNodeReady(c, seen));
+                if (String(n.title || '').trim()) return false;
+                return !(n.children || []).some(c => c && !headerCmenuNodeDraft(c));
             }
-            if (n.kind === 'panel') {
-                if (!n.panel || !headerCmenuPanelOf(n.panel)) return false;
-            } else if (n.kind === 'url') {
-                if (!headerLinkNormalize(n.url)) return false;
-            } else {
-                return false;
-            }
-            if (n.hotkey) {
-                if (!headerCmenuHotkeyAllowed(n.hotkey)) return false;
-                if (seen.has(n.hotkey)) return false;
-                seen.add(n.hotkey);
-            }
-            return true;
+            const hasTitle = !!String(n.title || '').trim();
+            if (n.kind === 'panel') return !n.panel && !hasTitle && !n.hotkey;
+            if (n.kind === 'url') return !String(n.url || '').trim() && !hasTitle && !n.hotkey;
+            return false;
         }
         function headerCmenuHasAction(items) {
-            return (items || []).some(n => n && (n.kind === 'panel' || n.kind === 'url' || (n.kind === 'sub' && headerCmenuHasAction(n.children))));
+            return (items || []).some(n => !!n && !headerCmenuNodeDraft(n)
+                && (n.kind === 'panel' || n.kind === 'url' || (n.kind === 'sub' && headerCmenuHasAction(n.children))));
+        }
+        /* Причина, по которой сохранить нельзя: пустая строка - можно.
+           Сообщение конкретное, чтобы было видно, что именно не заполнено.
+           Пустые заготовки верхнего уровня пропускаются, а внутри подменю
+           проверяются: там незаполненный пункт - это недоделанная строка,
+           и о ней надо сказать прямо. */
+        function headerCmenuNodeProblem(n, seen, skipDraft) {
+            if (!n) return '';
+            if (skipDraft && headerCmenuNodeDraft(n)) return '';
+            if (n.kind === 'sep') return '';
+            if (n.kind === 'sub') {
+                if (!String(n.title || '').trim()) return t('hdr_cmenu_err_sub_title');
+                const kids = (n.children || []).filter(Boolean);
+                if (!kids.length) return t('hdr_cmenu_err_sub_empty');
+                for (const c of kids) {
+                    const p = headerCmenuNodeProblem(c, seen, false);
+                    if (p) return p;
+                }
+                if (!headerCmenuHasAction(kids)) return t('hdr_cmenu_err_sub_empty');
+                return '';
+            }
+            if (n.kind === 'panel') {
+                if (!n.panel || !headerCmenuPanelOf(n.panel)) return t('hdr_cmenu_err_panel');
+            } else if (n.kind === 'url') {
+                if (!headerLinkNormalize(n.url)) return t('hdr_cmenu_err_url');
+            } else {
+                return t('hdr_cmenu_err_item');
+            }
+            if (n.hotkey) {
+                if (!headerCmenuHotkeyAllowed(n.hotkey) || seen.has(n.hotkey)) return t('hdr_cmenu_err_hotkey');
+                seen.add(n.hotkey);
+            }
+            return '';
+        }
+        function headerCmenuSaveError() {
+            const items = headerCmenuForm.items || [];
+            const seen = new Set();
+            for (const n of items) {
+                const p = headerCmenuNodeProblem(n, seen, true);
+                if (p) return p;
+            }
+            return headerCmenuHasAction(items) ? '' : t('hdr_cmenu_need_items');
         }
         function headerCmenuCanSave() {
-            const items = headerCmenuForm.items || [];
-            if (!items.length || !headerCmenuHasAction(items)) return false;
-            const seen = new Set();
-            return items.every(n => headerCmenuNodeReady(n, seen));
+            return !headerCmenuSaveError();
+        }
+        function headerCmenuPrune(items) {
+            const out = [];
+            (items || []).forEach(n => {
+                if (!n || headerCmenuNodeDraft(n)) return;
+                const c = headerCmenuCloneNode(n);
+                if (c.kind === 'sub') c.children = headerCmenuPrune(c.children);
+                out.push(c);
+            });
+            while (out.length && out[0].kind === 'sep') out.shift();
+            while (out.length && out[out.length - 1].kind === 'sep') out.pop();
+            return out;
         }
         function openHeaderCmenuDialog(idx) {
             const it = (idx >= 0) ? headerItems.value[idx] : null;
@@ -1523,7 +1568,7 @@ const headerDragIndex = ref(-1);
                 title: String(headerCmenuForm.title || '').trim(),
                 icon: String(headerCmenuForm.icon || '').trim(),
                 display: headerCmenuForm.display,
-                items: (headerCmenuForm.items || []).map(headerCmenuCloneNode)
+                items: headerCmenuPrune(headerCmenuForm.items)
             };
             if (!headerItemPut(headerCmenuTarget.value, 'cmenu', cfg)) return;
             headerCmenuOpen.value = false;
@@ -5366,7 +5411,7 @@ onMounted(() => {
             headerMethodObj, headerMethodName, headerMethodList, headerMethodSet,
             headerLinkSlots, linkView, closeLinkView, headerLinkOpen, headerLinkTarget, headerLinkForm, headerLinkCanSave, headerLinkHint, openHeaderLinkDialog, headerLinkGo, headerLinkSave, HEADER_LINK_FALLBACK_ICON,
             headerCmenuOpenKey, headerCmenuSide, headerCmenuOpen, headerCmenuTarget, headerCmenuTab, headerCmenuSel, headerCmenuHotkeyError, headerCmenuForm, headerCmenuEdit, headerCmenuAddTargetLabel, headerCmenuRows, headerCmenuPanelList, headerCmenuSlots,
-            headerCmenuAdd, headerCmenuRemove, headerCmenuCanMove, headerCmenuMove, headerCmenuHotkeyCapture, headerCmenuHotkeyClear, headerCmenuCanSave, openHeaderCmenuDialog, headerCmenuSave, headerCmenuCount, headerCmenuHint, headerCmenuToggle, headerCmenuPick,
+            headerCmenuAdd, headerCmenuRemove, headerCmenuCanMove, headerCmenuMove, headerCmenuHotkeyCapture, headerCmenuHotkeyClear, headerCmenuCanSave, headerCmenuSaveError, openHeaderCmenuDialog, headerCmenuSave, headerCmenuCount, headerCmenuHint, headerCmenuToggle, headerCmenuPick,
             showExportDialog, exportMode, exportSelectedPanel, exportUsers, exportSelectedUser, loadExportUsers, doExport, doImport,
             showCleanupDialog, cleanupReport, cleanupBusy, cleanupReasons, applyCleanup, restorePanels, runWizard,
             showAddPanel, editPanelData, panelForm, panelTab, panelTabPos, panelError, createPanel, editPanel, openPanelForm, deletePanel, deleteCurrentPanel, movePanel, isPanel, isNavActive, navItemClick, showAbout, toggleField,
