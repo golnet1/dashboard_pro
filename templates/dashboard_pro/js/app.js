@@ -5657,14 +5657,16 @@ const DpCmenuList = {
         <ul class="dp-cmenu">
             <li v-for="item in items" :key="item.id" class="dp-cmenu__li">
                 <div v-if="item.kind === 'sep'" class="dp-cmenu__sep"></div>
-                <div v-else-if="item.kind === 'sub'" class="dp-cmenu__row dp-cmenu__row--sub">
-                    <i class="dp-cmenu__icon" :class="item.icon"></i>
-                    <span class="dp-cmenu__title">{{ item.title }}</span>
-                    <i class="fas fa-caret-right dp-cmenu__arrow"></i>
+                <template v-else-if="item.kind === 'sub'">
+                    <div class="dp-cmenu__row dp-cmenu__row--sub">
+                        <i class="dp-cmenu__icon" :class="item.icon"></i>
+                        <span class="dp-cmenu__title">{{ item.title }}</span>
+                        <i class="fas fa-caret-right dp-cmenu__arrow"></i>
+                    </div>
                     <div class="dp-cmenu__sub">
                         <dp-cmenu-list :items="item.children" :t="t" @pick="$emit('pick', $event)"></dp-cmenu-list>
                     </div>
-                </div>
+                </template>
                 <div v-else-if="item.kind === 'missing'" class="dp-cmenu__row dp-cmenu__row--missing" :title="t('hdr_cmenu_missing')">
                     <i class="dp-cmenu__icon" :class="item.icon"></i>
                     <span class="dp-cmenu__title">{{ item.title }}</span>
