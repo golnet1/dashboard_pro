@@ -29,7 +29,7 @@ const GraphWidget = {
     template: `
         <div class="widget-v-card" :style="cardStyle">
             <canvas ref="canvas" class="graph-canvas" style="width:100%;height:100%"
-                @mousedown="canvasDown($event)" @mousemove="canvasMove($event)" @mouseup="canvasUp()" @mouseleave="canvasUp()"></canvas>
+                @mousedown="canvasDown($event)" @mousemove="canvasMove($event)" @mouseup="canvasUp()" @mouseleave="canvasLeave()"></canvas>
             <div class="graph-toolbar">
                 <button type="button" :title="t('refresh')" @click.stop="fetchData"><i class="fas fa-sync"></i></button>
                 <button type="button" :title="t('reset_zoom')" @click.stop="resetZoom"><i class="fas fa-search"></i></button>
@@ -38,7 +38,10 @@ const GraphWidget = {
     data() { return {
         seriesSpec: [], seriesPoints: [], timer: null, fetching: false,
         zoomRange: null, dragStart: null,
-        stale: null
+        stale: null,
+        /* Курсор над графиком: место, где рисовать перекрестие и подсказку
+           со значением. Хранится уже в координатах холста. */
+        hoverAt: null, hoverRaf: 0, geo: null
     }; },
     computed: {
         chartType() { return this.widget.chart_type === 'bar' ? 'bar' : 'line'; },
@@ -53,7 +56,10 @@ const GraphWidget = {
         this.fetchData();
         this.timer = setInterval(() => this.fetchData(), 60000);
     },
-    beforeUnmount() { if (this.timer) clearInterval(this.timer); },
+    beforeUnmount() {
+        if (this.timer) clearInterval(this.timer);
+        if (this.hoverRaf) cancelAnimationFrame(this.hoverRaf);
+    },
     methods: {
         getSeries() {
             let arr = [];
@@ -129,17 +135,50 @@ const GraphWidget = {
             if (this.zoomRange) { this.zoomRange = null; this.draw(); }
         },
         canvasMove(e) {
-            if (this.dragStart === null) return;
             const rect = this.$refs.canvas.getBoundingClientRect();
-            const x = Math.min(rect.width, Math.max(0, e.clientX - rect.left));
-            const f0 = this.dragStart.x / rect.width, f1 = x / rect.width;
-            this.zoomRange = { start: Math.min(f0, f1), end: Math.max(f0, f1) };
-            this.draw();
+            const mx = Math.min(rect.width, Math.max(0, e.clientX - rect.left));
+            const my = Math.min(rect.height, Math.max(0, e.clientY - rect.top));
+            if (this.dragStart !== null) {
+                const f0 = this.dragStart.x / rect.width, f1 = mx / rect.width;
+                this.zoomRange = { start: Math.min(f0, f1), end: Math.max(f0, f1) };
+                this.draw();
+                return;
+            }
+            /* Холст рисуется чуть меньше своей рамки (по 4 точки с каждой
+               стороны), поэтому координаты курсора приводим к тем же единицам,
+               в которых построены точки графика. */
+            const g = this.geo;
+            if (!g) return;
+            const px = mx * g.w / Math.max(1, rect.width);
+            const py = my * g.h / Math.max(1, rect.height);
+            const inside = px >= g.padL && px <= g.w - g.padR && py >= g.padT && py <= g.h - g.padB;
+            if (!inside) {
+                if (this.hoverAt) { this.hoverAt = null; this.hoverDraw(); }
+                return;
+            }
+            this.hoverAt = { x: px, y: py };
+            this.hoverDraw();
+        },
+        /* Перерисовка по движению мыши гасится до одного кадра: тянуть
+           ползунок по графику иначе означало бы рисовать сотни раз в секунду. */
+        hoverDraw() {
+            if (this.hoverRaf) return;
+            this.hoverRaf = requestAnimationFrame(() => {
+                this.hoverRaf = 0;
+                this.draw();
+            });
         },
         canvasUp() {
             if (this.dragStart === null) return;
             if (this.zoomRange && this.zoomRange.end - this.zoomRange.start < 0.03) this.zoomRange = null;
             this.dragStart = null;
+            this.hoverAt = null;
+            this.draw();
+        },
+        canvasLeave() {
+            if (this.dragStart !== null) { this.canvasUp(); return; }
+            if (!this.hoverAt) return;
+            this.hoverAt = null;
             this.draw();
         },
         resetZoom() {
@@ -160,7 +199,7 @@ const GraphWidget = {
             ctx.clearRect(0, 0, w, h);
 
             const any = this.seriesPoints.some(p => Array.isArray(p) && p.length);
-            if (!any) { this.drawEmpty(ctx, w, h); return; }
+            if (!any) { this.geo = null; this.drawEmpty(ctx, w, h); return; }
 
             const list = [];
             let t0 = Infinity, t1 = -Infinity;
@@ -227,11 +266,12 @@ const GraphWidget = {
                     let x;
                     if (hasTime && !isNaN(ts)) x = padL + ((ts - t0) / span) * pw;
                     else x = padL + (n > 1 ? (i / (n - 1)) : 0.5) * pw;
-                    return { x, y, v };
+                    return { x, y, v, ts: isNaN(ts) ? null : ts };
                 });
             };
 
             const geo = { padL, padR, padT, padB, pw, ph, w, h, hasTime, span, t0 };
+            this.geo = geo;
             this.drawSideAxes(ctx, list, geo);
 
             const drawSeries = (s, si) => {
@@ -265,6 +305,121 @@ const GraphWidget = {
 
             if (this.chartType === 'bar') this.drawBars(ctx, list, geo);
             else list.forEach(drawSeries);
+
+            this.drawHover(ctx, list, geo, plot);
+        },
+        /* Подсказка под курсором: вертикальная линия по ближайшей точке,
+           отметки на сериях и табличка со временем и значениями. Так видно,
+           какая цифра относится к выбранному месту графика. */
+        drawHover(ctx, list, g, plot) {
+            const hv = this.hoverAt;
+            if (!hv) return;
+            let anchor = null;
+            const groups = [];
+            list.forEach(s => {
+                const coords = plot(s, this.seriesPoints[s.si] || []);
+                groups.push({ s: s, coords: coords });
+                coords.forEach(c => {
+                    if (g.hasTime && c.ts === null) return;
+                    if (!anchor || Math.abs(c.x - hv.x) < Math.abs(anchor.x - hv.x)) anchor = c;
+                });
+            });
+            if (!anchor) return;
+
+            const x = anchor.x;
+            ctx.save();
+            ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            ctx.moveTo(x, g.padT);
+            ctx.lineTo(x, g.h - g.padB);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            const entries = [];
+            groups.forEach(gr => {
+                let best = null;
+                gr.coords.forEach(c => {
+                    if (!best || Math.abs(c.x - x) < Math.abs(best.x - x)) best = c;
+                });
+                if (best) entries.push({ s: gr.s, c: best });
+            });
+
+            if (this.chartType !== 'bar') {
+                entries.forEach(en => {
+                    if (en.c.x < g.padL - 1 || en.c.x > g.w - g.padR + 1) return;
+                    ctx.beginPath();
+                    ctx.arc(en.c.x, en.c.y, 3, 0, Math.PI * 2);
+                    ctx.fillStyle = en.s.color;
+                    ctx.fill();
+                    ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                });
+            }
+
+            const seriesTitle = spec => {
+                const own = String((spec && spec.title) || '').trim();
+                if (own) return own;
+                return spec && spec.object ? spec.object + (spec.property ? '.' + spec.property : '') : 'Серия';
+            };
+            const p2 = n => (n < 10 ? '0' : '') + n;
+            const lines = [];
+            if (g.hasTime && anchor.ts !== null) {
+                const d = new Date(anchor.ts * 1000);
+                let when = p2(d.getDate()) + '.' + p2(d.getMonth() + 1) + '.' + d.getFullYear() + ' ' + p2(d.getHours()) + ':' + p2(d.getMinutes());
+                if (g.span <= 600) when += ':' + p2(d.getSeconds());
+                lines.push({ text: when, color: 'rgba(255,255,255,0.65)' });
+            }
+            entries.forEach(en => {
+                const r = Number(en.s.spec && en.s.spec.round);
+                const val = (en.s.spec && en.s.spec.round !== undefined && isFinite(r)) ? Number(en.c.v).toFixed(r) : this.fmtY(en.c.v);
+                lines.push({ text: seriesTitle(en.s.spec) + ': ' + val, color: en.s.color, dot: true });
+            });
+            if (!lines.length) { ctx.restore(); return; }
+
+            const padX = 8, padY = 6, lh = 17;
+            let maxW = 0;
+            lines.forEach(l => {
+                ctx.font = l.dot ? '12px sans-serif' : '11px sans-serif';
+                maxW = Math.max(maxW, ctx.measureText(l.text).width + (l.dot ? 14 : 0));
+            });
+            const bw = Math.min(g.w - 8, maxW + padX * 2);
+            const bh = lines.length * lh + padY * 2;
+            let bx = x + 12;
+            if (bx + bw > g.w - 4) bx = x - bw - 12;
+            bx = Math.max(4, Math.min(bx, g.w - 4 - bw));
+            let by = hv.y + 14;
+            if (by + bh > g.h - 4) by = hv.y - bh - 14;
+            by = Math.max(4, Math.min(by, g.h - 4 - bh));
+
+            ctx.beginPath();
+            if (ctx.roundRect) ctx.roundRect(bx, by, bw, bh, 5);
+            else ctx.rect(bx, by, bw, bh);
+            ctx.fillStyle = 'rgba(15,23,42,0.92)';
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            ctx.textBaseline = 'middle';
+            ctx.textAlign = 'left';
+            let ty = by + padY + lh / 2;
+            lines.forEach(l => {
+                ctx.font = l.dot ? '12px sans-serif' : '11px sans-serif';
+                if (l.dot) {
+                    ctx.fillStyle = l.color;
+                    ctx.fillRect(bx + padX, ty - 4, 9, 9);
+                    ctx.fillStyle = 'rgba(255,255,255,0.92)';
+                    ctx.fillText(l.text, bx + padX + 14, ty);
+                } else {
+                    ctx.fillStyle = l.color;
+                    ctx.fillText(l.text, bx + padX, ty);
+                }
+                ty += lh;
+            });
+            ctx.restore();
         },
         drawSideAxes(ctx, list, geo) {
             const { padL, padR, padT, padB, w, h } = geo;
