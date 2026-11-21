@@ -72,7 +72,7 @@ const TimePickerWidget = {
     },
     computed: {
         aliveDisabled() {
-            return this.widget.object_alive && this.widget.property_alive && this.isAlive === false;
+            return !!(this.widget.object_alive && this.widget.property_alive && this.isAlive === false);
         },
         obj() { return this.widget.object_value || this.widget.object; },
         cardStyle() {

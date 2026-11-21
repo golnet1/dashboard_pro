@@ -61,7 +61,7 @@ const SelectWidget = {
     },
     computed: {
         aliveDisabled() {
-            return this.widget.object_alive && this.widget.property_alive && this.isAlive === false;
+            return !!(this.widget.object_alive && this.widget.property_alive && this.isAlive === false);
         },
         options() {
             if (!this.widget.items) return [];

@@ -76,7 +76,7 @@ const DatePickerWidget = {
             return [this.t('day_short_mon'),this.t('day_short_tue'),this.t('day_short_wed'),this.t('day_short_thu'),this.t('day_short_fri'),this.t('day_short_sat'),this.t('day_short_sun')];
         },
         aliveDisabled() {
-            return this.widget.object_alive && this.widget.property_alive && this.isAlive === false;
+            return !!(this.widget.object_alive && this.widget.property_alive && this.isAlive === false);
         },
         obj() { return this.widget.object_value || this.widget.object; },
         cardStyle() {

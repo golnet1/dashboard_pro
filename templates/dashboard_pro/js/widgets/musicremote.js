@@ -76,7 +76,7 @@ const MusicRemoteWidget = {
     beforeUnmount() { if (this.availTimer) clearInterval(this.availTimer); },
     computed: {
         aliveDisabled() {
-            return this.widget.object_alive && this.widget.property_alive && this.isAlive === false;
+            return !!(this.widget.object_alive && this.widget.property_alive && this.isAlive === false);
         },
         cardStyle() {
             const s = {};

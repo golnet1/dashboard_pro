@@ -74,7 +74,7 @@ const SliderWidget = {
     },
     computed: {
         aliveDisabled() {
-            return this.widget.object_alive && this.widget.property_alive && this.isAlive === false;
+            return !!(this.widget.object_alive && this.widget.property_alive && this.isAlive === false);
         },
         fillPercent() {
             const range = this.max - this.min;

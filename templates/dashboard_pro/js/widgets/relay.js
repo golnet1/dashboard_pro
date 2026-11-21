@@ -81,7 +81,7 @@ const RelayWidget = {
             return dpInfoDisplay(this.infoValue);
         },
         aliveDisabled() {
-            return this.widget.object_alive && this.widget.property_alive && this.isAlive === false;
+            return !!(this.widget.object_alive && this.widget.property_alive && this.isAlive === false);
         },
         iconHlClass() {
             if (!this.widget.background || !this.isOn) return '';
