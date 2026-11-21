@@ -73,7 +73,10 @@ const ThermostatWidget = {
     },
     computed: {
         aliveDisabled() {
-            return this.widget.object_alive && this.widget.property_alive && this.isAlive === false;
+            /* Строго boolean: пустые поля доступности давали '' вместо false,
+               а :disabled="loading || aliveDisabled" превращал это в disabled=""
+               и навсегда блокировал кнопки настройки температуры. */
+            return !!(this.widget.object_alive && this.widget.property_alive && this.isAlive === false);
         },
         iconHlClass() {
             if (!this.widget.background || !this.isOn) return '';
@@ -183,16 +186,19 @@ const ThermostatWidget = {
             this.loading = false;
         },
         async adjustTarget(delta) {
+            if (this.loading || this.aliveDisabled) return;
             this.loading = true;
             const obj = this.widget.object_target;
             const prop = this.widget.property_target;
             if (obj) {
                 this.target = Math.round(Math.min(Math.max(this.target + delta, this.widget.min || 5), this.widget.max || 35));
+                /* Сохраняем сразу: WebSocket может перемонтировать виджет, пока
+                   идёт запись, и новый экземпляр должен взять уже новое значение. */
+                const st = this.uiState();
+                if (st) st.target = this.target;
                 try {
                     const params = prop ? { object: obj, property: prop, value: String(this.target) } : { object: obj, value: String(this.target) };
                     await dpAPI('setProperty?' + new URLSearchParams(params));
-                    const st = this.uiState();
-                    if (st) st.target = this.target;
                 } catch(e) {}
             }
             this.loading = false;
