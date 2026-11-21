@@ -72,28 +72,31 @@ const TvRemoteWidget = {
                 </div>
                 <div class="dp-remote__cols">
                     <div class="dp-remote__col">
-                        <button class="dp-remote__key dp-remote__key--big" @click="press('vol+')" :title="t('rc_vol_up')"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M4 9h3l4-4v14l-4-4H4V9z"/><rect x="13" y="11" width="7" height="2" rx="1"/><rect x="15.5" y="8.5" width="2" height="7" rx="1"/></svg></button>
-                        <button class="dp-remote__key dp-remote__key--big" @click="press('vol-')" :title="t('rc_vol_down')"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M4 9h3l4-4v14l-4-4H4V9z"/><rect x="13" y="11" width="7" height="2" rx="1"/></svg></button>
+                        <button class="dp-remote__key dp-remote__key--big" @pointerdown="startHold($event,'vol+')" @pointerleave="stopHold" @click="onHoldClick($event,'vol+')" :title="t('rc_vol_up')"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M4 9h3l4-4v14l-4-4H4V9z"/><rect x="13" y="11" width="7" height="2" rx="1"/><rect x="15.5" y="8.5" width="2" height="7" rx="1"/></svg></button>
+                        <button class="dp-remote__key dp-remote__key--big" @pointerdown="startHold($event,'vol-')" @pointerleave="stopHold" @click="onHoldClick($event,'vol-')" :title="t('rc_vol_down')"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M4 9h3l4-4v14l-4-4H4V9z"/><rect x="13" y="11" width="7" height="2" rx="1"/></svg></button>
                     </div>
                     <div class="dp-remote__col">
                         <button class="dp-remote__key dp-remote__key--big" @click="press('mute')" :title="t('rc_mute')"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M4 9h3l4-4v14l-4-4H4V9z"/><path d="M14 9.5l5.5 5.5M19.5 9.5L14 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg></button>
                         <button class="dp-remote__key dp-remote__key--big" @click="press('back')" :title="t('rc_back')"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
                     </div>
                     <div class="dp-remote__col">
-                        <button class="dp-remote__key dp-remote__key--big" @click="press('ch+')" :title="t('rc_ch_up')"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg></button>
-                        <button class="dp-remote__key dp-remote__key--big" @click="press('ch-')" :title="t('rc_ch_down')"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></button>
+                        <button class="dp-remote__key dp-remote__key--big" @pointerdown="startHold($event,'ch+')" @pointerleave="stopHold" @click="onHoldClick($event,'ch+')" :title="t('rc_ch_up')"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg></button>
+                        <button class="dp-remote__key dp-remote__key--big" @pointerdown="startHold($event,'ch-')" @pointerleave="stopHold" @click="onHoldClick($event,'ch-')" :title="t('rc_ch_down')"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></button>
                     </div>
                 </div>
             </div>
         </div>`,
-    data() { return { isAlive: true, availTimer: null }; },
+    data() { return { isAlive: true, availTimer: null, holdTimer: null, holdInterval: null, holdRepeated: false }; },
     mounted() {
         if (this.widget.object_alive && this.widget.property_alive) {
             this.checkAlive();
             this.availTimer = setInterval(() => this.checkAlive(), (this.widget.alive_timeout || 3) * 1000);
         }
     },
-    beforeUnmount() { if (this.availTimer) clearInterval(this.availTimer); },
+    beforeUnmount() {
+        if (this.availTimer) clearInterval(this.availTimer);
+        this.stopHold();
+    },
     computed: {
         aliveDisabled() {
             return !!(this.widget.object_alive && this.widget.property_alive && this.isAlive === false);
@@ -149,6 +152,42 @@ const TvRemoteWidget = {
                 return true;
             }
             return false;
+        },
+        /* Длительное нажатие: первый шаг отправляется сразу, затем повтор
+           раз в секунду, пока кнопка удерживается. Обычный клик = один шаг. */
+        startHold(e, k) {
+            if (e && e.button) return;            // только левая кнопка / тач
+            if (this.aliveDisabled) return;
+            this.stopHold();
+            this.holdRepeated = false;
+            this.press(k);
+            this.holdTimer = setTimeout(() => {
+                this.holdTimer = null;
+                this.holdRepeated = true;
+                if (this.aliveDisabled) { this.stopHold(); return; }
+                this.press(k);
+                this.holdInterval = setInterval(() => {
+                    if (this.aliveDisabled) { this.stopHold(); return; }
+                    this.press(k);
+                }, 1000);
+            }, 1000);
+            window.addEventListener('pointerup', this.stopHold);
+            window.addEventListener('pointercancel', this.stopHold);
+        },
+        stopHold() {
+            if (this.holdTimer) { clearTimeout(this.holdTimer); this.holdTimer = null; }
+            if (this.holdInterval) { clearInterval(this.holdInterval); this.holdInterval = null; }
+            window.removeEventListener('pointerup', this.stopHold);
+            window.removeEventListener('pointercancel', this.stopHold);
+        },
+        onHoldClick(e, k) {
+            if (e && e.detail > 0) {
+                /* Указатель уже обработан в startHold: не отправляем второй раз.
+                   После удержания гасим «отложенный» click. */
+                this.holdRepeated = false;
+                return;
+            }
+            this.press(k);                        // клавиатура: Enter/Пробел
         },
         async press(k) {
             const code = this.codeFor(k);

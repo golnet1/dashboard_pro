@@ -50,9 +50,9 @@ const MusicRemoteWidget = {
                     <button class="dp-remote__key dp-remote__key--wide" @click="press('eject')" :title="t('rc_eject')"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 5l7 8H5l7-8z"/><rect x="5" y="15" width="14" height="3" rx="1"/></svg></button>
                 </div>
                 <div class="dp-remote__row">
-                    <button class="dp-remote__key dp-remote__key--wide" @click="press('vol-')" :title="t('rc_vol_down')"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M4 9h3l4-4v14l-4-4H4V9z"/><rect x="13" y="11" width="7" height="2" rx="1"/></svg></button>
+                    <button class="dp-remote__key dp-remote__key--wide" @pointerdown="startHold($event,'vol-')" @pointerleave="stopHold" @click="onHoldClick($event,'vol-')" :title="t('rc_vol_down')"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M4 9h3l4-4v14l-4-4H4V9z"/><rect x="13" y="11" width="7" height="2" rx="1"/></svg></button>
                     <button class="dp-remote__key dp-remote__key--wide" @click="press('mute')" :title="t('rc_mute')"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M4 9h3l4-4v14l-4-4H4V9z"/><path d="M14 9.5l5.5 5.5M19.5 9.5L14 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg></button>
-                    <button class="dp-remote__key dp-remote__key--wide" @click="press('vol+')" :title="t('rc_vol_up')"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M4 9h3l4-4v14l-4-4H4V9z"/><rect x="13" y="11" width="7" height="2" rx="1"/><rect x="15.5" y="8.5" width="2" height="7" rx="1"/></svg></button>
+                    <button class="dp-remote__key dp-remote__key--wide" @pointerdown="startHold($event,'vol+')" @pointerleave="stopHold" @click="onHoldClick($event,'vol+')" :title="t('rc_vol_up')"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M4 9h3l4-4v14l-4-4H4V9z"/><rect x="13" y="11" width="7" height="2" rx="1"/><rect x="15.5" y="8.5" width="2" height="7" rx="1"/></svg></button>
                 </div>
                 <div class="dp-remote__row">
                     <button class="dp-remote__key dp-remote__key--wide" :class="{ 'dp-remote__key--active': src === 'cd' }" @click="selectSrc('cd')">{{ t('rc_cd') }}</button>
@@ -66,14 +66,17 @@ const MusicRemoteWidget = {
                 </div>
             </div>
         </div>`,
-    data() { return { playing: false, src: '', isAlive: true, availTimer: null }; },
+    data() { return { playing: false, src: '', isAlive: true, availTimer: null, holdTimer: null, holdInterval: null, holdRepeated: false }; },
     mounted() {
         if (this.widget.object_alive && this.widget.property_alive) {
             this.checkAlive();
             this.availTimer = setInterval(() => this.checkAlive(), (this.widget.alive_timeout || 3) * 1000);
         }
     },
-    beforeUnmount() { if (this.availTimer) clearInterval(this.availTimer); },
+    beforeUnmount() {
+        if (this.availTimer) clearInterval(this.availTimer);
+        this.stopHold();
+    },
     computed: {
         aliveDisabled() {
             return !!(this.widget.object_alive && this.widget.property_alive && this.isAlive === false);
@@ -99,6 +102,40 @@ const MusicRemoteWidget = {
             if (v !== undefined && v !== null && v !== '') return String(v);
             const tv = { power: 'Power', prev: 'Previous', next: 'Next', 'vol+': 'VolumeUp', 'vol-': 'VolumeDown', mute: 'Mute', stop: 'Stop', pause: 'Pause', play: 'PlayPause' };
             return tv[k] || k;
+        },
+        /* Длительное нажатие: первый шаг отправляется сразу, затем повтор
+           раз в секунду, пока кнопка удерживается. Обычный клик = один шаг. */
+        startHold(e, k) {
+            if (e && e.button) return;
+            if (this.aliveDisabled) return;
+            this.stopHold();
+            this.holdRepeated = false;
+            this.send(k);
+            this.holdTimer = setTimeout(() => {
+                this.holdTimer = null;
+                this.holdRepeated = true;
+                if (this.aliveDisabled) { this.stopHold(); return; }
+                this.send(k);
+                this.holdInterval = setInterval(() => {
+                    if (this.aliveDisabled) { this.stopHold(); return; }
+                    this.send(k);
+                }, 1000);
+            }, 1000);
+            window.addEventListener('pointerup', this.stopHold);
+            window.addEventListener('pointercancel', this.stopHold);
+        },
+        stopHold() {
+            if (this.holdTimer) { clearTimeout(this.holdTimer); this.holdTimer = null; }
+            if (this.holdInterval) { clearInterval(this.holdInterval); this.holdInterval = null; }
+            window.removeEventListener('pointerup', this.stopHold);
+            window.removeEventListener('pointercancel', this.stopHold);
+        },
+        onHoldClick(e, k) {
+            if (e && e.detail > 0) {
+                this.holdRepeated = false;
+                return;
+            }
+            this.send(k);
         },
         async send(k) {
             const code = this.codeFor(k);
