@@ -56,19 +56,19 @@ const AcRemoteWidget = {
                     <button class="dp-remote__key dp-remote__key--mode" :class="{ 'dp-remote__key--active': on && swingOn }" @click="toggleSwing()" :title="t('rc_swing')"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 4l4 5h-3v6h3l-4 5-4-5h3v-6H8z"/></svg></button>
                 </div>
                 <div class="dp-remote__temp">
-                    <button class="dp-remote__key" @click="tempDown" :title="t('rc_temp_down')"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M4 7h16l-8 13z"/></svg></button>
+                    <button class="dp-remote__key" @pointerdown="startHold($event,'tempDown')" @pointerleave="stopHold" @click="onHoldClick($event,'tempDown')" :title="t('rc_temp_down')"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M4 7h16l-8 13z"/></svg></button>
                     <div style="text-align:center;min-width:56px">
                         <div style="font-size:1.05rem;font-weight:800">{{ temp }}&#x00B0;</div>
                         <div style="font-size:.55rem;letter-spacing:.14em;color:rgba(255,255,255,.55)">{{ t('rc_temp') }}</div>
                     </div>
-                    <button class="dp-remote__key" @click="tempUp" :title="t('rc_temp_up')"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 4L4 17h16z"/></svg></button>
+                    <button class="dp-remote__key" @pointerdown="startHold($event,'tempUp')" @pointerleave="stopHold" @click="onHoldClick($event,'tempUp')" :title="t('rc_temp_up')"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 4L4 17h16z"/></svg></button>
                 </div>
                 <div class="dp-remote__row">
                     <button class="dp-remote__key dp-remote__key--wide" @click="cycleFan" :title="t('rc_fan')"><i class="fas fa-fan"></i></button>
                 </div>
             </div>
         </div>`,
-    data() { return { mode: '', on: false, temp: 22, swingOn: false, fan: 0, isAlive: true, availTimer: null }; },
+    data() { return { mode: '', on: false, temp: 22, swingOn: false, fan: 0, isAlive: true, availTimer: null, holdTimer: null, holdInterval: null, holdRepeated: false }; },
     mounted() {
         if (this.widget.remember) this.restoreState();
         if (this.widget.object_alive && this.widget.property_alive) {
@@ -76,7 +76,10 @@ const AcRemoteWidget = {
             this.availTimer = setInterval(() => this.checkAlive(), (this.widget.alive_timeout || 3) * 1000);
         }
     },
-    beforeUnmount() { if (this.availTimer) clearInterval(this.availTimer); },
+    beforeUnmount() {
+        if (this.availTimer) clearInterval(this.availTimer);
+        this.stopHold();
+    },
     computed: {
         aliveDisabled() {
             return !!(this.widget.object_alive && this.widget.property_alive && this.isAlive === false);
@@ -120,6 +123,40 @@ const AcRemoteWidget = {
                     await dpAPI('setProperty?' + new URLSearchParams(params));
                 }
             } catch (e) { console.error(e); }
+        },
+        /* Температура: первый шаг сразу, затем раз в секунду после
+           2 секунд удержания. Обычный клик = один шаг. */
+        startHold(e, method) {
+            if (e && e.button) return;
+            if (this.aliveDisabled || !this.on) return;
+            this.stopHold();
+            this.holdRepeated = false;
+            this[method]();
+            this.holdTimer = setTimeout(() => {
+                this.holdTimer = null;
+                this.holdRepeated = true;
+                if (this.aliveDisabled || !this.on) { this.stopHold(); return; }
+                this[method]();
+                this.holdInterval = setInterval(() => {
+                    if (this.aliveDisabled || !this.on) { this.stopHold(); return; }
+                    this[method]();
+                }, 1000);
+            }, 2000);
+            window.addEventListener('pointerup', this.stopHold);
+            window.addEventListener('pointercancel', this.stopHold);
+        },
+        stopHold() {
+            if (this.holdTimer) { clearTimeout(this.holdTimer); this.holdTimer = null; }
+            if (this.holdInterval) { clearInterval(this.holdInterval); this.holdInterval = null; }
+            window.removeEventListener('pointerup', this.stopHold);
+            window.removeEventListener('pointercancel', this.stopHold);
+        },
+        onHoldClick(e, method) {
+            if (e && e.detail > 0) {
+                this.holdRepeated = false;
+                return;
+            }
+            this[method]();
         },
         async togglePower() {
             this.on = !this.on;

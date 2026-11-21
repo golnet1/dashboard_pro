@@ -170,7 +170,7 @@ const TvRemoteWidget = {
                     if (this.aliveDisabled) { this.stopHold(); return; }
                     this.press(k);
                 }, 1000);
-            }, 1000);
+            }, 2000);
             window.addEventListener('pointerup', this.stopHold);
             window.addEventListener('pointercancel', this.stopHold);
         },
