@@ -140,7 +140,7 @@ const AcRemoteWidget = {
                 this.holdInterval = setInterval(() => {
                     if (this.aliveDisabled || !this.on) { this.stopHold(); return; }
                     this[method]();
-                }, 1000);
+                }, 500);
             }, 2000);
             window.addEventListener('pointerup', this.stopHold);
             window.addEventListener('pointercancel', this.stopHold);

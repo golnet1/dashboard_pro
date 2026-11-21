@@ -119,7 +119,7 @@ const MusicRemoteWidget = {
                 this.holdInterval = setInterval(() => {
                     if (this.aliveDisabled) { this.stopHold(); return; }
                     this.send(k);
-                }, 1000);
+                }, 500);
             }, 2000);
             window.addEventListener('pointerup', this.stopHold);
             window.addEventListener('pointercancel', this.stopHold);

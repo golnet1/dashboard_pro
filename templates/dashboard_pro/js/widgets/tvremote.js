@@ -169,7 +169,7 @@ const TvRemoteWidget = {
                 this.holdInterval = setInterval(() => {
                     if (this.aliveDisabled) { this.stopHold(); return; }
                     this.press(k);
-                }, 1000);
+                }, 500);
             }, 2000);
             window.addEventListener('pointerup', this.stopHold);
             window.addEventListener('pointercancel', this.stopHold);
