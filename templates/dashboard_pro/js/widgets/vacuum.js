@@ -386,16 +386,26 @@ const VacuumWidget = {
             return String(c.code || '').split(',')
                 .map(s => s.trim()).filter(s => s !== '');
         },
+        /* miIO answers with words (Standard, Medium...) while the cycle keeps
+           numbers. Bring both to the same form so the next press continues from
+           the level the device actually reports, even after a page reload. */
+        canonValue(v) {
+            const s = String(v === undefined || v === null ? '' : v).trim();
+            const words = {
+                silent: '0', standard: '1', medium: '2', turbo: '3',
+                low: '1', high: '3'
+            };
+            if (words[s.toLowerCase()]) return words[s.toLowerCase()];
+            if (s !== '' && !Number.isNaN(Number(s))) return String(Number(s));
+            return s.toLowerCase();
+        },
         nextTargetValue(c) {
             const values = this.targetValues(c);
             if (!values.length) return '';
             const raw = this.readValue(this.widget.object, c.target);
             if (raw === undefined || raw === null || String(raw).trim() === '') return values[0];
-            const current = String(raw).trim();
-            let idx = values.indexOf(current);
-            if (idx < 0 && !Number.isNaN(Number(current))) {
-                idx = values.findIndex(v => !Number.isNaN(Number(v)) && Number(v) === Number(current));
-            }
+            const current = this.canonValue(raw);
+            const idx = values.findIndex(v => this.canonValue(v) === current);
             return values[idx < 0 ? 0 : (idx + 1) % values.length];
         },
         currentTargetText(c) {
@@ -427,6 +437,9 @@ const VacuumWidget = {
         async sendAction(k) {
             if (this.sending || this.aliveDisabled) return;
             const item = this.commandItems.find(c => c.key === k);
+            /* Read the level right before switching: the cached poll value may be
+               several seconds old, and the cycle must start where the device is. */
+            if (item && item.target) await this.loadValue(this.widget.object, item.target);
             const code = item && item.target ? this.nextTargetValue(item) : this.codeFor(k);
             this.sending = true;
             try {
