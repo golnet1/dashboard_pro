@@ -49,8 +49,8 @@ const VacuumWidget = {
         property_status: 'status',
         property_battery: 'battery',
         property_error: 'error',
-        status_cleaning_values: 'cleaning,clean,running,4,5,6,7',
-        status_error_values: 'error,failed,8,9',
+        status_cleaning_values: 'cleaning,clean,running,5,7,11,17,18,101,105',
+        status_error_values: 'error,failed,9,12',
         codes: JSON.stringify([
             { key: 'start', code: 'start', label: 'vc_start', icon: 'fas fa-play' },
             { key: 'pause', code: 'pause', label: 'vc_pause', icon: 'fas fa-pause' },
@@ -221,14 +221,21 @@ const VacuumWidget = {
         statusText() {
             const s = this.normalizedStatus;
             if (!s || s === '0') return this.t('vc_st_unknown');
+            /* The configured lists win: they describe this particular device. */
+            if (this.statusTokens.indexOf(s) !== -1) return this.t('vc_st_cleaning');
+            if (this.errorTokens.indexOf(s) !== -1) return this.t('vc_st_error');
             const map = {};
             map.cleaning = 'vc_st_cleaning'; map.clean = 'vc_st_cleaning'; map.running = 'vc_st_cleaning';
-            map['4'] = 'vc_st_cleaning'; map['5'] = 'vc_st_cleaning'; map['6'] = 'vc_st_cleaning'; map['7'] = 'vc_st_cleaning';
-            map.pause = 'vc_st_paused'; map.paused = 'vc_st_paused';
-            map.idle = 'vc_st_idle'; map.standby = 'vc_st_idle'; map['1'] = 'vc_st_idle';
-            map.charging = 'vc_st_charging'; map.charge = 'vc_st_charging';
+            map['4'] = 'vc_st_cleaning'; map['5'] = 'vc_st_cleaning'; map['7'] = 'vc_st_cleaning';
+            map['11'] = 'vc_st_cleaning'; map['17'] = 'vc_st_cleaning'; map['18'] = 'vc_st_cleaning';
+            map['101'] = 'vc_st_cleaning'; map['105'] = 'vc_st_cleaning';
+            map.pause = 'vc_st_paused'; map.paused = 'vc_st_paused'; map['10'] = 'vc_st_paused';
+            map.idle = 'vc_st_idle'; map.standby = 'vc_st_idle';
+            map['1'] = 'vc_st_idle'; map['2'] = 'vc_st_idle'; map['3'] = 'vc_st_idle';
+            map.charging = 'vc_st_charging'; map.charge = 'vc_st_charging'; map['8'] = 'vc_st_charging';
             map.docking = 'vc_st_docking'; map.dock = 'vc_st_docking'; map.returning = 'vc_st_docking';
-            map.error = 'vc_st_error'; map.failed = 'vc_st_error'; map['8'] = 'vc_st_error'; map['9'] = 'vc_st_error';
+            map['6'] = 'vc_st_docking'; map['15'] = 'vc_st_docking'; map['16'] = 'vc_st_docking';
+            map.error = 'vc_st_error'; map.failed = 'vc_st_error'; map['9'] = 'vc_st_error'; map['12'] = 'vc_st_error';
             return this.t(map[s] || 'vc_st_unknown');
         },
         battery() {
