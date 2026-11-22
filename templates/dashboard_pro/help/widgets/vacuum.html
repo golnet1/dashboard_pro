@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Робот-пылесос — Dashboard Pro Справка</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="../css/help.css">
+</head>
+<body>
+<header class="help-header">
+    <i class="fas fa-book" style="font-size:1.4rem"></i>
+    <h1>Dashboard Pro <span class="subtitle">— справка и документация</span></h1>
+    <a href="../../index.html"><i class="fas fa-external-link-alt"></i> Открыть панель</a>
+</header>
+<div class="help-layout">
+    <aside class="help-side">
+        <div class="help-side__title">Разделы справки</div>
+        <nav>
+            <a href="../index.html"><i class="fas fa-home"></i> Обзор</a>
+            <a href="../panels.html"><i class="fas fa-th-large"></i> Панели</a>
+            <a href="../widgets.html" class="help-side__toggle" aria-expanded="false"><i class="fas fa-puzzle-piece"></i> Виджеты</a><div class="help-side__sub">
+                <a href="acremote.html">Пульт кондиционера</a>
+                <a href="alarmclock.html">Будильник</a>
+                <a href="analogclock.html">Аналоговые часы</a>
+                <a href="button.html">Кнопка</a>
+                <a href="calendar.html">Календарь</a>
+                <a href="chat.html">Чат</a>
+                <a href="clock.html">Часы</a>
+                <a href="colorslider.html">Слайдер цвета</a>
+                <a href="curtain.html">Ворота / жалюзи / шторы</a>
+                <a href="datepicker.html">Выбор даты</a>
+                <a href="dimmer.html">Диммер</a>
+                <a href="empty.html">Пустой</a>
+                <a href="gauge.html">Индикатор</a>
+                <a href="gradient-slider.html">Слайдер с градиентом</a>
+                <a href="graph.html">График</a>
+                <a href="group.html">Группа</a>
+                <a href="iframe.html">iFrame</a>
+                <a href="image.html">Изображение</a>
+                <a href="keypad.html">Клавиатура</a>
+                <a href="map.html">Карта</a>
+                <a href="musicplayer.html">Музыкальный проигрыватель</a>
+                <a href="musicremote.html">Пульт музыки</a>
+                <a href="panellink.html">Ссылка на панель</a>
+                <a href="progressbar.html">Прогресс-бар</a>
+                <a href="relay.html">Реле</a>
+                <a href="rgb.html">RGB</a>
+                <a href="roominfo.html">Помещение</a>
+                <a href="roundslider.html">Круглый слайдер</a>
+                <a href="select.html">Выбор</a>
+                <a href="sendtext.html">Отправка текста</a>
+                <a href="slider.html">Слайдер</a>
+                <a href="sliderbuttons.html">Слайдер с кнопками</a>
+                <a href="slideshow.html">Слайд-шоу</a>
+                <a href="status.html">Статус</a>
+                <a href="stream.html">Потоковое видео</a>
+                <a href="table.html">Таблица</a>
+                <a href="test.html">Тест</a>
+                <a href="text.html">Текст</a>
+                <a href="thermostat.html">Термостат</a>
+                <a href="timeline.html">Таймлайн</a>
+                <a href="timepicker.html">Выбор времени</a>
+                <a href="trend.html">Тренд</a>
+                <a href="tvremote.html">Пульт ТВ</a>
+                <a href="unknown.html">Неизвестный</a>
+                <a href="vacuum.html" class="active">Робот-пылесос</a>
+                <a href="value.html">Значение</a>
+                <a href="video.html">Видео</a>
+                <a href="weather.html">Погода</a>
+            </div>
+            <a href="../editor.html"><i class="fas fa-edit"></i> Редактор виджетов</a>
+            <a href="../builder.html"><i class="fas fa-wand-magic-sparkles"></i> Конструктор</a>
+            <a href="../settings.html"><i class="fas fa-cog"></i> Настройки</a>
+            <a href="../users.html"><i class="fas fa-users"></i> Пользователи и права</a>
+            <a href="../faq.html"><i class="fas fa-question-circle"></i> Частые вопросы</a>
+        </nav>
+    </aside>
+    <main class="help-main" id="top">
+        <p class="help-breadcrumb"><a href="../widgets.html"><i class="fas fa-arrow-left"></i> Виджеты</a></p>
+        <h2>Робот-пылесос</h2>
+        <div class="help-card" id="vacuum">
+            <div class="help-card__head"><h3>Робот-пылесос</h3><span class="badge">vacuum</span><a class="help-top" href="../widgets.html">↑ к списку виджетов</a></div>
+            <p>Статус уборки, заряд батареи, ошибка и набор дополнительных показателей с кнопками управления.</p>
+
+            <h4>Как работает</h4>
+            <p>Виджет читает три основных свойства: <b>статус</b>, <b>заряд</b> и <b>ошибку</b>, а также любое число дополнительных метрик из JSON. Заряд показывается кольцом с процентами: значения <code>0…1</code> автоматически переводятся в проценты. Если статус совпадает со списком «Уборка», главная кнопка становится «Пауза», иначе — «Старт». Точка у статуса и строка ошибки подсвечиваются отдельно.</p>
+            <p>Опрос идёт раз в 5 секунд (настраивается полем «Период обновления»). Время последнего обновления показано внизу карточки.</p>
+
+            <h4>Все поля</h4>
+            <p>Ниже — полный список полей настройки виджета: каждое поле, его ключ в файле виджета, тип и значение по умолчанию.</p>
+            <h5>Основное <span class="badge">params</span></h5>
+            <table>
+                <tr><th>Поле</th><th>Тип</th><th>По умолчанию</th><th>Описание</th></tr>
+                <tr><td>Название<br><code>title</code></td><td><code>text</code></td><td>—</td><td>Заголовок карточки. Если пусто — «Робот-пылесос».</td></tr>
+                <tr><td>Тип иконки<br><code>icon_type</code></td><td><code>select</code></td><td><code>icon</code></td><td>Иконка, свойство объекта или URL.</td></tr>
+                <tr><td>Иконка<br><code>icon</code></td><td><code>icon_picker</code></td><td><code>fas fa-robot</code></td><td>Класс иконки Font Awesome.</td></tr>
+                <tr><td>Объект / Свойство / URL иконки<br><code>icon_object</code>, <code>icon_property</code>, <code>icon_url</code></td><td><code>object</code>, <code>property</code>, <code>text</code></td><td>—</td><td>Показываются в зависимости от «Типа иконки».</td></tr>
+                <tr><td>Подсказка<br><code>vc_help</code></td><td><code>info</code></td><td>—</td><td>Краткая подсказка по настройке свойств и кодов.</td></tr>
+                <tr><td>Объект отправки<br><code>object</code></td><td><code>object</code></td><td>—</td><td>Объект Majordomo для команд и источник метрик по умолчанию.</td></tr>
+                <tr><td>Свойство<br><code>property</code></td><td><code>property</code></td><td><code>value</code></td><td>Свойство, в которое пишется команда при способе «Свойство».</td></tr>
+                <tr><td>Способ отправки<br><code>send_mode</code></td><td><code>select</code></td><td><code>property</code></td><td>Свойство / Команда / Метод / Сценарий.</td></tr>
+                <tr><td>Префикс команды<br><code>command_prefix</code></td><td><code>text</code></td><td>—</td><td>Префикс перед кодом при способе «Команда».</td></tr>
+                <tr><td>Сценарий<br><code>script</code></td><td><code>script</code></td><td>—</td><td>Имя сценария, получающего код в параметре <code>key</code>.</td></tr>
+                <tr><td>Коды кнопок (JSON)<br><code>codes</code></td><td><code>textarea</code></td><td><code>start</code>, <code>pause</code>, <code>stop</code>, <code>home</code>, <code>spot</code>, <code>edge</code>, <code>find</code>, <code>fan_up</code>, <code>fan_down</code>, <code>mode_next</code></td><td>Словарь «кнопка → код». При способе «Метод» код пишется как <code>Объект/Метод</code>.</td></tr>
+                <tr><td>Объект / Свойство статуса<br><code>object_status</code>, <code>property_status</code></td><td><code>object</code>, <code>property</code></td><td><code>status</code></td><td>Откуда читать статус. Если объект пуст — берётся «Объект отправки».</td></tr>
+                <tr><td>Объект / Свойство заряда<br><code>object_battery</code>, <code>property_battery</code></td><td><code>object</code>, <code>property</code></td><td><code>battery</code></td><td>Откуда читать заряд, 0–100 или 0–1.</td></tr>
+                <tr><td>Объект / Свойство ошибки<br><code>object_error</code>, <code>property_error</code></td><td><code>object</code>, <code>property</code></td><td><code>error</code></td><td>Откуда читать текст ошибки. <code>0</code>, <code>none</code>, <code>ok</code> считаются «нет ошибки».</td></tr>
+                <tr><td>Значения статуса «Уборка»<br><code>status_cleaning_values</code></td><td><code>text</code></td><td><code>cleaning,clean,running,4,5,6,7</code></td><td>Список через запятую. При совпадении главная кнопка показывает «Пауза».</td></tr>
+                <tr><td>Значения статуса «Ошибка»<br><code>status_error_values</code></td><td><code>text</code></td><td><code>error,failed,8,9</code></td><td>Список через запятую для красной точки у статуса.</td></tr>
+                <tr><td>Подсказка метрик<br><code>metrics_help</code></td><td><code>info</code></td><td>—</td><td>Пример JSON для дополнительных показателей.</td></tr>
+                <tr><td>Дополнительные показатели (JSON)<br><code>metrics</code></td><td><code>textarea</code></td><td>9 метрик (режим, вентилятор, площадь, время, вода, пылесборник, фильтр, щётка, комната)</td><td>Массив объектов <code>object</code>, <code>property</code>, <code>label</code>, <code>icon</code>, <code>suffix</code>. Пустой <code>object</code> — объект отправки.</td></tr>
+            </table>
+            <h5>Дополнительно <span class="badge">advanced</span></h5>
+            <table>
+                <tr><th>Поле</th><th>Тип</th><th>По умолчанию</th><th>Описание</th></tr>
+                <tr><td>Период обновления<br><code>refresh_interval</code></td><td><code>number</code></td><td>5 секунд</td><td>Как часто виджет опрашивает свойства.</td></tr>
+                <tr><td>Фон виджета<br><code>bg_mode</code></td><td><code>select</code></td><td>—</td><td>Тема / картинка / свой цвет / цвет из свойства.</td></tr>
+                <tr><td>Цвет, URL изображения, объект и свойство цвета<br><code>color</code>, <code>bg_image</code>, <code>bg_object</code>, <code>bg_property</code></td><td><code>color</code>, <code>text</code>, <code>object</code>, <code>property</code></td><td>—</td><td>Показываются в зависимости от выбранного фона.</td></tr>
+                <tr><td>Признак доступности<br><code>object_alive</code>, <code>property_alive</code></td><td><code>object</code>, <code>property</code></td><td>—</td><td>Объект и свойство «живости». Если значение <code>0</code>, виджет гаснет и кнопки блокируются.</td></tr>
+                <tr><td>Таймаут (сек)<br><code>alive_timeout</code></td><td><code>number</code></td><td>3</td><td>Интервал проверки доступности.</td></tr>
+            </table>
+
+            <h4>Кнопки</h4>
+            <table>
+                <tr><th>Кнопка</th><th>Ключ в JSON</th><th>Код по умолчанию</th></tr>
+                <tr><td>Старт / Пауза</td><td><code>start</code> / <code>pause</code></td><td><code>start</code> / <code>pause</code></td></tr>
+                <tr><td>Стоп</td><td><code>stop</code></td><td><code>stop</code></td></tr>
+                <tr><td>Домой</td><td><code>home</code></td><td><code>home</code></td></tr>
+                <tr><td>Точка / Края / Поиск</td><td><code>spot</code> / <code>edge</code> / <code>find</code></td><td><code>spot</code> / <code>edge</code> / <code>find</code></td></tr>
+                <tr><td>Вентилятор − / +</td><td><code>fan_down</code> / <code>fan_up</code></td><td><code>fanDown</code> / <code>fanUp</code></td></tr>
+                <tr><td>Режим</td><td><code>mode_next</code></td><td><code>modeNext</code></td></tr>
+            </table>
+            <p>Пример словаря кодов: <code>{"start":"start","pause":"pause","home":"goHome","find":"locate"}</code>. Если кнопки в словаре нет — используется код по умолчанию из таблицы.</p>
+
+            <h4>Способы отправки</h4>
+            <table>
+                <tr><th>Режим</th><th>Что делает</th></tr>
+                <tr><td><b>Свойство</b> <code>property</code></td><td>Записывает код в свойство выбранного объекта (<code>setProperty</code>).</td></tr>
+                <tr><td><b>Команда</b> <code>command</code></td><td>Выполняет системную команду: префикс + код.</td></tr>
+                <tr><td><b>Метод</b> <code>method</code></td><td>Вызывает метод вида <code>Объект/Метод</code>; код должен содержать оба компонента.</td></tr>
+                <tr><td><b>Сценарий</b> <code>script</code></td><td>Запускает сценарий; код передаётся в параметре <code>key</code>.</td></tr>
+            </table>
+
+            <h4>Дополнительные показатели</h4>
+            <p>Поле <code>metrics</code> задаёт список строк карточки. Каждый элемент — объект:</p>
+            <table>
+                <tr><th>Ключ</th><th>Описание</th></tr>
+                <tr><td><code>object</code></td><td>Объект отображаемого свойства. Пусто — «Объект отправки».</td></tr>
+                <tr><td><code>property</code></td><td>Имя свойства.</td></tr>
+                <tr><td><code>label</code></td><td>Подпись. Ключ вида <code>vc_*</code> переводится на язык интерфейса, остальной текст показывается как есть.</td></tr>
+                <tr><td><code>icon</code></td><td>Класс иконки Font Awesome, например <code>fas fa-wind</code>.</td></tr>
+                <tr><td><code>suffix</code></td><td>Суффикс значения, например <code>%</code> или <code> м²</code>.</td></tr>
+            </table>
+            <p>Пример: <code>[{"object":"Vacuum","property":"clean_area","label":"vc_area","icon":"fas fa-draw-polygon","suffix":" м²"},{"property":"room","label":"vc_room","icon":"fas fa-map-marker-alt"}]</code></p>
+
+            <h4>Поддерживаемые статусы</h4>
+            <table>
+                <tr><th>Значение</th><th>Подпись</th></tr>
+                <tr><td><code>cleaning</code>, <code>clean</code>, <code>running</code>, <code>4</code>–<code>7</code></td><td>Уборка</td></tr>
+                <tr><td><code>pause</code>, <code>paused</code></td><td>Пауза</td></tr>
+                <tr><td><code>idle</code>, <code>standby</code>, <code>1</code></td><td>Ожидание</td></tr>
+                <tr><td><code>charging</code>, <code>charge</code></td><td>Зарядка</td></tr>
+                <tr><td><code>docking</code>, <code>dock</code>, <code>returning</code></td><td>Возврат</td></tr>
+                <tr><td><code>error</code>, <code>failed</code>, <code>8</code>, <code>9</code></td><td>Ошибка</td></tr>
+            </table>
+            <p>Список можно изменить полями «Значения статуса „Уборка“» и «Значения статуса „Ошибка“». Неизвестное значение показывается как «Неизвестно».</p>
+        </div>
+    </main>
+</div>
+<footer class="help-footer">Dashboard Pro · Справка модуля · <a href="https://github.com/golnet1/dashboard_pro" target="_blank" rel="noopener">GitHub</a></footer>
+<script>
+(function () {
+    function closeAll() {
+        document.querySelectorAll('.help-side__sub--open').forEach(function (el) { el.classList.remove('help-side__sub--open'); });
+        document.querySelectorAll('.help-side__toggle').forEach(function (t) { t.setAttribute('aria-expanded', 'false'); });
+    }
+    document.querySelectorAll('.help-side__toggle').forEach(function (toggle) {
+        toggle.addEventListener('click', function (e) {
+            var sub = toggle.nextElementSibling;
+            var wasOpen = sub && sub.classList.contains('help-side__sub--open');
+            closeAll();
+            if (sub && !wasOpen) {
+                sub.classList.add('help-side__sub--open');
+                toggle.setAttribute('aria-expanded', 'true');
+                e.preventDefault();
+            }
+        });
+    });
+    document.querySelectorAll('.help-side nav a').forEach(function (a) {
+        if (!a.classList.contains('help-side__toggle')) a.addEventListener('click', closeAll);
+    });
+})();
+</script>
+<script src="../js/help-search.js"></script>
+</body>
+</html>

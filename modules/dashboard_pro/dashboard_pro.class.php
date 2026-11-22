@@ -3445,6 +3445,7 @@ function widgetUsageInfo($type)
             array('alarmclock', 'fas fa-bell', 'Alarm clock', 'Alarm clock: time, days, sound, script, PHP code'),
             array('musicplayer', 'fas fa-music', 'Music player', 'Music player: playlist, spectrum analyzer, color output by frequency bands'),
             array('curtain', 'fas fa-warehouse', 'Gates / Blinds / Curtains', 'Open/close by percentage'),
+            array('vacuum', 'fas fa-robot', 'Robot vacuum', 'Robot vacuum status and control'),
         );
     }
 
