@@ -96,9 +96,11 @@ const VacuumWidget = {
                 <div v-if="errorText" class="dp-vac__error"><i class="fas fa-triangle-exclamation"></i><span>{{ errorText }}</span></div>
                 <div v-if="metricItems.length" class="dp-vac__metrics">
                     <div v-for="(m, i) in metricItems" :key="i" class="dp-vac__metric">
-                        <i v-if="m.icon" :class="m.icon" class="dp-vac__metric-icon"></i>
+                        <div class="dp-vac__metric-top">
+                            <i v-if="m.icon" :class="m.icon" class="dp-vac__metric-icon"></i>
+                            <span class="dp-vac__metric-value">{{ m.value }}</span>
+                        </div>
                         <span class="dp-vac__metric-label">{{ m.label }}</span>
-                        <span class="dp-vac__metric-value">{{ m.value }}</span>
                     </div>
                 </div>
                 <div v-else class="dp-vac__empty">{{ t('vc_no_data') }}</div>
@@ -274,7 +276,7 @@ const VacuumWidget = {
                 return {
                     icon: m.icon || '',
                     label: String(m.label || prop).indexOf('vc_') === 0 ? self.t(m.label) : (m.label || prop),
-                    value: hasValue ? String(raw) + (m.suffix || '') : '--'
+                    value: hasValue ? self.formatMetricValue(m, raw) : '--'
                 };
             });
         },
@@ -298,6 +300,29 @@ const VacuumWidget = {
         if (this.availTimer) clearInterval(this.availTimer);
     },
     methods: {
+        /* Raw miIO values are not meant to be shown as-is: 33345 seconds and
+           a bare "Standard" say nothing. Keep the formatting generic enough
+           to stay useful for other vacuum objects too. */
+        formatMetricValue(m, raw) {
+            let s = String(raw);
+            const prop = String(m.property || '');
+            const valueWords = {
+                Silent: 'vc_val_silent', Standard: 'vc_val_standard',
+                Medium: 'vc_val_medium', Turbo: 'vc_val_turbo',
+                Low: 'vc_val_low', High: 'vc_val_high'
+            };
+            if (valueWords[s]) s = this.t(valueWords[s]);
+            else if (prop === 'clean_time' && /^\d+$/.test(s)) {
+                const total = parseInt(s, 10);
+                const h = Math.floor(total / 3600);
+                const min = Math.round((total % 3600) / 60);
+                s = h ? h + ' ' + this.t('vc_hours') + ' ' + min + ' ' + this.t('vc_minutes')
+                      : min + ' ' + this.t('vc_minutes');
+            } else if (/^(clean_area|clean_times)$/.test(prop) && /^\d+$/.test(s)) {
+                s = parseInt(s, 10).toLocaleString('ru-RU');
+            }
+            return s + (m.suffix || '');
+        },
         readValue(object, property) {
             if (!object || !property) return undefined;
             return this.values[object + '.' + property];

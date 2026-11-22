@@ -1629,4 +1629,12 @@ $frontend = array(
     'vc_st_charging' => 'Зарядка',
     'vc_st_docking' => 'Возврат',
     'vc_st_error' => 'Ошибка',
+    'vc_val_silent' => 'Тихий',
+    'vc_val_standard' => 'Стандарт',
+    'vc_val_medium' => 'Средний',
+    'vc_val_turbo' => 'Турбо',
+    'vc_val_low' => 'Низкий',
+    'vc_val_high' => 'Высокий',
+    'vc_hours' => 'ч',
+    'vc_minutes' => 'мин',
 );

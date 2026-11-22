@@ -1630,4 +1630,12 @@ $frontend = array(
     'vc_st_charging' => 'Charging',
     'vc_st_docking' => 'Returning',
     'vc_st_error' => 'Error',
+    'vc_val_silent' => 'Silent',
+    'vc_val_standard' => 'Standard',
+    'vc_val_medium' => 'Medium',
+    'vc_val_turbo' => 'Turbo',
+    'vc_val_low' => 'Low',
+    'vc_val_high' => 'High',
+    'vc_hours' => 'h',
+    'vc_minutes' => 'min',
 );

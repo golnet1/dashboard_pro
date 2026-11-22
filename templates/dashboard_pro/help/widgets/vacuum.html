@@ -105,8 +105,8 @@
                 <tr><td>Объект / Свойство статуса<br><code>object_status</code>, <code>property_status</code></td><td><code>object</code>, <code>property</code></td><td><code>status</code></td><td>Откуда читать статус. Если объект пуст — берётся «Объект отправки».</td></tr>
                 <tr><td>Объект / Свойство заряда<br><code>object_battery</code>, <code>property_battery</code></td><td><code>object</code>, <code>property</code></td><td><code>battery</code></td><td>Откуда читать заряд, 0–100 или 0–1.</td></tr>
                 <tr><td>Объект / Свойство ошибки<br><code>object_error</code>, <code>property_error</code></td><td><code>object</code>, <code>property</code></td><td><code>error</code></td><td>Откуда читать текст ошибки. <code>0</code>, <code>none</code>, <code>ok</code> считаются «нет ошибки».</td></tr>
-                <tr><td>Значения статуса «Уборка»<br><code>status_cleaning_values</code></td><td><code>text</code></td><td><code>cleaning,clean,running,4,5,6,7</code></td><td>Список через запятую. При совпадении главная кнопка показывает «Пауза».</td></tr>
-                <tr><td>Значения статуса «Ошибка»<br><code>status_error_values</code></td><td><code>text</code></td><td><code>error,failed,8,9</code></td><td>Список через запятую для красной точки у статуса.</td></tr>
+                <tr><td>Значения статуса «Уборка»<br><code>status_cleaning_values</code></td><td><code>text</code></td><td><code>cleaning,clean,running,5,7,11,17,18,101,105</code></td><td>Список через запятую. При совпадении главная кнопка показывает «Пауза».</td></tr>
+                <tr><td>Значения статуса «Ошибка»<br><code>status_error_values</code></td><td><code>text</code></td><td><code>error,failed,9,12</code></td><td>Список через запятую для красной точки у статуса.</td></tr>
             </table>
             <h5>Команды <span class="badge">vc_commands</span></h5>
             <p>Каждая строка — одна команда с обычными полями «Ключ», «Код», «Подпись» и кнопкой выбора иконки. Ключи <code>start</code> и <code>pause</code> управляют главной кнопкой, остальные строки выводятся сеткой в порядке списка. Подпись вида <code>vc_*</code> переводится; можно вписать и свой текст. При способе «Метод» код пишется как <code>Объект/Метод</code>.</p>
@@ -154,6 +154,7 @@
                 <tr><td><code>suffix</code></td><td>Суффикс значения, например <code>%</code> или <code> м²</code>.</td></tr>
             </table>
             <p>Строки можно добавлять, удалять и менять местами стрелками — редактировать JSON вручную не требуется.</p>
+            <p>Каждая метрика показывается отдельной карточкой: крупное значение сверху, полностью выведенная подпись под ним. Значения <code>clean_time</code> переводятся из секунд в часы и минуты, <code>clean_area</code> и <code>clean_times</code> выводятся с разрядами, а английские значения режимов (<code>Standard</code>, <code>Medium</code> и др.) переводятся на язык интерфейса.</p>
 
             <h4>Поддерживаемые статусы</h4>
             <table>
