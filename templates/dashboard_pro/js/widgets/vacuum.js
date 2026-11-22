@@ -320,7 +320,13 @@ const VacuumWidget = {
                 Medium: 'vc_val_medium', Turbo: 'vc_val_turbo',
                 Low: 'vc_val_low', High: 'vc_val_high'
             };
+            /* miIO keeps numeric mode/water values in the property right after a
+               button press, until the device answers the poll. Show the same words. */
+            const modeWords = ['vc_val_silent', 'vc_val_standard', 'vc_val_medium', 'vc_val_turbo'];
+            const waterWords = { 1: 'vc_val_low', 2: 'vc_val_medium', 3: 'vc_val_high' };
             if (valueWords[s]) s = this.t(valueWords[s]);
+            else if (prop === 'mode' && /^[0-3]$/.test(s)) s = this.t(modeWords[parseInt(s, 10)]);
+            else if (prop === 'water_grade' && waterWords[s]) s = this.t(waterWords[s]);
             else if (prop === 'clean_time' && /^\d+$/.test(s)) {
                 const total = parseInt(s, 10);
                 const h = Math.floor(total / 3600);
