@@ -1923,7 +1923,7 @@ function headerPanelSave() {
                 }
             }
             tabs = tabs.filter(tab => {
-                if (tab.key === 'columns' || tab.key === 'widgets' || tab.key === 'graphs' || tab.key === 'colors' || tab.key === 'items' || tab.key === 'slides' || tab.key === 'statuses' || tab.key === 'template') return true;
+                if (tab.key === 'columns' || tab.key === 'widgets' || tab.key === 'graphs' || tab.key === 'colors' || tab.key === 'items' || tab.key === 'slides' || tab.key === 'statuses' || tab.key === 'template' || tab.key === 'vc_commands' || tab.key === 'vc_metrics') return true;
                 const fields = getWidgetFields(type, tab.fields || tab.key);
                 return fields.length > 0;
             });
@@ -2255,6 +2255,98 @@ function headerPanelSave() {
             setStatusItemField(idx, 'method', obj && mth ? obj + '/' + mth : (obj || mth));
         }
 
+        // ---- Robot vacuum: command rows (the Codes tab) ----
+        const vacuumCommandsIdx = ref(0);
+        const vacuumCommandsList = computed(() => {
+            let raw;
+            try { raw = JSON.parse(editWidgetForm.value?.codes || '[]'); } catch { raw = []; }
+            if (Array.isArray(raw)) {
+                return raw.filter(c => c && typeof c === 'object').map(c => ({
+                    key: c.key === undefined ? '' : String(c.key),
+                    code: c.code === undefined || c.code === null ? '' : String(c.code),
+                    label: c.label || '',
+                    icon: c.icon || ''
+                }));
+            }
+            /* Older widgets keep a plain «key: code» map: show it as rows too. */
+            if (raw && typeof raw === 'object') {
+                return Object.keys(raw).map(key => ({ key: key, code: String(raw[key] === undefined || raw[key] === null ? '' : raw[key]), label: '', icon: '' }));
+            }
+            return [];
+        });
+        function setVacuumCommands(arr) {
+            editWidgetForm.value.codes = JSON.stringify(arr);
+        }
+        function addVacuumCommand() {
+            const arr = vacuumCommandsList.value;
+            arr.push({ key: '', code: '', label: '', icon: '' });
+            setVacuumCommands(arr);
+            vacuumCommandsIdx.value = arr.length - 1;
+        }
+        function removeVacuumCommand(idx) {
+            const arr = vacuumCommandsList.value;
+            arr.splice(idx, 1);
+            setVacuumCommands(arr);
+            if (vacuumCommandsIdx.value >= arr.length) vacuumCommandsIdx.value = Math.max(0, arr.length - 1);
+        }
+        function setVacuumCommandField(idx, key, val) {
+            const arr = vacuumCommandsList.value;
+            if (arr[idx]) arr[idx][key] = val;
+            setVacuumCommands(arr);
+        }
+        function moveVacuumCommand(idx, dir) {
+            const arr = vacuumCommandsList.value;
+            const to = idx + dir;
+            if (to < 0 || to >= arr.length) return;
+            const cur = vacuumCommandsIdx.value;
+            arr.splice(to, 0, arr.splice(idx, 1)[0]);
+            setVacuumCommands(arr);
+            vacuumCommandsIdx.value = cur === idx ? to : (cur === to ? idx : cur);
+        }
+
+        // ---- Robot vacuum: metric rows (the Metrics tab) ----
+        const vacuumMetricsIdx = ref(0);
+        const vacuumMetricsList = computed(() => {
+            let raw;
+            try { raw = JSON.parse(editWidgetForm.value?.metrics || '[]'); } catch { raw = []; }
+            return Array.isArray(raw) ? raw.filter(m => m && typeof m === 'object') : [];
+        });
+        const vacuumMetricProps = ref({});
+        function setVacuumMetrics(arr) {
+            editWidgetForm.value.metrics = JSON.stringify(arr);
+        }
+        function addVacuumMetric() {
+            const arr = vacuumMetricsList.value;
+            arr.push({ object: '', property: '', label: '', icon: '', suffix: '' });
+            setVacuumMetrics(arr);
+            vacuumMetricsIdx.value = arr.length - 1;
+        }
+        function removeVacuumMetric(idx) {
+            const arr = vacuumMetricsList.value;
+            arr.splice(idx, 1);
+            setVacuumMetrics(arr);
+            if (vacuumMetricsIdx.value >= arr.length) vacuumMetricsIdx.value = Math.max(0, arr.length - 1);
+        }
+        function setVacuumMetricField(idx, key, val) {
+            const arr = vacuumMetricsList.value;
+            if (arr[idx]) arr[idx][key] = val;
+            setVacuumMetrics(arr);
+        }
+        function moveVacuumMetric(idx, dir) {
+            const arr = vacuumMetricsList.value;
+            const to = idx + dir;
+            if (to < 0 || to >= arr.length) return;
+            const cur = vacuumMetricsIdx.value;
+            arr.splice(to, 0, arr.splice(idx, 1)[0]);
+            setVacuumMetrics(arr);
+            vacuumMetricsIdx.value = cur === idx ? to : (cur === to ? idx : cur);
+        }
+        async function loadVacuumMetricProps(idx, obj) {
+            if (!obj) { vacuumMetricProps.value = { ...vacuumMetricProps.value, [idx]: [] }; return; }
+            const res = await dpAPI('properties?object_id=' + encodeURIComponent(obj));
+            vacuumMetricProps.value = { ...vacuumMetricProps.value, [idx]: res.items || [] };
+        }
+
         const columnFields = [
             { key: 'info', label: 'field_info' },
             { key: 'data_name', label: 'field_column_name' },
@@ -2514,7 +2606,7 @@ function loadScript(src, version) {
            reached the panel. The token changes on every install, and the base follows the
            module, so a module update also refreshes the widgets. */
         const WIDGET_TOKEN_KEY = 'dp_widget_token';
-        const WIDGET_TOKEN_BASE = 306;
+        const WIDGET_TOKEN_BASE = 308;
         function widgetToken() {
             let token = 0;
             try { token = parseInt(localStorage.getItem(WIDGET_TOKEN_KEY) || '0', 10) || 0; } catch (e) { token = 0; }
@@ -2651,7 +2743,12 @@ function loadScript(src, version) {
                named there waits for its object as well */
             const typeDefaultsFlat = {};
             for (const k of Object.keys(typeDefaults || {})) {
-                if (!(k in fieldDefaults)) continue;
+                /* rows edited in their own tab (a table's columns, a vacuum's commands)
+                   are not ordinary fields, but their defaults still have to be written */
+                if (!(k in fieldDefaults)) {
+                    fieldDefaults[k] = typeDefaults[k];
+                    continue;
+                }
                 if (needsObject(allFields.find(f => f.key === k)?.type)) {
                     if (!pendingFieldDefaults[k]) pendingFieldDefaults[k] = stash(typeDefaults[k]);
                     typeDefaultsFlat[k] = '';
@@ -2743,6 +2840,9 @@ function loadScript(src, version) {
             const awTabs = getWidgetTabs(type);
             const awDef = awTabs.find(t => t.key === 'main') || awTabs[0];
             widgetTab.value = awDef ? awDef.key : 'main';
+            vacuumCommandsIdx.value = 0;
+            vacuumMetricsIdx.value = 0;
+            vacuumMetricProps.value = {};
             editWidgetForm.value = w;
             nextTick(updateWidgetTabSlider);
         }
@@ -3071,6 +3171,9 @@ function loadScript(src, version) {
             columnIdx.value = 0;
             seriesIdx.value = 0;
             slidesIdx.value = 0;
+            vacuumCommandsIdx.value = 0;
+            vacuumMetricsIdx.value = 0;
+            vacuumMetricProps.value = {};
             editWidgetParent.value = parent || null;
             editWidgetIsNew.value = false;
             const def = widgetDefs.value.find(d => d.type === w.type);
@@ -3092,6 +3195,14 @@ function loadScript(src, version) {
                 series: typeof w.series === 'string' ? w.series : JSON.stringify(w.series || []),
                 refresh: w.refresh || 60,
             };
+            /* Defaults of keys that live in their own tab rather than in a field list
+               (codes, metrics, columns, ...) must be restored too. */
+            const editComp = window.DpWidgets && window.DpWidgets[w.type];
+            const editDefaults = editComp && typeof editComp.defaults === 'function' ? editComp.defaults() : (editComp && editComp.defaults) || {};
+            Object.keys(editDefaults).forEach(k => {
+                const cur = editWidgetForm.value[k];
+                if (cur === undefined || cur === null || cur === '') editWidgetForm.value[k] = editDefaults[k];
+            });
             if (def && def.fields) {
                 for (const fields of Object.values(def.fields)) {
                     for (const f of fields) {
@@ -3129,6 +3240,9 @@ if (f.key) {
                 const res = await dpAPI('properties?object_id=' + encodeURIComponent(w.object_info));
                 infoProperties.value = res.items || [];
             }
+            vacuumMetricsList.value.forEach((m, i) => {
+                if (m.object) loadVacuumMetricProps(i, m.object);
+            });
             // Load methods for all method-type fields of this widget
             methodParentsFor(w.type).forEach(key => {
                 const obj = getMethodObj(w[key]);
@@ -3655,12 +3769,38 @@ if (f.key) {
                 if (obj) loadObjectMethods(obj);
             });
         });
-        /* the object of a property is chosen in another field: as soon as it is named, the
-           default the property was holding comes into it */
-        const objectFields = ['object', 'object_level', 'object_alive', 'object_info', 'icon_object', 'bg_object'];
-        objectFields.forEach(key => {
-            watch(() => editWidgetForm.value?.[key], (obj) => applyPendingObjectFields(key));
-        });
+        /* The object of a property is chosen in a separate field. Its name alone is
+           enough to find the pair (object, object_*, *_object), so every property
+           selector of every widget gets its list and its default without being
+           written into a hard-coded list first. */
+        function isObjectFieldKey(key) {
+            return key === 'object' || key === 'state_object' || key === 'icon_object' || key === 'bg_object' || key.indexOf('object_') === 0;
+        }
+        const lastObjectValues = {};
+        const objectPropertiesCache = {};
+        watch(editWidgetForm, async (form) => {
+            if (!form) {
+                Object.keys(lastObjectValues).forEach(key => delete lastObjectValues[key]);
+                return;
+            }
+            for (const key of Object.keys(form)) {
+                if (!isObjectFieldKey(key)) continue;
+                const obj = form[key] || '';
+                if (lastObjectValues[key] === obj) continue;
+                lastObjectValues[key] = obj;
+                /* a property default waits for its object — the same rule as before,
+                   now applied to all of them, not just a chosen few */
+                if (obj) applyPendingObjectFields(key);
+                if (!obj) { extraProperties.value[key] = []; continue; }
+                if (!objectPropertiesCache[obj]) {
+                    try {
+                        const res = await dpAPI('properties?object_id=' + encodeURIComponent(obj));
+                        objectPropertiesCache[obj] = res.items || [];
+                    } catch (e) { objectPropertiesCache[obj] = []; }
+                }
+                extraProperties.value = { ...extraProperties.value, [key]: objectPropertiesCache[obj] };
+            }
+        }, { deep: true, immediate: true });
         watch(() => editWidgetForm.value?.bg_mode, async (mode) => {
             if (!editWidgetForm.value) return;
             if (mode === 'property') await loadBgProperties();
@@ -3671,16 +3811,6 @@ if (f.key) {
         watch(() => editWidgetForm.value?.icon_object, (obj) => {
             if (obj) loadIconProperties();
         });
-        // Generic watcher for any object_* fields (alive, status, current, target, etc.)
-        const extraObjectKeys = ['object_alive', 'object_status', 'object_current', 'object_target', 'object_level', 'state_object', 'object_p1', 'object_p2', 'object_p3', 'object_p4', 'object_p5', 'object_p6', 'object_p7', 'object_p8', 'object_hex', 'object_r', 'object_g', 'object_b', 'object_md', 'object_tv_on'];
-        extraObjectKeys.forEach(key => {
-            watch(() => editWidgetForm.value?.[key], async (obj) => {
-                if (!obj) { extraProperties.value[key] = []; return; }
-                const res = await dpAPI('properties?object_id=' + encodeURIComponent(obj));
-                extraProperties.value = { ...extraProperties.value, [key]: res.items || [] };
-            });
-        });
-
         // Series editing watcher: load properties for every series object
         watch(() => editWidgetForm.value?.series, async (val) => {
             if (!val) { seriesProps.value = {}; return; }
@@ -4221,6 +4351,12 @@ if (f.key) {
         } else if (typeof iconTarget.value === 'string' && iconTarget.value.startsWith('st:')) {
                 const idx = parseInt(iconTarget.value.slice(3), 10);
                 setStatusItemField(idx, 'icon', ic);
+            } else if (typeof iconTarget.value === 'string' && iconTarget.value.startsWith('vc:')) {
+                const idx = parseInt(iconTarget.value.slice(3), 10);
+                setVacuumCommandField(idx, 'icon', ic);
+            } else if (typeof iconTarget.value === 'string' && iconTarget.value.startsWith('vm:')) {
+                const idx = parseInt(iconTarget.value.slice(3), 10);
+                setVacuumMetricField(idx, 'icon', ic);
             } else if (typeof iconTarget.value === 'string' && iconTarget.value.startsWith('nl:')) {
                 /* Иконка уровня оповещения: цель вида 'nl:<индекс>'. Список уровней
                    сохраняется как личные настройки, поэтому сразу пишем их. */
@@ -4262,6 +4398,16 @@ if (f.key) {
             if (typeof iconTarget.value === 'string' && iconTarget.value.startsWith('st:')) {
                 const idx = parseInt(iconTarget.value.slice(3), 10);
                 const arr = statusItems.value;
+                return arr[idx] && arr[idx].icon === ic;
+            }
+            if (typeof iconTarget.value === 'string' && iconTarget.value.startsWith('vc:')) {
+                const idx = parseInt(iconTarget.value.slice(3), 10);
+                const arr = vacuumCommandsList.value;
+                return arr[idx] && arr[idx].icon === ic;
+            }
+            if (typeof iconTarget.value === 'string' && iconTarget.value.startsWith('vm:')) {
+                const idx = parseInt(iconTarget.value.slice(3), 10);
+                const arr = vacuumMetricsList.value;
                 return arr[idx] && arr[idx].icon === ic;
             }
             if (typeof iconTarget.value === 'string' && iconTarget.value.startsWith('nl:')) {
@@ -5397,6 +5543,9 @@ onMounted(() => {
     slidesIdx, slidesList, addSlide, removeSlide, setSlideField, moveSlide,
             selectItems, addSelectItem, removeSelectItem, setSelectItemField,
             statusItems, addStatusItem, removeStatusItem, setStatusItemField, moveStatusItem, stMethodObj, stMethods, setStatusMethod,
+            vacuumCommandsIdx, vacuumCommandsList, addVacuumCommand, removeVacuumCommand, setVacuumCommandField, moveVacuumCommand,
+            vacuumMetricsIdx, vacuumMetricsList, addVacuumMetric, removeVacuumMetric, setVacuumMetricField, moveVacuumMetric,
+            vacuumMetricProps, loadVacuumMetricProps,
             draggingWidget, startDrag, onDrag, stopDrag,
             resizingWidget, startResize, onResize, stopResize,
             widgetMenuTarget, widgetPanelSubmenu, widgetGroupSubmenu, widgetConfirm, copyWidget, exportWidget, changeWidgetPanel, selectMoveTarget, confirmMoveWidget, moveWidgetToGroup, confirmMoveToGroup,

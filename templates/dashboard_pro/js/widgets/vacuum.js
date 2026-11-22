@@ -2,6 +2,8 @@ const VacuumWidget = {
     props: ['widget'],
     tabs: [
         { key: 'main', label: 'tab_main', fields: 'params' },
+        { key: 'vc_commands', label: 'tab_vc_commands' },
+        { key: 'vc_metrics', label: 'tab_vc_metrics' },
         { key: 'advanced', label: 'tab_advanced', fields: 'advanced' },
     ],
     fields: {
@@ -18,7 +20,6 @@ const VacuumWidget = {
             { key: 'send_mode', label: 'field_send_mode', type: 'select', row: 'vc_send_mode', options: [{value:'property',label:'opt_set_property'},{value:'command',label:'opt_command'},{value:'method',label:'opt_method'},{value:'script',label:'opt_script'}] },
             { key: 'command_prefix', label: 'field_command_prefix', type: 'text', row: 'vc_send_mode', showIf: { send_mode: 'command' }, placeholder: 'ph_command_prefix' },
             { key: 'script', label: 'field_script', type: 'script', showIf: { send_mode: 'script' } },
-            { key: 'codes', label: 'field_codes', type: 'textarea', rows: 6, placeholder: 'ph_codes' },
             { key: 'object_status', label: 'field_vc_status_object', type: 'object', row: 'vc_status_row' },
             { key: 'property_status', label: 'field_vc_status_property', type: 'property', row: 'vc_status_row' },
             { key: 'object_battery', label: 'field_vc_battery_object', type: 'object', row: 'vc_battery_row' },
@@ -27,8 +28,6 @@ const VacuumWidget = {
             { key: 'property_error', label: 'field_vc_error_property', type: 'property', row: 'vc_error_row' },
             { key: 'status_cleaning_values', label: 'field_vc_clean_values', type: 'text' },
             { key: 'status_error_values', label: 'field_vc_error_values', type: 'text' },
-            { key: 'metrics_help', type: 'info', text: 'help_vc_metrics' },
-            { key: 'metrics', label: 'field_vc_metrics', type: 'textarea', rows: 8 },
         ],
         advanced: [
             { key: 'refresh_interval', label: 'field_refresh_interval', type: 'number', row: 'refresh_row', step: 1 },
@@ -52,20 +51,29 @@ const VacuumWidget = {
         property_error: 'error',
         status_cleaning_values: 'cleaning,clean,running,4,5,6,7',
         status_error_values: 'error,failed,8,9',
-        codes: JSON.stringify({
-            start: 'start', pause: 'pause', stop: 'stop', home: 'home',
-            spot: 'spot', edge: 'edge', find: 'find',
-            fan_up: 'fanUp', fan_down: 'fanDown', mode_next: 'modeNext'
-        }),
+        codes: JSON.stringify([
+            { key: 'start', code: 'start', label: 'vc_start', icon: 'fas fa-play' },
+            { key: 'pause', code: 'pause', label: 'vc_pause', icon: 'fas fa-pause' },
+            { key: 'stop', code: 'stop', label: 'vc_stop', icon: 'fas fa-stop' },
+            { key: 'home', code: 'home', label: 'vc_home', icon: 'fas fa-house' },
+            { key: 'spot', code: 'spot', label: 'vc_spot', icon: 'fas fa-crosshairs' },
+            { key: 'edge', code: 'edge', label: 'vc_edge', icon: 'fas fa-border-style' },
+            { key: 'find', code: 'find', label: 'vc_find', icon: 'fas fa-magnifying-glass' },
+            { key: 'fan_down', code: 'fanDown', label: 'vc_fan_down', icon: 'fas fa-minus' },
+            { key: 'fan_up', code: 'fanUp', label: 'vc_fan_up', icon: 'fas fa-plus' },
+            { key: 'mode_next', code: 'modeNext', label: 'vc_mode_next', icon: 'fas fa-repeat' }
+        ]),
         metrics: JSON.stringify([
             { object: '', property: 'mode', label: 'vc_mode', icon: 'fas fa-broom', suffix: '' },
-            { object: '', property: 'fan_power', label: 'vc_fan', icon: 'fas fa-wind', suffix: '' },
+            { object: '', property: 'fan_power', label: 'vc_suction', icon: 'fas fa-wind', suffix: '' },
             { object: '', property: 'clean_area', label: 'vc_area', icon: 'fas fa-draw-polygon', suffix: ' м²' },
             { object: '', property: 'clean_time', label: 'vc_time', icon: 'fas fa-clock', suffix: ' мин' },
+            { object: '', property: 'main_brush', label: 'vc_main_brush', icon: 'fas fa-circle-notch', suffix: '%' },
+            { object: '', property: 'side_brush', label: 'vc_side_brush', icon: 'fas fa-spinner', suffix: '%' },
+            { object: '', property: 'water_consumption', label: 'vc_water_consumption', icon: 'fas fa-tint', suffix: ' мл' },
             { object: '', property: 'water_level', label: 'vc_water', icon: 'fas fa-tint', suffix: '%' },
             { object: '', property: 'dustbin', label: 'vc_dustbin', icon: 'fas fa-trash', suffix: '%' },
             { object: '', property: 'filter', label: 'vc_filter', icon: 'fas fa-filter', suffix: '%' },
-            { object: '', property: 'brush', label: 'vc_brush', icon: 'fas fa-circle-notch', suffix: '%' },
             { object: '', property: 'room', label: 'vc_room', icon: 'fas fa-map-marker-alt', suffix: '' }
         ]),
         width: 320, height: 330, minWidth: 260, minHeight: 280
@@ -123,8 +131,30 @@ const VacuumWidget = {
             if (this.widget.bg_image) s.backgroundImage = 'url("' + this.widget.bg_image + '")';
             return s;
         },
+        commandItems() {
+            let raw;
+            try { raw = JSON.parse(this.widget.codes || '[]'); } catch (e) { return []; }
+            if (!Array.isArray(raw)) return [];
+            return raw.filter(c => c && c.key).map(c => ({
+                key: String(c.key),
+                code: c.code === undefined || c.code === null ? '' : String(c.code),
+                label: c.label || '',
+                icon: c.icon || ''
+            }));
+        },
         codeMap() {
-            try { return JSON.parse(this.widget.codes || '{}'); } catch (e) { return {}; }
+            let raw;
+            try { raw = JSON.parse(this.widget.codes || '{}'); } catch (e) { return {}; }
+            /* Old widgets stored a plain «key: code» object; new ones keep the same
+               data as rows so it can be edited in the Commands tab. Read both. */
+            if (Array.isArray(raw)) {
+                const map = {};
+                raw.forEach(c => {
+                    if (c && c.key) map[String(c.key)] = (c.code === undefined || c.code === null) ? '' : String(c.code);
+                });
+                return map;
+            }
+            return raw && typeof raw === 'object' ? raw : {};
         },
         metricDefs() {
             try {
@@ -132,17 +162,33 @@ const VacuumWidget = {
                 return Array.isArray(list) ? list : [];
             } catch (e) { return []; }
         },
+        /* A metric only makes sense when its property (and an object to read it
+           from) is configured. Unconfigured rows stay in the editor but are
+           neither polled nor rendered. */
+        activeMetricDefs() {
+            return this.metricDefs.filter(m => m && m.property && (m.object || this.widget.object));
+        },
         quickButtons() {
-            return [
-                { key: 'stop', label: 'vc_stop', icon: 'fas fa-stop' },
-                { key: 'home', label: 'vc_home', icon: 'fas fa-house' },
-                { key: 'spot', label: 'vc_spot', icon: 'fas fa-crosshairs' },
-                { key: 'edge', label: 'vc_edge', icon: 'fas fa-border-style' },
-                { key: 'find', label: 'vc_find', icon: 'fas fa-magnifying-glass' },
-                { key: 'fan_down', label: 'vc_fan_down', icon: 'fas fa-minus' },
-                { key: 'fan_up', label: 'vc_fan_up', icon: 'fas fa-plus' },
-                { key: 'mode_next', label: 'vc_mode_next', icon: 'fas fa-repeat' }
-            ];
+            const legacy = {
+                stop: { label: 'vc_stop', icon: 'fas fa-stop' },
+                home: { label: 'vc_home', icon: 'fas fa-house' },
+                spot: { label: 'vc_spot', icon: 'fas fa-crosshairs' },
+                edge: { label: 'vc_edge', icon: 'fas fa-border-style' },
+                find: { label: 'vc_find', icon: 'fas fa-magnifying-glass' },
+                fan_down: { label: 'vc_fan_down', icon: 'fas fa-minus' },
+                fan_up: { label: 'vc_fan_up', icon: 'fas fa-plus' },
+                mode_next: { label: 'vc_mode_next', icon: 'fas fa-repeat' }
+            };
+            /* Without rows (an older saved widget) keep the original button set. */
+            const items = this.commandItems;
+            if (!items.length) return Object.keys(legacy).map(key => Object.assign({ key: key }, legacy[key]));
+            return items
+                .filter(c => c.key !== 'start' && c.key !== 'pause')
+                .map(c => ({
+                    key: c.key,
+                    label: c.label || (legacy[c.key] && legacy[c.key].label) || c.key,
+                    icon: c.icon || (legacy[c.key] && legacy[c.key].icon) || 'fas fa-circle'
+                }));
         },
         statusRaw() {
             return this.readValue(this.widget.object_status || this.widget.object, this.widget.property_status || 'status');
@@ -212,9 +258,9 @@ const VacuumWidget = {
         },
         metricItems() {
             const self = this;
-            return this.metricDefs.map(m => {
+            return this.activeMetricDefs.map(m => {
                 const obj = m.object || self.widget.object;
-                const prop = m.property || 'value';
+                const prop = m.property;
                 const key = obj + '.' + prop;
                 const raw = self.values[key];
                 const hasValue = raw !== undefined && raw !== null && raw !== '';
@@ -263,7 +309,7 @@ const VacuumWidget = {
                 this.loadValue(this.widget.object_status || this.widget.object, this.widget.property_status || 'status'),
                 this.loadValue(this.widget.object_battery || this.widget.object, this.widget.property_battery || 'battery'),
                 this.loadValue(this.widget.object_error || this.widget.object, this.widget.property_error || 'error'),
-                ...this.metricDefs.map(m => this.loadValue(m.object || this.widget.object, m.property || 'value'))
+                ...this.activeMetricDefs.map(m => this.loadValue(m.object || this.widget.object, m.property))
             ]);
             this.updatedAt = Date.now();
         },

@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Ubuntu">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Arimo:400,600,700">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700">
-    <link rel="stylesheet" href="css/app.css?v=171">
+    <link rel="stylesheet" href="css/app.css?v=172">
     <link rel="stylesheet" href="css/leaflet.css?v=1">
     <script src="js/lib/vue.global.prod.js"></script>
 <style>
@@ -2043,7 +2043,7 @@
                                     <button v-for="tab in getWidgetTabs(editWidgetForm.type)" :key="tab.key"
                                         class="v-tab"
                                         :class="{ 'v-tab--active': widgetTab === tab.key }"
-                                        @click="widgetTab = tab.key; if (tab.key === 'columns') columnIdx = 0; else if (tab.key === 'graphs') seriesIdx = 0; else if (tab.key === 'template') openTemplateTab(editWidgetForm.type)"
+                                        @click="widgetTab = tab.key; if (tab.key === 'columns') columnIdx = 0; else if (tab.key === 'graphs') seriesIdx = 0; else if (tab.key === 'vc_commands') vacuumCommandsIdx = 0; else if (tab.key === 'vc_metrics') vacuumMetricsIdx = 0; else if (tab.key === 'template') openTemplateTab(editWidgetForm.type)"
                                         role="tab">{{ t(tab.label) }}</button>
                                 </div>
                             </div>
@@ -2348,6 +2348,89 @@
                                                 {{ t('no_series') }}
                                             </div>
                                         </div>
+                                        </template>
+
+                                        <template v-else-if="tab.key === 'vc_commands'">
+                                        <p style="color:rgba(255,255,255,.5);font-size:.8rem;margin:0 0 8px">{{ t('help_vc_commands') }}</p>
+                                        <div class="d-flex gap-1 ma-1" style="align-items:center">
+                                            <button type="button" class="v-btn v-btn--is-elevated v-btn--fab v-btn--has-bg v-btn--round v-size--x-small" @click="addVacuumCommand" :title="t('add_item')"><i class="fas fa-plus"></i></button>
+                                            <span v-if="vacuumCommandsList.length" style="color:rgba(255,255,255,.55);font-size:.8rem;margin-left:4px">{{ vacuumCommandsList.length }} {{ t('units_items') }}</span>
+                                        </div>
+                                        <div v-if="vacuumCommandsList.length" class="widget-group-list" style="margin-top:8px">
+                                            <div v-for="(c, ci) in vacuumCommandsList" :key="c.key || ci" class="widget-group-list__item" style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start;cursor:default">
+                                                <div class="v-input v-text-field" style="flex:1 1 100px;min-width:90px">
+                                                    <div class="v-input__control">
+                                                        <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': c.key }">{{ t('vc_key') }}</label><input :value="c.key" @input="setVacuumCommandField(ci, 'key', $event.target.value)"></div>
+                                                    </div>
+                                                </div>
+                                                <div class="v-input v-text-field" style="flex:1 1 110px;min-width:100px">
+                                                    <div class="v-input__control">
+                                                        <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': c.code }">{{ t('vc_code') }}</label><input :value="c.code" @input="setVacuumCommandField(ci, 'code', $event.target.value)"></div>
+                                                    </div>
+                                                </div>
+                                                <div class="v-input v-text-field" style="flex:2 1 130px;min-width:120px">
+                                                    <div class="v-input__control">
+                                                        <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': c.label }">{{ t('vc_label') }}</label><input :value="c.label" @input="setVacuumCommandField(ci, 'label', $event.target.value)"></div>
+                                                    </div>
+                                                </div>
+                                                <button class="icon-btn" :title="t('pick_icon')" @click="openIconPicker('vc:' + ci)" style="flex-shrink:0"><i :class="c.icon || 'fas fa-circle'"></i></button>
+                                                <div class="d-flex gap-1" style="flex-shrink:0">
+                                                    <button class="icon-btn" :title="t('move_up')" @click="moveVacuumCommand(ci, -1)" :disabled="ci === 0"><i class="fas fa-arrow-up"></i></button>
+                                                    <button class="icon-btn" :title="t('move_down')" @click="moveVacuumCommand(ci, 1)" :disabled="ci === vacuumCommandsList.length - 1"><i class="fas fa-arrow-down"></i></button>
+                                                    <button type="button" class="v-btn v-btn--icon v-btn--round theme--dark v-size--default" :title="t('delete')" @click="removeVacuumCommand(ci)"><i class="fas fa-minus"></i></button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div v-else style="padding:20px;text-align:center;color:rgba(255,255,255,.45);font-size:.9rem">{{ t('widget_options_empty') }}</div>
+                                        </template>
+
+                                        <template v-else-if="tab.key === 'vc_metrics'">
+                                        <p style="color:rgba(255,255,255,.5);font-size:.8rem;margin:0 0 8px">{{ t('help_vc_metrics') }}</p>
+                                        <div class="d-flex gap-1 ma-1" style="align-items:center">
+                                            <button type="button" class="v-btn v-btn--is-elevated v-btn--fab v-btn--has-bg v-btn--round v-size--x-small" @click="addVacuumMetric" :title="t('add_item')"><i class="fas fa-plus"></i></button>
+                                            <span v-if="vacuumMetricsList.length" style="color:rgba(255,255,255,.55);font-size:.8rem;margin-left:4px">{{ vacuumMetricsList.length }} {{ t('units_items') }}</span>
+                                        </div>
+                                        <div v-if="vacuumMetricsList.length" class="widget-group-list" style="margin-top:8px">
+                                            <div v-for="(m, mi) in vacuumMetricsList" :key="mi" class="widget-group-list__item" style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start;cursor:default">
+                                                <div class="v-input v-text-field v-select" style="flex:1 1 130px;min-width:120px">
+                                                    <div class="v-input__control">
+                                                        <div class="v-input__slot"><label class="v-label v-label--active">{{ t('field_object') }}</label>
+                                                            <select :value="m.object" @change="setVacuumMetricField(mi, 'object', $event.target.value); setVacuumMetricField(mi, 'property', ''); loadVacuumMetricProps(mi, $event.target.value)">
+                                                                <option value="" style="background:#1e1e1e;color:#fff">{{ t('select_default') }}</option>
+                                                                <option v-for="o in objects" :key="o.ID" :value="o.TITLE" style="background:#1e1e1e;color:#fff">{{ itemLabel(o) }}</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="v-input v-text-field v-select" style="flex:1 1 130px;min-width:120px">
+                                                    <div class="v-input__control">
+                                                        <div class="v-input__slot"><label class="v-label v-label--active">{{ t('field_property') }}</label>
+                                                            <select :value="m.property" @change="setVacuumMetricField(mi, 'property', $event.target.value)">
+                                                                <option value="" style="background:#1e1e1e;color:#fff">{{ t('select_default') }}</option>
+                                                                <option v-for="prop in (vacuumMetricProps[mi] || (m.object ? [] : widgetProperties))" :key="prop.ID" :value="prop.TITLE" style="background:#1e1e1e;color:#fff">{{ itemLabel(prop) }}</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="v-input v-text-field" style="flex:2 1 120px;min-width:110px">
+                                                    <div class="v-input__control">
+                                                        <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': m.label }">{{ t('vc_label') }}</label><input :value="m.label" @input="setVacuumMetricField(mi, 'label', $event.target.value)"></div>
+                                                    </div>
+                                                </div>
+                                                <button class="icon-btn" :title="t('pick_icon')" @click="openIconPicker('vm:' + mi)" style="flex-shrink:0"><i :class="m.icon || 'fas fa-circle'"></i></button>
+                                                <div class="v-input v-text-field" style="flex:1 1 70px;min-width:60px">
+                                                    <div class="v-input__control">
+                                                        <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': m.suffix }">{{ t('vc_suffix') }}</label><input :value="m.suffix" @input="setVacuumMetricField(mi, 'suffix', $event.target.value)"></div>
+                                                    </div>
+                                                </div>
+                                                <div class="d-flex gap-1" style="flex-shrink:0">
+                                                    <button class="icon-btn" :title="t('move_up')" @click="moveVacuumMetric(mi, -1)" :disabled="mi === 0"><i class="fas fa-arrow-up"></i></button>
+                                                    <button class="icon-btn" :title="t('move_down')" @click="moveVacuumMetric(mi, 1)" :disabled="mi === vacuumMetricsList.length - 1"><i class="fas fa-arrow-down"></i></button>
+                                                    <button type="button" class="v-btn v-btn--icon v-btn--round theme--dark v-size--default" :title="t('delete')" @click="removeVacuumMetric(mi)"><i class="fas fa-minus"></i></button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div v-else style="padding:20px;text-align:center;color:rgba(255,255,255,.45);font-size:.9rem">{{ t('widget_options_empty') }}</div>
                                         </template>
 
                                         <template v-else-if="tab.key === 'statuses'">
@@ -3047,7 +3130,7 @@
                 <div class="modal-body" style="text-align:center;padding:2rem 1.5rem">
                     <i class="fas fa-chart-line" style="font-size:3rem;color:var(--primary);margin-bottom:1rem"></i>
                     <h3 style="margin-bottom:.3rem">Dashboard Pro</h3>
-                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 01.20.35</p>
+                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 01.20.37</p>
                     <p style="color:var(--text-secondary);font-size:.8rem">{{ t('app_desc') }}</p>
                     <div class="about-links" style="margin-top:1rem;font-size:.85rem;color:var(--text-secondary);line-height:1.8">
                         <div>{{ t('about_telegram') }}: <a href="https://t.me/+9ZFQaxs_Ukw4NmMy" target="_blank" rel="noopener">Telegram</a></div>
@@ -3104,6 +3187,6 @@
 <script src="js/lib/hls.min.js?v=1"></script>
     <script src="js/dpbuilder.js?v=74"></script>
     <script src="js/dpbuilder-ui.js?v=64"></script>
-    <script src="js/app.js?v=486"></script>
+    <script src="js/app.js?v=488"></script>
 </body>
 </html>

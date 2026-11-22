@@ -657,11 +657,11 @@ a.user-menu__item { text-decoration: none; color: inherit; }
 .dp-vac__online--bad { background:#ef4444; }
 .dp-vac__error { display:flex; align-items:center; gap:6px; padding:5px 8px; border-left:3px solid #ef4444; border-radius:3px; background:rgba(239,68,68,.12); color:var(--on-theme-high); font-size:.72rem; }
 .dp-vac__error i { color:#ef4444; }
-.dp-vac__metrics { display:grid; grid-template-columns:repeat(auto-fit,minmax(88px,1fr)); gap:5px; overflow:auto; max-height:104px; padding-right:2px; }
+.dp-vac__metrics { display:grid; grid-template-columns:repeat(auto-fit,minmax(100px,1fr)); gap:5px; overflow:auto; max-height:140px; padding-right:2px; }
 .dp-vac__metric { display:flex; align-items:center; gap:6px; min-width:0; padding:5px 7px; border-radius:var(--wpb-radius-default, 0px); background:rgba(128,128,128,.1); font-size:.72rem; color:var(--on-theme-high); }
 .dp-vac__metric-icon { width:14px; flex:0 0 14px; color:var(--on-theme-mid); }
-.dp-vac__metric-label { color:var(--on-theme-mid); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.dp-vac__metric-value { margin-left:auto; font-weight:700; color:var(--on-theme-high); white-space:nowrap; }
+.dp-vac__metric-label { color:var(--on-theme-mid); white-space:normal; overflow-wrap:anywhere; line-height:1.2; }
+.dp-vac__metric-value { margin-left:auto; font-weight:700; color:var(--on-theme-high); white-space:nowrap; flex-shrink:0; }
 .dp-vac__empty { padding:8px 0; text-align:center; font-size:.75rem; color:var(--on-theme-dim); }
 .dp-vac__controls { display:flex; flex-direction:column; gap:6px; margin-top:auto; }
 .widget-v-card button.dp-vac__main { height:36px; border:none; border-radius:var(--wpb-radius-default, 0px); background:var(--primary); color:#fff !important; font-size:.82rem; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; }
@@ -672,7 +672,7 @@ a.user-menu__item { text-decoration: none; color: inherit; }
 .widget-v-card button.dp-vac__key { height:42px; padding:2px 0; border:1px solid rgba(128,128,128,.25); border-radius:var(--wpb-radius-default, 0px); background:rgba(128,128,128,.1); color:var(--on-theme-high) !important; font-size:.66rem; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; }
 .widget-v-card button.dp-vac__key:hover { background:rgba(128,128,128,.18); }
 .dp-vac__key i { font-size:1rem; color:var(--on-theme-mid); }
-.dp-vac__key span { max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.dp-vac__key span { max-width:100%; white-space:normal; overflow-wrap:anywhere; line-height:1.15; text-align:center; }
 .dp-vac__updated { text-align:right; font-size:.6rem; color:var(--on-theme-dim); }
 .widget-v-card--disabled .widget-v-card__header, .widget-v-card--disabled .widget-v-card__body, .widget-v-card--disabled .group-widgets-grid { opacity:.35; pointer-events:none; filter:grayscale(.4); }
 .widget-v-card--disabled .widget-v-card__header .widget-menu { pointer-events:auto; font-size:.9rem; }
