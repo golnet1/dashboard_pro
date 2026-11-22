@@ -79,10 +79,10 @@ const VacuumWidget = {
             </div>
             <div class="widget-v-card__body dp-vac__body">
                 <div class="dp-vac__summary">
-                    <span class="dp-vac__ring" :style="ringStyle"><span>{{ battery === null ? '--' : battery + '%' }}</span></span>
-                    <div class="dp-vac__summary-text">
-                        <div class="dp-vac__status"><span class="dp-vac__dot" :class="statusClass"></span>{{ statusText }}</div>
-                        <div class="dp-vac__battery-label"><i class="fas fa-battery-three-quarters"></i> {{ t('vc_battery') }}</div>
+                    <div class="dp-vac__status"><span class="dp-vac__dot" :class="statusClass"></span>{{ statusText }}</div>
+                    <div class="dp-vac__battery" :title="t('vc_battery')">
+                        <span class="dp-vac__battery-num"><i class="fas fa-battery-three-quarters"></i> {{ battery === null ? '--' : battery + '%' }}</span>
+                        <span class="dp-vac__battery-track"><span class="dp-vac__battery-fill" :class="batteryClass" :style="batteryStyle"></span></span>
                     </div>
                 </div>
                 <div v-if="errorText" class="dp-vac__error"><i class="fas fa-triangle-exclamation"></i><span>{{ errorText }}</span></div>
@@ -193,10 +193,15 @@ const VacuumWidget = {
             if (n > 0 && n <= 1) n = n * 100;
             return Math.round(Math.max(0, Math.min(100, n)));
         },
-        ringStyle() {
-            const v = this.battery === null ? 0 : this.battery;
-            const color = v <= 15 ? '#ef4444' : (v <= 35 ? '#f59e0b' : 'var(--primary)');
-            return { background: 'conic-gradient(' + color + ' ' + v + '%, rgba(255,255,255,.12) 0)' };
+        batteryStyle() {
+            return { width: (this.battery === null ? 0 : this.battery) + '%' };
+        },
+        batteryClass() {
+            const v = this.battery;
+            if (v === null) return '';
+            if (v <= 15) return 'dp-vac__battery-fill--low';
+            if (v <= 35) return 'dp-vac__battery-fill--mid';
+            return '';
         },
         errorText() {
             const raw = this.readValue(this.widget.object_error || this.widget.object, this.widget.property_error || 'error');
