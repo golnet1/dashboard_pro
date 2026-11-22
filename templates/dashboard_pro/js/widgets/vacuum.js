@@ -104,16 +104,13 @@ const VacuumWidget = {
                     </div>
                 </div>
                 <div v-else class="dp-vac__empty">{{ t('vc_no_data') }}</div>
-                <div v-if="targetButtons.length" class="dp-vac__settings">
-                    <button v-for="b in targetButtons" :key="b.key" type="button" class="dp-vac__chip" :disabled="sending || aliveDisabled" :title="t(b.label)" @click="sendAction(b.key)">{{ t(b.label) }}</button>
-                </div>
                 <div class="dp-vac__controls">
                     <button type="button" class="dp-vac__main" :class="{ 'dp-vac__main--busy': sending }" :disabled="sending || aliveDisabled" @click="sendAction(mainAction)">
                         <i :class="isCleaning ? 'fas fa-pause' : 'fas fa-play'"></i>{{ t(mainAction === 'pause' ? 'vc_pause' : 'vc_start') }}
                     </button>
                     <div class="dp-vac__grid">
-                        <button v-for="b in quickButtons" :key="b.key" type="button" class="dp-vac__key" :disabled="sending || aliveDisabled" :title="t(b.label)" @click="sendAction(b.key)">
-                            <i :class="b.icon"></i><span>{{ t(b.label) }}</span>
+                        <button v-for="b in quickButtons" :key="b.key" type="button" class="dp-vac__key" :disabled="sending || aliveDisabled" :title="buttonTitle(b)" @click="sendAction(b.key)">
+                            <i :class="b.icon"></i><span>{{ buttonLabel(b) }}</span>
                         </button>
                     </div>
                 </div>
@@ -189,17 +186,13 @@ const VacuumWidget = {
             const items = this.commandItems;
             if (!items.length) return Object.keys(legacy).map(key => Object.assign({ key: key }, legacy[key]));
             return items
-                .filter(c => !c.target && c.key !== 'start' && c.key !== 'pause')
+                .filter(c => c.key !== 'start' && c.key !== 'pause')
                 .map(c => ({
                     key: c.key,
                     label: c.label || (legacy[c.key] && legacy[c.key].label) || c.key,
-                    icon: c.icon || (legacy[c.key] && legacy[c.key].icon) || 'fas fa-circle'
+                    icon: c.icon || (legacy[c.key] && legacy[c.key].icon) || 'fas fa-circle',
+                    target: c.target || ''
                 }));
-        },
-        /* Commands with a target are settings (suction power, water flow), not
-           device actions. They get their own compact strip under the metrics. */
-        targetButtons() {
-            return this.commandItems.filter(c => c.target);
         },
         statusRaw() {
             return this.readValue(this.widget.object_status || this.widget.object, this.widget.property_status || 'status');
@@ -366,6 +359,40 @@ const VacuumWidget = {
                 this.isAlive = !d.error && String(d.value) !== '0';
             } catch (e) {}
         },
+        /* A setting button keeps the whole cycle in its code: "0,1,2,3".
+           Every press moves to the next value and wraps at the end. */
+        targetValues(c) {
+            return String(c.code || '').split(',')
+                .map(s => s.trim()).filter(s => s !== '');
+        },
+        nextTargetValue(c) {
+            const values = this.targetValues(c);
+            if (!values.length) return '';
+            const raw = this.readValue(this.widget.object, c.target);
+            if (raw === undefined || raw === null || String(raw).trim() === '') return values[0];
+            const current = String(raw).trim();
+            let idx = values.indexOf(current);
+            if (idx < 0 && !Number.isNaN(Number(current))) {
+                idx = values.findIndex(v => !Number.isNaN(Number(v)) && Number(v) === Number(current));
+            }
+            return values[idx < 0 ? 0 : (idx + 1) % values.length];
+        },
+        currentTargetText(c) {
+            const raw = this.readValue(this.widget.object, c.target);
+            if (raw === undefined || raw === null || String(raw).trim() === '') return '';
+            return this.formatMetricValue({ property: c.target, suffix: '' }, raw);
+        },
+        buttonLabel(b) {
+            if (!b.target) return this.t(b.label);
+            const value = this.currentTargetText(b);
+            return value ? this.t(b.label) + ' ' + value : this.t(b.label);
+        },
+        buttonTitle(b) {
+            const base = this.t(b.label);
+            if (!b.target) return base;
+            const value = this.currentTargetText(b);
+            return value ? base + ': ' + value : base;
+        },
         codeFor(k) {
             const v = this.codeMap[k];
             if (v !== undefined && v !== null && v !== '') return String(v);
@@ -378,7 +405,8 @@ const VacuumWidget = {
         },
         async sendAction(k) {
             if (this.sending || this.aliveDisabled) return;
-            const code = this.codeFor(k);
+            const item = this.commandItems.find(c => c.key === k);
+            const code = item && item.target ? this.nextTargetValue(item) : this.codeFor(k);
             this.sending = true;
             try {
                 const mode = this.widget.send_mode || 'property';
@@ -391,7 +419,6 @@ const VacuumWidget = {
                 } else if (mode === 'command') {
                     await dpAPI('execCommand?' + new URLSearchParams({ command: (this.widget.command_prefix || '') + code }));
                 } else if (this.widget.object) {
-                    const item = this.commandItems.find(c => c.key === k);
                     const params = { object: this.widget.object, value: code };
                     if (item && item.target) params.property = item.target;
                     else if (this.widget.property) params.property = this.widget.property;
