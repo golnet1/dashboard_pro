@@ -104,6 +104,9 @@ const VacuumWidget = {
                     </div>
                 </div>
                 <div v-else class="dp-vac__empty">{{ t('vc_no_data') }}</div>
+                <div v-if="targetButtons.length" class="dp-vac__settings">
+                    <button v-for="b in targetButtons" :key="b.key" type="button" class="dp-vac__chip" :disabled="sending || aliveDisabled" :title="t(b.label)" @click="sendAction(b.key)">{{ t(b.label) }}</button>
+                </div>
                 <div class="dp-vac__controls">
                     <button type="button" class="dp-vac__main" :class="{ 'dp-vac__main--busy': sending }" :disabled="sending || aliveDisabled" @click="sendAction(mainAction)">
                         <i :class="isCleaning ? 'fas fa-pause' : 'fas fa-play'"></i>{{ t(mainAction === 'pause' ? 'vc_pause' : 'vc_start') }}
@@ -141,7 +144,8 @@ const VacuumWidget = {
                 key: String(c.key),
                 code: c.code === undefined || c.code === null ? '' : String(c.code),
                 label: c.label || '',
-                icon: c.icon || ''
+                icon: c.icon || '',
+                target: c.target ? String(c.target) : ''
             }));
         },
         codeMap() {
@@ -185,12 +189,17 @@ const VacuumWidget = {
             const items = this.commandItems;
             if (!items.length) return Object.keys(legacy).map(key => Object.assign({ key: key }, legacy[key]));
             return items
-                .filter(c => c.key !== 'start' && c.key !== 'pause')
+                .filter(c => !c.target && c.key !== 'start' && c.key !== 'pause')
                 .map(c => ({
                     key: c.key,
                     label: c.label || (legacy[c.key] && legacy[c.key].label) || c.key,
                     icon: c.icon || (legacy[c.key] && legacy[c.key].icon) || 'fas fa-circle'
                 }));
+        },
+        /* Commands with a target are settings (suction power, water flow), not
+           device actions. They get their own compact strip under the metrics. */
+        targetButtons() {
+            return this.commandItems.filter(c => c.target);
         },
         statusRaw() {
             return this.readValue(this.widget.object_status || this.widget.object, this.widget.property_status || 'status');
@@ -376,8 +385,10 @@ const VacuumWidget = {
                 } else if (mode === 'command') {
                     await dpAPI('execCommand?' + new URLSearchParams({ command: (this.widget.command_prefix || '') + code }));
                 } else if (this.widget.object) {
+                    const item = this.commandItems.find(c => c.key === k);
                     const params = { object: this.widget.object, value: code };
-                    if (this.widget.property) params.property = this.widget.property;
+                    if (item && item.target) params.property = item.target;
+                    else if (this.widget.property) params.property = this.widget.property;
                     await dpAPI('setProperty?' + new URLSearchParams(params));
                 }
                 setTimeout(() => this.loadAll(), 400);

@@ -2279,7 +2279,7 @@ function headerPanelSave() {
         }
         function addVacuumCommand() {
             const arr = vacuumCommandsList.value;
-            arr.push({ key: '', code: '', label: '', icon: '' });
+            arr.push({ key: '', code: '', label: '', icon: '', target: '' });
             setVacuumCommands(arr);
             vacuumCommandsIdx.value = arr.length - 1;
         }
@@ -2606,7 +2606,7 @@ function loadScript(src, version) {
            reached the panel. The token changes on every install, and the base follows the
            module, so a module update also refreshes the widgets. */
         const WIDGET_TOKEN_KEY = 'dp_widget_token';
-        const WIDGET_TOKEN_BASE = 310;
+        const WIDGET_TOKEN_BASE = 311;
         function widgetToken() {
             let token = 0;
             try { token = parseInt(localStorage.getItem(WIDGET_TOKEN_KEY) || '0', 10) || 0; } catch (e) { token = 0; }
