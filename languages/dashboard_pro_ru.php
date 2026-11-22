@@ -1600,6 +1600,7 @@ $frontend = array(
     'vc_battery' => 'Заряд батареи',
     'vc_no_data' => 'Показателей нет',
     'vc_updated' => 'Обновлено:',
+    'vc_field_show_updated' => 'Показывать время обновления',
     'vc_start' => 'Старт',
     'vc_pause' => 'Пауза',
     'vc_stop' => 'Стоп',

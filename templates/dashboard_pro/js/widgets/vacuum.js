@@ -39,6 +39,7 @@ const VacuumWidget = {
             { key: 'object_alive', label: 'field_alive_flag', type: 'object', row: 'alive_row' },
             { key: 'property_alive', label: 'field_alive_property', type: 'property', row: 'alive_row' },
             { key: 'alive_timeout', label: 'field_alive_timeout', type: 'number', step: 1 },
+            { key: 'show_updated', label: 'vc_field_show_updated', type: 'checkbox', default: true },
         ],
     },
     defaults: {
@@ -49,6 +50,7 @@ const VacuumWidget = {
         property_status: 'status',
         property_battery: 'battery',
         property_error: 'error',
+        show_updated: true,
         status_cleaning_values: 'cleaning,clean,running,5,7,11,17,18,101,105',
         status_error_values: 'error,failed,9,12',
         codes: JSON.stringify([
@@ -81,7 +83,9 @@ const VacuumWidget = {
     template: `
         <div class="widget-v-card" :class="{ 'widget-v-card--disabled': aliveDisabled }" :style="cardStyle" style="display:flex;flex-direction:column">
             <div class="widget-v-card__header">
-                <i v-if="widget.icon" :class="widget.icon" class="widget-v-card__icon"></i>
+                <img v-if="headerIconUrl" class="widget-v-card__icon widget-v-card__icon--img" :src="headerIconUrl" alt="">
+                <i v-else-if="headerIconClass" :class="headerIconClass" class="widget-v-card__icon"></i>
+                <i v-else-if="iconType === 'icon' && widget.icon" :class="widget.icon" class="widget-v-card__icon"></i>
                 <div class="widget-v-card__title">{{ widget.title || t('widget_vacuum') }}</div>
                 <span class="dp-vac__online" :class="isAlive ? 'dp-vac__online--ok' : 'dp-vac__online--bad'" :title="isAlive ? t('vc_online') : t('vc_offline')"></span>
             </div>
@@ -114,7 +118,7 @@ const VacuumWidget = {
                         </button>
                     </div>
                 </div>
-                <div v-if="updatedAt" class="dp-vac__updated">{{ t('vc_updated') }} {{ updatedText }}</div>
+                <div v-if="updatedAt && showUpdated" class="dp-vac__updated">{{ t('vc_updated') }} {{ updatedText }}</div>
             </div>
         </div>`,
     data() {
@@ -124,6 +128,23 @@ const VacuumWidget = {
         };
     },
     computed: {
+        /* iconSrc comes from the shared icon mixin: a URL as-is, or the value of
+           icon_object.icon_property. Some properties hold a Font Awesome class
+           instead of a path, so draw that as a glyph rather than a broken image. */
+        headerIconClass() {
+            const s = String(this.iconSrc || '').trim();
+            return /^(fab|far|fas|fal|fa)\s+fa-|^fa-/i.test(s) ? s : '';
+        },
+        headerIconUrl() {
+            const s = String(this.iconSrc || '').trim();
+            return s && !this.headerIconClass ? s : '';
+        },
+        /* An old widget has no flag yet: keep the update line as it was. */
+        showUpdated() {
+            const v = this.widget.show_updated;
+            return v === undefined || v === null || v === '' ||
+                v === true || v === 'true' || v === '1' || v === 1;
+        },
         aliveDisabled() {
             return !!(this.widget.object_alive && this.widget.property_alive && this.isAlive === false);
         },

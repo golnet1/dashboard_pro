@@ -1601,6 +1601,7 @@ $frontend = array(
     'vc_battery' => 'Battery',
     'vc_no_data' => 'No metrics',
     'vc_updated' => 'Updated:',
+    'vc_field_show_updated' => 'Show update time',
     'vc_start' => 'Start',
     'vc_pause' => 'Pause',
     'vc_stop' => 'Stop',
