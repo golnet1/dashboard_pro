@@ -329,19 +329,14 @@ const VacuumWidget = {
         formatMetricValue(m, raw) {
             let s = String(raw);
             const prop = String(m.property || '');
-            const valueWords = {
-                Silent: 'vc_val_silent', Standard: 'vc_val_standard',
-                Medium: 'vc_val_medium', Turbo: 'vc_val_turbo',
-                Low: 'vc_val_low', High: 'vc_val_high'
-            };
-            /* miIO keeps numeric mode/water values in the property right after a
-               button press, until the device answers the poll. Show the same words. */
-            const modeWords = ['vc_val_silent', 'vc_val_standard', 'vc_val_medium', 'vc_val_turbo'];
-            const waterWords = { 1: 'vc_val_low', 2: 'vc_val_medium', 3: 'vc_val_high' };
-            if (valueWords[s]) s = this.t(valueWords[s]);
-            else if (prop === 'mode' && /^[0-3]$/.test(s)) s = this.t(modeWords[parseInt(s, 10)]);
-            else if (prop === 'water_grade' && waterWords[s]) s = this.t(waterWords[s]);
-            else if (prop === 'clean_time' && /^\d+$/.test(s)) {
+            /* A setting row describes its own values: "number|device value|label".
+               Nothing here is tied to a particular vacuum model. */
+            const row = this.commandItems.find(c => c.target === prop);
+            if (row) {
+                const idx = this.targetIndexOf(row, s);
+                const opts = this.targetOptions(row);
+                if (idx >= 0 && opts[idx].label) s = this.t(opts[idx].label);
+            } else if (prop === 'clean_time' && /^\d+$/.test(s)) {
                 const total = parseInt(s, 10);
                 const h = Math.floor(total / 3600);
                 const min = Math.round((total % 3600) / 60);
@@ -380,38 +375,46 @@ const VacuumWidget = {
                 this.isAlive = !d.error && String(d.value) !== '0';
             } catch (e) {}
         },
-        /* A setting button keeps the whole cycle in its code: "0,1,2,3".
-           Every press moves to the next value and wraps at the end. */
-        targetValues(c) {
-            return String(c.code || '').split(',')
-                .map(s => s.trim()).filter(s => s !== '');
+        /* A setting button keeps its whole cycle in the code. Each item is
+           "value|device value|label"; the last two parts are optional. All device
+           specifics live here in the widget settings, never in the widget code. */
+        targetOptions(c) {
+            return String(c.code || '').split(',').map(s => s.trim()).filter(Boolean).map(s => {
+                const p = s.split('|').map(x => x.trim());
+                return { value: p[0], device: p[1] || p[0], label: p[2] || p[1] || p[0] };
+            }).filter(o => o.value !== '');
         },
-        /* miIO answers with words (Standard, Medium...) while the cycle keeps
-           numbers. Bring both to the same form so the next press continues from
-           the level the device actually reports, even after a page reload. */
-        canonValue(v) {
-            const s = String(v === undefined || v === null ? '' : v).trim();
-            const words = {
-                silent: '0', standard: '1', medium: '2', turbo: '3',
-                low: '1', high: '3'
-            };
-            if (words[s.toLowerCase()]) return words[s.toLowerCase()];
-            if (s !== '' && !Number.isNaN(Number(s))) return String(Number(s));
-            return s.toLowerCase();
+        sameValue(a, b) {
+            const x = String(a === undefined || a === null ? '' : a).trim();
+            const y = String(b === undefined || b === null ? '' : b).trim();
+            if (x === y) return true;
+            if (x !== '' && y !== '' && !Number.isNaN(Number(x)) && !Number.isNaN(Number(y))) {
+                return Number(x) === Number(y);
+            }
+            return false;
+        },
+        /* The device may report a number, its own word, or the configured label. */
+        targetIndexOf(c, raw) {
+            const s = String(raw === undefined || raw === null ? '' : raw).trim();
+            if (!s) return -1;
+            return this.targetOptions(c).findIndex(o =>
+                this.sameValue(o.value, s) || this.sameValue(o.device, s) ||
+                o.label === s || this.t(o.label) === s);
         },
         nextTargetValue(c) {
-            const values = this.targetValues(c);
-            if (!values.length) return '';
+            const opts = this.targetOptions(c);
+            if (!opts.length) return '';
             const raw = this.readValue(this.widget.object, c.target);
-            if (raw === undefined || raw === null || String(raw).trim() === '') return values[0];
-            const current = this.canonValue(raw);
-            const idx = values.findIndex(v => this.canonValue(v) === current);
-            return values[idx < 0 ? 0 : (idx + 1) % values.length];
+            const idx = this.targetIndexOf(c, raw);
+            return opts[idx < 0 ? 0 : (idx + 1) % opts.length].value;
         },
         currentTargetText(c) {
             const raw = this.readValue(this.widget.object, c.target);
             if (raw === undefined || raw === null || String(raw).trim() === '') return '';
-            return this.formatMetricValue({ property: c.target, suffix: '' }, raw);
+            const idx = this.targetIndexOf(c, raw);
+            const opts = this.targetOptions(c);
+            if (idx >= 0 && opts[idx].label) return this.t(opts[idx].label);
+            return String(raw);
         },
         buttonLabel(b) {
             if (!b.target) return this.t(b.label);
