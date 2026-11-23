@@ -2395,9 +2395,9 @@
                                                     <div class="v-input v-text-field v-select" style="flex:1 1 160px;min-width:120px">
                                                         <div class="v-input__control">
                                                             <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': c.target }">{{ t('vc_target') }}</label>
-                                                                <select :value="c.target || ''" @change="setVacuumCommandField(ci, 'target', $event.target.value)">
+                                                                <select :value="c.target || ''" @change="setVacuumCommandField(ci, 'target', $event.target.value)" :disabled="!c.target_object">
                                                                     <option value="" style="background:#1e1e1e;color:#fff">{{ t('select_default') }}</option>
-                                                                    <option v-for="prop in (vacuumCommandProps[ci] || (c.target_object ? [] : widgetProperties))" :key="prop.ID" :value="prop.TITLE" style="background:#1e1e1e;color:#fff">{{ itemLabel(prop) }}</option>
+                                                                    <option v-for="prop in (vacuumCommandProps[ci] || [])" :key="prop.ID" :value="prop.TITLE" style="background:#1e1e1e;color:#fff">{{ itemLabel(prop) }}</option>
                                                                 </select>
                                                             </div>
                                                         </div>
@@ -2429,9 +2429,9 @@
                                                 <div class="v-input v-text-field v-select" style="flex:1 1 130px;min-width:120px">
                                                     <div class="v-input__control">
                                                         <div class="v-input__slot"><label class="v-label v-label--active">{{ t('field_property') }}</label>
-                                                            <select :value="m.property" @change="setVacuumMetricField(mi, 'property', $event.target.value)">
+                                                            <select :value="m.property" @change="setVacuumMetricField(mi, 'property', $event.target.value)" :disabled="!m.object">
                                                                 <option value="" style="background:#1e1e1e;color:#fff">{{ t('select_default') }}</option>
-                                                                <option v-for="prop in (vacuumMetricProps[mi] || (m.object ? [] : widgetProperties))" :key="prop.ID" :value="prop.TITLE" style="background:#1e1e1e;color:#fff">{{ itemLabel(prop) }}</option>
+                                                                <option v-for="prop in (vacuumMetricProps[mi] || [])" :key="prop.ID" :value="prop.TITLE" style="background:#1e1e1e;color:#fff">{{ itemLabel(prop) }}</option>
                                                             </select>
                                                         </div>
                                                     </div>
@@ -2685,7 +2685,7 @@
                                                             <div class="v-input v-text-field v-select" style="flex:1">
                                                                 <div class="v-input__control">
                                                                     <div class="v-input__slot"><label class="v-label v-label--active">{{ t(field.label) }}</label>
-                                                                         <select v-model="editWidgetForm[field.key]">
+                                                                         <select v-model="editWidgetForm[field.key]" :disabled="isFieldPropertyDisabled(field)">
                                                                              <option value="" style="background:#1e1e1e;color:#fff">{{ field.placeholder || t('select_default') }}</option>
                                                                              <option v-for="prop in getFieldOptions(field)" :key="prop.ID" :value="prop.TITLE" style="background:#1e1e1e;color:#fff">{{ itemLabel(prop) }}</option>
                                                                         </select>
@@ -3154,7 +3154,7 @@
                 <div class="modal-body" style="text-align:center;padding:2rem 1.5rem">
                     <i class="fas fa-chart-line" style="font-size:3rem;color:var(--primary);margin-bottom:1rem"></i>
                     <h3 style="margin-bottom:.3rem">Dashboard Pro</h3>
-                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 01.20.49</p>
+                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 01.20.50</p>
                     <p style="color:var(--text-secondary);font-size:.8rem">{{ t('app_desc') }}</p>
                     <div class="about-links" style="margin-top:1rem;font-size:.85rem;color:var(--text-secondary);line-height:1.8">
                         <div>{{ t('about_telegram') }}: <a href="https://t.me/+9ZFQaxs_Ukw4NmMy" target="_blank" rel="noopener">Telegram</a></div>
@@ -3211,6 +3211,6 @@
 <script src="js/lib/hls.min.js?v=1"></script>
     <script src="js/dpbuilder.js?v=74"></script>
     <script src="js/dpbuilder-ui.js?v=64"></script>
-    <script src="js/app.js?v=500"></script>
+    <script src="js/app.js?v=501"></script>
 </body>
 </html>

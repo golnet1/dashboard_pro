@@ -1958,12 +1958,20 @@ function headerPanelSave() {
             if (key.startsWith('property_')) return 'object_' + key.slice('property_'.length);
             return null;
         }
+        function isFieldPropertyDisabled(field) {
+            if (!field || field.type !== 'property') return false;
+            const objKey = objectKeyOfField(field.key);
+            return !!(objKey && !(editWidgetForm.value || {})[objKey]);
+        }
         function getFieldOptions(field) {
             if (field.type === 'property') {
+                /* A property belongs to an object. Until the paired object is picked
+                   there is no list to choose from, even if a cached list still exists. */
+                const objKey = objectKeyOfField(field.key);
+                if (objKey && !(editWidgetForm.value || {})[objKey]) return [];
                 if (field.key === 'icon_property') return iconProperties.value;
                 if (field.key === 'bg_property') return bgProperties.value;
                 if (field.key === 'property_info') return infoProperties.value;
-                const objKey = objectKeyOfField(field.key);
                 if (objKey && objKey !== 'object') return extraProperties.value[objKey] || [];
             }
             return widgetProperties.value;
@@ -2632,7 +2640,7 @@ function loadScript(src, version) {
            reached the panel. The token changes on every install, and the base follows the
            module, so a module update also refreshes the widgets. */
         const WIDGET_TOKEN_KEY = 'dp_widget_token';
-        const WIDGET_TOKEN_BASE = 320;
+        const WIDGET_TOKEN_BASE = 321;
         function widgetToken() {
             let token = 0;
             try { token = parseInt(localStorage.getItem(WIDGET_TOKEN_KEY) || '0', 10) || 0; } catch (e) { token = 0; }
@@ -2870,6 +2878,12 @@ function loadScript(src, version) {
             vacuumMetricsIdx.value = 0;
             vacuumMetricProps.value = {};
             vacuumCommandProps.value = {};
+            /* A fresh widget must not inherit property lists from the previous one. */
+            widgetProperties.value = [];
+            iconProperties.value = [];
+            infoProperties.value = [];
+            bgProperties.value = [];
+            extraProperties.value = {};
             editWidgetForm.value = w;
             nextTick(updateWidgetTabSlider);
         }
@@ -5573,7 +5587,7 @@ onMounted(() => {
             showHeaderStatusEditor, hsForm, hsProperties, hsEditIdx, openHeaderStatusEditor, loadHsProperties, clearHsObject, editHeaderStatusItem, saveHeaderStatusItem, removeHeaderStatusItem, hsMapArr, headerStatusImages: HEADER_STATUS_IMAGES,
             panels, currentPanel, selectPanel, selectHomePanel, goHome, loading, editMode,
             showAddWidget, widgetSearch, filteredDefs, plusTooltip, addPlusButton,
-            widgetTypeComponent, addWidget, openWidgetHelp, getWidgetFields, getWidgetRows, getWidgetTabs, getFieldOptions, fieldOptionLabel, fieldVisible, g2rCameraOptions, loadGo2rtcCameras,
+            widgetTypeComponent, addWidget, openWidgetHelp, getWidgetFields, getWidgetRows, getWidgetTabs, getFieldOptions, isFieldPropertyDisabled, fieldOptionLabel, fieldVisible, g2rCameraOptions, loadGo2rtcCameras,
             getMethodObj, getMethodName, setMethodField, itemLabel, objectKeyOfField,
             editWidgetForm, editWidgetIsNew, widgetTab, widgetTabPos, editWidget, saveEditWidget, removeWidget,
         builderModel, builderReady, builderBusy, builderTitles, builderTypes, builderTarget, builderTargets,
