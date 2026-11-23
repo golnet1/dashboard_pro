@@ -211,6 +211,9 @@ const VacuumWidget = {
                 .filter(c => c.key !== 'start' && c.key !== 'pause')
                 .map(c => ({
                     key: c.key,
+                    /* The level format lives in code. Without it the button cannot
+                       match the device value to a level and prints the raw word. */
+                    code: c.code,
                     label: c.label || (legacy[c.key] && legacy[c.key].label) || c.key,
                     icon: c.icon || (legacy[c.key] && legacy[c.key].icon) || 'fas fa-circle',
                     target: c.target || '',
