@@ -2260,6 +2260,7 @@ function headerPanelSave() {
         /* Targets from the saved widget. A stale editor tab has no idea about them,
            so on save they are put back for rows that were not edited. */
         let vacuumSavedTargets = {};
+        let vacuumSavedTargetObjects = {};
         const vacuumCommandsList = computed(() => {
             let raw;
             try { raw = JSON.parse(editWidgetForm.value?.codes || '[]'); } catch { raw = []; }
@@ -2269,7 +2270,8 @@ function headerPanelSave() {
                     code: c.code === undefined || c.code === null ? '' : String(c.code),
                     label: c.label || '',
                     icon: c.icon || '',
-                    ...(c.target === undefined || c.target === null ? {} : { target: String(c.target) })
+                    ...(c.target === undefined || c.target === null ? {} : { target: String(c.target) }),
+                    ...(c.target_object === undefined || c.target_object === null ? {} : { target_object: String(c.target_object) })
                 }));
             }
             /* Older widgets keep a plain «key: code» map: show it as rows too. */
@@ -2280,15 +2282,15 @@ function headerPanelSave() {
         });
         function setVacuumCommands(arr) {
             arr.forEach(c => {
-                if (c && c.target === undefined && vacuumSavedTargets[c.key]) {
-                    c.target = vacuumSavedTargets[c.key];
-                }
+                if (!c) return;
+                if (c.target === undefined && vacuumSavedTargets[c.key]) c.target = vacuumSavedTargets[c.key];
+                if (c.target_object === undefined && vacuumSavedTargetObjects[c.key]) c.target_object = vacuumSavedTargetObjects[c.key];
             });
             editWidgetForm.value.codes = JSON.stringify(arr);
         }
         function addVacuumCommand() {
             const arr = vacuumCommandsList.value;
-            arr.push({ key: '', code: '', label: '', icon: '', target: '' });
+            arr.push({ key: '', code: '', label: '', icon: '', target_object: '', target: '' });
             setVacuumCommands(arr);
             vacuumCommandsIdx.value = arr.length - 1;
         }
@@ -2311,6 +2313,21 @@ function headerPanelSave() {
             arr.splice(to, 0, arr.splice(idx, 1)[0]);
             setVacuumCommands(arr);
             vacuumCommandsIdx.value = cur === idx ? to : (cur === to ? idx : cur);
+        }
+        const vacuumCommandProps = ref({});
+        async function loadVacuumCommandProps(idx, obj) {
+            if (!obj) { vacuumCommandProps.value = { ...vacuumCommandProps.value, [idx]: [] }; return; }
+            const res = await dpAPI('properties?object_id=' + encodeURIComponent(obj));
+            vacuumCommandProps.value = { ...vacuumCommandProps.value, [idx]: res.items || [] };
+        }
+        function changeVacuumCommandObject(idx, obj) {
+            const arr = vacuumCommandsList.value;
+            if (arr[idx]) {
+                arr[idx].target_object = obj;
+                arr[idx].target = '';
+            }
+            setVacuumCommands(arr);
+            loadVacuumCommandProps(idx, obj);
         }
 
         // ---- Robot vacuum: metric rows (the Metrics tab) ----
@@ -2615,7 +2632,7 @@ function loadScript(src, version) {
            reached the panel. The token changes on every install, and the base follows the
            module, so a module update also refreshes the widgets. */
         const WIDGET_TOKEN_KEY = 'dp_widget_token';
-        const WIDGET_TOKEN_BASE = 318;
+        const WIDGET_TOKEN_BASE = 319;
         function widgetToken() {
             let token = 0;
             try { token = parseInt(localStorage.getItem(WIDGET_TOKEN_KEY) || '0', 10) || 0; } catch (e) { token = 0; }
@@ -2852,6 +2869,7 @@ function loadScript(src, version) {
             vacuumCommandsIdx.value = 0;
             vacuumMetricsIdx.value = 0;
             vacuumMetricProps.value = {};
+            vacuumCommandProps.value = {};
             editWidgetForm.value = w;
             nextTick(updateWidgetTabSlider);
         }
@@ -3183,17 +3201,21 @@ function loadScript(src, version) {
             vacuumCommandsIdx.value = 0;
             vacuumMetricsIdx.value = 0;
             vacuumMetricProps.value = {};
+            vacuumCommandProps.value = {};
             editWidgetParent.value = parent || null;
             editWidgetIsNew.value = false;
             const def = widgetDefs.value.find(d => d.type === w.type);
             /* a saved widget carries its own values: nothing is waiting for an object */
             pendingFieldDefaults = {};
             vacuumSavedTargets = {};
+            vacuumSavedTargetObjects = {};
             try {
                 const savedCodes = JSON.parse(w.codes || '[]');
                 if (Array.isArray(savedCodes)) {
                     savedCodes.forEach(c => {
-                        if (c && c.key && c.target) vacuumSavedTargets[String(c.key)] = String(c.target);
+                        if (!c || !c.key) return;
+                        if (c.target) vacuumSavedTargets[String(c.key)] = String(c.target);
+                        if (c.target_object) vacuumSavedTargetObjects[String(c.key)] = String(c.target_object);
                     });
                 }
             } catch (e) { /* no saved rows to remember */ }
@@ -3260,6 +3282,10 @@ if (f.key) {
             }
             vacuumMetricsList.value.forEach((m, i) => {
                 if (m.object) loadVacuumMetricProps(i, m.object);
+            });
+            vacuumCommandsList.value.forEach((c, i) => {
+                const obj = c.target_object || (c.target ? w.object : '');
+                if (obj) loadVacuumCommandProps(i, obj);
             });
             // Load methods for all method-type fields of this widget
             methodParentsFor(w.type).forEach(key => {
@@ -5563,7 +5589,7 @@ onMounted(() => {
             statusItems, addStatusItem, removeStatusItem, setStatusItemField, moveStatusItem, stMethodObj, stMethods, setStatusMethod,
             vacuumCommandsIdx, vacuumCommandsList, addVacuumCommand, removeVacuumCommand, setVacuumCommandField, moveVacuumCommand,
             vacuumMetricsIdx, vacuumMetricsList, addVacuumMetric, removeVacuumMetric, setVacuumMetricField, moveVacuumMetric,
-            vacuumMetricProps, loadVacuumMetricProps,
+            vacuumMetricProps, loadVacuumMetricProps, vacuumCommandProps, loadVacuumCommandProps, changeVacuumCommandObject,
             draggingWidget, startDrag, onDrag, stopDrag,
             resizingWidget, startResize, onResize, stopResize,
             widgetMenuTarget, widgetPanelSubmenu, widgetGroupSubmenu, widgetConfirm, copyWidget, exportWidget, changeWidgetPanel, selectMoveTarget, confirmMoveWidget, moveWidgetToGroup, confirmMoveToGroup,

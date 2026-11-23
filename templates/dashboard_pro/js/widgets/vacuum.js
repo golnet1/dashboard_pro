@@ -163,7 +163,8 @@ const VacuumWidget = {
                 code: c.code === undefined || c.code === null ? '' : String(c.code),
                 label: c.label || '',
                 icon: c.icon || '',
-                target: c.target ? String(c.target) : ''
+                target: c.target ? String(c.target) : '',
+                target_object: c.target_object ? String(c.target_object) : ''
             }));
         },
         codeMap() {
@@ -212,7 +213,8 @@ const VacuumWidget = {
                     key: c.key,
                     label: c.label || (legacy[c.key] && legacy[c.key].label) || c.key,
                     icon: c.icon || (legacy[c.key] && legacy[c.key].icon) || 'fas fa-circle',
-                    target: c.target || ''
+                    target: c.target || '',
+                    target_object: c.target_object || ''
                 }));
         },
         statusRaw() {
@@ -331,7 +333,9 @@ const VacuumWidget = {
             const prop = String(m.property || '');
             /* A setting row describes its own values: "number|device value|label".
                Nothing here is tied to a particular vacuum model. */
-            const row = this.commandItems.find(c => c.target === prop);
+            const mObj = m.object || this.widget.object;
+            const row = this.commandItems.find(c =>
+                c.target === prop && (c.target_object || this.widget.object) === mObj);
             if (row) {
                 const idx = this.targetIndexOf(row, s);
                 const opts = this.targetOptions(row);
@@ -346,6 +350,10 @@ const VacuumWidget = {
                 s = parseInt(s, 10).toLocaleString('ru-RU');
             }
             return s + (m.suffix || '');
+        },
+        /* A command row may point at any object; older rows use the widget object. */
+        commandObject(c) {
+            return c.target_object || this.widget.object;
         },
         readValue(object, property) {
             if (!object || !property) return undefined;
@@ -404,12 +412,12 @@ const VacuumWidget = {
         nextTargetValue(c) {
             const opts = this.targetOptions(c);
             if (!opts.length) return '';
-            const raw = this.readValue(this.widget.object, c.target);
+            const raw = this.readValue(this.commandObject(c), c.target);
             const idx = this.targetIndexOf(c, raw);
             return opts[idx < 0 ? 0 : (idx + 1) % opts.length].value;
         },
         currentTargetText(c) {
-            const raw = this.readValue(this.widget.object, c.target);
+            const raw = this.readValue(this.commandObject(c), c.target);
             if (raw === undefined || raw === null || String(raw).trim() === '') return '';
             const idx = this.targetIndexOf(c, raw);
             const opts = this.targetOptions(c);
@@ -442,7 +450,7 @@ const VacuumWidget = {
             const item = this.commandItems.find(c => c.key === k);
             /* Read the level right before switching: the cached poll value may be
                several seconds old, and the cycle must start where the device is. */
-            if (item && item.target) await this.loadValue(this.widget.object, item.target);
+            if (item && item.target) await this.loadValue(this.commandObject(item), item.target);
             const code = item && item.target ? this.nextTargetValue(item) : this.codeFor(k);
             this.sending = true;
             try {
@@ -456,7 +464,7 @@ const VacuumWidget = {
                 } else if (mode === 'command') {
                     await dpAPI('execCommand?' + new URLSearchParams({ command: (this.widget.command_prefix || '') + code }));
                 } else if (this.widget.object) {
-                    const params = { object: this.widget.object, value: code };
+                    const params = { object: item && item.target ? this.commandObject(item) : this.widget.object, value: code };
                     if (item && item.target) params.property = item.target;
                     else if (this.widget.property) params.property = this.widget.property;
                     await dpAPI('setProperty?' + new URLSearchParams(params));
