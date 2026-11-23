@@ -671,7 +671,7 @@ a.user-menu__item { text-decoration: none; color: inherit; }
 .dp-vac__main--busy { filter:brightness(.85); }
 .dp-vac__main:disabled, .dp-vac__key:disabled { opacity:.5; cursor:default; }
 .dp-vac__grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:5px; }
-.widget-v-card button.dp-vac__key { height:42px; padding:2px 0; border:1px solid rgba(128,128,128,.25); border-radius:var(--wpb-radius-default, 0px); background:rgba(128,128,128,.1); color:var(--on-theme-high) !important; font-size:.66rem; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; }
+.widget-v-card button.dp-vac__key { min-height:52px; padding:3px 2px; border:1px solid rgba(128,128,128,.25); border-radius:var(--wpb-radius-default, 0px); background:rgba(128,128,128,.1); color:var(--on-theme-high) !important; font-size:.66rem; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; }
 .widget-v-card button.dp-vac__key:hover { background:rgba(128,128,128,.18); }
 .dp-vac__key i { font-size:1rem; color:var(--on-theme-mid); }
 .dp-vac__key span { max-width:100%; white-space:normal; overflow-wrap:anywhere; line-height:1.15; text-align:center; }
