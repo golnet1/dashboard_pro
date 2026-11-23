@@ -2268,16 +2268,58 @@ class dashboard_pro extends module
            непустым; полностью пустой набор ставит только явный сброс, который
            идёт мимо этой ветки. */
         $incoming = is_array($panels) ? $panels : array();
+        $existing = $this->loadShardedProperty($login, 'panels');
+        $decoded = $existing !== null ? json_decode($existing, true) : null;
         if (count($incoming) === 0) {
-            $existing = $this->loadShardedProperty($login, 'panels');
-            $decoded = $existing !== null ? json_decode($existing, true) : null;
             if (is_array($decoded) && count($decoded) > 0) {
                 $this->dErr('panels: отклонена запись пустого набора поверх '
                     . count($decoded) . ' панелей');
                 return false;
             }
         }
-        $this->saveShardedProperty($login, 'panels', json_encode($panels));
+        /* A tab opened before the vacuum editor was updated posts its old copy
+           of the panels. Keep the rich command rows from the stored copy:
+           target, target_object and the three-part level format must not be
+           downgraded to "1,2,3" or "1|Low,2|Medium,3|High" by a stale save. */
+        if (is_array($decoded) && count($incoming) > 0) {
+            foreach ($incoming as $pi => $panel) {
+                if (empty($panel['widgets']) || !is_array($panel['widgets'])) continue;
+                foreach ($panel['widgets'] as $wi => $widget) {
+                    $id = $widget['id'] ?? null;
+                    if ($id === null) continue;
+                    $oldWidget = null;
+                    foreach ($decoded as $oldPanel) {
+                        foreach (($oldPanel['widgets'] ?? array()) as $cand) {
+                            if (($cand['id'] ?? null) === $id) { $oldWidget = $cand; break 2; }
+                        }
+                    }
+                    if (!$oldWidget) continue;
+                    $oldRows = json_decode((string)($oldWidget['codes'] ?? ''), true);
+                    $newRows = json_decode((string)($widget['codes'] ?? ''), true);
+                    if (!is_array($oldRows) || !is_array($newRows)) continue;
+                    foreach ($newRows as $ri => $row) {
+                        $key = (string)($row['key'] ?? '');
+                        $oldRow = null;
+                        foreach ($oldRows as $cand) {
+                            if ((string)($cand['key'] ?? '') === $key) { $oldRow = $cand; break; }
+                        }
+                        if (!$oldRow) continue;
+                        $stale = !array_key_exists('target', $row) && !empty($oldRow['target']);
+                        if (!$stale) continue;
+                        foreach (array('target', 'target_object') as $k) {
+                            if (isset($oldRow[$k])) $newRows[$ri][$k] = $oldRow[$k];
+                        }
+                        $oldCode = (string)($oldRow['code'] ?? '');
+                        $newCode = (string)($row['code'] ?? '');
+                        if (substr_count($oldCode, '|') > substr_count($newCode, '|')) {
+                            $newRows[$ri]['code'] = $oldCode;
+                        }
+                    }
+                    $incoming[$pi]['widgets'][$wi]['codes'] = json_encode($newRows, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                }
+            }
+        }
+        $this->saveShardedProperty($login, 'panels', json_encode($incoming));
         return true;
     }
 
