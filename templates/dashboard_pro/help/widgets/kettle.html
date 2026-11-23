@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Электрочайник — Dashboard Pro Справка</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="../css/help.css">
+</head>
+<body>
+<header class="help-header">
+    <i class="fas fa-book" style="font-size:1.4rem"></i>
+    <h1>Dashboard Pro <span class="subtitle">— справка и документация</span></h1>
+    <a href="../../index.html"><i class="fas fa-external-link-alt"></i> Открыть панель</a>
+</header>
+<div class="help-layout">
+    <aside class="help-side">
+        <div class="help-side__title">Разделы справки</div>
+        <nav>
+            <a href="../index.html"><i class="fas fa-home"></i> Обзор</a>
+            <a href="../panels.html"><i class="fas fa-th-large"></i> Панели</a>
+            <a href="../widgets.html" class="help-side__toggle" aria-expanded="false"><i class="fas fa-puzzle-piece"></i> Виджеты</a><div class="help-side__sub">
+                <a href="vacuum.html">Робот-пылесос</a>
+                <a href="kettle.html" class="active">Электрочайник</a>
+                <a href="thermostat.html">Термостат</a>
+                <a href="rgb.html">RGB</a>
+            </div>
+            <a href="../editor.html"><i class="fas fa-edit"></i> Редактор виджетов</a>
+            <a href="../builder.html"><i class="fas fa-wand-magic-sparkles"></i> Конструктор</a>
+            <a href="../faq.html"><i class="fas fa-question-circle"></i> Частые вопросы</a>
+        </nav>
+    </aside>
+    <main class="help-main" id="top">
+        <p class="help-breadcrumb"><a href="../widgets.html"><i class="fas fa-arrow-left"></i> Виджеты</a></p>
+        <h2>Электрочайник</h2>
+        <div class="help-card" id="kettle">
+            <div class="help-card__head"><h3>Электрочайник</h3><span class="badge">kettle</span><a class="help-top" href="../widgets.html">↑ к списку виджетов</a></div>
+            <p>Температура воды, нужная температура, режимы, питание и подсветка в одной карточке.</p>
+
+            <h4>Как работает</h4>
+            <p>Виджет читает свойства, заданные в настройках. Кольцо показывает текущую температуру между минимумом и максимумом; рядом выводится нужная температура. Кнопки <code>−</code> и <code>+</code> меняют нужную температуру с заданным шагом, кнопка питания пишет одно из значений поля «Значения включения», кнопка режима проходит по списку «Режимы» и после последнего возвращается к первому.</p>
+            <p>Все объекты и свойства выбираются из списков в редакторе. Свойство доступно только после выбора объекта; объект можно заменить на любой другой, и список свойств сразу обновится. Новый виджет создаётся с пустыми полями: объекты, свойства, форматы значений и диапазон температуры задаёт пользователь.</p>
+            <p>Цвет кольца берётся из свойства RGB (HEX, например <code>0ad6ff</code>); если оно не задано, используется цвет из «Дополнительно». Время последнего обновления показывается внизу, если включён чекбокс «Показывать время обновления».</p>
+
+            <h4>Форматы полей</h4>
+            <table>
+                <tr><th>Поле</th><th>Формат</th><th>Пример</th></tr>
+                <tr><td><code>power_values</code></td><td><code>ключ|значение</code>, через запятую</td><td><code>on|1,off|0</code></td></tr>
+                <tr><td><code>modes</code></td><td><code>значение|подпись</code>, через запятую</td><td><code>1|kett_boil,2|kett_boil_heat,3|kett_heat,0|kett_off</code></td></tr>
+                <tr><td><code>property_rgb</code></td><td>HEX-цвет</td><td><code>0ad6ff</code></td></tr>
+            </table>
+            <p>Подпись вида <code>kett_*</code> переводится через языковой файл; любой другой текст показывается как есть.</p>
+
+            <h4>Все поля</h4>
+            <h5>Основное <span class="badge">params</span></h5>
+            <table>
+                <tr><th>Поле</th><th>Ключ</th><th>По умолчанию</th></tr>
+                <tr><td>Название</td><td><code>title</code></td><td>—</td></tr>
+                <tr><td>Тип иконки / иконка / URL</td><td><code>icon_type</code>, <code>icon</code>, <code>icon_url</code></td><td><code>icon</code>, <code>fas fa-mug-hot</code></td></tr>
+                <tr><td>Объект и свойство температуры</td><td><code>object</code>, <code>property</code></td><td>не задано</td></tr>
+                <tr><td>Объект и свойство нужной температуры</td><td><code>object_target</code>, <code>property_target</code></td><td>не задано</td></tr>
+                <tr><td>Объект и свойство питания</td><td><code>object_power</code>, <code>property_power</code></td><td>не задано</td></tr>
+                <tr><td>Значения включения</td><td><code>power_values</code></td><td>не задано</td></tr>
+                <tr><td>Объект и свойство режима</td><td><code>object_mode</code>, <code>property_mode</code></td><td>не задано</td></tr>
+                <tr><td>Режимы</td><td><code>modes</code></td><td>не задано</td></tr>
+                <tr><td>Объект и свойство статуса</td><td><code>object_status</code>, <code>property_status</code></td><td>не задано</td></tr>
+                <tr><td>Объект и свойство подсветки</td><td><code>object_light</code>, <code>property_light</code></td><td>не задано</td></tr>
+                <tr><td>Значения подсветки</td><td><code>light_values</code></td><td>не задано</td></tr>
+                <tr><td>Объект и свойство звука</td><td><code>object_beep</code>, <code>property_beep</code></td><td>не задано</td></tr>
+                <tr><td>Значения звука</td><td><code>beep_values</code></td><td>не задано</td></tr>
+                <tr><td>Объект и свойство цвета</td><td><code>object_rgb</code>, <code>property_rgb</code></td><td>не задано</td></tr>
+                <tr><td>Объект и свойство сигнала</td><td><code>object_rssi</code>, <code>property_rssi</code></td><td>не задано</td></tr>
+                <tr><td>Объект и свойство счётчика включений</td><td><code>object_count</code>, <code>property_count</code></td><td>не задано</td></tr>
+                <tr><td>Объект и свойство времени работы</td><td><code>object_worktime</code>, <code>property_worktime</code></td><td>не задано</td></tr>
+                <tr><td>Объект и свойство энергии</td><td><code>object_energy</code>, <code>property_energy</code></td><td>не задано</td></tr>
+                <tr><td>Объект и свойство объёма воды</td><td><code>object_volume</code>, <code>property_volume</code></td><td>не задано</td></tr>
+                <tr><td>Объект и свойство последнего объёма</td><td><code>object_volume_last</code>, <code>property_volume_last</code></td><td>не задано</td></tr>
+                <tr><td>Минимум / максимум / шаг</td><td><code>temp_min</code>, <code>temp_max</code>, <code>temp_step</code></td><td>не задано</td></tr>
+            </table>
+            <h5>Дополнительно <span class="badge">advanced</span></h5>
+            <p>Период обновления, фон, цвет и чекбокс «Показывать время обновления» — общие для всех виджетов поля.</p>
+        </div>
+    </main>
+</div>
+</body>
+</html>

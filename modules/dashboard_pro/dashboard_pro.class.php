@@ -3488,6 +3488,7 @@ function widgetUsageInfo($type)
             array('musicplayer', 'fas fa-music', 'Music player', 'Music player: playlist, spectrum analyzer, color output by frequency bands'),
             array('curtain', 'fas fa-warehouse', 'Gates / Blinds / Curtains', 'Open/close by percentage'),
             array('vacuum', 'fas fa-robot', 'Robot vacuum', 'Robot vacuum status and control'),
+            array('kettle', 'fas fa-mug-hot', 'Electric kettle', 'Electric kettle temperature, modes and power'),
         );
     }
 
