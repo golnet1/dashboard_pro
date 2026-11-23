@@ -2357,8 +2357,8 @@
                                             <span v-if="vacuumCommandsList.length" style="color:rgba(255,255,255,.55);font-size:.8rem;margin-left:4px">{{ vacuumCommandsList.length }} {{ t('units_items') }}</span>
                                         </div>
                                         <div v-if="vacuumCommandsList.length" class="widget-group-list" style="margin-top:8px">
-                                            <div v-for="(c, ci) in vacuumCommandsList" :key="c.key || ci" class="widget-group-list__item" style="display:flex;flex-direction:column;gap:8px;cursor:default">
-                                                <div class="d-flex gap-1" style="flex-wrap:wrap;align-items:flex-start">
+                                            <div v-for="(c, ci) in vacuumCommandsList" :key="c.key || ci" class="widget-group-list__item" style="display:flex;flex-direction:column;gap:14px;cursor:default;padding-top:14px;padding-bottom:14px">
+                                                <div class="d-flex" style="flex-wrap:wrap;align-items:flex-start;gap:12px">
                                                     <div class="v-input v-text-field" style="flex:1 1 100px;min-width:90px">
                                                         <div class="v-input__control">
                                                             <div class="v-input__slot"><label class="v-label" :class="{ 'v-label--active': c.key }">{{ t('vc_key') }}</label><input :value="c.key" @input="setVacuumCommandField(ci, 'key', $event.target.value)"></div>
@@ -2381,7 +2381,7 @@
                                                         <button type="button" class="v-btn v-btn--icon v-btn--round theme--dark v-size--default" :title="t('delete')" @click="removeVacuumCommand(ci)"><i class="fas fa-minus"></i></button>
                                                     </div>
                                                 </div>
-                                                <div class="d-flex gap-1" style="flex-wrap:wrap;align-items:flex-start">
+                                                <div class="d-flex" style="flex-wrap:wrap;align-items:flex-start;gap:12px;padding-top:10px;border-top:1px dashed rgba(255,255,255,.14)">
                                                     <div class="v-input v-text-field v-select" style="flex:1 1 160px;min-width:120px">
                                                         <div class="v-input__control">
                                                             <div class="v-input__slot"><label class="v-label v-label--active">{{ t('field_object') }}</label>
@@ -3154,7 +3154,7 @@
                 <div class="modal-body" style="text-align:center;padding:2rem 1.5rem">
                     <i class="fas fa-chart-line" style="font-size:3rem;color:var(--primary);margin-bottom:1rem"></i>
                     <h3 style="margin-bottom:.3rem">Dashboard Pro</h3>
-                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 01.20.48</p>
+                    <p style="color:var(--text-secondary);font-size:.85rem;margin-bottom:.5rem">{{ t('version') }} 01.20.49</p>
                     <p style="color:var(--text-secondary);font-size:.8rem">{{ t('app_desc') }}</p>
                     <div class="about-links" style="margin-top:1rem;font-size:.85rem;color:var(--text-secondary);line-height:1.8">
                         <div>{{ t('about_telegram') }}: <a href="https://t.me/+9ZFQaxs_Ukw4NmMy" target="_blank" rel="noopener">Telegram</a></div>
@@ -3211,6 +3211,6 @@
 <script src="js/lib/hls.min.js?v=1"></script>
     <script src="js/dpbuilder.js?v=74"></script>
     <script src="js/dpbuilder-ui.js?v=64"></script>
-    <script src="js/app.js?v=499"></script>
+    <script src="js/app.js?v=500"></script>
 </body>
 </html>

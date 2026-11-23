@@ -501,6 +501,7 @@ a.user-menu__item { text-decoration: none; color: inherit; }
 .ml-2 { margin-left: 8px; }
 .mb-2 { margin-bottom: 8px; }
 .d-flex { display: flex; }
+.gap-1 { gap: 6px; }
 .gap-2 { gap: 8px; }
 .flex-wrap { flex-wrap: wrap; }
 
