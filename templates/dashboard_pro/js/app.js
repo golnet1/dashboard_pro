@@ -2265,12 +2265,13 @@ function headerPanelSave() {
                     key: c.key === undefined ? '' : String(c.key),
                     code: c.code === undefined || c.code === null ? '' : String(c.code),
                     label: c.label || '',
-                    icon: c.icon || ''
+                    icon: c.icon || '',
+                    target: c.target === undefined || c.target === null ? '' : String(c.target)
                 }));
             }
             /* Older widgets keep a plain «key: code» map: show it as rows too. */
             if (raw && typeof raw === 'object') {
-                return Object.keys(raw).map(key => ({ key: key, code: String(raw[key] === undefined || raw[key] === null ? '' : raw[key]), label: '', icon: '' }));
+                return Object.keys(raw).map(key => ({ key: key, code: String(raw[key] === undefined || raw[key] === null ? '' : raw[key]), label: '', icon: '', target: '' }));
             }
             return [];
         });
@@ -2606,7 +2607,7 @@ function loadScript(src, version) {
            reached the panel. The token changes on every install, and the base follows the
            module, so a module update also refreshes the widgets. */
         const WIDGET_TOKEN_KEY = 'dp_widget_token';
-        const WIDGET_TOKEN_BASE = 315;
+        const WIDGET_TOKEN_BASE = 316;
         function widgetToken() {
             let token = 0;
             try { token = parseInt(localStorage.getItem(WIDGET_TOKEN_KEY) || '0', 10) || 0; } catch (e) { token = 0; }
