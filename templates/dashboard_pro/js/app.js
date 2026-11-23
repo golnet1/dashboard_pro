@@ -2257,6 +2257,9 @@ function headerPanelSave() {
 
         // ---- Robot vacuum: command rows (the Codes tab) ----
         const vacuumCommandsIdx = ref(0);
+        /* Targets from the saved widget. A stale editor tab has no idea about them,
+           so on save they are put back for rows that were not edited. */
+        let vacuumSavedTargets = {};
         const vacuumCommandsList = computed(() => {
             let raw;
             try { raw = JSON.parse(editWidgetForm.value?.codes || '[]'); } catch { raw = []; }
@@ -2266,7 +2269,7 @@ function headerPanelSave() {
                     code: c.code === undefined || c.code === null ? '' : String(c.code),
                     label: c.label || '',
                     icon: c.icon || '',
-                    target: c.target === undefined || c.target === null ? '' : String(c.target)
+                    ...(c.target === undefined || c.target === null ? {} : { target: String(c.target) })
                 }));
             }
             /* Older widgets keep a plain «key: code» map: show it as rows too. */
@@ -2276,6 +2279,11 @@ function headerPanelSave() {
             return [];
         });
         function setVacuumCommands(arr) {
+            arr.forEach(c => {
+                if (c && c.target === undefined && vacuumSavedTargets[c.key]) {
+                    c.target = vacuumSavedTargets[c.key];
+                }
+            });
             editWidgetForm.value.codes = JSON.stringify(arr);
         }
         function addVacuumCommand() {
@@ -2607,7 +2615,7 @@ function loadScript(src, version) {
            reached the panel. The token changes on every install, and the base follows the
            module, so a module update also refreshes the widgets. */
         const WIDGET_TOKEN_KEY = 'dp_widget_token';
-        const WIDGET_TOKEN_BASE = 316;
+        const WIDGET_TOKEN_BASE = 317;
         function widgetToken() {
             let token = 0;
             try { token = parseInt(localStorage.getItem(WIDGET_TOKEN_KEY) || '0', 10) || 0; } catch (e) { token = 0; }
@@ -3180,6 +3188,15 @@ function loadScript(src, version) {
             const def = widgetDefs.value.find(d => d.type === w.type);
             /* a saved widget carries its own values: nothing is waiting for an object */
             pendingFieldDefaults = {};
+            vacuumSavedTargets = {};
+            try {
+                const savedCodes = JSON.parse(w.codes || '[]');
+                if (Array.isArray(savedCodes)) {
+                    savedCodes.forEach(c => {
+                        if (c && c.key && c.target) vacuumSavedTargets[String(c.key)] = String(c.target);
+                    });
+                }
+            } catch (e) { /* no saved rows to remember */ }
             editWidgetForm.value = {
                 ...w,
                 children: Array.isArray(w.children) ? w.children.map(c => ({ ...c })) : [],
