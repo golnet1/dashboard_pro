@@ -2304,15 +2304,15 @@ class dashboard_pro extends module
                             if ((string)($cand['key'] ?? '') === $key) { $oldRow = $cand; break; }
                         }
                         if (!$oldRow) continue;
-                        $stale = !array_key_exists('target', $row) && !empty($oldRow['target']);
-                        if (!$stale) continue;
-                        foreach (array('target', 'target_object') as $k) {
-                            if (isset($oldRow[$k])) $newRows[$ri][$k] = $oldRow[$k];
-                        }
                         $oldCode = (string)($oldRow['code'] ?? '');
                         $newCode = (string)($row['code'] ?? '');
                         if (substr_count($oldCode, '|') > substr_count($newCode, '|')) {
                             $newRows[$ri]['code'] = $oldCode;
+                        }
+                        $stale = !array_key_exists('target', $row) && !empty($oldRow['target']);
+                        if (!$stale) continue;
+                        foreach (array('target', 'target_object') as $k) {
+                            if (isset($oldRow[$k])) $newRows[$ri][$k] = $oldRow[$k];
                         }
                     }
                     $incoming[$pi]['widgets'][$wi]['codes'] = json_encode($newRows, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
