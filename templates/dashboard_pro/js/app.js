@@ -390,6 +390,17 @@ const widgetUsage = computed(() => {
 const headerStatusSectionOn = computed(() => headerHas('status'));
         const headerStatusMaxReached = computed(() => (settings.value.headerStatusItems || []).length >= 7);
 
+        /* Индикаторы должны опрашивать сервер напрямую: dpAPI при живом сокете
+           отдаёт значение из __dpWsCache, а стартовая выборка WebSocket может
+           содержать устаревшее состояние (например, "Жёлтый" у Системы). */
+        async function hsFreshProperty(object, property) {
+            const key = String(object) + '.' + String(property);
+            const res = await dpHttp('getProperty?' + new URLSearchParams({ object, property }));
+            if (!res || res.error || res.value === undefined) return '';
+            if (window.__dpWsCache) window.__dpWsCache[key.toLowerCase()] = { seeded: true, value: res.value };
+            return res.value;
+        }
+
         function hsParseStatus(value) {
             if (value === null || value === undefined || value === '') return null;
             if (typeof value === 'object') return value;
@@ -452,13 +463,8 @@ const headerStatusSectionOn = computed(() => headerHas('status'));
             if (!authenticated.value || headerStatusSectionOn.value === false) return;
             HEADER_STATUS_BUILTIN.forEach(async (b) => {
                 try {
-                    let raw = '';
-                    let res = await dpAPI('getProperty?' + new URLSearchParams({ object: b.key, property: 'stateTitle' }));
-                    raw = res && res.value != null ? res.value : '';
-                    if (raw === '') {
-                        res = await dpAPI('getProperty?' + new URLSearchParams({ object: b.key, property: 'status' }));
-                        raw = res && res.value != null ? res.value : '';
-                    }
+                    let raw = await hsFreshProperty(b.key, 'stateTitle');
+                    if (raw === '') raw = await hsFreshProperty(b.key, 'status');
                     if (typeof raw === 'object') {
                         const parsed = hsParseStatus(raw);
                         raw = parsed && parsed.text != null ? parsed.text : (parsed && parsed.stateDetails != null ? parsed.stateDetails : '');
@@ -475,8 +481,7 @@ const headerStatusSectionOn = computed(() => headerHas('status'));
                         value = (res && res.result !== undefined) ? res.result : (res && res.value);
                     } else {
                         if (!it.object) return;
-                        const res = await dpAPI('getProperty?' + new URLSearchParams({ object: it.object, property: it.property || 'status' }));
-                        value = res && res.value;
+                        value = await hsFreshProperty(it.object, it.property || 'status');
                         if (typeof value === 'object') {
                             const parsed = hsParseStatus(value);
                             value = parsed && parsed.value != null ? parsed.value : (parsed && parsed.stateDetails != null ? parsed.stateDetails : value);
@@ -2640,7 +2645,7 @@ function loadScript(src, version) {
            reached the panel. The token changes on every install, and the base follows the
            module, so a module update also refreshes the widgets. */
         const WIDGET_TOKEN_KEY = 'dp_widget_token';
-        const WIDGET_TOKEN_BASE = 354;
+        const WIDGET_TOKEN_BASE = 355;
         function widgetToken() {
             let token = 0;
             try { token = parseInt(localStorage.getItem(WIDGET_TOKEN_KEY) || '0', 10) || 0; } catch (e) { token = 0; }
