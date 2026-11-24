@@ -74,7 +74,22 @@ const WS_OBJECT_FIELDS = [
     ['object_target', 'property_target'],
     ['object_level', 'property_level'],
     ['bg_object', 'bg_property'],
-    ['icon_object', 'icon_property']
+    ['icon_object', 'icon_property'],
+    /* Электрочайник: без этих пар его Luigi-свойства не попадают в подписку,
+       и «В сети», цвет и статистика меняются только после перезагрузки. */
+    ['object_mode', 'property_mode'],
+    ['object_gateway', 'property_gateway'],
+    ['object_light', 'property_light'],
+    ['object_backlight', 'property_backlight'],
+    ['object_beep', 'property_beep'],
+    ['object_rgb', 'property_rgb'],
+    ['object_rssi', 'property_rssi'],
+    ['object_count', 'property_count'],
+    ['object_worktime', 'property_worktime'],
+    ['object_energy', 'property_energy'],
+    ['object_power_kw', 'property_power_kw'],
+    ['object_volume', 'property_volume'],
+    ['object_volume_last', 'property_volume_last']
 ];
 
         const INTERFACE_FONT_STACKS = {
@@ -397,7 +412,7 @@ const headerStatusSectionOn = computed(() => headerHas('status'));
             const key = String(object) + '.' + String(property);
             const res = await dpHttp('getProperty?' + new URLSearchParams({ object, property }));
             if (!res || res.error || res.value === undefined) return '';
-            if (window.__dpWsCache) window.__dpWsCache[key.toLowerCase()] = { seeded: true, value: res.value };
+            if (window.__dpWsCache) window.__dpWsCache[key.toLowerCase()] = { seeded: true, value: res.value, ts: Date.now() };
             return res.value;
         }
 
@@ -2645,7 +2660,7 @@ function loadScript(src, version) {
            reached the panel. The token changes on every install, and the base follows the
            module, so a module update also refreshes the widgets. */
         const WIDGET_TOKEN_KEY = 'dp_widget_token';
-        const WIDGET_TOKEN_BASE = 355;
+        const WIDGET_TOKEN_BASE = 357;
         function widgetToken() {
             let token = 0;
             try { token = parseInt(localStorage.getItem(WIDGET_TOKEN_KEY) || '0', 10) || 0; } catch (e) { token = 0; }
@@ -2894,7 +2909,9 @@ function loadScript(src, version) {
         }
 
         function openWidgetHelp(type) {
-            window.open('help/widgets/' + type + '.html', '_blank', 'noopener');
+            /* Справка правится чаще, чем перевыпускается модуль: без
+               параметра браузер показывал бы старую копию после обновления. */
+            window.open('help/widgets/' + type + '.html?cb=' + Date.now(), '_blank', 'noopener');
         }
 
         /* ---- Widget builder (page showWidgetEditorPanel, tab "Создание и редактирование") ---- */
@@ -5255,7 +5272,7 @@ if (f.key) {
                             updates.forEach(u => {
                                 if (!u || !u.PROPERTY) return;
                                 const key = String(u.PROPERTY).toLowerCase();
-                                window.__dpWsCache[key] = { seeded: true, value: u.VALUE };
+                                window.__dpWsCache[key] = { seeded: true, value: u.VALUE, ts: Date.now() };
                                 wsApplyHeaderStatus(key, u.VALUE);
                                 wsApplyHeaderValue(key, u.VALUE);
                                 wsApplyHeaderSwitch(key, u.VALUE);

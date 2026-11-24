@@ -20,8 +20,6 @@ const KettleWidget = {
             { key: 'property', label: 'field_kt_temp', type: 'property', row: 'kt_temp_row' },
             { key: 'object_target', label: 'field_kt_target_object', type: 'object', row: 'kt_target_row' },
             { key: 'property_target', label: 'field_kt_target', type: 'property', row: 'kt_target_row' },
-            { key: 'object_power', label: 'field_kt_power_object', type: 'object', row: 'kt_power_row' },
-            { key: 'property_power', label: 'field_kt_power', type: 'property', row: 'kt_power_row' },
             { key: 'object_mode', label: 'field_kt_mode_object', type: 'object', row: 'kt_mode_row' },
             { key: 'property_mode', label: 'field_kt_mode', type: 'property', row: 'kt_mode_row' },
             { key: 'modes', label: 'field_kt_modes', type: 'text', placeholder: '1|kett_boil,2|kett_boil_heat,3|kett_heat,0|kett_off' },
@@ -159,9 +157,15 @@ const KettleWidget = {
         </div>`,
     data() {
         const ui = KettleColorUi[this.widget.id || this.widget.title || 'kettle'] || {};
+        const st = (this.widget && window.__dpWidgetState[this.widget.id]) || {};
         return {
-            values: {}, busy: false, updatedAt: null, pollTimer: null, lastModeValue: null,
-            lastTargetValue: null,
+            /* Сохранение настроек увеличивает wsRev и пересоздаёт компонент.
+               Без этого состояния на полсекунды появлялись «--», «Не в сети»
+               и пустое кольцо, хотя чайник был подключён. */
+            values: { ...(st.values || {}) }, busy: false,
+            updatedAt: st.updatedAt || null, pollTimer: null, fastTimer: null, _allLoading: false,
+            lastModeValue: st.lastModeValue !== undefined ? st.lastModeValue : null,
+            lastTargetValue: st.lastTargetValue !== undefined ? st.lastTargetValue : null,
             tempHolding: false, tempClickHandled: false, holdDelayTimer: null, holdRepeatTimer: null,
             holdIntervalMs: 320, tempClickTimer: null, tempSyncTimer: null,
             colorOpen: !!ui.open, colorDraft: ui.draft || '#ffffff',
@@ -424,10 +428,14 @@ const KettleWidget = {
     mounted() {
         this.loadAll();
         this.pollTimer = setInterval(() => this.loadAll(), window.__dpPollInterval(this.widget, 5));
+        /* Температура, статус и питание должны меняться без полной
+           перезагрузки: сервер не всегда рассылает эти свойства по WS. */
+        this.fastTimer = setInterval(() => this.loadFast(), 1000);
         window.addEventListener('keydown', this.onKeydown);
     },
     beforeUnmount() {
         if (this.pollTimer) clearInterval(this.pollTimer);
+        if (this.fastTimer) clearInterval(this.fastTimer);
         if (this.tempSyncTimer) clearTimeout(this.tempSyncTimer);
         this.stopTempHold(null, false);
         window.removeEventListener('keydown', this.onKeydown);
@@ -487,37 +495,71 @@ const KettleWidget = {
             if (nx !== null && ny !== null) return nx === ny;
             return x !== '' && y !== '' && !Number.isNaN(Number(x)) && !Number.isNaN(Number(y)) && Number(x) === Number(y);
         },
-        async loadAll() {
-            const pairs = [
-                [this.widget.object, this.widget.property],
-                [this.widget.object_target, this.widget.property_target],
-                [this.widget.object_power, this.widget.property_power],
-                [this.widget.object_mode, this.widget.property_mode],
-                [this.widget.object_status, this.widget.property_status],
-                [this.widget.object_gateway, this.widget.property_gateway],
-                [this.widget.object_light, this.widget.property_light],
-                [this.widget.object_backlight, this.widget.property_backlight],
-                [this.widget.object_beep, this.widget.property_beep],
-                [this.widget.object_rgb, this.widget.property_rgb],
-                [this.widget.object_rssi, this.widget.property_rssi],
-                [this.widget.object_count, this.widget.property_count],
-                [this.widget.object_worktime, this.widget.property_worktime],
-                [this.widget.object_energy, this.widget.property_energy],
-                [this.widget.object_power_kw, this.widget.property_power_kw],
-                [this.widget.object_volume, this.widget.property_volume],
-                [this.widget.object_volume_last, this.widget.property_volume_last]
-            ];
+        persistState() {
+            const id = this.widget && this.widget.id;
+            if (!id) return;
+            window.__dpWidgetState[id] = {
+                values: { ...this.values },
+                updatedAt: this.updatedAt,
+                lastModeValue: this.lastModeValue,
+                lastTargetValue: this.lastTargetValue
+            };
+        },
+        async fetchPairs(pairs, fresh) {
             await Promise.all(pairs.filter(p => p[0] && p[1]).map(async p => {
                 /* Пока кнопку удерживают, не затираем оптимистично набранную
                    температуру старым значением из MQTT. */
                 if (this.tempHolding && p[0] === this.widget.object_target && p[1] === this.widget.property_target) return;
                 try {
-                    const d = await dpAPI('getProperty?' + new URLSearchParams({ object: p[0], property: p[1] }));
+                    const d = await dpAPI(
+                        'getProperty?' + new URLSearchParams({ object: p[0], property: p[1] }),
+                        fresh ? { fresh: true } : undefined
+                    );
                     if (d && !d.error && d.value !== undefined) this.values[p[0] + '.' + p[1]] = d.value;
                 } catch (e) {}
             }));
-            this.rememberTarget(this.numValue(this.widget.object_target, this.widget.property_target));
-            this.updatedAt = Date.now();
+            this.persistState();
+        },
+        async loadAll() {
+            if (this._allLoading) return;
+            this._allLoading = true;
+            try {
+                await this.fetchPairs([
+                    [this.widget.object, this.widget.property],
+                    [this.widget.object_target, this.widget.property_target],
+                    [this.widget.object_mode, this.widget.property_mode],
+                    [this.widget.object_status, this.widget.property_status],
+                    [this.widget.object_gateway, this.widget.property_gateway],
+                    [this.widget.object_light, this.widget.property_light],
+                    [this.widget.object_backlight, this.widget.property_backlight],
+                    [this.widget.object_beep, this.widget.property_beep],
+                    [this.widget.object_rgb, this.widget.property_rgb],
+                    [this.widget.object_rssi, this.widget.property_rssi],
+                    [this.widget.object_count, this.widget.property_count],
+                    [this.widget.object_worktime, this.widget.property_worktime],
+                    [this.widget.object_energy, this.widget.property_energy],
+                    [this.widget.object_power_kw, this.widget.property_power_kw],
+                    [this.widget.object_volume, this.widget.property_volume],
+                    [this.widget.object_volume_last, this.widget.property_volume_last]
+                ], true);
+                this.rememberTarget(this.numValue(this.widget.object_target, this.widget.property_target));
+                this.updatedAt = Date.now();
+                this.persistState();
+            } finally {
+                this._allLoading = false;
+            }
+        },
+        /* Только «живые» поля: сервер шлёт их нерегулярно, поэтому опрашиваем
+           чаще, чем остальную статистику. Кэш WS читается, если он свежий. */
+        async loadFast() {
+            if (this._allLoading) return;
+            await this.fetchPairs([
+                [this.widget.object, this.widget.property],
+                [this.widget.object_status, this.widget.property_status],
+                [this.widget.object_gateway, this.widget.property_gateway],
+                [this.widget.object_mode, this.widget.property_mode],
+                [this.widget.object_target, this.widget.property_target]
+            ], false);
         },
         modeStorageKey() {
             const id = this.widget.id || this.widget.title || '';
@@ -543,6 +585,7 @@ const KettleWidget = {
                 const key = this.targetStorageKey();
                 if (key) localStorage.setItem(key, String(n));
             } catch (e) {}
+            this.persistState();
         },
         rememberMode(value) {
             this.lastModeValue = String(value);
@@ -550,6 +593,7 @@ const KettleWidget = {
                 const key = this.modeStorageKey();
                 if (key) localStorage.setItem(key, String(value));
             } catch (e) {}
+            this.persistState();
         },
         colorUiKey() { return this.widget.id || this.widget.title || 'kettle'; },
         saveColorUi() {
@@ -579,6 +623,7 @@ const KettleWidget = {
         async write(object, property, value, lock = true, refresh = true) {
             if (!object || !property || this.online === false) return;
             this.values[object + '.' + property] = String(value);
+            this.persistState();
             if (lock) this.busy = true;
             try {
                 await dpAPI('setProperty?' + new URLSearchParams({ object: object, property: property, value: String(value) }));

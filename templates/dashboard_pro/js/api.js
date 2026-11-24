@@ -24,15 +24,24 @@ function getPropertyCacheKey(object, property) {
 
 /* Пока канал жив, значение из websocket-кэша годится. Но «жив» — это не
    «рукопожатие прошло»: app.js опускает флаг __dpWsLive, когда канал перестал
-   отвечать (heartbeat). Поэтому доверяем кэшу только при опущенном флаге и
-   только свежей записи, иначе идём по HTTP — панель не должна замирать на
-   устаревшем значении из-за «полуоткрытого» сокета. */
-function wsCacheUsable() {
+   отвечать (heartbeat). Кроме того, первая выборка по подписке присылает
+   false для свойств, у которых в базе OBJECT_ID=0 (у чайника это
+   valueTemperature, Status, HeatTemp). Такой «посев» нельзя считать
+   актуальным: чайник показывал 0° и «Не в сети», пока страницу не
+   перезагружали. Поэтому запись без ts или старше TTL не используется. */
+function wsCacheUsable(key) {
     if (!window.__dpWsLive) return false;
+    const now = Date.now();
     const last = window.__dpWsLastMessageAt || 0;
     if (!last) return false;
     const maxAge = (window.__dpWsStaleMs || 45000);
-    return (Date.now() - last) <= maxAge;
+    if ((now - last) > maxAge) return false;
+    if (key) {
+        const cached = window.__dpWsCache[key];
+        if (!cached || !cached.seeded || !cached.ts) return false;
+        if ((now - cached.ts) > (window.__dpWsCacheTtlMs || 3000)) return false;
+    }
+    return true;
 }
 
 function readProperty(path, opts) {
@@ -42,7 +51,8 @@ function readProperty(path, opts) {
     const property = (params.get('property') || '').trim();
     const key = getPropertyCacheKey(object, property);
     if (!key) return readKv(path, opts);
-    if (wsCacheUsable()) {
+    const forceFresh = !!(opts && opts.fresh);
+    if (!forceFresh && wsCacheUsable(key)) {
         const cached = window.__dpWsCache[key];
         if (cached && cached.seeded) {
             return Promise.resolve({ value: cached.value });
@@ -50,7 +60,7 @@ function readProperty(path, opts) {
     }
     return dpHttp(path, opts).then(res => {
         if (res && !res.error && res.value !== undefined) {
-            window.__dpWsCache[key] = { seeded: true, value: res.value };
+            window.__dpWsCache[key] = { seeded: true, value: res.value, ts: Date.now() };
         }
         return res;
     });
@@ -102,7 +112,7 @@ function wsApplyWrite(path, res) {
         const property = (params.get('property') || 'status').trim();
         const value = params.get('value');
         if (object && window.__dpWsCache) {
-            window.__dpWsCache[getPropertyCacheKey(object, property) || (object.toLowerCase() + '.status')] = { seeded: true, value: value };
+            window.__dpWsCache[getPropertyCacheKey(object, property) || (object.toLowerCase() + '.status')] = { seeded: true, value: value, ts: Date.now() };
         }
     } else if (path.startsWith('method')) {
         const slashIdx = path.indexOf('/');
@@ -130,7 +140,7 @@ const dpAPI = (path, opts) => {
             }).then(r => r.json())
               .then(d => {
                   if (d && !d.error && window.__dpWsCache) {
-                      window.__dpWsCache[(object + '.' + property).toLowerCase()] = { seeded: true, value: value };
+                      window.__dpWsCache[(object + '.' + property).toLowerCase()] = { seeded: true, value: value, ts: Date.now() };
                   }
                   return d;
               })
@@ -170,7 +180,7 @@ function dpSendProperties(pairs) {
         const data = pairs.map(p => ({ NAME: p.object + '.' + p.property, VALUE: String(p.value) }));
         if (window.__dpWsSend({ action: 'SetProperty', data: data })) {
             if (window.__dpWsCache) {
-                data.forEach(d => { window.__dpWsCache[d.NAME.toLowerCase()] = { seeded: true, value: d.VALUE }; });
+                data.forEach(d => { window.__dpWsCache[d.NAME.toLowerCase()] = { seeded: true, value: d.VALUE, ts: Date.now() }; });
             }
             return Promise.resolve({ ok: true, via: 'ws' });
         }

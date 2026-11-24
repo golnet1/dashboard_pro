@@ -746,7 +746,7 @@ a.user-menu__item { text-decoration: none; color: inherit; }
 .widget-v-card .dp-kt__modal-foot button:hover:not(:disabled) { background:rgba(128,128,128,.22); }
 .widget-v-card .dp-kt__modal-foot button:disabled { opacity:.45; cursor:default; }
 .widget-v-card .dp-kt__modal-save { border-color:rgba(34,211,238,.45) !important; background:rgba(34,211,238,.16) !important; }
-.dp-kt__updated { text-align:right; font-size:.6rem; color:var(--on-theme-dim); }
+.dp-kt__updated { text-align:right; font-size:.6rem; color:var(--on-theme-dim); margin:0 0 8px; }
 .widget-v-card--disabled .widget-v-card__header, .widget-v-card--disabled .widget-v-card__body, .widget-v-card--disabled .group-widgets-grid { opacity:.35; pointer-events:none; filter:grayscale(.4); }
 .widget-v-card--disabled .widget-v-card__header .widget-menu { pointer-events:auto; font-size:.9rem; }
 .widget-v-card__locked-icon { margin-left:auto; font-size:1rem; color:var(--on-theme-dim); padding-right:8px; flex-shrink:0; align-self:center; }
